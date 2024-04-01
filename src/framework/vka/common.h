@@ -88,6 +88,8 @@ DEFINE_API_OBJECT(VkSwapchainKHR, VK_OBJECT_TYPE_SWAPCHAIN_KHR)
 DEFINE_API_OBJECT(VkSurfaceKHR, VK_OBJECT_TYPE_SURFACE_KHR)
 struct Swapchain;
 DEFINE_API_OBJECT(GLFWwindow, VK_OBJECT_TYPE_UNKNOWN)
+
+struct WindowCI;
 class Window;
 class Input;
 class I_InputOutput;
@@ -184,7 +186,5 @@ class State;
 // Frames
 // Queues
 // ApiContext
-
-}
 
 

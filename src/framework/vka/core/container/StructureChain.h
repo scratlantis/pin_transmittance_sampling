@@ -1,6 +1,8 @@
 #pragma once
 #include <list>
-#include <framework/vka/helper/misc.h>
+#include "../core_common.h"
+#include "../macros/macros.h"
+#include "../utility/misc.h"
 
 
 // from https://github.com/vcoda/magma
@@ -19,27 +21,25 @@ class StructureChain
 
 	uint32_t getSize() const;
 
-	bool                     empty() const noexcept;
+	bool empty() const;
 
-	VkBaseOutStructure *     chainNodes() const;
-	hash_t                   getHash() const;
+	VkBaseOutStructure *chainNodes() const;
+	hash_t              getHash() const;
 
   private:
 	class Node;
 	std::list<Node> chain;
 };
 
-
 uint32_t StructureChain::getSize() const
 {
 	return VKA_COUNT(chain);
 }
 
-bool StructureChain::empty() const noexcept
+bool StructureChain::empty() const
 {
 	return chain.empty();
 }
-
 class StructureChain::Node
 {
   public:
@@ -53,13 +53,14 @@ class StructureChain::Node
 	{
 		return size;
 	}
+
   private:
 	size_t size;
-	void * data;
+	void  *data;
 };
 
 template <class StructureType>
-inline StructureChain::Node::Node(const StructureType &node):
+inline StructureChain::Node::Node(const StructureType &node) :
     size(sizeof(StructureType))
 {
 	static_assert(sizeof(StructureType) > sizeof(VkBaseInStructure),
@@ -93,7 +94,6 @@ inline VkBaseOutStructure *StructureChain::Node::getNode() const
 	return reinterpret_cast<VkBaseOutStructure *>(data);
 }
 
-
 template <class StructureType>
 inline void StructureChain::addNode(const StructureType &node)
 {
@@ -105,14 +105,10 @@ inline VkBaseOutStructure *StructureChain::firstNode() const
 	return chain.empty() ? nullptr : chain.begin()->getNode();
 }
 
-
 inline VkBaseOutStructure *StructureChain::lastNode() const
 {
 	return chain.empty() ? nullptr : chain.rbegin()->getNode();
 }
-
-
-
 
 VkBaseOutStructure *StructureChain::chainNodes() const
 {
@@ -157,4 +153,4 @@ hash_t StructureChain::getHash() const
 		return nullptr;                                                           \
 	}
 
-
+}

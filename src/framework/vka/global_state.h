@@ -5,20 +5,22 @@
 
 #define KEY_COUNT 1024
 
+namespace vka
+{
+
 class Device
 {
-	VkDevice logical;
+	VkDevice         logical;
 	VkPhysicalDevice physical;
 	VkInstance       instance;
 
 	VkQueue getQueue();
 };
 
-
 struct Mouse
 {
-	//glm::vec2 change;
-	//glm::vec2 pos;
+	glm::vec2 change;
+	glm::vec2 pos;
 	bool      leftPressed;
 	bool      leftEvent;
 	bool      rightPressed;
@@ -27,9 +29,27 @@ struct Mouse
 	double    scrollChange;
 };
 
+
+
+class Window
+{
+  public:
+	virtual ~Window(){};
+	virtual void         init(WindowCI windowCI, VkInstance &instance)                                        = 0;
+	virtual void         readInputs(Mouse &mouse, bool (&keyPressed)[KEY_COUNT], bool (&keyEvent)[KEY_COUNT]) = 0;
+	virtual bool         shouldClose()                                                                        = 0;
+	virtual void         requestClose()                                                                       = 0;
+	virtual VkExtent2D   size() const                                                                         = 0;
+	virtual void         changeSize(VkExtent2D newSize)                                                       = 0;
+	virtual VkSurfaceKHR getSurface() const                                                                   = 0;
+	virtual void         destroy()																			  = 0;
+	virtual std::vector<const char *> getInstanceExtensions()                                                 = 0;
+  private:
+};
+
 class I_InputOutput
 {
-	//Window					 window;
+	// Window					 window;
 	VkExtent2D               extent;
 	VkSurfaceKHR             surface;
 	VkFormat                 format;
@@ -41,29 +61,27 @@ class I_InputOutput
 	bool                     keyEvent[KEY_COUNT];
 };
 
-
-
-
 struct Frame
 {
 	VkSemaphore renderFinishedSemaphore;
 	VkSemaphore imageAvailableSemaphore;
 	VkFence     inFlightFence;
 	uint32_t    frameIndex;
-	//RessourceTracker stack;
-	Frame           *next;
-	Frame           *previous;
+	// RessourceTracker stack;
+	Frame *next;
+	Frame *previous;
 };
 
 struct State
 {
-	Device              device;
-	I_InputOutput       io;
-	//RessourceTracker    heap;
-	//RessourceTracker    cache;
-	Frame              *frame;
-	//MemAllocator        memAlloc;
-	//DescriptorAllocator descAlloc;
-	//QueryAllocator      queryAlloc;
-	//CmdAllocator        cmdAlloc;
+	Device        device;
+	I_InputOutput io;
+	// RessourceTracker    heap;
+	// RessourceTracker    cache;
+	Frame *frame;
+	// MemAllocator        memAlloc;
+	// DescriptorAllocator descAlloc;
+	// QueryAllocator      queryAlloc;
+	// CmdAllocator        cmdAlloc;
 };
+}        // namespace vka	
