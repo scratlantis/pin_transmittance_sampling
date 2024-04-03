@@ -6,9 +6,10 @@ namespace vka
 {
 	GlfwWindow::GlfwWindow()
 	{
-		glfwInit()
+	    glfwInit();
 	}
-GlfwWindow::init(const WindowCI &windowCI, VkInstance &instance)
+
+void GlfwWindow::init(const WindowCI &windowCI, VkInstance &instance)
 {
 	ASSERT_TRUE(glfwInit());
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -40,17 +41,9 @@ GlfwWindow::init(const WindowCI &windowCI, VkInstance &instance)
 			cursorMode = GLFW_CURSOR_NORMAL;
 			break;
 	}
-
 	glfwSetInputMode(window, GLFW_CURSOR, cursorMode);
-	glfwSetWindowUserPointer(window, this);
 
-	mousePos                   = glm::vec2(0, 0);
-	mouseLeftPressed           = false;
-	mouseRightPressed          = false;
-	mouseLeftPressedLastFrame  = false;
-	mouseRightPressedLastFrame = false;
-	memset(keyPressed, 0, sizeof(bool));
-	memset(keyPressedLastFrame, 0, sizeof(bool));
+	glfwSetWindowUserPointer(window, this);
 
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
@@ -73,29 +66,15 @@ VkExtent2D GlfwWindow::size() const
 	return extent;
 }
 
-void GlfwWindow::readInputs(Mouse &mouse, bool (&keyPressed)[KEY_COUNT], bool (&keyEvent)[KEY_COUNT])
+void GlfwWindow::pollEvents()
 {
 	glfwPollEvents();
-	mouse.leftPressed  = mouseLeftPressed;
-	mouse.rightPressed = mouseRightPressed;
-	mouse.pos          = mousePos;
-	mouse.scrollOffset = scrollOffset;
-	memcpy(keyPressed, keyPressed, 1024 * sizeof(bool));
+}
 
-	mouse.leftEvent    = mouseLeftPressed != mouseLeftPressedLastFrame;
-	mouse.rightEvent   = mouseRightPressed != mouseRightPressedLastFrame;
-	mouse.change       = mousePos - mousePosLastFrame;
-	mouse.scrollChange = scrollOffset - scrollOffsetLastFrame;
-	for (size_t i = 0; i < KEY_COUNT; i++)
-	{
-		keyEvent[i] = keyPressed[i] != keyPressedLastFrame[i];
-	}
-
-	mouseLeftPressedLastFrame  = mouseLeftPressed;
-	mouseRightPressedLastFrame = mouseRightPressed;
-	mousePosLastFrame          = mousePos;
-	scrollOffsetLastFrame      = scrollOffset;
-	memcpy(keyPressed, keyPressedLastFrame, 1024 * sizeof(bool));
+void GlfwWindow::waitEvents()
+{
+	glfwGetFramebufferSize(window, &width, &height);
+	glfwWaitEvents();
 }
 
 bool GlfwWindow::shouldClose()

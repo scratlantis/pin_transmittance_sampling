@@ -7,12 +7,7 @@
 namespace vka
 {
 
-struct SwapChainDetails
-{
-	VkSurfaceCapabilitiesKHR        surfaceCapabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR>   presentationMode;
-};
+
 
 struct QueueFamilyIndices
 {
@@ -30,30 +25,7 @@ struct QueueFamilyIndices
 	}
 };
 
-enum CursorMode
-{
-	VISIBLE,
-	HIDDEN,
-	DISABLED
-};
 
-struct WindowCI
-{
-	uint32_t width;
-	uint32_t height;
-	std::string title;
-	bool        resizable;
-	CursorMode cursorMode;
-};
-
-struct DeviceCI
-{
-	std::string               applicationName;
-	std::vector<const char *> enabledDeviceExtensions;
-	std::vector<const char *> enabledInstanceExtensions;
-	StructureChain            enabledFeatures;
-	uint32_t                  queueCount;
-};
 
 static QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 

@@ -106,4 +106,12 @@ inline void *copyBinaryData(const T &src) noexcept
 		memcpy(dst, &src, sizeof(T));
 	return dst;
 }
+
+constexpr void clamp(VkExtent2D &target, const VkExtent2D &minExtent, const VkExtent2D &maxExtent)
+{
+	target.width  = std::max(minExtent.width, std::min(maxExtent.width, target.width));
+	target.height = std::max(minExtent.height, std::min(maxExtent.height, target.height));
+}
+
+
 }        // namespace vka

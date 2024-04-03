@@ -8,8 +8,42 @@
 namespace vka
 {
 
+struct SwapChainDetails
+{
+	VkSurfaceCapabilitiesKHR        surfaceCapabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR>   presentationMode;
+};
+
+enum CursorMode
+{
+	VISIBLE,
+	HIDDEN,
+	DISABLED
+};
+
+struct WindowCI
+{
+	uint32_t    width;
+	uint32_t    height;
+	std::string title;
+	bool        resizable;
+	CursorMode  cursorMode;
+};
+
+struct DeviceCI
+{
+	std::string               applicationName;
+	std::vector<const char *> enabledDeviceExtensions;
+	std::vector<const char *> enabledInstanceExtensions;
+	StructureChain            enabledFeatures;
+	uint32_t                  queueCount;
+};
+
+
 class Device
 {
+	  public:
 	VkDevice         logical;
 	VkPhysicalDevice physical;
 	VkInstance       instance;
@@ -27,6 +61,13 @@ struct Mouse
 	bool      rightEvent;
 	double    scrollOffset;
 	double    scrollChange;
+	void resetEvents()
+	{
+		leftEvent = false;
+		rightEvent = false;
+		change     = glm::vec2(0, 0);
+		scrollChange = 0.0;
+	}
 };
 
 
@@ -35,30 +76,57 @@ class Window
 {
   public:
 	virtual ~Window(){};
-	virtual void         init(WindowCI windowCI, VkInstance &instance)                                        = 0;
-	virtual void         readInputs(Mouse &mouse, bool (&keyPressed)[KEY_COUNT], bool (&keyEvent)[KEY_COUNT]) = 0;
-	virtual bool         shouldClose()                                                                        = 0;
-	virtual void         requestClose()                                                                       = 0;
-	virtual VkExtent2D   size() const                                                                         = 0;
-	virtual void         changeSize(VkExtent2D newSize)                                                       = 0;
-	virtual VkSurfaceKHR getSurface() const                                                                   = 0;
-	virtual void         destroy()																			  = 0;
-	virtual std::vector<const char *> getInstanceExtensions()                                                 = 0;
+	virtual void                      init(WindowCI windowCI, VkInstance &instance) = 0;
+	virtual void                      pollEvents()                                  = 0;
+	virtual void                      waitEvents()                                  = 0;
+	virtual bool                      shouldClose()                                 = 0;
+	virtual void                      requestClose()                                = 0;
+	virtual VkExtent2D                size() const                                  = 0;
+	virtual void                      changeSize(VkExtent2D newSize)                = 0;
+	virtual VkSurfaceKHR              getSurface() const                            = 0;
+	virtual void                      destroy()                                     = 0;
+	virtual std::vector<const char *> getInstanceExtensions()                       = 0;
   private:
 };
 
-class I_InputOutput
+struct IOControlerCI
 {
-	// Window					 window;
+	std::string                     windowTitel;
+	bool                            resizable;
+	VkExtent2D                      size;
+	CursorMode                      cursorMode;
+	std::vector<VkSurfaceFormatKHR> preferedFormats;
+	std::vector<VkPresentModeKHR>   preferedPresentModes;
+	uint32_t                        preferedSwapchainImageCount;
+
+	WindowCI getWindowCI();
+};
+
+class IOController
+{
+  public:
 	VkExtent2D               extent;
 	VkSurfaceKHR             surface;
 	VkFormat                 format;
-	VkSwapchainKHR           vkSwapchain;
+	VkSwapchainKHR           swapchain;
+	VkPresentModeKHR         presentMode;
 	uint32_t                 imageCount;
 	std::vector<VkImageView> imageViews;
 	Mouse                    mouse;
 	bool                     keyPressed[KEY_COUNT];
 	bool                     keyEvent[KEY_COUNT];
+
+	IOController(Window *window, IOControlerCI controllerCI);
+	void init(IOControlerCI controllerCI);
+	void requestSwapchainRecreation();
+	void readInputs();
+  private:
+	bool               shouldRecreateSwapchain;
+	void updateSwapchain();
+	Window            *window;
+	IOControlerCI      controllerCI;
+	SwapChainDetails   swapChainDetails;
+	VkSurfaceFormatKHR surfaceFormat;
 };
 
 struct Frame
@@ -72,10 +140,35 @@ struct Frame
 	Frame *previous;
 };
 
+
+enum StateInitialisationBits
+{
+	STATE_INIT_DEVICE_INSTANCE_BIT = 0x1,
+	STATE_INIT_DEVICE_PHYSICAL_BIT = 0x2,
+	STATE_INIT_DEVICE_LOGICAL_BIT  = 0x4,
+	STATE_INIT_DEVICE_BIT          = 0x8,
+	STATE_INIT_IO_WINDOW_BIT       = 0x10,
+	STATE_INIT_IO_SWAPCHAIN_BIT    = 0x20,
+	STATE_INIT_IO_BIT              = 0x40,
+	STATE_INIT_FRAME_SEMAPHORE_BIT = 0x80,
+	STATE_INIT_FRAME_FENCE_BIT     = 0x100,
+	STATE_INIT_FRAME_STACK_BIT     = 0x200,
+	STATE_INIT_FRAME_BIT           = 0x400,
+	STATE_INIT_HEAP_BIT            = 0x800,
+	STATE_INIT_CACHE_BIT           = 0x1000,
+	STATE_INIT_MEMALLOC_BIT        = 0x2000,
+	STATE_INIT_DESCALLOC_BIT       = 0x4000,
+	STATE_INIT_QUERYALLOC_BIT      = 0x8000,
+	STATE_INIT_CMDALLOC_BIT        = 0x10000,
+	STATE_INIT_ALL_BIT             = 0x20000
+};
+
+
 struct State
 {
+	uint32_t            initBits;
 	Device        device;
-	I_InputOutput io;
+	IOController io;
 	// RessourceTracker    heap;
 	// RessourceTracker    cache;
 	Frame *frame;
@@ -84,4 +177,7 @@ struct State
 	// QueryAllocator      queryAlloc;
 	// CmdAllocator        cmdAlloc;
 };
-}        // namespace vka	
+
+extern State state;
+
+}        // namespace vka

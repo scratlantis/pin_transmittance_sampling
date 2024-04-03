@@ -92,7 +92,7 @@ DEFINE_API_OBJECT(GLFWwindow, VK_OBJECT_TYPE_UNKNOWN)
 struct WindowCI;
 class Window;
 class Input;
-class I_InputOutput;
+class IOController;
 // presentation
 
 
