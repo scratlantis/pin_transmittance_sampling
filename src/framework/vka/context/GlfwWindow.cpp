@@ -4,10 +4,20 @@
 
 namespace vka
 {
-	GlfwWindow::GlfwWindow()
-	{
-	    glfwInit();
-	}
+
+GlfwWindow::GlfwWindow()
+{
+}
+
+void GlfwWindow::initWindowManager()
+{
+	glfwInit();
+}
+void GlfwWindow::terminateWindowManager()
+{
+	glfwTerminate();
+}
+
 
 void GlfwWindow::init(const WindowCI &windowCI, VkInstance &instance)
 {
@@ -90,6 +100,17 @@ void GlfwWindow::requestClose()
 void GlfwWindow::changeSize(VkExtent2D newSize)
 {
 	glfwSetWindowSize(window, newSize.width, newSize.height);
+}
+
+void GlfwWindow::addInstanceExtensions(std::vector<const char *> &extensions)
+{
+	uint32_t     glfwExtensionsCount = 0;
+	const char **glfwExtensions;
+	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionsCount);
+	for (size_t i = 0; i < glfwExtensionsCount; i++)
+	{
+		extensions.push_back(glfwExtensions[i]);
+	}
 }
 
 void GlfwWindow::destroy()

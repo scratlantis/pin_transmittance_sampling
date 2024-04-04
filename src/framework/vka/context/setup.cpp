@@ -42,6 +42,47 @@ static QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSu
 	return indices;
 }
 
+static void selectQueues(int universalQueueCount, int computeQueueCount, int &universalQueueFamily, int &computeQueueFamily)
+{
+	ASSERT_TRUE(state.initBits & (STATE_INIT_DEVICE_PHYSICAL_BIT | STATE_INIT_IO_WINDOW_BIT));
+	universalQueueFamily = -1;
+	computeQueueFamily   = -1;
+	QueueFamilyIndices indices{};
+	uint32_t           queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(state.device.physical, &queueFamilyCount, nullptr);
+	std::vector<VkQueueFamilyProperties> queueFamilyList(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(state.device.physical, &queueFamilyCount, queueFamilyList.data());
+	int index = 0;
+	for (auto &queueFamily : queueFamilyList)
+	{
+		if (universalQueueFamily = -1 &&
+			queueFamily.queueCount >= universalQueueCount
+			&& queueFamily.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
+		{
+			VkBool32 presentation_support = false;
+			vkGetPhysicalDeviceSurfaceSupportKHR(state.device.physical, index, state.io.surface, &presentation_support);
+			if (presentation_support)
+			{
+				universalQueueFamily = index;
+				queueFamily.queueCount -= universalQueueCount;
+			}
+		}
+		if (computeQueueFamily = -1 &&
+			queueFamily.queueCount >= computeQueueCount
+			&& queueFamily.queueFlags & (VK_QUEUE_COMPUTE_BIT))
+		{
+			computeQueueFamily = index;
+			queueFamily.queueCount -= computeQueueCount;
+		}
+		if ((universalQueueFamily != -1 || universalQueueCount == 0) && (computeQueueFamily != -1 || computeQueueCount == 0))
+		{
+			break;
+		}
+	}
+}
+
+
+
 static SwapChainDetails getSwapchainDetails(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
 {
 	SwapChainDetails swapchainDetails{};
@@ -133,11 +174,19 @@ static int checkDeviceSuitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR sur
 	{
 		return 0;
 	}
-	else
+	else if (deviceProperties.vendorID == INTEL_VENDOR_ID)
 	{
-		ASSERT_TRUE(deviceProperties.vendorID)
-		return deviceProperties.vendorID;
+		return 1;
 	}
+	else if (deviceProperties.vendorID == AMD_VENDOR_ID)
+	{
+		return 2;
+	}
+	else if (deviceProperties.vendorID == NVIDIA_VENDOR_ID)
+	{
+		return 3;
+	}
+	return 1;
 }
 
 static VkFormat chooseSupportedFormat(const std::vector<VkFormat> &formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags, VkPhysicalDevice physicalDevice)
@@ -158,7 +207,8 @@ static VkFormat chooseSupportedFormat(const std::vector<VkFormat> &formats, VkIm
 	throw std::runtime_error("Failed to find supported format!");
 }
 
-static void createInstance(const DeviceCI &deviceCI, VkInstance &instance)
+
+void Device::createInstance()
 {
 	VkApplicationInfo appInfo{VK_STRUCTURE_TYPE_APPLICATION_INFO};
 	appInfo.pApplicationName = deviceCI.applicationName.c_str();
@@ -213,10 +263,11 @@ static void createInstance(const DeviceCI &deviceCI, VkInstance &instance)
 	    } else {
 		    std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled";
 	    })
+	state.initBits |= STATE_INIT_DEVICE_INSTANCE_BIT;
 }
-
-static void selectPhysicalDevice(const DeviceCI &deviceCI, VkInstance &instance, VkSurfaceKHR &surface, VkPhysicalDevice &physicalDevice)
+void Device::selectPhysicalDevice()
 {
+	ASSERT_TRUE(state.initBits & (STATE_INIT_DEVICE_INSTANCE_BIT | STATE_INIT_IO_WINDOW_BIT));
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 	if (deviceCount == 0)
@@ -230,10 +281,10 @@ static void selectPhysicalDevice(const DeviceCI &deviceCI, VkInstance &instance,
 	int maxDevicePriority = 0;
 	for (const auto &device : deviceList)
 	{
-		int devicePriority = checkDeviceSuitable(device, surface, deviceCI.enabledDeviceExtensions);
+		int devicePriority = checkDeviceSuitable(device, state.io.surface, deviceCI.enabledDeviceExtensions);
 		if (devicePriority > maxDevicePriority)
 		{
-			physicalDevice    = device;
+			physical    = device;
 			maxDevicePriority = devicePriority;
 		}
 	}
@@ -241,22 +292,34 @@ static void selectPhysicalDevice(const DeviceCI &deviceCI, VkInstance &instance,
 	{
 		throw std::runtime_error("Can not find suitable GPU!");
 	}
+	state.initBits |= STATE_INIT_DEVICE_PHYSICAL_BIT;
 }
-
-static void createLogicalDevice(const DeviceCI &deviceCI, const VkPhysicalDevice &physicalDevice, const VkSurfaceKHR &surface, VkDevice &logicalDevice, std::vector<VkQueue> &queues)
+void Device::createLogicalDevice()
 {
-	QueueFamilyIndices                   indices = getQueueFamilies(physicalDevice, surface);
 	std::vector<VkDeviceQueueCreateInfo> queueCIs;
 	VkDeviceQueueCreateInfo              queueCI{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
-	std::vector<float>                   piority(deviceCI.queueCount);
-	for (size_t i = 0; i < deviceCI.queueCount; i++)
+
+	std::vector<float> piority(std::max(deviceCI.universalQueueCount, deviceCI.computeQueueCount));
+	for (size_t i = 0; i < piority.size(); i++)
 	{
 		piority[i] = 1.0f;
 	}
-	queueCI.queueFamilyIndex = indices.graphicsFamily;
 	queueCI.pQueuePriorities = piority.data();
-	queueCI.queueCount       = deviceCI.queueCount;
-	queueCIs.push_back(queueCI);
+	int universalFamily, computeFamily;
+	selectQueues(deviceCI.universalQueueCount, deviceCI.computeQueueCount, universalFamily, computeFamily);
+
+	if (deviceCI.universalQueueCount > 0)
+	{
+		queueCI.queueFamilyIndex = universalFamily;
+		queueCI.queueCount       = deviceCI.universalQueueCount;
+		queueCIs.push_back(queueCI);
+	}
+	if (deviceCI.computeQueueCount > 0)
+	{
+		queueCI.queueFamilyIndex = computeFamily;
+		queueCI.queueCount       = deviceCI.computeQueueCount;
+		queueCIs.push_back(queueCI);
+	}
 
 	VkDeviceCreateInfo logicalDeviceCI{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 	logicalDeviceCI.queueCreateInfoCount    = VKA_COUNT(queueCIs);
@@ -265,14 +328,31 @@ static void createLogicalDevice(const DeviceCI &deviceCI, const VkPhysicalDevice
 	logicalDeviceCI.ppEnabledExtensionNames = deviceCI.enabledDeviceExtensions.data();
 	logicalDeviceCI.pNext                   = deviceCI.enabledFeatures.chainNodes();
 
-	ASSERT_VULKAN(vkCreateDevice(physicalDevice, &logicalDeviceCI, nullptr, &logicalDevice));
-	queues.resize(deviceCI.queueCount);
-	for (size_t i = 0; i < deviceCI.queueCount; i++)
-	{
-		vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, i, &queues[i]);
-	}
-}
+	ASSERT_VULKAN(vkCreateDevice(physical, &logicalDeviceCI, nullptr, &logical));
 
+	universalQueues.resize(deviceCI.universalQueueCount);
+	for (size_t i = 0; i < deviceCI.universalQueueCount; i++)
+	{
+		vkGetDeviceQueue(logical, universalFamily, i, &universalQueues[i]);
+	}
+	computeQueues.resize(deviceCI.computeQueueCount);
+	if (computeFamily != universalFamily)
+	{
+		for (size_t i = 0; i < deviceCI.computeQueueCount; i++)
+		{
+			vkGetDeviceQueue(logical, computeFamily, i, &computeQueues[i]);
+		}
+	}
+	else
+	{
+		for (size_t i = deviceCI.universalQueueCount; i < deviceCI.universalQueueCount + deviceCI.computeQueueCount; i++)
+		{
+			vkGetDeviceQueue(logical, computeFamily, i, &computeQueues[i]);
+		}
+	}
+	state.initBits |= STATE_INIT_DEVICE_LOGICAL_BIT;
+	state.initBits |= STATE_INIT_DEVICE_BIT;
+}
 
 WindowCI vka::IOControlerCI::getWindowCI()
 {
@@ -285,9 +365,10 @@ WindowCI vka::IOControlerCI::getWindowCI()
 	return windowCI;
 }
 
-vka::IOController::IOController(Window *window, IOControlerCI controllerCI)
+void vka::IOController::configure(IOControlerCI &controllerCI, Window *window)
 {
 	ASSERT_TRUE(state.initBits & STATE_INIT_DEVICE_INSTANCE_BIT);
+	this->controllerCI = controllerCI;
 	this->window = window;
 	window->init(controllerCI.getWindowCI(), state.device.instance);
 	surface = window->getSurface();
@@ -296,7 +377,7 @@ vka::IOController::IOController(Window *window, IOControlerCI controllerCI)
 
 
 
-void vka::IOController::init(IOControlerCI controllerCI)
+void vka::IOController::init()
 {
 	ASSERT_TRUE(state.initBits & STATE_INIT_DEVICE_BIT);
 	swapChainDetails = getSwapchainDetails(state.device.physical, window->getSurface());
@@ -405,34 +486,33 @@ void vka::IOController::readInputs()
 	window->pollEvents();
 }
 
+void State::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *window)
+{
+	initBits                                   = 0;
+	window->initWindowManager();
+	window->addInstanceExtensions(deviceCI.enabledInstanceExtensions);
+	device.configure(deviceCI);
+	device.createInstance();
+	io.configure(ioControllerCI, window);
+	device.selectPhysicalDevice();
+	device.createLogicalDevice();
+	io.init();
+	frame = nullptr;
+	// RessourceTracker    heap;
+	// RessourceTracker    cache;
+	// MemAllocator        memAlloc;
+	// DescriptorAllocator descAlloc;
+	// QueryAllocator      queryAlloc;
+	// CmdAllocator        cmdAlloc;
+}
+void State::destroy()
+{
+	//io.destroy();
+	//device.destroy();
+	//io.window->terminateWindowManager();
+}
 
 /*
-
-static void initVulkanGLFW(DeviceCreateInfo deviceCI, std::vector<SwapchainCreateInfo> swapchainCI, Device &device, std::vector<Swapchain> &swapchain)
-{
-	swapchain.resize(swapchainCI.size());
-	uint32_t     glfwExtensionsCount = 0;
-	const char **glfwExtensions;
-	glfwInit();
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionsCount);
-	for (size_t i = 0; i < glfwExtensionsCount; i++)
-	{
-		deviceCI.enabledInstanceExtensions.push_back(glfwExtensions[i]);
-	}
-	createInstance(deviceCI, device.instance);
-	for (size_t i = 0; i < swapchainCI.size(); i++)
-	{
-		swapchain[i].window  = std::shared_ptr<GlfwWindowWrapper>(new GlfwWindowWrapper(swapchainCI[i], device.instance));
-		swapchain[i].surface = swapchain[i].window->getSurface();
-	}
-	// window 0 is main window
-	selectPhysicalDevice(deviceCI, device.instance, swapchain[0].surface, device.physical);
-	createLogicalDevice(deviceCI, device.physical, swapchain[0].surface, device.logical, device.queues);
-	for (size_t i = 0; i < swapchainCI.size(); i++)
-	{
-		createSwapchain(swapchainCI[i], swapchain[i], device, VK_NULL_HANDLE);
-	}
-}
 
 static void shutdownVulkanGLFW(Device &device, std::vector<Swapchain> &swapchain)
 {

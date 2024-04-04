@@ -14,6 +14,9 @@ class GlfwWindow : public Window
   public:
 
 	GlfwWindow();
+	void initWindowManager();
+	void terminateWindowManager();
+
 	void init(const WindowCI &windowCI, VkInstance &instance);
 	VkExtent2D   size() const;
 	VkSurfaceKHR getSurface() const;
@@ -22,6 +25,7 @@ class GlfwWindow : public Window
 	bool         shouldClose();
 	void         requestClose();
 	void         changeSize(VkExtent2D newSize);
+	void		 addInstanceExtensions(std::vector<const char *> &extensions); 
 	void         destroy();
 
 	~GlfwWindow();

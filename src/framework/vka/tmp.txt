@@ -1,0 +1,114 @@
+static void createInstance(const DeviceCI &deviceCI, VkInstance &instance)
+{
+	VkApplicationInfo appInfo{VK_STRUCTURE_TYPE_APPLICATION_INFO};
+	appInfo.pApplicationName = deviceCI.applicationName.c_str();
+	appInfo.pEngineName      = deviceCI.applicationName.c_str();
+	appInfo.apiVersion       = API_VERSION;
+
+	std::vector<const char *> instanceExtensions;
+	if (deviceCI.enabledInstanceExtensions.size() > 0)
+	{
+		for (const char *enabledExtension : deviceCI.enabledInstanceExtensions)
+		{
+			if (std::find(deviceCI.enabledInstanceExtensions.begin(), deviceCI.enabledInstanceExtensions.end(), enabledExtension) == deviceCI.enabledInstanceExtensions.end())
+			{
+				std::cerr << "Enabled instance extension \"" << enabledExtension << "\" is not present at instance level\n";
+			}
+			instanceExtensions.push_back(enabledExtension);
+		}
+	}
+
+	VkInstanceCreateInfo instanceCreateInfo{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+	instanceCreateInfo.pApplicationInfo = &appInfo;
+
+	if (!instanceExtensions.empty())
+	{
+		IF_VALIDATION(
+		    instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+		    instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);)
+		instanceCreateInfo.enabledExtensionCount   = static_cast<uint32_t>(instanceExtensions.size());
+		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
+	}
+
+	const char *validationLayerName        = "VK_LAYER_KHRONOS_validation";
+	instanceCreateInfo.ppEnabledLayerNames = &validationLayerName;
+	instanceCreateInfo.enabledLayerCount   = 1;
+	ASSERT_VULKAN(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
+	IF_VALIDATION(
+	    uint32_t instanceLayerCount;
+	    vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
+	    std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
+	    vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
+	    bool validationLayerPresent = false;
+	    for (VkLayerProperties layer
+	         : instanceLayerProperties) {
+		    if (strcmp(layer.layerName, validationLayerName) == 0)
+		    {
+			    validationLayerPresent = true;
+			    break;
+		    }
+	    } if (validationLayerPresent) {
+		    instanceCreateInfo.ppEnabledLayerNames = &validationLayerName;
+		    instanceCreateInfo.enabledLayerCount   = 1;
+	    } else {
+		    std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled";
+	    })
+}
+
+static void selectPhysicalDevice(const DeviceCI &deviceCI, VkInstance &instance, VkSurfaceKHR &surface, VkPhysicalDevice &physicalDevice)
+{
+	uint32_t deviceCount = 0;
+	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+	if (deviceCount == 0)
+	{
+		throw std::runtime_error("Can not find GPU's that support Vulkan Instance!");
+	}
+
+	std::vector<VkPhysicalDevice> deviceList(deviceCount);
+	vkEnumeratePhysicalDevices(instance, &deviceCount, deviceList.data());
+
+	int maxDevicePriority = 0;
+	for (const auto &device : deviceList)
+	{
+		int devicePriority = checkDeviceSuitable(device, surface, deviceCI.enabledDeviceExtensions);
+		if (devicePriority > maxDevicePriority)
+		{
+			physicalDevice    = device;
+			maxDevicePriority = devicePriority;
+		}
+	}
+	if (maxDevicePriority == 0)
+	{
+		throw std::runtime_error("Can not find suitable GPU!");
+	}
+}
+
+static void createLogicalDevice(const DeviceCI &deviceCI, const VkPhysicalDevice &physicalDevice, const VkSurfaceKHR &surface, VkDevice &logicalDevice, std::vector<VkQueue> &queues)
+{
+	QueueFamilyIndices                   indices = getQueueFamilies(physicalDevice, surface);
+	std::vector<VkDeviceQueueCreateInfo> queueCIs;
+	VkDeviceQueueCreateInfo              queueCI{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
+	std::vector<float>                   piority(deviceCI.queueCount);
+	for (size_t i = 0; i < deviceCI.queueCount; i++)
+	{
+		piority[i] = 1.0f;
+	}
+	queueCI.queueFamilyIndex = indices.graphicsFamily;
+	queueCI.pQueuePriorities = piority.data();
+	queueCI.queueCount       = deviceCI.queueCount;
+	queueCIs.push_back(queueCI);
+
+	VkDeviceCreateInfo logicalDeviceCI{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
+	logicalDeviceCI.queueCreateInfoCount    = VKA_COUNT(queueCIs);
+	logicalDeviceCI.pQueueCreateInfos       = queueCIs.data();
+	logicalDeviceCI.enabledExtensionCount   = VKA_COUNT(deviceCI.enabledDeviceExtensions);
+	logicalDeviceCI.ppEnabledExtensionNames = deviceCI.enabledDeviceExtensions.data();
+	logicalDeviceCI.pNext                   = deviceCI.enabledFeatures.chainNodes();
+
+	ASSERT_VULKAN(vkCreateDevice(physicalDevice, &logicalDeviceCI, nullptr, &logicalDevice));
+	queues.resize(deviceCI.queueCount);
+	for (size_t i = 0; i < deviceCI.queueCount; i++)
+	{
+		vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, i, &queues[i]);
+	}
+}

@@ -2,6 +2,7 @@
 #include "common.h"
 #include "mock.h"
 #include <glm/glm.hpp>
+#include <unordered_map>
 
 #define KEY_COUNT 1024
 
@@ -37,18 +38,26 @@ struct DeviceCI
 	std::vector<const char *> enabledDeviceExtensions;
 	std::vector<const char *> enabledInstanceExtensions;
 	StructureChain            enabledFeatures;
-	uint32_t                  queueCount;
+	uint32_t                  universalQueueCount;
+	uint32_t                  computeQueueCount;
 };
-
 
 class Device
 {
-	  public:
+	public:
 	VkDevice         logical;
 	VkPhysicalDevice physical;
 	VkInstance       instance;
+	std::vector<VkQueue> universalQueues;
+	std::vector<VkQueue> computeQueues;
 
-	VkQueue getQueue();
+	void configure(DeviceCI &deviceCI);
+	void createInstance();
+	void selectPhysicalDevice();
+	void createLogicalDevice();
+
+	private:
+		DeviceCI deviceCI;
 };
 
 struct Mouse
@@ -76,6 +85,8 @@ class Window
 {
   public:
 	virtual ~Window(){};
+	virtual void                      initWindowManager() = 0;
+	virtual void                      terminateWindowManager() = 0;
 	virtual void                      init(WindowCI windowCI, VkInstance &instance) = 0;
 	virtual void                      pollEvents()                                  = 0;
 	virtual void                      waitEvents()                                  = 0;
@@ -85,7 +96,7 @@ class Window
 	virtual void                      changeSize(VkExtent2D newSize)                = 0;
 	virtual VkSurfaceKHR              getSurface() const                            = 0;
 	virtual void                      destroy()                                     = 0;
-	virtual std::vector<const char *> getInstanceExtensions()                       = 0;
+	virtual void                      addInstanceExtensions(std::vector<const char *> &extensions) = 0;
   private:
 };
 
@@ -116,8 +127,9 @@ class IOController
 	bool                     keyPressed[KEY_COUNT];
 	bool                     keyEvent[KEY_COUNT];
 
-	IOController(Window *window, IOControlerCI controllerCI);
-	void init(IOControlerCI controllerCI);
+
+	void configure(IOControlerCI &controllerCI, Window *window);
+	void init();
 	void requestSwapchainRecreation();
 	void readInputs();
   private:
@@ -164,8 +176,9 @@ enum StateInitialisationBits
 };
 
 
-struct State
+class State
 {
+  public:
 	uint32_t            initBits;
 	Device        device;
 	IOController io;
@@ -176,6 +189,9 @@ struct State
 	// DescriptorAllocator descAlloc;
 	// QueryAllocator      queryAlloc;
 	// CmdAllocator        cmdAlloc;
+
+	void init(DeviceCI &deviceCI, IOControlerCI ioContorllerCI, Window* window);
+	void destroy();
 };
 
 extern State state;

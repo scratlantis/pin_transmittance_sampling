@@ -7,8 +7,6 @@
 namespace vka
 {
 
-
-
 struct QueueFamilyIndices
 {
 	int graphicsFamily     = -1;
@@ -27,6 +25,7 @@ struct QueueFamilyIndices
 
 
 
+
 static QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 
 static SwapChainDetails getSwapchainDetails(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
@@ -39,14 +38,6 @@ static int checkDeviceSuitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR sur
 
 static VkFormat chooseSupportedFormat(const std::vector<VkFormat> &formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags, VkPhysicalDevice physicalDevice);
 
-static void createInstance(const DeviceCI &deviceCI, VkInstance &instance);
-
-static void selectPhysicalDevice(const DeviceCI &deviceCI, VkInstance &instance, VkSurfaceKHR &surface, VkPhysicalDevice &physicalDevice);
-
-static void createLogicalDevice(const DeviceCI &deviceCI, const VkPhysicalDevice &physicalDevice, const VkSurfaceKHR &surface, VkDevice &logicalDevice, std::vector<VkQueue> &queues);
-
-
-static void createSwapchain(const SwapchainCreateInfo &swapchainCI, Swapchain &swapchain, const ApiContext &context, VkSwapchainKHR oldSwapchain);
 /*
 static void initVulkanGLFW(ApiContextCreateInfo contextCI, std::vector<SwapchainCreateInfo> swapchainCI, ApiContext &context, std::vector<Swapchain> &swapchain);
 
