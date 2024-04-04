@@ -52,6 +52,7 @@ class Device
 	std::vector<VkQueue> computeQueues;
 
 	void configure(DeviceCI &deviceCI);
+	void destroy();
 	void createInstance();
 	void selectPhysicalDevice();
 	void createLogicalDevice();
@@ -132,6 +133,8 @@ class IOController
 	void init();
 	void requestSwapchainRecreation();
 	void readInputs();
+	void destroy();
+	void terminateWindowManager();
   private:
 	bool               shouldRecreateSwapchain;
 	void updateSwapchain();
@@ -182,16 +185,20 @@ class State
 	uint32_t            initBits;
 	Device        device;
 	IOController io;
-	// RessourceTracker    heap;
-	// RessourceTracker    cache;
+	//RessourceTracker    heap;
+	//RessourceTracker    cache;
 	Frame *frame;
-	// MemAllocator        memAlloc;
-	// DescriptorAllocator descAlloc;
-	// QueryAllocator      queryAlloc;
-	// CmdAllocator        cmdAlloc;
+	MemAllocator        memAlloc;
+	DescriptorAllocator descAlloc;
+	QueryAllocator      queryAlloc;
+	CmdAllocator        cmdAlloc;
 
-	void init(DeviceCI &deviceCI, IOControlerCI ioContorllerCI, Window* window);
+	void init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window* window);
 	void destroy();
+	private:
+	std::vector<Frame> frames;
+	void initFrames();
+	void destroyFrames();
 };
 
 extern State state;

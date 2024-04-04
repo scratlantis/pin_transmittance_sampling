@@ -5,7 +5,6 @@
 namespace vka
 {
 
-
 static QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
 {
 	QueueFamilyIndices indices{};
@@ -56,8 +55,7 @@ static void selectQueues(int universalQueueCount, int computeQueueCount, int &un
 	for (auto &queueFamily : queueFamilyList)
 	{
 		if (universalQueueFamily = -1 &&
-			queueFamily.queueCount >= universalQueueCount
-			&& queueFamily.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
+		                           queueFamily.queueCount >= universalQueueCount && queueFamily.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
 		{
 			VkBool32 presentation_support = false;
 			vkGetPhysicalDeviceSurfaceSupportKHR(state.device.physical, index, state.io.surface, &presentation_support);
@@ -68,8 +66,7 @@ static void selectQueues(int universalQueueCount, int computeQueueCount, int &un
 			}
 		}
 		if (computeQueueFamily = -1 &&
-			queueFamily.queueCount >= computeQueueCount
-			&& queueFamily.queueFlags & (VK_QUEUE_COMPUTE_BIT))
+		                         queueFamily.queueCount >= computeQueueCount && queueFamily.queueFlags & (VK_QUEUE_COMPUTE_BIT))
 		{
 			computeQueueFamily = index;
 			queueFamily.queueCount -= computeQueueCount;
@@ -80,8 +77,6 @@ static void selectQueues(int universalQueueCount, int computeQueueCount, int &un
 		}
 	}
 }
-
-
 
 static SwapChainDetails getSwapchainDetails(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
 {
@@ -207,6 +202,16 @@ static VkFormat chooseSupportedFormat(const std::vector<VkFormat> &formats, VkIm
 	throw std::runtime_error("Failed to find supported format!");
 }
 
+void Device::configure(DeviceCI &deviceCI)
+{
+		this->deviceCI = deviceCI;
+}
+
+void Device::destroy()
+{
+	vkDestroyInstance(instance, nullptr);
+	vkDestroyDevice(logical, nullptr);
+}
 
 void Device::createInstance()
 {
@@ -284,7 +289,7 @@ void Device::selectPhysicalDevice()
 		int devicePriority = checkDeviceSuitable(device, state.io.surface, deviceCI.enabledDeviceExtensions);
 		if (devicePriority > maxDevicePriority)
 		{
-			physical    = device;
+			physical          = device;
 			maxDevicePriority = devicePriority;
 		}
 	}
@@ -369,13 +374,11 @@ void vka::IOController::configure(IOControlerCI &controllerCI, Window *window)
 {
 	ASSERT_TRUE(state.initBits & STATE_INIT_DEVICE_INSTANCE_BIT);
 	this->controllerCI = controllerCI;
-	this->window = window;
+	this->window       = window;
 	window->init(controllerCI.getWindowCI(), state.device.instance);
 	surface = window->getSurface();
 	state.initBits |= STATE_INIT_IO_WINDOW_BIT;
 }
-
-
 
 void vka::IOController::init()
 {
@@ -388,7 +391,7 @@ void vka::IOController::init()
 	selectByPreference(swapChainDetails.presentationMode, controllerCI.preferedPresentModes, presentMode);
 
 	imageCount = controllerCI.preferedSwapchainImageCount;
-	imageCount          = std::max(imageCount, swapChainDetails.surfaceCapabilities.minImageCount);
+	imageCount = std::max(imageCount, swapChainDetails.surfaceCapabilities.minImageCount);
 	if (swapChainDetails.surfaceCapabilities.maxImageCount > 0)        // 0 == limitless
 	{
 		imageCount = std::min(imageCount, swapChainDetails.surfaceCapabilities.maxImageCount);
@@ -403,7 +406,7 @@ void vka::IOController::updateSwapchain()
 	{
 		return;
 	}
-	while(window->size().height == 0 || window->size().width == 0)
+	while (window->size().height == 0 || window->size().width == 0)
 	{
 		window->waitEvents();
 	}
@@ -464,7 +467,7 @@ void vka::IOController::updateSwapchain()
 	std::vector<VkImage> images(imageCount);
 	imageViews.resize(imageCount);
 	vkGetSwapchainImagesKHR(state.device.logical, swapchain, &imageCount, images.data());
-	
+
 	for (size_t i = 0; i < imageCount; i++)
 	{
 		VkImageViewCreateInfo imageViewCI = ImageViewCreateInfo_Swapchain(images[i], format);
@@ -486,9 +489,55 @@ void vka::IOController::readInputs()
 	window->pollEvents();
 }
 
+void vka::IOController::destroy()
+{
+	vkDestroySwapchainKHR(state.device.logical, swapchain, nullptr);
+	for (size_t i = 0; i < imageCount; i++)
+	{
+		vkDestroyImageView(state.device.logical, imageViews[i], nullptr);
+	}
+	vkDestroySurfaceKHR(state.device.instance, surface, nullptr);
+	window->destroy();
+}
+
+void vka::IOController::terminateWindowManager()
+{
+	window->terminateWindowManager();
+}
+
+void vka::State::initFrames()
+{
+	ASSERT_TRUE(initBits & (STATE_INIT_DEVICE_BIT | STATE_INIT_IO_BIT));
+	VkSemaphoreCreateInfo semaphoreCI{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+	VkFenceCreateInfo     fenceCI{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+	fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+	frames.resize(io.imageCount);
+	for (size_t i = 0; i < io.imageCount; i++)
+	{
+		frames[i].frameIndex = i;
+		frames[i].next       = &frames[NEXT_INDEX(i, io.imageCount)];
+		frames[i].previous   = &frames[PREVIOUS_INDEX(i, io.imageCount)];
+		ASSERT_VULKAN(vkCreateSemaphore(device.logical, &semaphoreCI, nullptr, &frames[i].imageAvailableSemaphore));
+		ASSERT_VULKAN(vkCreateSemaphore(device.logical, &semaphoreCI, nullptr, &frames[i].renderFinishedSemaphore));
+		ASSERT_VULKAN(vkCreateFence(device.logical, &fenceCI, nullptr, &frames[i].inFlightFence));
+	}
+	frame = frames.data();
+	initBits |= STATE_INIT_FRAME_SEMAPHORE_BIT;
+}
+
+void vka::State::destroyFrames()
+{
+	for (auto &frame : frames)
+	{
+		vkDestroySemaphore(device.logical, frame.imageAvailableSemaphore, nullptr);
+		vkDestroySemaphore(device.logical, frame.renderFinishedSemaphore, nullptr);
+		vkDestroyFence(device.logical, frame.inFlightFence, nullptr);
+	}
+}
+
 void State::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *window)
 {
-	initBits                                   = 0;
+	initBits = 0;
 	window->initWindowManager();
 	window->addInstanceExtensions(deviceCI.enabledInstanceExtensions);
 	device.configure(deviceCI);
@@ -497,75 +546,22 @@ void State::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *windo
 	device.selectPhysicalDevice();
 	device.createLogicalDevice();
 	io.init();
-	frame = nullptr;
-	// RessourceTracker    heap;
-	// RessourceTracker    cache;
-	// MemAllocator        memAlloc;
-	// DescriptorAllocator descAlloc;
-	// QueryAllocator      queryAlloc;
-	// CmdAllocator        cmdAlloc;
+	initFrames();
+	memAlloc.init();
+	descAlloc.init();
+	queryAlloc.init();
+	cmdAlloc.init();
+	initBits |= STATE_INIT_ALL_BIT;
 }
 void State::destroy()
 {
-	//io.destroy();
-	//device.destroy();
-	//io.window->terminateWindowManager();
-}
-
-/*
-
-static void shutdownVulkanGLFW(Device &device, std::vector<Swapchain> &swapchain)
-{
-	for (size_t i = 0; i < swapchain.size(); i++)
-	{
-		swapchain[i].destroy(device);
-	}
-
+	cmdAlloc.destroy();
+	queryAlloc.destroy();
+	descAlloc.destroy();
+	memAlloc.destroy();
+	destroyFrames();
+	io.destroy();
 	device.destroy();
-
-	glfwTerminate();
+	io.terminateWindowManager();
 }
-
-void Swapchain::destroyVkSwapchain(VkDevice &device)
-{
-	if (hasWindow)
-	{
-		for (size_t i = 0; i < imageViews.size(); i++)
-		{
-			vkDestroyImageView(device, imageViews[i], nullptr);
-		}
-		vkDestroySwapchainKHR(device, vkSwapchain, nullptr);
-		hasWindow = false;
-	}
-}
-
-void Swapchain::destroySyncObjects(VkDevice &device)
-{
-	if (hasSyncObjects)
-	{
-		for (size_t i = 0; i < imageCount; i++)
-		{
-			vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
-			vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
-			vkDestroyFence(device, inFlightFences[i], nullptr);
-		}
-		hasSyncObjects = false;
-	}
-}
-
-void Swapchain::destroy(VkDevice &device, VkInstance &instance)
-{
-	destroyVkSwapchain(device);
-	destroySyncObjects(device);
-	vkDestroySurfaceKHR(instance, surface, nullptr);
-	window->destroy();
-}
-
-void ApiContext::destroy()
-{
-	vkDestroyDevice(device, nullptr);
-	vkDestroyInstance(instance, nullptr);
-}
-*/
-
 }        // namespace vka

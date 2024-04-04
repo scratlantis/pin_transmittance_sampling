@@ -130,3 +130,6 @@ static std::string errorString(VkResult errorCode)
 #	define ASSERT_VULKAN(val) val
 #	define ASSERT_TRUE(val) val
 #endif        // _DEBUG
+
+#define NEXT_INDEX(x, y) ((x + 1) % (y))
+#define PREVIOUS_INDEX(x, y) (((x + y - 1) % y))
