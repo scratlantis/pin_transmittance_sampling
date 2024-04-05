@@ -162,7 +162,7 @@ DEFINE_API_OBJECT(VkEvent, VK_OBJECT_TYPE_EVENT)
 
 // Global State
 struct Frame;
-class State;
+class AppState;
 
 
 

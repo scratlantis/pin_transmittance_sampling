@@ -121,4 +121,73 @@ void GlfwWindow::destroy()
 GlfwWindow::~GlfwWindow()
 {
 }
+
+
+
+void GlfwWindow::framebuffer_size_callback(GLFWwindow *window, int width, int height)
+{
+	GlfwWindow *thisWindow = static_cast<GlfwWindow *>(glfwGetWindowUserPointer(window));
+	thisWindow->width      = width;
+	thisWindow->height     = height;
+	gState.io.requestSwapchainRecreation();
+}
+
+
+void GlfwWindow::key_callback(GLFWwindow *window, int key, int code, int action, int mode)
+{
+	if (key >= 0 && key < KEY_COUNT)
+	{
+		gState.io.keyEvent[key] = true;
+		if (action == GLFW_PRESS)
+		{
+			gState.io.keyPressed[key] = true;
+		}
+		else if (action == GLFW_RELEASE)
+		{
+			gState.io.keyPressed[key] = false;
+		}
+	}
+}
+
+void GlfwWindow::mouse_callback(GLFWwindow *window, double x_pos, double y_pos)
+{
+	gState.io.mouse.change += glm::vec2(static_cast<float>(x_pos), static_cast<float>(y_pos)) - gState.io.mouse.pos;
+	gState.io.mouse.pos = glm::vec2(static_cast<float>(x_pos), static_cast<float>(y_pos));
+}
+
+void GlfwWindow::mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
+{
+	if (button == GLFW_MOUSE_BUTTON_RIGHT)
+	{
+		gState.io.mouse.rightEvent = true;
+		if (action == GLFW_PRESS)
+		{
+			gState.io.mouse.rightPressed = true;
+		}
+		else if (action == GLFW_RELEASE)
+		{
+			gState.io.mouse.rightPressed = false;
+		}
+	}
+	else if (button == GLFW_MOUSE_BUTTON_LEFT)
+	{
+		gState.io.mouse.leftEvent = true;
+		if (action == GLFW_PRESS)
+		{
+			gState.io.mouse.leftPressed = true;
+		}
+		else if (action == GLFW_RELEASE)
+		{
+			gState.io.mouse.leftPressed = false;
+		}
+	}
+}
+
+void GlfwWindow::mouse_scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+{
+	gState.io.mouse.scrollChange += yoffset - gState.io.mouse.scrollOffset;
+	gState.io.mouse.scrollOffset = yoffset;
+}
+
+
 }        // namespace vka

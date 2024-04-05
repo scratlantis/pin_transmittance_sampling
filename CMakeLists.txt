@@ -147,7 +147,7 @@ find_package(Vulkan REQUIRED)
 
 
 
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} STATIC
 ${SRCS_FRAMEWORK}
 )
 
@@ -200,6 +200,9 @@ FOREACH(target ${target_list})
   target_link_libraries(${target} glfw)
   target_link_libraries(${target} Vulkan::Vulkan imgui stb glm tinyobjloader vma ktx csvwriter nlohmann_json)
   target_link_libraries(${target} ${CMAKE_DL_LIBS} Threads::Threads)
+  if(NOT ${target} MATCHES  ${PROJECT_NAME})
+    target_link_libraries(${target} ${PROJECT_NAME})
+  endif()
 ENDFOREACH()
 
 if(UNIX)

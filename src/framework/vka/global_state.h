@@ -3,6 +3,7 @@
 #include "mock.h"
 #include <glm/glm.hpp>
 #include <unordered_map>
+#include "core/container/StructureChain.h"
 
 #define KEY_COUNT 1024
 
@@ -35,11 +36,11 @@ struct WindowCI
 struct DeviceCI
 {
 	std::string               applicationName;
-	std::vector<const char *> enabledDeviceExtensions;
-	std::vector<const char *> enabledInstanceExtensions;
-	StructureChain            enabledFeatures;
 	uint32_t                  universalQueueCount;
 	uint32_t                  computeQueueCount;
+	std::vector<const char *> enabledInstanceExtensions;
+	std::vector<const char *> enabledDeviceExtensions;
+	StructureChain            enabledFeatures;
 };
 
 class Device
@@ -88,7 +89,7 @@ class Window
 	virtual ~Window(){};
 	virtual void                      initWindowManager() = 0;
 	virtual void                      terminateWindowManager() = 0;
-	virtual void                      init(WindowCI windowCI, VkInstance &instance) = 0;
+	virtual void                      init(const WindowCI &windowCI, VkInstance &instance) = 0;
 	virtual void                      pollEvents()                                  = 0;
 	virtual void                      waitEvents()                                  = 0;
 	virtual bool                      shouldClose()                                 = 0;
@@ -135,6 +136,8 @@ class IOController
 	void readInputs();
 	void destroy();
 	void terminateWindowManager();
+	bool shouldTerminate();
+
   private:
 	bool               shouldRecreateSwapchain;
 	void updateSwapchain();
@@ -179,7 +182,7 @@ enum StateInitialisationBits
 };
 
 
-class State
+class AppState
 {
   public:
 	uint32_t            initBits;
@@ -194,6 +197,7 @@ class State
 	CmdAllocator        cmdAlloc;
 
 	void init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window* window);
+	void nextFrame();
 	void destroy();
 	private:
 	std::vector<Frame> frames;
@@ -201,6 +205,6 @@ class State
 	void destroyFrames();
 };
 
-extern State state;
 
 }        // namespace vka
+extern vka::AppState gState;

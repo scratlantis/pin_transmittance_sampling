@@ -43,14 +43,14 @@ static QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSu
 
 static void selectQueues(int universalQueueCount, int computeQueueCount, int &universalQueueFamily, int &computeQueueFamily)
 {
-	ASSERT_TRUE(state.initBits & (STATE_INIT_DEVICE_PHYSICAL_BIT | STATE_INIT_IO_WINDOW_BIT));
+	ASSERT_TRUE(gState.initBits & (STATE_INIT_DEVICE_PHYSICAL_BIT | STATE_INIT_IO_WINDOW_BIT));
 	universalQueueFamily = -1;
 	computeQueueFamily   = -1;
 	QueueFamilyIndices indices{};
 	uint32_t           queueFamilyCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(state.device.physical, &queueFamilyCount, nullptr);
+	vkGetPhysicalDeviceQueueFamilyProperties(gState.device.physical, &queueFamilyCount, nullptr);
 	std::vector<VkQueueFamilyProperties> queueFamilyList(queueFamilyCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(state.device.physical, &queueFamilyCount, queueFamilyList.data());
+	vkGetPhysicalDeviceQueueFamilyProperties(gState.device.physical, &queueFamilyCount, queueFamilyList.data());
 	int index = 0;
 	for (auto &queueFamily : queueFamilyList)
 	{
@@ -58,7 +58,7 @@ static void selectQueues(int universalQueueCount, int computeQueueCount, int &un
 		                           queueFamily.queueCount >= universalQueueCount && queueFamily.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
 		{
 			VkBool32 presentation_support = false;
-			vkGetPhysicalDeviceSurfaceSupportKHR(state.device.physical, index, state.io.surface, &presentation_support);
+			vkGetPhysicalDeviceSurfaceSupportKHR(gState.device.physical, index, gState.io.surface, &presentation_support);
 			if (presentation_support)
 			{
 				universalQueueFamily = index;
@@ -209,8 +209,8 @@ void Device::configure(DeviceCI &deviceCI)
 
 void Device::destroy()
 {
-	vkDestroyInstance(instance, nullptr);
 	vkDestroyDevice(logical, nullptr);
+	vkDestroyInstance(instance, nullptr);
 }
 
 void Device::createInstance()
@@ -268,11 +268,11 @@ void Device::createInstance()
 	    } else {
 		    std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled";
 	    })
-	state.initBits |= STATE_INIT_DEVICE_INSTANCE_BIT;
+	gState.initBits |= STATE_INIT_DEVICE_INSTANCE_BIT;
 }
 void Device::selectPhysicalDevice()
 {
-	ASSERT_TRUE(state.initBits & (STATE_INIT_DEVICE_INSTANCE_BIT | STATE_INIT_IO_WINDOW_BIT));
+	ASSERT_TRUE(gState.initBits & (STATE_INIT_DEVICE_INSTANCE_BIT | STATE_INIT_IO_WINDOW_BIT));
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 	if (deviceCount == 0)
@@ -286,7 +286,7 @@ void Device::selectPhysicalDevice()
 	int maxDevicePriority = 0;
 	for (const auto &device : deviceList)
 	{
-		int devicePriority = checkDeviceSuitable(device, state.io.surface, deviceCI.enabledDeviceExtensions);
+		int devicePriority = checkDeviceSuitable(device, gState.io.surface, deviceCI.enabledDeviceExtensions);
 		if (devicePriority > maxDevicePriority)
 		{
 			physical          = device;
@@ -297,7 +297,7 @@ void Device::selectPhysicalDevice()
 	{
 		throw std::runtime_error("Can not find suitable GPU!");
 	}
-	state.initBits |= STATE_INIT_DEVICE_PHYSICAL_BIT;
+	gState.initBits |= STATE_INIT_DEVICE_PHYSICAL_BIT;
 }
 void Device::createLogicalDevice()
 {
@@ -355,8 +355,8 @@ void Device::createLogicalDevice()
 			vkGetDeviceQueue(logical, computeFamily, i, &computeQueues[i]);
 		}
 	}
-	state.initBits |= STATE_INIT_DEVICE_LOGICAL_BIT;
-	state.initBits |= STATE_INIT_DEVICE_BIT;
+	gState.initBits |= STATE_INIT_DEVICE_LOGICAL_BIT;
+	gState.initBits |= STATE_INIT_DEVICE_BIT;
 }
 
 WindowCI vka::IOControlerCI::getWindowCI()
@@ -372,18 +372,18 @@ WindowCI vka::IOControlerCI::getWindowCI()
 
 void vka::IOController::configure(IOControlerCI &controllerCI, Window *window)
 {
-	ASSERT_TRUE(state.initBits & STATE_INIT_DEVICE_INSTANCE_BIT);
+	ASSERT_TRUE(gState.initBits & STATE_INIT_DEVICE_INSTANCE_BIT);
 	this->controllerCI = controllerCI;
 	this->window       = window;
-	window->init(controllerCI.getWindowCI(), state.device.instance);
+	window->init(controllerCI.getWindowCI(), gState.device.instance);
 	surface = window->getSurface();
-	state.initBits |= STATE_INIT_IO_WINDOW_BIT;
+	gState.initBits |= STATE_INIT_IO_WINDOW_BIT;
 }
 
 void vka::IOController::init()
 {
-	ASSERT_TRUE(state.initBits & STATE_INIT_DEVICE_BIT);
-	swapChainDetails = getSwapchainDetails(state.device.physical, window->getSurface());
+	ASSERT_TRUE(gState.initBits & STATE_INIT_DEVICE_BIT);
+	swapChainDetails = getSwapchainDetails(gState.device.physical, window->getSurface());
 	surfaceFormat    = swapChainDetails.formats[0];        // Must exist after vulkan specifications
 	selectByPreference(swapChainDetails.formats, controllerCI.preferedFormats, surfaceFormat);
 	format      = surfaceFormat.format;
@@ -398,6 +398,7 @@ void vka::IOController::init()
 	}
 	shouldRecreateSwapchain = true;
 	updateSwapchain();
+	gState.initBits |= STATE_INIT_IO_BIT;
 }
 
 void vka::IOController::updateSwapchain()
@@ -410,8 +411,8 @@ void vka::IOController::updateSwapchain()
 	{
 		window->waitEvents();
 	}
-	ASSERT_TRUE(state.initBits & STATE_INIT_DEVICE_BIT);
-	vkDeviceWaitIdle(state.device.logical);
+	ASSERT_TRUE(gState.initBits & STATE_INIT_DEVICE_BIT);
+	vkDeviceWaitIdle(gState.device.logical);
 
 	extent = window->size();
 	clamp(extent, swapChainDetails.surfaceCapabilities.minImageExtent, swapChainDetails.surfaceCapabilities.maxImageExtent);
@@ -429,7 +430,7 @@ void vka::IOController::updateSwapchain()
 	vkSwapchainCI.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	vkSwapchainCI.clipped          = VK_TRUE;
 
-	QueueFamilyIndices indices = getQueueFamilies(state.device.physical, surface);
+	QueueFamilyIndices indices = getQueueFamilies(gState.device.physical, surface);
 
 	if (indices.graphicsFamily != indices.presentationFamily)
 	{
@@ -447,34 +448,34 @@ void vka::IOController::updateSwapchain()
 	}
 
 	VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE;
-	if ((state.initBits & STATE_INIT_IO_SWAPCHAIN_BIT))
+	if ((gState.initBits & STATE_INIT_IO_SWAPCHAIN_BIT))
 	{
 		oldSwapchain = swapchain;
 	}
 	vkSwapchainCI.oldSwapchain = oldSwapchain;
 
-	ASSERT_VULKAN(vkCreateSwapchainKHR(state.device.logical, &vkSwapchainCI, nullptr, &swapchain));
+	ASSERT_VULKAN(vkCreateSwapchainKHR(gState.device.logical, &vkSwapchainCI, nullptr, &swapchain));
 
-	if ((state.initBits & STATE_INIT_IO_SWAPCHAIN_BIT))
+	if ((gState.initBits & STATE_INIT_IO_SWAPCHAIN_BIT))
 	{
 		for (size_t i = 0; i < imageCount; i++)
 		{
-			vkDestroyImageView(state.device.logical, imageViews[i], nullptr);
+			vkDestroyImageView(gState.device.logical, imageViews[i], nullptr);
 		}
-		vkDestroySwapchainKHR(state.device.logical, oldSwapchain, nullptr);
+		vkDestroySwapchainKHR(gState.device.logical, oldSwapchain, nullptr);
 	}
 
 	std::vector<VkImage> images(imageCount);
 	imageViews.resize(imageCount);
-	vkGetSwapchainImagesKHR(state.device.logical, swapchain, &imageCount, images.data());
+	vkGetSwapchainImagesKHR(gState.device.logical, swapchain, &imageCount, images.data());
 
 	for (size_t i = 0; i < imageCount; i++)
 	{
 		VkImageViewCreateInfo imageViewCI = ImageViewCreateInfo_Swapchain(images[i], format);
-		ASSERT_VULKAN(vkCreateImageView(state.device.logical, &imageViewCI, nullptr, &imageViews[i]));
+		ASSERT_VULKAN(vkCreateImageView(gState.device.logical, &imageViewCI, nullptr, &imageViews[i]));
 	}
 
-	state.initBits |= STATE_INIT_IO_SWAPCHAIN_BIT;
+	gState.initBits |= STATE_INIT_IO_SWAPCHAIN_BIT;
 	shouldRecreateSwapchain = false;
 }
 void vka::IOController::requestSwapchainRecreation()
@@ -491,12 +492,12 @@ void vka::IOController::readInputs()
 
 void vka::IOController::destroy()
 {
-	vkDestroySwapchainKHR(state.device.logical, swapchain, nullptr);
+	vkDestroySwapchainKHR(gState.device.logical, swapchain, nullptr);
 	for (size_t i = 0; i < imageCount; i++)
 	{
-		vkDestroyImageView(state.device.logical, imageViews[i], nullptr);
+		vkDestroyImageView(gState.device.logical, imageViews[i], nullptr);
 	}
-	vkDestroySurfaceKHR(state.device.instance, surface, nullptr);
+	vkDestroySurfaceKHR(gState.device.instance, surface, nullptr);
 	window->destroy();
 }
 
@@ -505,7 +506,12 @@ void vka::IOController::terminateWindowManager()
 	window->terminateWindowManager();
 }
 
-void vka::State::initFrames()
+bool IOController::shouldTerminate()
+{
+	return window->shouldClose();
+}
+
+void vka::AppState::initFrames()
 {
 	ASSERT_TRUE(initBits & (STATE_INIT_DEVICE_BIT | STATE_INIT_IO_BIT));
 	VkSemaphoreCreateInfo semaphoreCI{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
@@ -525,7 +531,7 @@ void vka::State::initFrames()
 	initBits |= STATE_INIT_FRAME_SEMAPHORE_BIT;
 }
 
-void vka::State::destroyFrames()
+void vka::AppState::destroyFrames()
 {
 	for (auto &frame : frames)
 	{
@@ -535,7 +541,13 @@ void vka::State::destroyFrames()
 	}
 }
 
-void State::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *window)
+void AppState::nextFrame()
+{
+	frame = frame->next;
+	io.readInputs();
+}
+
+void AppState::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *window)
 {
 	initBits = 0;
 	window->initWindowManager();
@@ -553,7 +565,7 @@ void State::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *windo
 	cmdAlloc.init();
 	initBits |= STATE_INIT_ALL_BIT;
 }
-void State::destroy()
+void AppState::destroy()
 {
 	cmdAlloc.destroy();
 	queryAlloc.destroy();
@@ -564,4 +576,7 @@ void State::destroy()
 	device.destroy();
 	io.terminateWindowManager();
 }
+
+
 }        // namespace vka
+//vka::AppState gState;
