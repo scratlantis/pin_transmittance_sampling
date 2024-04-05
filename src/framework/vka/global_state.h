@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <unordered_map>
 #include "core/container/StructureChain.h"
+#include "allocators/CmdAllocator.h"
+#include "allocators/MemAllocator.h"
 
 #define KEY_COUNT 1024
 
@@ -52,11 +54,14 @@ class Device
 	std::vector<VkQueue> universalQueues;
 	std::vector<VkQueue> computeQueues;
 
+	Device();
 	void configure(DeviceCI &deviceCI);
 	void destroy();
 	void createInstance();
 	void selectPhysicalDevice();
 	void createLogicalDevice();
+
+	DELETE_COPY_CONSTRUCTORS(Device);
 
 	private:
 		DeviceCI deviceCI;
@@ -113,6 +118,8 @@ struct IOControlerCI
 	uint32_t                        preferedSwapchainImageCount;
 
 	WindowCI getWindowCI();
+
+	
 };
 
 class IOController
@@ -129,7 +136,7 @@ class IOController
 	bool                     keyPressed[KEY_COUNT];
 	bool                     keyEvent[KEY_COUNT];
 
-
+	IOController();
 	void configure(IOControlerCI &controllerCI, Window *window);
 	void init();
 	void requestSwapchainRecreation();
@@ -137,6 +144,8 @@ class IOController
 	void destroy();
 	void terminateWindowManager();
 	bool shouldTerminate();
+
+	DELETE_COPY_CONSTRUCTORS(IOController);
 
   private:
 	bool               shouldRecreateSwapchain;
@@ -196,6 +205,7 @@ class AppState
 	QueryAllocator      queryAlloc;
 	CmdAllocator        cmdAlloc;
 
+	AppState();
 	void init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window* window);
 	void nextFrame();
 	void destroy();
@@ -203,6 +213,8 @@ class AppState
 	std::vector<Frame> frames;
 	void initFrames();
 	void destroyFrames();
+
+	DELETE_COPY_CONSTRUCTORS(AppState);
 };
 
 

@@ -1,3 +1,5 @@
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
 
 #include "stdio.h"
 #include <vulkan/vulkan.h>
@@ -7,7 +9,6 @@
 #include <framework/vka/context/GlfwWindow.h>
 
 using namespace vka;
-
 
 vka::AppState gState;
 

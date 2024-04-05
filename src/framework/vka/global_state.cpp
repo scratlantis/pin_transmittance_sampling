@@ -4,7 +4,9 @@
 
 namespace vka
 {
-
+Device::Device()
+{
+}
 void Device::configure(DeviceCI &deviceCI)
 {
 	this->deviceCI = deviceCI;
@@ -171,6 +173,10 @@ WindowCI vka::IOControlerCI::getWindowCI()
 	windowCI.width      = size.width;
 	windowCI.resizable  = resizable;
 	return windowCI;
+}
+
+IOController::IOController()
+{
 }
 
 void vka::IOController::configure(IOControlerCI &controllerCI, Window *window)
@@ -348,6 +354,10 @@ void AppState::nextFrame()
 {
 	frame = frame->next;
 	io.readInputs();
+}
+
+AppState::AppState()
+{
 }
 
 void AppState::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *window)

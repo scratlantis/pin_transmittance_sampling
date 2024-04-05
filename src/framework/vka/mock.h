@@ -1,12 +1,12 @@
 #pragma once
 namespace vka
 {
-class MemAllocator
-{
-  public:
-	void init();
-	void destroy();
-};
+//class MemAllocator
+//{
+//  public:
+//	void init();
+//	void destroy();
+//};
 
 class DescriptorAllocator
 {
@@ -22,12 +22,12 @@ class QueryAllocator
 	void destroy();
 };
 
-class CmdAllocator
-{
-  public:
-	void init();
-	void destroy();
-};
+//class CmdAllocator
+//{
+//  public:
+//	void init();
+//	void destroy();
+//};
 
 //class Ressource
 //{

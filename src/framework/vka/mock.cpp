@@ -15,17 +15,17 @@ void DescriptorAllocator::destroy()
 	gState.initBits &= ~STATE_INIT_DESCALLOC_BIT;
 };
 
-void MemAllocator::init()
-{
-	ASSERT_TRUE(gState.initBits & (STATE_INIT_DEVICE_BIT | STATE_INIT_IO_BIT));
-	gState.initBits |= STATE_INIT_MEMALLOC_BIT;
-}
-
-void MemAllocator::destroy()
-{
-	ASSERT_TRUE(gState.initBits & STATE_INIT_MEMALLOC_BIT);
-	gState.initBits &= ~STATE_INIT_MEMALLOC_BIT;
-}
+//void MemAllocator::init()
+//{
+//	ASSERT_TRUE(gState.initBits & (STATE_INIT_DEVICE_BIT | STATE_INIT_IO_BIT));
+//	gState.initBits |= STATE_INIT_MEMALLOC_BIT;
+//}
+//
+//void MemAllocator::destroy()
+//{
+//	ASSERT_TRUE(gState.initBits & STATE_INIT_MEMALLOC_BIT);
+//	gState.initBits &= ~STATE_INIT_MEMALLOC_BIT;
+//}
 
 
 void QueryAllocator::init()
@@ -40,15 +40,15 @@ void QueryAllocator::destroy()
 	gState.initBits &= ~STATE_INIT_QUERYALLOC_BIT;
 }
 
-void CmdAllocator::init()
-{
-	ASSERT_TRUE(gState.initBits & (STATE_INIT_DEVICE_BIT | STATE_INIT_IO_BIT));
-	gState.initBits |= STATE_INIT_CMDALLOC_BIT;
-}
-
-void CmdAllocator::destroy()
-{
-	ASSERT_TRUE(gState.initBits & STATE_INIT_CMDALLOC_BIT);
-	gState.initBits &= ~STATE_INIT_CMDALLOC_BIT;
-}
+//void CmdAllocator::init()
+//{
+//	ASSERT_TRUE(gState.initBits & (STATE_INIT_DEVICE_BIT | STATE_INIT_IO_BIT));
+//	gState.initBits |= STATE_INIT_CMDALLOC_BIT;
+//}
+//
+//void CmdAllocator::destroy()
+//{
+//	ASSERT_TRUE(gState.initBits & STATE_INIT_CMDALLOC_BIT);
+//	gState.initBits &= ~STATE_INIT_CMDALLOC_BIT;
+//}
 }        // namespace vka
