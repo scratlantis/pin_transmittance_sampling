@@ -10,11 +10,24 @@ namespace vka
 {
 class ApiObject
 {
+  protected:
+	virtual bool _equals(ApiObject const &other) const
+	{
+		if (typeid(*this) != typeid(other))
+			return false;
+		return true;
+	}
+
   public:
 	~ApiObject();
 	ApiObject();
 
 	virtual VkObjectType getType() const noexcept = 0;
+	bool                 operator==(ApiObject const &other) const
+	{
+		return this->_equals(other);
+	}
+	virtual size_t hash() const = 0;
 
   private:
 };
@@ -39,6 +52,13 @@ class TApiObject : public ApiObject
 	{
 		return handle;
 	}
+	bool _equals(ApiObject const &other) const
+	    VkObjectType getType() const noexcept
+	{}
+	size_t hash() const
+	{
+		return std::hash<T>()(handle);
+	}
 
   private:
 	T handle;
@@ -50,19 +70,39 @@ inline vka::TApiObject<T>::~TApiObject()
 
 
 
+
 #define DEFINE_API_OBJECT(Handle, Type)												 \
-	template <>                                                                      \
-	class TApiObject<Handle>														 \
-	{                                                                                \
-	  public:                                                                        \
-		VkObjectType getType() const noexcept                                        \
-		{                                                                            \
-			return Type;                                                             \
-		}                                                                            \
-	};                                                                               \
-	typedef TApiObject<Handle> Handle##_ApiObj;
 
+//		VkObjectType TApiObject<Handle>::getType() const noexcept                    \
+//		{                                                                            \
+//			return Type;                                                             \
+//		}                                                                            \
 
+//typedef TApiObject<Handle> Handle##_ApiObj;
+// 
+// 
+//#define DEFINE_API_OBJECT_NON_DISPATCHABLE(Handle, Type)       \
+//	template <>                               \
+//	class TApiObject<Handle>                  \
+//	{                                         \
+//	  public:                                 \
+//		VkObjectType getType() const noexcept \
+//		{                                     \
+//			return Type;                      \
+//		}                                     \
+//	};                                        \
+//	typedef TApiObject<Handle> Handle##_ApiObj;
+//#define DEFINE_API_OBJECT_DISPATCHABLE(Handle, Type)       \
+//	template <>                               \
+//	class TApiObject<Handle>                  \
+//	{                                         \
+//	  public:                                 \
+//		VkObjectType getType() const noexcept \
+//		{                                     \
+//			return Type;                      \
+//		}                                     \
+//	};                                        \
+//	typedef TApiObject<Handle> Handle##_ApiObj;
 
 // vulkan abstraction:
 // null -> application context -> state / (heap, garbage list, descriptor list, caches, )
@@ -88,6 +128,7 @@ DEFINE_API_OBJECT(VkSwapchainKHR, VK_OBJECT_TYPE_SWAPCHAIN_KHR)
 DEFINE_API_OBJECT(VkSurfaceKHR, VK_OBJECT_TYPE_SURFACE_KHR)
 struct Swapchain;
 DEFINE_API_OBJECT(GLFWwindow, VK_OBJECT_TYPE_UNKNOWN)
+
 
 struct WindowCI;
 class Window;

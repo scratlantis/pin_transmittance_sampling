@@ -8,18 +8,42 @@ void CmdAllocator::init()
 {
 	ASSERT_TRUE(gState.initBits & (STATE_INIT_DEVICE_BIT | STATE_INIT_IO_BIT));
 
-	/*pools.resize(threadCount);
 	VkCommandPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
-	for (size_t i = 0; i < threadCount; i++)
+	universalPools.resize(gState.device.universalQueues.size());
+	for (size_t i = 0; i < universalPools.size(); i++)
 	{
-	    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	    poolInfo.queueFamilyIndex = gState.queueFamilyIndex;
-	    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		poolInfo.queueFamilyIndex = gState.device.universalQueueFamily;
+		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		ASSERT_VULKAN(vkCreateCommandPool(gState.device.logical, &poolInfo, nullptr, &universalPools[i]));
+	}
 
-	    VK_CHECK(vkCreateCommandPool(gState.device, &poolInfo, nullptr, &pools[i]));
+	computePools.resize(gState.device.computeQueues.size());
+	for (size_t i = 0; i < computePools.size(); i++)
+	{
+		poolInfo.queueFamilyIndex = gState.device.computeQueueFamily;
+		poolInfo.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		ASSERT_VULKAN(vkCreateCommandPool(gState.device.logical, &poolInfo, nullptr, &universalPools[i]));
+	}
 
-	}*/
 	gState.initBits |= STATE_INIT_CMDALLOC_BIT;
+}
+
+void CmdAllocator::createCmdBuffersUniversal(uint32_t queueIdx, VkCommandBufferLevel cmdBufLevel, uint32_t count, VkCommandBuffer &cmdBuf)
+{
+	VkCommandBufferAllocateInfo allocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+	allocInfo.commandPool                 = universalPools[queueIdx];
+	allocInfo.level						  = cmdBufLevel;
+	allocInfo.commandBufferCount          = count;
+	ASSERT_VULKAN(vkAllocateCommandBuffers(gState.device.logical, &allocInfo, &cmdBuf));
+}
+
+void CmdAllocator::createCmdBuffersCompute(uint32_t queueIdx, VkCommandBufferLevel cmdBufLevel, uint32_t count, , VkCommandBuffer &cmdBuf)
+{
+	VkCommandBufferAllocateInfo allocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+	allocInfo.commandPool        = computePools[queueIdx];
+	allocInfo.level              = cmdBufLevel;
+	allocInfo.commandBufferCount = count;
+	ASSERT_VULKAN(vkAllocateCommandBuffers(gState.device.logical, &allocInfo, &cmdBuf));
 }
 
 void CmdAllocator::destroy()

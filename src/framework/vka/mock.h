@@ -8,19 +8,19 @@ namespace vka
 //	void destroy();
 //};
 
-class DescriptorAllocator
-{
-  public:
-	void init();
-	void destroy();
-};
+//class DescriptorAllocator
+//{
+//  public:
+//	void init();
+//	void destroy();
+//};
 
-class QueryAllocator
-{
-  public:
-	void init();
-	void destroy();
-};
+//class QueryAllocator
+//{
+//  public:
+//	void init();
+//	void destroy();
+//};
 
 //class CmdAllocator
 //{

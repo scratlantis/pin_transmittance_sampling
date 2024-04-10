@@ -69,4 +69,15 @@ void MemAllocator::destroyBuffer(VkBuffer &buffer, VmaAllocation &allocation)
 {
 	vmaDestroyBuffer(this->vmaAllocator, buffer, allocation);
 }
+
+void MemAllocator::destroyBuffer(VkBuffer &buffer, VkDeviceMemory &deviceMemory)
+{
+	vkDestroyBuffer(gState.device.logical, buffer, nullptr);
+	vkFreeMemory(gState.device.logical, deviceMemory, nullptr);
+}
+
+void MemAllocator::destroyImage(VkImage &image, VkDeviceMemory &deviceMemory)
+{
+	vkDestroyImage(gState.device.logical, image, nullptr);
+	vkFreeMemory(gState.device.logical, deviceMemory, nullptr);
 }        // namespace Vka

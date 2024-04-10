@@ -20,6 +20,10 @@ class MemAllocator
 	void createBuffer(VkBufferCreateInfo *pBufferCreateInfo, VmaAllocationCreateInfo *pVmaAllocationCreateInfo, VkBuffer *pBuffer, VmaAllocation *pAllocation, VmaAllocationInfo *pAllocationInfo);
 	void destroyBuffer(VkBuffer &buffer, VmaAllocation &allocation);
 
+	void destroyBuffer(VkBuffer &buffer, VkDeviceMemory &deviceMemory);
+
+	void destroyImage(VkImage &image, VkDeviceMemory &deviceMemory);
+
 	DELETE_COPY_CONSTRUCTORS(MemAllocator)
   private:
 	VmaAllocator vmaAllocator;

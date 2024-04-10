@@ -1,11 +1,12 @@
 #pragma once
 #include "common.h"
-#include "mock.h"
 #include <glm/glm.hpp>
 #include <unordered_map>
 #include "core/container/StructureChain.h"
 #include "allocators/CmdAllocator.h"
 #include "allocators/MemAllocator.h"
+#include "allocators/QueryAllocator.h"
+#include "allocators/DescriptorAllocator.h"
 
 #define KEY_COUNT 1024
 
@@ -52,7 +53,9 @@ class Device
 	VkPhysicalDevice physical;
 	VkInstance       instance;
 	std::vector<VkQueue> universalQueues;
+	int universalQueueFamily;
 	std::vector<VkQueue> computeQueues;
+	int computeQueueFamily;
 
 	Device();
 	void configure(DeviceCI &deviceCI);
