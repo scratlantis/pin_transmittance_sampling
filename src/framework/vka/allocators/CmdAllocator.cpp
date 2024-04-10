@@ -37,7 +37,7 @@ void CmdAllocator::createCmdBuffersUniversal(uint32_t queueIdx, VkCommandBufferL
 	ASSERT_VULKAN(vkAllocateCommandBuffers(gState.device.logical, &allocInfo, &cmdBuf));
 }
 
-void CmdAllocator::createCmdBuffersCompute(uint32_t queueIdx, VkCommandBufferLevel cmdBufLevel, uint32_t count, , VkCommandBuffer &cmdBuf)
+void CmdAllocator::createCmdBuffersCompute(uint32_t queueIdx, VkCommandBufferLevel cmdBufLevel, uint32_t count, VkCommandBuffer &cmdBuf)
 {
 	VkCommandBufferAllocateInfo allocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
 	allocInfo.commandPool        = computePools[queueIdx];

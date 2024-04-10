@@ -32,6 +32,7 @@ inline void hashCombine(hash_t &s, const T &v)
 	s ^= h(v) + 0x9e3779b9 + (s << 6) + (s >> 2);
 }
 
+
 template <class T>
 inline hash_t hashArray(const T arr[], std::size_t count)
 {

@@ -8,65 +8,65 @@
 
 namespace vka
 {
-class ApiObject
-{
-  protected:
-	virtual bool _equals(ApiObject const &other) const
-	{
-		if (typeid(*this) != typeid(other))
-			return false;
-		return true;
-	}
-
-  public:
-	~ApiObject();
-	ApiObject();
-
-	virtual VkObjectType getType() const noexcept = 0;
-	bool                 operator==(ApiObject const &other) const
-	{
-		return this->_equals(other);
-	}
-	virtual size_t hash() const = 0;
-
-  private:
-};
-inline vka::ApiObject::~ApiObject()
-{
-}
-inline inline vka::ApiObject::ApiObject()
-{
-}
-
-template<class T>
-class TApiObject : public ApiObject
-{
-  public:
-	~TApiObject();
-	TApiObject(T aHandle)
-	{
-		handle = aHandle;
-	}
-
-	T getHandle()
-	{
-		return handle;
-	}
-	bool _equals(ApiObject const &other) const
-	    VkObjectType getType() const noexcept
-	{}
-	size_t hash() const
-	{
-		return std::hash<T>()(handle);
-	}
-
-  private:
-	T handle;
-};
-template <class T>
-inline vka::TApiObject<T>::~TApiObject()
-{
-}
+//class ApiObject
+//{
+//  protected:
+//	virtual bool _equals(ApiObject const &other) const
+//	{
+//		if (typeid(*this) != typeid(other))
+//			return false;
+//		return true;
+//	}
+//
+//  public:
+//	~ApiObject();
+//	ApiObject();
+//
+//	virtual VkObjectType getType() const noexcept = 0;
+//	bool                 operator==(ApiObject const &other) const
+//	{
+//		return this->_equals(other);
+//	}
+//	virtual size_t hash() const = 0;
+//
+//  private:
+//};
+//inline vka::ApiObject::~ApiObject()
+//{
+//}
+//inline inline vka::ApiObject::ApiObject()
+//{
+//}
+//
+//template<class T>
+//class TApiObject : public ApiObject
+//{
+//  public:
+//	~TApiObject();
+//	TApiObject(T aHandle)
+//	{
+//		handle = aHandle;
+//	}
+//
+//	T getHandle()
+//	{
+//		return handle;
+//	}
+//	bool _equals(ApiObject const &other) const
+//	    VkObjectType getType() const noexcept
+//	{}
+//	size_t hash() const
+//	{
+//		return std::hash<T>()(handle);
+//	}
+//
+//  private:
+//	T handle;
+//};
+//template <class T>
+//inline vka::TApiObject<T>::~TApiObject()
+//{
+//}
 
 
 
@@ -160,7 +160,7 @@ DEFINE_API_OBJECT(VmaAllocation, VK_OBJECT_TYPE_UNKNOWN)
 DEFINE_API_OBJECT(VkAccelerationStructureKHR, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR)
 
 // Deletable, hashable, comparable
-class Ressource;
+class Resource;
 
 
 // Abstracted Ressources
@@ -168,7 +168,7 @@ class Buffer;
 class Image;
 class AccelerationStructure;
 // Resource Tracking
-typedef std::unordered_set<Ressource> RessourceTracker;
+class ResourceTracker;
 
 // command interface
 DEFINE_API_OBJECT(VkCommandBuffer, VK_OBJECT_TYPE_COMMAND_BUFFER)

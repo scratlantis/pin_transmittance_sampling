@@ -3,6 +3,7 @@
 
 namespace vka
 {
+
 MemAllocator::MemAllocator()
 {
 }
@@ -49,6 +50,16 @@ void MemAllocator::mapMemory(VmaAllocation &allocation, void **ppData)
 {
 	vmaMapMemory(this->vmaAllocator, allocation, ppData);
 }
+
+void MemAllocator::mapMemory(VkDeviceMemory &mem, uint32_t offset, uint32_t size, void **ppData)
+{
+	vkMapMemory(gState.device.logical, mem, offset, size, 0, ppData);
+}
+
+void MemAllocator::unmapMemory(VkDeviceMemory &mem)
+{
+	vkUnmapMemory(gState.device.logical, mem);
+}
 void MemAllocator::unmapMemory(VmaAllocation &allocation)
 {
 	vmaUnmapMemory(this->vmaAllocator, allocation);
@@ -80,4 +91,5 @@ void MemAllocator::destroyImage(VkImage &image, VkDeviceMemory &deviceMemory)
 {
 	vkDestroyImage(gState.device.logical, image, nullptr);
 	vkFreeMemory(gState.device.logical, deviceMemory, nullptr);
-}        // namespace Vka
+}
+}        // namespace vka

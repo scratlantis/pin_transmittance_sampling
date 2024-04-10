@@ -10,9 +10,81 @@
 
 #define KEY_COUNT 1024
 
+
+
+
 namespace vka
 {
 
+template <class T>
+struct PointerObjHash
+{
+	bool operator()(T const *a) const
+	{
+		std::hash<T> h;
+		return h(*a);
+	}
+};
+template <class T>
+struct PointerObjEq
+{
+	bool operator()(T const *a, T const *b) const
+	{
+		return *a == *b;
+	}
+};
+
+class ResourceTracker
+{
+  public:
+	ResourceTracker(){};
+	~ResourceTracker(){};
+
+	Resource *find(Resource *resource);
+	void      add(Resource *resource);
+	void      move(Resource *resource, ResourceTracker newTracker);
+	void      clear();
+
+  private:
+	std::unordered_set<Resource *, PointerObjHash<Resource>, PointerObjEq<Resource>> resources;
+};
+
+class Resource
+{
+  protected:
+	virtual bool _equals(Resource const &other) const
+	{
+		if (typeid(*this) != typeid(other))
+			return false;
+		return true;
+	}
+	virtual void free() = 0;
+
+  public:
+	virtual hash_t _hash() const = 0;
+	friend class ResourceTracker;
+
+	bool operator==(Resource const &other) const
+	{
+		return this->_equals(other);
+	}
+};
+
+}		// namespace vka
+namespace std
+{
+template <>
+struct hash<vka::Resource>
+{
+	size_t operator()(vka::Resource const &r) const
+	{
+		return static_cast<size_t>(r._hash());
+	}
+};
+}        // namespace std
+
+namespace vka
+{
 struct SwapChainDetails
 {
 	VkSurfaceCapabilitiesKHR        surfaceCapabilities;
@@ -171,6 +243,8 @@ struct Frame
 };
 
 
+
+
 enum StateInitialisationBits
 {
 	STATE_INIT_DEVICE_INSTANCE_BIT = 0x1,
@@ -201,7 +275,7 @@ class AppState
 	Device        device;
 	IOController io;
 	//RessourceTracker    heap;
-	//RessourceTracker    cache;
+	ResourceTracker    cache;
 	Frame *frame;
 	MemAllocator        memAlloc;
 	DescriptorAllocator descAlloc;
