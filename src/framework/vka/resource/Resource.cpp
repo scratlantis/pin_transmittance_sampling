@@ -13,7 +13,7 @@ NonUniqueResource::~NonUniqueResource()
 
 
 
-Resource* ResourceTracker::find(Resource *resource)
+Resource* ResourceTracker::find(Resource *resource) const
 {
 	auto result = resources.find(resource);
 	if (result != resources.end())
@@ -25,16 +25,27 @@ Resource* ResourceTracker::find(Resource *resource)
 		return nullptr;
 	}
 }
-void ResourceTracker::add(Resource *resource)
+bool ResourceTracker::add(Resource* resource)
 {
-	resources.insert(resource);
+	IF_VALIDATION(ASSERT_TRUE(resource->pTracker != this))
+	resource->pTracker = this;
+	return resources.insert(resource).second;
 }
-void ResourceTracker::move(Resource *resource, ResourceTracker newTracker)
+bool ResourceTracker::remove(Resource *resource)
 {
-	Resource *r = find(resource);
-	if (r)
+	IF_VALIDATION(ASSERT_TRUE(resource->pTracker == this))
+	resource->pTracker = nullptr;
+	return resources.erase(resource);
+}
+bool ResourceTracker::move(Resource* resource, ResourceTracker* next)
+{
+	if (remove(resource))
 	{
-		newTracker.add(r);
+		return next->add(resource);
+	}
+	else
+	{
+		return false;
 	}
 }
 void ResourceTracker::clear()
@@ -43,6 +54,7 @@ void ResourceTracker::clear()
 	for (auto it = resources.begin(); it != resources.end(); ++it)
 	{
 		(*it)->free();
+		delete *it;
 	}
 	resources.clear();
 }

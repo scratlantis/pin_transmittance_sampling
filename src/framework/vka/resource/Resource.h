@@ -11,19 +11,14 @@ template<class T>
 class UniqueResource : public Resource
 {
 	protected:
-	bool _equals(Resource const &other) const
-	{
-		if (typeid(*this) != typeid(other))
-			return false;
-		else
+		UniqueResource(ResourceTracker* pTracker)
 		{
-			return this->_equals(other);
+			this->pTracker = pTracker;
 		}
-	}
-
-
 	virtual void     free()            = 0;
+	virtual void     buildHandle()     = 0;
 	T            handle;
+	ResourceTracker *pTracker;
   public:
 	virtual hash_t   _hash() const      = 0;
 
@@ -33,7 +28,7 @@ class UniqueResource : public Resource
 	{
 		if (handle == VK_NULL_HANDLE)
 		{
-			Resource *result = gState.cache.find(this);
+			Resource *result = pTracker->find(this);
 			if (result)
 			{
 				T *d   = dynamic_cast<T *>(result);
@@ -42,9 +37,9 @@ class UniqueResource : public Resource
 			else
 			{
 				T *d = new T(definition);
-				d->buildHandle();
+				d->buildHandle(pTracker);
 				handle = d->handle;
-				gState.cache.add(d);
+				pTracker->add(d);
 			}
 		}
 		return handle;
@@ -56,6 +51,11 @@ class UniqueResource : public Resource
 class NonUniqueResource : public Resource
 {
   protected:
+	virtual void      free() = 0;
+	virtual uint64_t  getId() const = 0;
+  public:
+	~NonUniqueResource();
+
 	bool _equals(Resource const &other) const
 	{
 		if (typeid(*this) != typeid(other))
@@ -66,16 +66,11 @@ class NonUniqueResource : public Resource
 			return this->getId() == other_.getId();
 		}
 	}
-	virtual void      free() = 0;
-
-  public:
-	~NonUniqueResource();
 
 	hash_t            _hash() const
 	{
 		return static_cast<hash_t>(getId());
 	}
-	virtual uint64_t  getId() const = 0;
 
   private:
 };
@@ -90,81 +85,10 @@ class MappableResource : public NonUniqueResource
 
 
 
-
-
-#define DEFINE_RESOURCE_HANDLE(Handle, freeCall)				  \
-class Handle##_Resource : public NonUniqueResource					  \
-{																  \
-public:															  \
-	Handle##_Resource(Handle handle)									\
-		{																  \
-	this->handle = handle;										  \
-}																  \
-virtual uint64_t getId() const                 \
-		{																  \
-	return (uint64_t) this->handle;								  \
-}																  \
-protected:\
-void free()														  \
-{																  \
-	freeCall;                              \
-}																  \
-private:														  \
-	Handle handle;												  \
-};
-
-#define DEFINE_MEMORY_RESOURCE_HANDLE_VMA(Handle, freeCall) \
-	class Handle##_MemoryResource_VMA : public NonUniqueResource  \
-	{                                              \
-	  public:                                      \
-		Handle##_MemoryResource_VMA(Handle handle, VmaAllocation vmaAllocation)              \
-		{                                          \
-			this->handle = handle;                 \
-			this->vmaAllocation = vmaAllocation;    \
-		}                                          \
-		virtual uint64_t getId() const         \
-		{                                          \
-			return (uint64_t) this->handle;        \
-		}                                          \
-protected:\
-		void free()                                \
-		{                                          \
-			freeCall;                              \
-		}                                          \
-                                                   \
-	  private:                                     \
-		Handle handle;                             \
-		VmaAllocation vmaAllocation;                   \
-	};
-
-#define DEFINE_MEMORY_RESOURCE_HANDLE_VK(Handle, freeCall) \
-	class Handle##_MemoryResource_VK : public NonUniqueResource         \
-	{                                                       \
-	  public:                                               \
-		Handle##_MemoryResource_VK(Handle handle, VkDeviceMemory deviceMemory)                       \
-		{                                                   \
-			this->handle = handle;                          \
-			this->deviceMemory = deviceMemory;              \
-		}                                                   \
-		virtual uint64_t getId() const                  \
-		{                                                   \
-			return (uint64_t) this->handle;                 \
-		}                                                   \
-protected:\
-		void free()                                         \
-		{                                                   \
-			freeCall;                                       \
-		}                                                   \
-                                                            \
-	  private:                                              \
-		Handle        handle;                               \
-		VkDeviceMemory deviceMemory;                        \
-	};
-
-class VkBuffer_MemoryResource_VK : public NonUniqueResource, public MappableResource
+class BufferVK_R : public MappableResource
 {
   public:
-	VkBuffer_MemoryResource_VK(VkBuffer handle, VkDeviceMemory deviceMemory)
+	BufferVK_R(VkBuffer handle, VkDeviceMemory deviceMemory)
 	{
 		this->handle       = handle;
 		this->deviceMemory = deviceMemory;
@@ -193,10 +117,10 @@ class VkBuffer_MemoryResource_VK : public NonUniqueResource, public MappableReso
 	VkDeviceMemory deviceMemory;
 };
 
-class VkBuffer_MemoryResource_VMA : public NonUniqueResource, public MappableResource
+class BufferVMA_R : public MappableResource
 {
   public:
-	VkBuffer_MemoryResource_VMA(VkBuffer handle, VmaAllocation allocation)
+	BufferVMA_R(VkBuffer handle, VmaAllocation allocation)
 	{
 		this->handle       = handle;
 		this->allocation = allocation;
@@ -227,6 +151,113 @@ class VkBuffer_MemoryResource_VMA : public NonUniqueResource, public MappableRes
 	VmaAllocation allocation;
 };
 
+class ImageVMA_R : public NonUniqueResource
+{
+  public:
+	ImageVMA_R(VkImage handle, VmaAllocation allocation)
+	{
+		this->handle     = handle;
+		this->allocation = allocation;
+	}
+	virtual uint64_t getId() const
+	{
+		return (uint64_t) this->handle;
+	}
+  protected:
+	void free()
+	{
+		gState.memAlloc.destroyImage(handle, allocation);
+	}
+
+  private:
+	VkImage       handle;
+	VmaAllocation allocation;
+};
+
+class ImageVK_R : public NonUniqueResource
+{
+  public:
+	ImageVK_R(VkImage handle, VkDeviceMemory deviceMemory)
+	{
+		this->handle     = handle;
+		this->deviceMemory = deviceMemory;
+	}
+	virtual uint64_t getId() const
+	{
+		return (uint64_t) this->handle;
+	}
+  protected:
+	void free()
+	{
+		gState.memAlloc.destroyImage(handle, deviceMemory);
+	}
+
+  private:
+	VkImage       handle;
+	VkDeviceMemory deviceMemory;
+};
+
+class ImageView_R : public NonUniqueResource
+{
+  public:
+	ImageView_R(VkImageView handle)
+	{
+		this->handle       = handle;
+	}
+	virtual uint64_t getId() const
+	{
+		return (uint64_t) this->handle;
+	}
+  protected:
+	void free()
+	{
+		vkDestroyImageView(gState.device.logical, handle, nullptr);
+	}
+  private:
+	VkImageView    handle;
+};
+
+class BufferView_R : public NonUniqueResource
+{
+  public:
+	BufferView_R(VkBufferView handle)
+	{
+		this->handle = handle;
+	}
+	virtual uint64_t getId() const
+	{
+		return (uint64_t) this->handle;
+	}
+  protected:
+	void free()
+	{
+		vkDestroyBufferView(gState.device.logical, handle, nullptr);
+	}
+
+  private:
+	VkBufferView handle;
+};
+
+class AccelerationStructure_R : public NonUniqueResource
+{
+  public:
+	AccelerationStructure_R(VkAccelerationStructureKHR handle)
+	{
+		this->handle = handle;
+	}
+	virtual uint64_t getId() const
+	{
+		return (uint64_t) this->handle;
+	}
+  protected:
+	void free()
+	{
+		vkDestroyAccelerationStructureKHR(gState.device.logical, handle, nullptr);
+	}
+  private:
+	VkAccelerationStructureKHR handle;
+};
+
 
 struct PipelineLayoutDefinition;
 class PipelineLayout;
@@ -243,15 +274,84 @@ class Shader;
 
 
 
+
+
+
+//#define DEFINE_RESOURCE_HANDLE(Handle, freeCall)				  \
+//class Handle##_Resource : public NonUniqueResource					  \
+//{																  \
+//public:															  \
+//	Handle##_Resource(Handle handle)									\
+//		{																  \
+//	this->handle = handle;										  \
+//}																  \
+//virtual uint64_t getId() const                 \
+//		{																  \
+//	return (uint64_t) this->handle;								  \
+//}																  \
+//protected:\
+//void free()														  \
+//{																  \
+//	freeCall;                              \
+//}																  \
+//private:														  \
+//	Handle handle;												  \
+//};
+//
+// #define DEFINE_MEMORY_RESOURCE_HANDLE_VMA(Handle, freeCall) \
+//	class Handle##_MemoryResource_VMA : public NonUniqueResource  \
+//	{                                              \
+//	  public:                                      \
+//		Handle##_MemoryResource_VMA(Handle handle, VmaAllocation vmaAllocation)              \
+//		{                                          \
+//			this->handle = handle;                 \
+//			this->vmaAllocation = vmaAllocation;    \
+//		}                                          \
+//		virtual uint64_t getId() const         \
+//		{                                          \
+//			return (uint64_t) this->handle;        \
+//		}                                          \
+//protected:\
+//		void free()                                \
+//		{                                          \
+//			freeCall;                              \
+//		}                                          \
+//                                                   \
+//	  private:                                     \
+//		Handle handle;                             \
+//		VmaAllocation vmaAllocation;                   \
+//	};
+//
+// #define DEFINE_MEMORY_RESOURCE_HANDLE_VK(Handle, freeCall) \
+//	class Handle##_MemoryResource_VK : public NonUniqueResource         \
+//	{                                                       \
+//	  public:                                               \
+//		Handle##_MemoryResource_VK(Handle handle, VkDeviceMemory deviceMemory)                       \
+//		{                                                   \
+//			this->handle = handle;                          \
+//			this->deviceMemory = deviceMemory;              \
+//		}                                                   \
+//		virtual uint64_t getId() const                  \
+//		{                                                   \
+//			return (uint64_t) this->handle;                 \
+//		}                                                   \
+//protected:\
+//		void free()                                         \
+//		{                                                   \
+//			freeCall;                                       \
+//		}                                                   \
+//                                                            \
+//	  private:                                              \
+//		Handle        handle;                               \
+//		VkDeviceMemory deviceMemory;                        \
+//	};
 // Primary Ressources
 
-DEFINE_MEMORY_RESOURCE_HANDLE_VK(VkImage, gState.memAlloc.destroyImage(handle, deviceMemory))
-DEFINE_MEMORY_RESOURCE_HANDLE_VMA(VkImage, gState.memAlloc.destroyImage(handle, vmaAllocation))
-
-DEFINE_RESOURCE_HANDLE(VkImageView, vkDestroyImageView(gState.device.logical, handle, nullptr))
-DEFINE_RESOURCE_HANDLE(VkBufferView, vkDestroyBufferView(gState.device.logical, handle, nullptr))
-
-DEFINE_RESOURCE_HANDLE(VkAccelerationStructureKHR, vkDestroyAccelerationStructureKHR(gState.device.logical, handle, nullptr))
+//DEFINE_MEMORY_RESOURCE_HANDLE_VK(VkImage, gState.memAlloc.destroyImage(handle, deviceMemory))
+//DEFINE_MEMORY_RESOURCE_HANDLE_VMA(VkImage, gState.memAlloc.destroyImage(handle, vmaAllocation))
+//DEFINE_RESOURCE_HANDLE(VkImageView, vkDestroyImageView(gState.device.logical, handle, nullptr))
+//DEFINE_RESOURCE_HANDLE(VkBufferView, vkDestroyBufferView(gState.device.logical, handle, nullptr))
+//DEFINE_RESOURCE_HANDLE(VkAccelerationStructureKHR, vkDestroyAccelerationStructureKHR(gState.device.logical, handle, nullptr))
 
 
 

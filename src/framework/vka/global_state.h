@@ -40,27 +40,33 @@ class ResourceTracker
 	ResourceTracker(){};
 	~ResourceTracker(){};
 
-	Resource *find(Resource *resource);
-	void      add(Resource *resource);
-	void      move(Resource *resource, ResourceTracker newTracker);
+	Resource *find(Resource *resource) const;
 	void      clear();
-
+	bool	  move(Resource *resource, ResourceTracker *next);
   private:
+	bool      add(Resource *resource);
+	bool	  remove(Resource *resource);
 	std::unordered_set<Resource *, PointerObjHash<Resource>, PointerObjEq<Resource>> resources;
 };
 
 class Resource
 {
   protected:
+	ResourceTracker* pTracker;
+	virtual void free() = 0;
+  public:
 	virtual bool _equals(Resource const &other) const
 	{
 		if (typeid(*this) != typeid(other))
+		{
 			return false;
-		return true;
+		}
+		else
+		{
+			DEBUG_BREAK
+			return true;
+		}
 	}
-	virtual void free() = 0;
-
-  public:
 	virtual hash_t _hash() const = 0;
 	friend class ResourceTracker;
 
