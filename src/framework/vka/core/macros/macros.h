@@ -2,6 +2,19 @@
 #include <vulkan/vulkan.h>
 #include <iostream>
 
+#ifndef SHADER_SRC_DIR
+#	define SHADER_SRC_DIR ""
+#endif
+#ifndef SHADER_SPV_DIR
+#	define SHADER_SPV_DIR ""
+#endif
+#ifndef SHADER_LOG_DIR
+#	define SHADER_LOG_DIR ""
+#endif
+#ifndef SHADER_SRC_CNT
+#	define SHADER_SRC_CNT 0
+#endif
+
 #ifndef API_VERSION
 #	define API_VERSION VK_API_VERSION_1_3
 #endif        // !1

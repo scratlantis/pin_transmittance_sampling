@@ -99,7 +99,7 @@ ENDFOREACH()
 
 
 SET(SHADER_SRC_DIRS_VAR "${SHADER_SRC_DIRS_VAR} }")
-add_compile_definitions(SHADER_SRC_DIRS="${SHADER_SRC_DIRS_VAR}")
+add_compile_definitions(SHADER_SRC_DIR="${SHADER_SRC_DIRS_VAR}")
 message(STATUS "SHADER_SRC_DIRS:")
 message(STATUS ${SHADER_SRC_DIRS_VAR})
 add_compile_definitions(SHADER_SRC_CNT="${SHADER_SRC_CNT_VAR}")

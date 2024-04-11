@@ -11,13 +11,14 @@ template<class T>
 class UniqueResource : public Resource
 {
 	protected:
-		UniqueResource(ResourceTracker* pTracker)
+	UniqueResource(ResourceTracker *pTracker)
 		{
 			this->pTracker = pTracker;
 		    handle         = VK_NULL_HANDLE;
 		}
 	virtual void     free()            = 0;
 	virtual void     buildHandle()     = 0;
+	virtual UniqueResource<T>* copyToHeap() const      = 0;
 	T            handle;
 	ResourceTracker *pTracker;
   public:
@@ -32,13 +33,13 @@ class UniqueResource : public Resource
 			Resource *result = pTracker->find(this);
 			if (result)
 			{
-				T *d   = dynamic_cast<T *>(result);
+				UniqueResource<T> *d = dynamic_cast<UniqueResource<T> *>(result);
 				handle = d->getHandle();
 			}
 			else
 			{
-				T *d = new T(definition);
-				d->buildHandle(pTracker);
+				UniqueResource<T> *d = this->copyToHeap();
+				d->buildHandle();
 				handle = d->handle;
 				pTracker->add(d);
 			}
@@ -260,8 +261,8 @@ class AccelerationStructure_R : public NonUniqueResource
 };
 
 
-struct PipelineLayoutDefinition;
-class PipelineLayout;
+struct ShaderDefinition;
+class Shader;
 
 struct PipelineState;
 class Pipeline;
@@ -269,8 +270,6 @@ class Pipeline;
 struct SamplerDescription;
 class Sampler;
 
-struct ShaderDefinition;
-class Shader;
 
 
 

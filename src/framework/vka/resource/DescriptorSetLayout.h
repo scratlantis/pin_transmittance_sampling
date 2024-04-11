@@ -59,6 +59,11 @@ class DescriptorSetLayout : public UniqueResource <VkDescriptorSetLayout>
 	{
 		return this->definition == other.definition;
 	}
+
+	DescriptorSetLayout* copyToHeap() const
+	{
+		return new DescriptorSetLayout(pTracker, definition);
+	}
   public:
 
 
@@ -66,7 +71,7 @@ class DescriptorSetLayout : public UniqueResource <VkDescriptorSetLayout>
 	{
 		return definition.hash();
 	};
-	DescriptorSetLayout(const DescriptorSetLayoutDefinition& definition, ResourceTracker* pTracker);
+	DescriptorSetLayout(ResourceTracker *pTrackerconst, const DescriptorSetLayoutDefinition &definition);
 	~DescriptorSetLayout();
 
 

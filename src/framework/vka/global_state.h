@@ -43,9 +43,9 @@ class ResourceTracker
 	Resource *find(Resource *resource) const;
 	void      clear();
 	bool	  move(Resource *resource, ResourceTracker *next);
-  private:
 	bool      add(Resource *resource);
 	bool	  remove(Resource *resource);
+  private:
 	std::unordered_set<Resource *, PointerObjHash<Resource>, PointerObjEq<Resource>> resources;
 };
 

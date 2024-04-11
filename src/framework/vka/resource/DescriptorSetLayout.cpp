@@ -2,7 +2,7 @@
 
 namespace vka
 {
-DescriptorSetLayout::DescriptorSetLayout(const DescriptorSetLayoutDefinition &definition, ResourceTracker* pTracker) :
+DescriptorSetLayout::DescriptorSetLayout(ResourceTracker *pTracker, const DescriptorSetLayoutDefinition &definition) :
     UniqueResource(pTracker), definition(definition)
 {
 	VkDescriptorSetLayout handle = VK_NULL_HANDLE;

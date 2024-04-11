@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 #include "Resource.h"
 #include "DescriptorSetLayout.h"
 
@@ -51,7 +50,7 @@ class PipelineLayout : public UniqueResource<VkPipelineLayout>
 		std::vector<VkDescriptorSetLayout> descSetLayouts;
 		for (size_t i = 0; i < definition.layoutDefinitions.size(); i++)
 		{
-			descSetLayouts.push_back(DescriptorSetLayout(definition.layoutDefinitions[i], pTracker).getHandle());
+			descSetLayouts.push_back(DescriptorSetLayout(pTracker, definition.layoutDefinitions[i]).getHandle());
 		}
 		ci.setLayoutCount         = descSetLayouts.size();
 		ci.pSetLayouts            = descSetLayouts.data();
@@ -64,13 +63,17 @@ class PipelineLayout : public UniqueResource<VkPipelineLayout>
 	{
 		return this->definition == other.definition;
 	}
+	PipelineLayout *copyToHeap() const
+	{
+		return new PipelineLayout(pTracker, definition);
+	}
 
   public:
 	hash_t _hash() const
 	{
 		return definition.hash();
 	};
-	PipelineLayout(const PipelineLayoutDefinition &definition, ResourceTracker *pTracker);
+	PipelineLayout(ResourceTracker *pTracker, const PipelineLayoutDefinition &definition);
 	~PipelineLayout();
 
 	const PipelineLayoutDefinition definition;

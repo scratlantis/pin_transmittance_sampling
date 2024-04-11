@@ -5,6 +5,8 @@
 #include <iostream>
 #include <sstream>
 #include <regex>
+#include <stdarg.h>
+#include <stdio.h>
 
 #include"../core_common.h"
 namespace vka
@@ -39,13 +41,13 @@ inline hash_t hashArray(const T arr[], std::size_t count)
 	hash_t       value = 0;
 	for (std::size_t i = 0; i < count; ++i)
 	{
-		hashCombine(value, arr[i]);
+		hashCombine(value, &arr[i]);
 	}
 	return value;
 }
 
 template <class T>
-inline hash_t shallowHashStructure(const T v)
+inline hash_t shallowHashStructure(const T *v)
 {
 	return hashArray((const uint8_t *) v, sizeof(T));
 }
@@ -67,7 +69,7 @@ inline hash_t shallowHashArray(const std::vector<T> &arr)
 	hash_t       value = 0;
 	for (std::size_t i = 0; i < arr.size(); ++i)
 	{
-		hashCombine(value, shallowHashStructure(arr[i]));
+		hashCombine(value, shallowHashStructure(&arr[i]));
 	}
 	return value;
 }
@@ -123,6 +125,16 @@ inline std::vector<char> readFile(const std::string &filename)
 	file.read(file_buffer.data(), file_size);
 	file.close();
 	return file_buffer;
+}
+
+
+
+inline void printVka(const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	vprintf(format, args);
+	va_end(args);
 }
 
 inline std::vector<std::string> split(const std::string &s, char delimiter)
