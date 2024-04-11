@@ -36,13 +36,77 @@ inline void hashCombine(hash_t &s, const T &v)
 template <class T>
 inline hash_t hashArray(const T arr[], std::size_t count)
 {
-	std::hash<T> h;
 	hash_t       value = 0;
 	for (std::size_t i = 0; i < count; ++i)
 	{
 		hashCombine(value, arr[i]);
 	}
 	return value;
+}
+
+template <class T>
+inline hash_t shallowHashStructure(const T v)
+{
+	return hashArray((const uint8_t *) v, sizeof(T));
+}
+
+template <class T>
+inline hash_t hashArray(const std::vector<T> &arr)
+{
+	hash_t value = 0;
+	for (std::size_t i = 0; i < arr.size(); ++i)
+	{
+		hashCombine(value, arr[i]);
+	}
+	return value;
+}
+
+template <class T>
+inline hash_t shallowHashArray(const std::vector<T> &arr)
+{
+	hash_t       value = 0;
+	for (std::size_t i = 0; i < arr.size(); ++i)
+	{
+		hashCombine(value, shallowHashStructure(arr[i]));
+	}
+	return value;
+}
+
+template <class T>
+inline bool shallowCmp(const std::vector<T> &a, const std::vector<T> &b)
+{
+	if (a.size() != b.size())
+	{
+		return false;
+	}
+	return memcmp(a.data(), b.data(), a.size() * sizeof(T));
+}
+
+
+template <class T>
+inline bool shallowCmpArray(const std::vector<T> &a, const std::vector<T> &b)
+{
+	if (a.size() != b.size())
+	{
+		return false;
+	}
+	return memcmp(a.data(), b.data(), a.size() * sizeof(T));
+}
+
+
+template <class T>
+inline bool cmpArray(const std::vector<T> &a, const std::vector<T> &b)
+{
+	if (a.size() != b.size())
+	{
+		return false;
+	}
+	bool isEqual = true;
+	for (size_t i = 0; i < a.size(); i++)
+	{
+		isEqual &= a[i] == b[i];
+	}
+	return isEqual;
 }
 
 inline std::vector<char> readFile(const std::string &filename)

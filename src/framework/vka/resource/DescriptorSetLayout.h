@@ -12,19 +12,34 @@ struct DescriptorSetLayoutDefinition
 	hash_t hash() const
 	{
 		hash_t hash = static_cast<hash_t>(flags);
-		hashCombine(hash, hashArray((const uint8_t *) bindings.data(), bindings.size() * sizeof(VkDescriptorSetLayoutBinding)));
+		hashCombine(hash, shallowHashArray(bindings));
 		return hash;
 	}
 
-	bool operator==(const DescriptorSetLayoutDefinition& other) const
+	bool operator==(const DescriptorSetLayoutDefinition &other) const
 	{
-		return flags == other.flags
-			&& bindings.size() == other.bindings.size()
-			&& memcmp(bindings.data(),other.bindings.data(), bindings.size()*sizeof(VkDescriptorSetLayoutBinding));
+		return flags == other.flags && shallowCmp(bindings, other.bindings);
 	}
-
 };
 
+}        // namespace vka
+
+namespace std
+{
+template <>
+struct hash<vka::DescriptorSetLayoutDefinition>
+{
+	size_t operator()(vka::DescriptorSetLayoutDefinition const &r) const
+	{
+		return static_cast<size_t>(r.hash());
+	}
+};
+}        // namespace std
+
+
+
+namespace vka
+{
 class DescriptorSetLayout : public UniqueResource <VkDescriptorSetLayout>
 {
   protected:

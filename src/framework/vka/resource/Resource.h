@@ -14,6 +14,7 @@ class UniqueResource : public Resource
 		UniqueResource(ResourceTracker* pTracker)
 		{
 			this->pTracker = pTracker;
+		    handle         = VK_NULL_HANDLE;
 		}
 	virtual void     free()            = 0;
 	virtual void     buildHandle()     = 0;

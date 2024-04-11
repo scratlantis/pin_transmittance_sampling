@@ -277,10 +277,12 @@ inline hash_t StructureChain::getHash()
 	if (chain.empty())
 		return 0;
 	auto   node = chain.cbegin();
-	hash_t hash = hashArray((const uint8_t *) node->getNode(), node->getSize());
+	//hash_t hash = hashArray((const uint8_t *) node->getNode(), node->getSize());
+	hash_t hash = shallowHashStructure(node->getNode());
 	while (++node != chain.cend())
 	{
-		hash_t nodeHash = hashArray((const uint8_t *) node->getNode(), node->getSize());
+		//hash_t nodeHash = hashArray((const uint8_t *) node->getNode(), node->getSize());
+		hash_t nodeHash = shallowHashStructure(node->getNode());
 		hashCombine(hash, nodeHash);
 	}
 	return hash;
