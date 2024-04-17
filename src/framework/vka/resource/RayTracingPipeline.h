@@ -34,8 +34,8 @@ struct RayTracingPipelineState
 	std::vector<VkDynamicState>                      dynamicStates;
 	uint32_t                                         maxRecursionLevel;
 	PipelineLayoutDefinition						 layoutDef;
-	std::vector<ShaderDefinition>                  hitShaders;
-	std::vector<HitGroup>                          hitGroups;
+	std::vector<ShaderDefinition>					 hitShaders;
+	std::vector<HitGroup>							 hitGroups;
 	VkRayTracingPipelineCreateInfoKHR                RayTracingPipelineState::buildPipelineCI(ResourceTracker *pTracker) const;
 
 	
@@ -99,9 +99,9 @@ class RayTracingPipelineBuilder
 		if (hasChanged)
 		{
 			RayTracingPipeline(pCache, lastState).move(pGarbage);
-			return RayTracingPipeline(pCache, currentState).getHandle();
 			lastState = currentState;
 			hasChanged = false;
+			return RayTracingPipeline(pCache, currentState).getHandle();
 		}
 		else
 		{
@@ -122,24 +122,68 @@ class RayTracingPipelineBuilder
 
 	}
 
-	void addHitShader(ShaderDefinition shader)
+	uint32_t addHitShader(ShaderDefinition shader)
 	{
 		if (hitShaderMap.find(shader) == hitShaderMap.end())
 		{
 			hitShaderMap[shader] = currentState.hitShaders.size();
 			currentState.hitShaders.push_back(shader);
 			hasChanged = true;
+			return currentState.hitShaders.size();
+		}
+		else
+		{
+			return hitShaderMap[shader];
 		}
 	}
 
-	void addHitGroup(HitGroup group)
+	uint32_t addHitGroup(HitGroup group)
 	{
 		if (hitGroupMap.find(group) == hitGroupMap.end())
 		{
 			hitGroupMap[group] = currentState.hitGroups.size();
 			currentState.hitGroups.push_back(group);
 			hasChanged = true;
+			return currentState.hitGroups.size();
 		}
+		else
+		{
+			return hitGroupMap[group];
+		}
+	}
+
+
+	
+void assignHitGroupIndices(ShaderDefinition closestHit, ShaderDefinition anyHit, ShaderDefinition occlusionAnyHit, uint32_t &hitGroupIdxPrimary, uint32_t &hitGroupIdxOcclusion)
+	{
+		if (closestHit == VKA_NULL_SHADER)
+		{
+			DEBUG_BREAK;
+		}
+
+		HitGroup hitGroupPrimary{};
+		hitGroupPrimary.closestHitShaderID = addHitShader(closestHit);
+		if (anyHit != VKA_NULL_SHADER)
+		{
+			hitGroupPrimary.anyHitShaderID = addHitShader(anyHit);
+		}
+		else
+		{
+			hitGroupPrimary.anyHitShaderID = VK_SHADER_UNUSED_KHR;
+		}
+		hitGroupIdxPrimary = addHitGroup(hitGroupPrimary);
+
+		HitGroup hitGroupOcclusion{};
+		hitGroupOcclusion.closestHitShaderID = VK_SHADER_UNUSED_KHR;
+		if (occlusionAnyHit != VKA_NULL_SHADER)
+		{
+			hitGroupOcclusion.anyHitShaderID = addHitShader(occlusionAnyHit);
+		}
+		else
+		{
+			hitGroupOcclusion.anyHitShaderID = VK_SHADER_UNUSED_KHR;
+		}
+		hitGroupIdxOcclusion = addHitGroup(hitGroupOcclusion);
 	}
 
   private:

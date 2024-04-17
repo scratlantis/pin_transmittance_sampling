@@ -147,6 +147,7 @@ DEFINE_API_OBJECT(VkDescriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT)
 class DescriptorSetLayout;
 DEFINE_API_OBJECT(VkSampler, VK_OBJECT_TYPE_SAMPLER)
 class Sampler;
+DEFINE_API_OBJECT(VkShaderModule, VK_OBJECT_TYPE_SHADER_MODULE)
 class Shader;
 
 
@@ -174,15 +175,21 @@ class ResourceTracker;
 DEFINE_API_OBJECT(VkCommandBuffer, VK_OBJECT_TYPE_COMMAND_BUFFER)
 class CmdBuf;
 
+
+// Probably not needed, use push descriptors instead
 // automatic update abstraction
 DEFINE_API_OBJECT(VkDescriptorSet, VK_OBJECT_TYPE_DESCRIPTOR_SET)
 class DescriptorSet;
 
 // Allocator abstraction
+
+// Implementation when needed
 DEFINE_API_OBJECT(VkQueryPool, VK_OBJECT_TYPE_QUERY_POOL)
 class QueryAllocator;
+// Probably not needed, use push descriptors instead
 DEFINE_API_OBJECT(VkDescriptorPool, VK_OBJECT_TYPE_DESCRIPTOR_POOL)
 class DescriptorAllocator;
+
 DEFINE_API_OBJECT(VkCommandPool, VK_OBJECT_TYPE_COMMAND_POOL)
 class CmdAllocator;
 DEFINE_API_OBJECT(VmaAllocator, VK_OBJECT_TYPE_UNKNOWN)
@@ -190,16 +197,19 @@ class MemAllocator;
 
 
 
-// No abstraction
-// but helper functions
+// No abstraction, only helper functions for quick construction
 DEFINE_API_OBJECT(VkRenderPass, VK_OBJECT_TYPE_RENDER_PASS)
 DEFINE_API_OBJECT(VkFramebuffer, VK_OBJECT_TYPE_FRAMEBUFFER)
-DEFINE_API_OBJECT(VkShaderModule, VK_OBJECT_TYPE_SHADER_MODULE)
-DEFINE_API_OBJECT(VkPipelineCache, VK_OBJECT_TYPE_PIPELINE_CACHE)
+
+// No abstraction
 DEFINE_API_OBJECT(VkSemaphore, VK_OBJECT_TYPE_SEMAPHORE)
 DEFINE_API_OBJECT(VkFence, VK_OBJECT_TYPE_FENCE)
+
+// Implementation when needed
 DEFINE_API_OBJECT(VkEvent, VK_OBJECT_TYPE_EVENT)
 
+// No used
+DEFINE_API_OBJECT(VkPipelineCache, VK_OBJECT_TYPE_PIPELINE_CACHE)
 
 // Global State
 struct Frame;
@@ -208,24 +218,5 @@ class AppState;
 
 
 }        // namespace vka
-
-
-// Next Level Abstraction:
-// Ressources:
-// Buffer
-// Image
-// AccelerationStructure
-// CommandBuffer
-// DescriptorSet
-
-// Non Ressources:
-// Allocators
-// Caches
-// Heap
-// GarbageList
-// Swapchain
-// Frames
-// Queues
-// ApiContext
 
 

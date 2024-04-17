@@ -13,6 +13,8 @@ struct ShaderArgs
 	}
 };
 
+
+
 struct ShaderDefinition
 {
 	std::string name;
@@ -21,6 +23,10 @@ struct ShaderDefinition
 	bool operator==(const ShaderDefinition &other) const
 	{
 		return name == other.name && cmpArray(args,other.args);
+	}
+	bool operator!=(const ShaderDefinition &other) const
+	{
+		return !(*this == other);
 	}
 
 	hash_t hash() const
@@ -39,6 +45,13 @@ struct ShaderDefinition
 		return std::hash<std::string>()(id);
 	};
 };
+
+#define VKA_NULL_SHADER \
+	ShaderDefinition    \
+	{                   \
+		"",             \
+		{}              \
+	}
 
 class Shader : public UniqueResource<VkShaderModule>
 {
@@ -65,7 +78,10 @@ class Shader : public UniqueResource<VkShaderModule>
 	Shader(ResourceTracker *pTracker, const std::string &name, std::vector<ShaderArgs> args = {}) :
 	    UniqueResource(pTracker), name(name), args(args){}
 	Shader(ResourceTracker *pTracker, ShaderDefinition def) :
-	    UniqueResource(pTracker), name(def.name), args(def.args){}
+	    UniqueResource(pTracker), name(def.name), args(def.args)
+	{
+		ASSERT_TRUE(def != VKA_NULL_SHADER)
+	}
 	hash_t _hash() const
 	{
 		return std::hash<std::string>()(uniqueID());

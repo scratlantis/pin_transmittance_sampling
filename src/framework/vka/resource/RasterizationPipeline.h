@@ -152,7 +152,7 @@ class RasterizationPipeline : public UniqueResource<VkPipeline>
 		hashCombine(hash, subpassIndex);
 		return hash;
 	};
-	RasterizationPipeline(ResourceTracker *pTrackerconst, const RasterizationPipelineState pipelineState, VkRenderPass renderPass, uint32_t subpassIndex);
+	RasterizationPipeline(ResourceTracker *pTracker, const RasterizationPipelineState pipelineState, VkRenderPass renderPass, uint32_t subpassIndex);
 	~RasterizationPipeline();
 
 	const RasterizationPipelineState pipelineState;

@@ -271,6 +271,5 @@ class AccelerationStructure_R : public NonUniqueResource
 	VkAccelerationStructureKHR handle;
 };
 
-struct PipelineState;
-class Pipeline;
+
 }        // namespace vka

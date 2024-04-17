@@ -344,7 +344,7 @@ void RasterizationPipelineState::addBlendMode(uint32_t attachmentCnt, BlendMode 
 }
 
 
-RasterizationPipeline::RasterizationPipeline(ResourceTracker* pTrackerconst, const RasterizationPipelineState pipelineState, VkRenderPass renderPass, uint32_t subpassIndex) :
+RasterizationPipeline::RasterizationPipeline(ResourceTracker* pTracker, const RasterizationPipelineState pipelineState, VkRenderPass renderPass, uint32_t subpassIndex) :
     UniqueResource(pTracker), pipelineState(pipelineState), renderPass(renderPass), subpassIndex(subpassIndex)
 {
 }
