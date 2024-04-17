@@ -26,6 +26,16 @@ class UniqueResource : public Resource
 
 	~UniqueResource(){};
 
+	void move(ResourceTracker* pNewTracker)
+	{
+		Resource *result = pTracker->find(this);
+		if (result)
+		{
+			UniqueResource<T> *d = dynamic_cast<UniqueResource<T> *>(result);
+			pTracker->move(d,pNewTracker);
+		}
+	}
+
 	T getHandle()
 	{
 		if (handle == VK_NULL_HANDLE)
@@ -34,17 +44,18 @@ class UniqueResource : public Resource
 			if (result)
 			{
 				UniqueResource<T> *d = dynamic_cast<UniqueResource<T> *>(result);
-				handle = d->getHandle();
+				return d->getHandle();
 			}
 			else
 			{
 				UniqueResource<T> *d = this->copyToHeap();
 				d->buildHandle();
-				handle = d->handle;
+				//handle = d->handle;
 				pTracker->add(d);
+				return d->handle;
 			}
 		}
-		return handle;
+		//return handle;
 	}
   private:
 };

@@ -28,25 +28,26 @@ struct HitGroup
 
 struct RayTracingPipelineState
 {
-	ShaderDefinition                                 rayGenShaderDef;
-	ShaderDefinition                                 primaryMissShaderDef;
-	ShaderDefinition                                 occlusionMissShaderDef;
-	std::vector<ShaderDefinition>                    hitShaderDef;
-	std::vector<HitGroup>                            hitGroups;
+	ShaderDefinition                                 rayGenShader;
+	ShaderDefinition                                 primaryMissShader;
+	ShaderDefinition                                 occlusionMissShader;
 	std::vector<VkDynamicState>                      dynamicStates;
-	PipelineLayoutDefinition                         layout;
+	uint32_t                                         maxRecursionLevel;
+	PipelineLayoutDefinition						 layoutDef;
+	std::vector<ShaderDefinition>                  hitShaders;
+	std::vector<HitGroup>                          hitGroups;
+	VkRayTracingPipelineCreateInfoKHR                RayTracingPipelineState::buildPipelineCI(ResourceTracker *pTracker) const;
+
+	
+
+
 
 	bool _equals(RayTracingPipelineState const &other) const;
-
-	bool operator==(const RayTracingPipelineState &other) const
+	bool operator==(const RayTracingPipelineState& other) const
 	{
 		return _equals(other);
 	}
-
 	hash_t hash() const;
-
-	VkRayTracingPipelineCreateInfoKHR buildPipelineCI(ResourceTracker *pTracker) const;
-
 	RayTracingPipelineState();
 
 
@@ -59,34 +60,96 @@ class RayTracingPipeline : public UniqueResource<VkPipeline>
 	{
 		vkDestroyPipeline(gState.device.logical, handle, nullptr);
 	}
-	void buildHandle()
+	void         buildHandle()
 	{
-		VkGraphicsPipelineCreateInfo ci = pipelineState.buildPipelineCI(pTracker);
-		ASSERT_VULKAN(vkCreateGraphicsPipelines(gState.device.logical, VK_NULL_HANDLE, 1, &ci, nullptr, &handle));
+		VkRayTracingPipelineCreateInfoKHR ci = pipelineState.buildPipelineCI(pTracker);
+		ASSERT_VULKAN(vkCreateRayTracingPipelinesKHR(gState.device.logical, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &ci, nullptr, &handle));
 	}
-	virtual bool _equals(RayTracingPipeline const &other) const
-	{
-		return this->pipelineState == other.pipelineState;
-	}
+
 
 	RayTracingPipeline *copyToHeap() const
 	{
-		return new RayTracingPipeline(pTracker, pipelineState);
+		return new RayTracingPipeline(*this);
 	}
 
   public:
+	bool _equals(const RayTracingPipeline& other) const
+	{
+		return pipelineState == other.pipelineState;
+	}
 	hash_t _hash() const
 	{
-		hash_t hash = 0;
-		hashCombine(hash, pipelineState.hash());
-		return hash;
-	};
-	RayTracingPipeline(ResourceTracker *pTrackerconst, const RayTracingPipelineState pipelineState);
+		return pipelineState.hash();
+	}
+	RayTracingPipeline(ResourceTracker *pTracker, const RayTracingPipelineState pipelineState);
 	~RayTracingPipeline();
+  private:
+	const RayTracingPipelineState pipelineState;
+};
 
-	const RayTracingPipelineState    pipelineState;
+
+class RayTracingPipelineBuilder
+{
+  public:
+	RayTracingPipelineBuilder();
+	~RayTracingPipelineBuilder();
+
+	VkPipeline getPipeline(ResourceTracker *pCache, ResourceTracker* pGarbage)
+	{
+		if (hasChanged)
+		{
+			RayTracingPipeline(pCache, lastState).move(pGarbage);
+			return RayTracingPipeline(pCache, currentState).getHandle();
+			lastState = currentState;
+			hasChanged = false;
+		}
+		else
+		{
+			return RayTracingPipeline(pCache, currentState).getHandle();
+		}
+	}
+
+	void newState(const ShaderDefinition rayGenShader, ShaderDefinition primaryMissShader, ShaderDefinition occlusionMissShader,
+		std::vector<VkDynamicState> dynamicStates, uint32_t maxRecursionLevel, PipelineLayoutDefinition    layoutDef)
+	{
+		currentState.rayGenShader = rayGenShader;
+		currentState.primaryMissShader = primaryMissShader;
+		currentState.occlusionMissShader = occlusionMissShader;
+		currentState.dynamicStates = dynamicStates;
+		currentState.maxRecursionLevel = maxRecursionLevel;
+		currentState.layoutDef = layoutDef;
+		hasChanged = true;
+
+	}
+
+	void addHitShader(ShaderDefinition shader)
+	{
+		if (hitShaderMap.find(shader) == hitShaderMap.end())
+		{
+			hitShaderMap[shader] = currentState.hitShaders.size();
+			currentState.hitShaders.push_back(shader);
+			hasChanged = true;
+		}
+	}
+
+	void addHitGroup(HitGroup group)
+	{
+		if (hitGroupMap.find(group) == hitGroupMap.end())
+		{
+			hitGroupMap[group] = currentState.hitGroups.size();
+			currentState.hitGroups.push_back(group);
+			hasChanged = true;
+		}
+	}
 
   private:
+	bool hasChanged = false;
+	std::unordered_map<ShaderDefinition, uint32_t> hitShaderMap;
+	std::unordered_map<HitGroup, uint32_t>         hitGroupMap;
+	RayTracingPipelineState currentState;
+	RayTracingPipelineState lastState;
 };
+
+
 
 }        // namespace vka

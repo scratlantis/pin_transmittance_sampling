@@ -65,7 +65,7 @@ class PipelineLayout : public UniqueResource<VkPipelineLayout>
 	}
 	PipelineLayout *copyToHeap() const
 	{
-		return new PipelineLayout(pTracker, definition);
+		return new PipelineLayout(*this);
 	}
 
   public:
