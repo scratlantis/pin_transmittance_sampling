@@ -18,7 +18,7 @@ struct DescriptorSetLayoutDefinition
 
 	bool operator==(const DescriptorSetLayoutDefinition &other) const
 	{
-		return flags == other.flags && shallowCmp(bindings, other.bindings);
+		return flags == other.flags && shallowCmpArray(bindings, other.bindings);
 	}
 };
 

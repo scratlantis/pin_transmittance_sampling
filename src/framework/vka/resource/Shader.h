@@ -6,6 +6,38 @@ struct ShaderArgs
 {
 	std::string name;
 	std::string value;
+
+	bool operator==(const ShaderArgs &other) const
+	{
+		return name == other.name && value == other.value;
+	}
+};
+
+struct ShaderDefinition
+{
+	std::string name;
+	std::vector<ShaderArgs> args;
+
+	bool operator==(const ShaderDefinition &other) const
+	{
+		return name == other.name && cmpArray(args,other.args);
+	}
+
+	hash_t hash() const
+	{
+		std::string id = name;
+		for (size_t i = 0; i < args.size(); i++)
+		{
+			id.append("_");
+			id.append(args[i].name);
+			if (args[i].value != "")
+			{
+				id.append("=");
+			}
+			id.append(args[i].value);
+		}
+		return std::hash<std::string>()(id);
+	};
 };
 
 class Shader : public UniqueResource<VkShaderModule>
@@ -32,7 +64,8 @@ class Shader : public UniqueResource<VkShaderModule>
   public:
 	Shader(ResourceTracker *pTracker, const std::string &name, std::vector<ShaderArgs> args = {}) :
 	    UniqueResource(pTracker), name(name), args(args){}
-
+	Shader(ResourceTracker *pTracker, ShaderDefinition def) :
+	    UniqueResource(pTracker), name(def.name), args(def.args){}
 	hash_t _hash() const
 	{
 		return std::hash<std::string>()(uniqueID());
@@ -66,7 +99,7 @@ class Shader : public UniqueResource<VkShaderModule>
 	VkPipelineShaderStageCreateInfo getStageCI()
 	{
 		VkPipelineShaderStageCreateInfo ci{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-		ci.module          = shaderModule;
+		ci.module          = getHandle();
 		ci.pName           = "main";
 		std::string suffix = name.substr(name.find_last_of(".") + 1);
 		if (suffix == "vert")

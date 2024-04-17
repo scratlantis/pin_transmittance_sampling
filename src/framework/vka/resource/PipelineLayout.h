@@ -56,7 +56,7 @@ class PipelineLayout : public UniqueResource<VkPipelineLayout>
 		ci.pSetLayouts            = descSetLayouts.data();
 		ci.pushConstantRangeCount = definition.pcRanges.size();
 		ci.pPushConstantRanges = definition.pcRanges.data();
-		vkCreatePipelineLayout(gState.device.logical, &ci, nullptr, &handle);
+		ASSERT_VULKAN(vkCreatePipelineLayout(gState.device.logical, &ci, nullptr, &handle));
 		
 	}
 	virtual bool _equals(PipelineLayout const &other) const

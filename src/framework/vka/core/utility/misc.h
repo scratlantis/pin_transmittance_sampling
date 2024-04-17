@@ -49,6 +49,10 @@ inline hash_t hashArray(const T arr[], std::size_t count)
 template <class T>
 inline hash_t shallowHashStructure(const T *v)
 {
+	if (v == nullptr)
+	{
+		return 0;
+	}
 	return hashArray((const uint8_t *) v, sizeof(T));
 }
 
@@ -75,13 +79,17 @@ inline hash_t shallowHashArray(const std::vector<T> &arr)
 }
 
 template <class T>
-inline bool shallowCmp(const std::vector<T> &a, const std::vector<T> &b)
+inline bool shallowCmpStructure(const T *a, const T *b)
 {
-	if (a.size() != b.size())
+	if (a == nullptr && b == nullptr)
+	{
+		return true;
+	}
+	if (a == nullptr || b == nullptr)
 	{
 		return false;
 	}
-	return memcmp(a.data(), b.data(), a.size() * sizeof(T));
+	return memcmp(a, b, sizeof(T));
 }
 
 

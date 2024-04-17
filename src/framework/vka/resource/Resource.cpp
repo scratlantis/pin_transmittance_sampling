@@ -9,10 +9,6 @@ NonUniqueResource::~NonUniqueResource()
 {
 }
 
-
-
-
-
 Resource* ResourceTracker::find(Resource *resource) const
 {
 	auto result = resources.find(resource);
