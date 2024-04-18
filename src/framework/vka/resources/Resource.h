@@ -26,15 +26,7 @@ class UniqueResource : public Resource
 
 	~UniqueResource(){};
 
-	void move(ResourceTracker* pNewTracker)
-	{
-		Resource *result = pTracker->find(this);
-		if (result)
-		{
-			UniqueResource<T> *d = dynamic_cast<UniqueResource<T> *>(result);
-			pTracker->move(d,pNewTracker);
-		}
-	}
+	
 
 	T getHandle()
 	{

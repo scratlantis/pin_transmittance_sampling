@@ -76,6 +76,77 @@ void MemAllocator::createBuffer(
 	ASSERT_TRUE((pAllocation != nullptr));
 }
 
+
+void MemAllocator::createBuffer(
+    VkDeviceSize       deviceSize,
+    VkBufferUsageFlags vkBufferUsageFlags,
+    VmaMemoryUsage     vmaMemoryUsageFlags,
+    VkBuffer          *buf,
+    VmaAllocation     *alloc)
+{
+	VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+	bufferInfo.size               = deviceSize;
+	bufferInfo.usage              = vkBufferUsageFlags;
+
+	VmaAllocationCreateInfo vmaAllocationCreateInfo = {};
+	vmaAllocationCreateInfo.usage                   = vmaMemoryUsageFlags;
+	VmaAllocationInfo *pAllocationInfo              = {};
+	createBuffer(&bufferInfo, &vmaAllocationCreateInfo, buf, alloc, pAllocationInfo);
+}
+
+
+void MemAllocator::createUnallocatedBuffer(
+    VkDeviceSize       deviceSize,
+    VkBufferUsageFlags bufferUsageFlags,
+	VkBuffer* buf)
+{
+	VkBufferCreateInfo bufferCreateInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
+	bufferCreateInfo.size                  = deviceSize;
+	bufferCreateInfo.usage                 = bufferUsageFlags;
+	bufferCreateInfo.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
+	bufferCreateInfo.queueFamilyIndexCount = 0;
+	bufferCreateInfo.pQueueFamilyIndices   = nullptr;
+	ASSERT_VULKAN(vkCreateBuffer(gState.device.logical, &bufferCreateInfo, nullptr, buf));
+}
+
+void MemAllocator::allocateBuffer(
+    VkBufferUsageFlags    bufferUsageFlags,
+    VkMemoryPropertyFlags memoryPropertyFlags,
+    VkMemoryRequirements  memoryRequirements,
+    VkDeviceMemory *mem)
+{
+	VkMemoryAllocateInfo memoryAllocateInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
+	memoryAllocateInfo.allocationSize  = memoryRequirements.size;
+	memoryAllocateInfo.memoryTypeIndex = findMemoryTypeIndex(gState.device.physical, memoryRequirements.memoryTypeBits, memoryPropertyFlags);
+
+	VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO};
+	memoryAllocateFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
+
+	if (bufferUsageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+	{
+		memoryAllocateInfo.pNext = &memoryAllocateFlagsInfo;
+	}
+	ASSERT_VULKAN(vkAllocateMemory(gState.device.logical, &memoryAllocateInfo, nullptr, mem));
+}
+
+void MemAllocator::createBufferDedicated(
+    VkDeviceSize          deviceSize,
+    VkBufferUsageFlags    bufferUsageFlags,
+    VkMemoryPropertyFlags memoryPropertyFlags,
+    VkBuffer             *buf,
+    VkDeviceMemory       *mem)
+{
+	// Create Buffer
+	createUnallocatedBuffer(deviceSize, bufferUsageFlags, buf);
+	VkMemoryRequirements memoryRequirements = {};
+	vkGetBufferMemoryRequirements(gState.device.logical, *buf, &memoryRequirements);
+	// Allocate Buffer
+	allocateBuffer(bufferUsageFlags, memoryPropertyFlags, memoryRequirements, mem);
+	// Bind Buffer
+	vkBindBufferMemory(gState.device.logical, *buf, *mem, 0);
+}
+
+
 void MemAllocator::destroyBuffer(VkBuffer &buffer, VmaAllocation &allocation)
 {
 	vmaDestroyBuffer(this->vmaAllocator, buffer, allocation);

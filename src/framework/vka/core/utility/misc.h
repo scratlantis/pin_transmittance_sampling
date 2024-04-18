@@ -198,5 +198,25 @@ constexpr void clamp(VkExtent2D &target, const VkExtent2D &minExtent, const VkEx
 	target.height = std::max(minExtent.height, std::min(maxExtent.height, target.height));
 }
 
+uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
+	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &physicalDeviceMemoryProperties);
+	for (uint32_t i = 0; i < physicalDeviceMemoryProperties.memoryTypeCount; i++)
+	{
+		if ((typeFilter & (1 << i)) && (physicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+		{
+			return i;
+		}
+	}
+	DEBUG_BREAK
+	return UINT32_MAX;        // ToDo throw error message
+}
+
+
+template<class T>
+inline uint32_t dataSize(std::vector<T> v)
+{
+	return static_cast<uint32_t>(v.size() * sizeof(T));}
 
 }        // namespace vka

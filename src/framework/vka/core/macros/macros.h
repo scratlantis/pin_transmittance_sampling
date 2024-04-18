@@ -66,7 +66,6 @@
 
 #define VKA_COUNT(container) static_cast<uint32_t>((container).size())
 
-
 #ifdef _MSC_VER
 #	define DEBUG_BREAK __debugbreak();
 #else

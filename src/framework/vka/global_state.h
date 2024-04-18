@@ -74,6 +74,15 @@ class Resource
 	{
 		return this->_equals(other);
 	}
+
+	void move(ResourceTracker *pNewTracker)
+	{
+		Resource *result = pTracker->find(this);
+		if (result)
+		{
+			pTracker->move(result, pNewTracker);
+		}
+	}
 };
 
 }		// namespace vka

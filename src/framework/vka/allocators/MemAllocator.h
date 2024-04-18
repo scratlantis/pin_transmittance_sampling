@@ -20,6 +20,10 @@ class MemAllocator
 	void unmapMemory(VkDeviceMemory &mem);
 	void unmapMemory(VmaAllocation &allocation);
 	void createBuffer(VkBufferCreateInfo *pBufferCreateInfo, VmaAllocationCreateInfo *pVmaAllocationCreateInfo, VkBuffer *pBuffer, VmaAllocation *pAllocation, VmaAllocationInfo *pAllocationInfo);
+	void createBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags vkBufferUsageFlags, VmaMemoryUsage vmaMemoryUsageFlags, VkBuffer *buf, VmaAllocation *alloc);
+	void createUnallocatedBuffer(VkDeviceSize deviceSize, VkBufferUsageFlags bufferUsageFlags, VkBuffer *buf);
+	void allocateBuffer(VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkMemoryRequirements memoryRequirements, VkDeviceMemory *mem);
+	void createBufferDedicated(VkDeviceSize deviceSize, VkBufferUsageFlags bufferUsageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkBuffer *buf, VkDeviceMemory *mem);
 	void destroyBuffer(VkBuffer &buffer, VmaAllocation &allocation);
 
 	void destroyBuffer(VkBuffer &buffer, VkDeviceMemory &deviceMemory);
