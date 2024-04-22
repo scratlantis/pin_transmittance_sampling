@@ -5,12 +5,6 @@ namespace vka
 
 
 
-bool RayTracingPipeline::_equals(const RayTracingPipeline &other) const
-{
-	return pipelineState == other.pipelineState;
-};
-
-
 
 bool RayTracingPipelineState::_equals(RayTracingPipelineState const &other) const
 {

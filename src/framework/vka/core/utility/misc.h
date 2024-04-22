@@ -198,7 +198,7 @@ constexpr void clamp(VkExtent2D &target, const VkExtent2D &minExtent, const VkEx
 	target.height = std::max(minExtent.height, std::min(maxExtent.height, target.height));
 }
 
-uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+inline uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
 	VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &physicalDeviceMemoryProperties);
@@ -220,3 +220,39 @@ inline uint32_t dataSize(std::vector<T> v)
 	return static_cast<uint32_t>(v.size() * sizeof(T));}
 
 }        // namespace vka
+
+
+struct SubmitSynchronizationInfo
+{
+	std::vector<VkSemaphore>			waitSemaphores{};
+	std::vector<VkSemaphore>			signalSemaphores{};
+	std::vector<VkPipelineStageFlags>	waitDstStageMask{};
+	VkFence								signalFence = VK_NULL_HANDLE;
+};
+
+inline void submit(
+    std::vector<VkCommandBuffer> cmdBufs, VkQueue queue, const SubmitSynchronizationInfo syncInfo)
+{
+	VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+	submit.waitSemaphoreCount   = syncInfo.waitSemaphores.size();
+	submit.pWaitSemaphores      = syncInfo.waitSemaphores.data();
+	submit.pWaitDstStageMask    = syncInfo.waitDstStageMask.data();
+	submit.signalSemaphoreCount = syncInfo.signalSemaphores.size();
+	submit.pSignalSemaphores    = syncInfo.signalSemaphores.data();
+	submit.pCommandBuffers      = cmdBufs.data();
+	submit.commandBufferCount   = cmdBufs.size();
+	ASSERT_VULKAN(vkQueueSubmit(queue, 1, &submit, syncInfo.signalFence));
+}
+
+inline void submit(VkCommandBuffer cmdBuf, VkQueue queue, const SubmitSynchronizationInfo syncInfo)
+{
+	VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+	submit.waitSemaphoreCount   = syncInfo.waitSemaphores.size();
+	submit.pWaitSemaphores      = syncInfo.waitSemaphores.data();
+	submit.pWaitDstStageMask    = syncInfo.waitDstStageMask.data();
+	submit.signalSemaphoreCount = syncInfo.signalSemaphores.size();
+	submit.pSignalSemaphores    = syncInfo.signalSemaphores.data();
+	submit.pCommandBuffers      = &cmdBuf;
+	submit.commandBufferCount   = 1;
+	ASSERT_VULKAN(vkQueueSubmit(queue, 1, &submit, syncInfo.signalFence));
+}

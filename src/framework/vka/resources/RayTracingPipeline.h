@@ -5,12 +5,11 @@
 namespace vka
 {
 
-
-template<class T>
+template <class T>
 struct sbtRecord
 {
-	uint32_t      hitGroupID;
-	T			  surfaceParams;
+	uint32_t hitGroupID;
+	T        surfaceParams;
 };
 
 struct HitGroup
@@ -23,9 +22,23 @@ struct HitGroup
 		return (closestHitShaderID == other.closestHitShaderID) && (anyHitShaderID == other.anyHitShaderID);
 	}
 };
+}		// namespace vka
+namespace std
+{
+template <>
+struct hash<vka::HitGroup>
+{
+	size_t operator()(vka::HitGroup const &group) const
+	{
+		size_t h1 = hash<uint32_t>()(group.closestHitShaderID);
+		size_t h2 = hash<uint32_t>()(group.anyHitShaderID);
 
-
-
+		return ((h2 << 1) ^ h1);
+	}
+};
+}        // namespace std
+namespace vka
+{
 struct RayTracingPipelineState
 {
 	ShaderDefinition                                 rayGenShader;

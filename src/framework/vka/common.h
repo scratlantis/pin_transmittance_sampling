@@ -173,7 +173,7 @@ class ResourceTracker;
 
 // command interface
 DEFINE_API_OBJECT(VkCommandBuffer, VK_OBJECT_TYPE_COMMAND_BUFFER)
-class CmdBuf;
+class CmdBuffer;
 
 
 // Probably not needed, use push descriptors instead

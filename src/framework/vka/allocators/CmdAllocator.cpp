@@ -49,6 +49,17 @@ void CmdAllocator::createCmdBuffersCompute(uint32_t queueIdx, VkCommandBufferLev
 void CmdAllocator::destroy()
 {
 	ASSERT_TRUE(gState.initBits & STATE_INIT_CMDALLOC_BIT);
+
+	for (size_t i = 0; i < universalPools.size(); i++)
+	{
+		vkDestroyCommandPool(gState.device.logical, universalPools[i], nullptr);
+	}
+	universalPools.clear();
+	for (size_t i = 0; i < computePools.size(); i++)
+	{
+		vkDestroyCommandPool(gState.device.logical, computePools[i], nullptr);
+	}
+	computePools.clear();
 	gState.initBits &= ~STATE_INIT_CMDALLOC_BIT;
 }
 }        // namespace vka

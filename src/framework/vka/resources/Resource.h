@@ -263,5 +263,29 @@ class AccelerationStructure_R : public NonUniqueResource
 	VkAccelerationStructureKHR handle;
 };
 
+class CmdBuffer_R : public NonUniqueResource
+{
+  public:
+	CmdBuffer_R(VkCommandBuffer handle, VkCommandPool cmdPool)
+	{
+		this->handle = handle;
+		this->cmdPool = cmdPool;
+	}
+	virtual uint64_t getId() const
+	{
+		return (uint64_t) this->handle;
+	}
+
+  protected:
+	void free()
+	{
+		vkFreeCommandBuffers(gState.device.logical, cmdPool, 1, &handle);
+	}
+
+  private:
+	VkCommandBuffer handle;
+	VkCommandPool   cmdPool;
+};
+
 
 }        // namespace vka

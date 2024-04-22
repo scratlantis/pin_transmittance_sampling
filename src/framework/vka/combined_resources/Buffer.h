@@ -26,13 +26,13 @@ class Buffer
 		}
 	}
 
-	void moveView(ResourceTracker *pNewTracker)
+	/*void moveView(ResourceTracker *pNewTracker)
 	{
 		if (viewRes != nullptr)
 		{
 			viewRes->move(pNewTracker);
 		}
-	}
+	}*/
 
 	void map(uint32_t offset = 0)
 	{

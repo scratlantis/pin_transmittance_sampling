@@ -212,6 +212,7 @@ struct IOControlerCI
 	
 };
 
+
 class IOController
 {
   public:
@@ -252,7 +253,7 @@ struct Frame
 	VkSemaphore imageAvailableSemaphore;
 	VkFence     inFlightFence;
 	uint32_t    frameIndex;
-	// RessourceTracker stack;
+	ResourceTracker stack;
 	Frame *next;
 	Frame *previous;
 };
@@ -289,7 +290,7 @@ class AppState
 	uint32_t            initBits;
 	Device        device;
 	IOController io;
-	//RessourceTracker    heap;
+	ResourceTracker    heap;
 	ResourceTracker    cache;
 	Frame *frame;
 	MemAllocator        memAlloc;
@@ -299,6 +300,8 @@ class AppState
 
 	AppState();
 	void init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window* window);
+	void endFrame(std::vector<CmdBuffer> cmdBufs);
+	void swapBuffers(std::vector<CmdBuffer> cmdBufs);
 	void nextFrame();
 	void destroy();
 	private:

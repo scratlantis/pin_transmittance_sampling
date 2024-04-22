@@ -6,7 +6,7 @@
 #include <glm/glm.hpp>
 #include <framework/vka/global_state.h>
 #include <framework/vka/initializers/misc.h>
-#include <framework/vka/context/GlfwWindow.h>
+#include <framework/vka/setup/GlfwWindow.h>
 
 using namespace vka;
 

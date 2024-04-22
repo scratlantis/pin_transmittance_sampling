@@ -15,6 +15,8 @@ struct ShaderArgs
 
 
 
+
+
 struct ShaderDefinition
 {
 	std::string name;
@@ -233,6 +235,15 @@ struct hash<vka::Shader>
 	size_t operator()(vka::Shader const &shader) const
 	{
 		return shader._hash();
+	}
+};
+
+template <>
+struct hash<vka::ShaderDefinition>
+{
+	size_t operator()(vka::ShaderDefinition const &shaderDef) const
+	{
+		return shaderDef.hash();
 	}
 };
 }        // namespace std

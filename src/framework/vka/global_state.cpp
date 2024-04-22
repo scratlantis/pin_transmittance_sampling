@@ -1,6 +1,7 @@
 #include "global_state.h"
 #include "initializers/misc.h"
-#include "context/setup.h"
+#include "setup/setup.h"
+#include "combined_resources/CmdBuffer.h"
 
 namespace vka
 {
@@ -350,9 +351,40 @@ void vka::AppState::destroyFrames()
 	}
 }
 
+void AppState::endFrame(std::vector<CmdBuffer> cmdBufs)
+{
+	uint32_t imageIndex;
+	ASSERT_VULKAN(vkAcquireNextImageKHR(device.logical, io.swapchain, UINT64_MAX, frame->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex));
+	ASSERT_VULKAN(vkResetFences(device.logical, 1, &frame->inFlightFence));
+	SubmitSynchronizationInfo syncInfo{};
+	syncInfo.waitSemaphores = {frame->imageAvailableSemaphore};
+	syncInfo.waitDstStageMask = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+	syncInfo.signalSemaphores = {frame->renderFinishedSemaphore};
+	syncInfo.signalFence = frame->inFlightFence;
+
+	commitCmdBuffers(cmdBufs, &frame->stack, device.universalQueues[0], syncInfo);
+
+	VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+	presentInfo.waitSemaphoreCount = syncInfo.signalSemaphores.size();
+	presentInfo.pWaitSemaphores    = syncInfo.signalSemaphores.data();
+	presentInfo.swapchainCount     = 1;
+	presentInfo.pSwapchains        = &io.swapchain;
+	presentInfo.pImageIndices      = &frame->frameIndex;
+	ASSERT_VULKAN(vkQueuePresentKHR(device.universalQueues[0], &presentInfo));
+}
+
+
+void AppState::swapBuffers(std::vector<CmdBuffer> cmdBufs)
+{
+	endFrame(cmdBufs);
+	nextFrame();
+}
+
 void AppState::nextFrame()
 {
 	frame = frame->next;
+	ASSERT_VULKAN(vkWaitForFences(device.logical, 1, &frame->inFlightFence, VK_TRUE, UINT64_MAX));
+	frame->stack.clear();
 	io.readInputs();
 }
 
@@ -380,6 +412,8 @@ void AppState::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *wi
 }
 void AppState::destroy()
 {
+	heap.clear();
+	cache.clear();
 	cmdAlloc.destroy();
 	queryAlloc.destroy();
 	descAlloc.destroy();
