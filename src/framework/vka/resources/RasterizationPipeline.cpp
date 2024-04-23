@@ -49,6 +49,10 @@ hash_t RasterizationPipelineState::hash() const
 
 	hashCombine(hash, layout);
 
+	hashCombine(hash, shallowHashArray(specialisationEntryCounts));
+	hashCombine(hash, shallowHashArray(specialisationEntrySizes));
+	hashCombine(hash, shallowHashArray(specialisationData));
+
 #ifdef HASH_STATIC_PIPELINE_STATES
 	for (size_t i = 0; i < dynamicStates.size(); i++)
 	{
@@ -164,7 +168,10 @@ bool RasterizationPipelineState::_equals(RasterizationPipelineState const &other
 		&& multisampleState.minSampleShading == other.multisampleState.minSampleShading
 		&& multisampleState.rasterizationSamples == other.multisampleState.rasterizationSamples
 		&& multisampleState.sampleShadingEnable == other.multisampleState.sampleShadingEnable
-		&& shallowCmpStructure(multisampleState.pSampleMask, other.multisampleState.pSampleMask);
+		&& shallowCmpStructure(multisampleState.pSampleMask, other.multisampleState.pSampleMask)
+		&& shallowCmpArray(specialisationEntryCounts, other.specialisationEntryCounts)
+		&& shallowCmpArray(specialisationEntrySizes, other.specialisationEntrySizes)
+		&& shallowCmpArray(specialisationData, other.specialisationData);
 	// clang-format on
 }
 
@@ -176,6 +183,19 @@ VkGraphicsPipelineCreateInfo RasterizationPipelineState::buildPipelineCI(Resourc
 	for (size_t i = 0; i < shaderDefinitions.size(); i++)
 	{
 		stages.push_back(Shader(pTracker, shaderDefinitions[i]).getStageCI());
+	}
+
+	std::vector<VkSpecializationInfo> specialisationInfo;
+	if (!specialisationEntryCounts.empty())
+	{
+		writeSpecializationInfo(specialisationEntryCounts, specialisationEntrySizes, specialisationData.data(), specialisationInfo);
+		for (size_t i = 0; i < specialisationInfo.size(); i++)
+		{
+			if (specialisationInfo[i].mapEntryCount > 0)
+			{
+				stages[i].pSpecializationInfo = &specialisationInfo[i];
+			}
+		}
 	}
 
 	VkPipelineVertexInputStateCreateInfo c_vertexInputState = vertexInputState;

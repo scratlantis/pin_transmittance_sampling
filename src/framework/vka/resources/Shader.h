@@ -31,7 +31,7 @@ struct ShaderDefinition
 		return !(*this == other);
 	}
 
-	hash_t hash() const
+	std::string fileID() const
 	{
 		std::string id = name;
 		for (size_t i = 0; i < args.size(); i++)
@@ -44,7 +44,12 @@ struct ShaderDefinition
 			}
 			id.append(args[i].value);
 		}
-		return std::hash<std::string>()(id);
+		return id;
+	}
+
+	hash_t hash() const
+	{
+		return std::hash<std::string>()(fileID());
 	};
 };
 
@@ -68,45 +73,30 @@ class Shader : public UniqueResource<VkShaderModule>
 	}
 	virtual bool _equals(Shader const &other) const
 	{
-		return uniqueID() == other.uniqueID();
+		return def == other.def;
 	}
 
 	Shader *copyToHeap() const
 	{
-		return new Shader(pTracker, name, args);
+		return new Shader(*this);
 	}
 
   public:
-	Shader(ResourceTracker *pTracker, const std::string &name, std::vector<ShaderArgs> args = {}) :
-	    UniqueResource(pTracker), name(name), args(args){}
-	Shader(ResourceTracker *pTracker, ShaderDefinition def) :
-	    UniqueResource(pTracker), name(def.name), args(def.args)
+	Shader(ResourceTracker *pTracker, ShaderDefinition shaderDefinition) :
+	    UniqueResource(pTracker), def(shaderDefinition)
 	{
 		ASSERT_TRUE(def != VKA_NULL_SHADER)
 	}
 	hash_t _hash() const
 	{
-		return std::hash<std::string>()(uniqueID());
+		return def.hash();
 	};
 
-	std::string             name;
-	std::vector<ShaderArgs> args;
-	
+	ShaderDefinition        def;
 
-	std::string uniqueID() const
+	std::string fileID() const
 	{
-		std::string id = name;
-		for (size_t i = 0; i < args.size(); i++)
-		{
-			id.append("_");
-			id.append(args[i].name);
-			if (args[i].value != "")
-			{
-				id.append("=");
-			}
-			id.append(args[i].value);
-		}
-		return id;
+		return def.fileID();
 	}
 
 	bool operator==(const Shader &other) const
@@ -119,7 +109,7 @@ class Shader : public UniqueResource<VkShaderModule>
 		VkPipelineShaderStageCreateInfo ci{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
 		ci.module          = getHandle();
 		ci.pName           = "main";
-		std::string suffix = name.substr(name.find_last_of(".") + 1);
+		std::string suffix = def.name.substr(def.name.find_last_of(".") + 1);
 		if (suffix == "vert")
 		{
 			ci.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -167,17 +157,17 @@ class Shader : public UniqueResource<VkShaderModule>
 		std::stringstream shader_spv_path;
 		std::stringstream shader_log_path;
 		std::stringstream cmdShaderCompile;
-		shader_src_path << SHADER_SRC_DIR << "/" << name;
-		shader_spv_path << SHADER_SPV_DIR << "/" << uniqueID() << ".spv";
-		shader_log_path << SHADER_LOG_DIR << "/" << uniqueID() << ".log.txt";
+		shader_src_path << gShaderPath << "/" << def.name;
+		shader_spv_path << gShaderPath << "/spv/" << fileID() << ".spv";
+		shader_log_path << gShaderPath << "/log/" << fileID() << ".log.txt";
 
 		cmdShaderCompile << GLSLC_COMMAND;
-		for (size_t i = 0; i < args.size(); i++)
+		for (size_t i = 0; i < def.args.size(); i++)
 		{
-			cmdShaderCompile << " -D" << args[i].name << "=" << args[i].value;
+			cmdShaderCompile << " -D" << def.args[i].name << "=" << def.args[i].value;
 		}
-		std::string suffix = name.substr(name.find_last_of(".") + 1);
-		std::string prefix = name.substr(0, name.find_first_of("/"));
+		std::string suffix = def.name.substr(def.name.find_last_of(".") + 1);
+		std::string prefix = def.name.substr(0, def.name.find_first_of("/"));
 		for (auto &c : suffix)
 			c = toupper(c);
 		for (auto &c : prefix)
@@ -195,18 +185,18 @@ class Shader : public UniqueResource<VkShaderModule>
 		std::vector<char> shader_log;
 		compile();
 		std::stringstream shader_log_path;
-		shader_log_path << SHADER_LOG_DIR << "/" << uniqueID() << ".log.txt";
+		shader_log_path << SHADER_LOG_DIR << "/log/" << fileID() << ".log.txt";
 		std::string shader_log_path_str = shader_log_path.str();
 		printVka("About to open file %s\n", shader_log_path_str.c_str());
 		shader_log = readFile(shader_log_path_str);
 		printVka("Succes!\n");
 		if (shader_log.size() > 0)
 		{
-			printVka("Error compiling shader '%s' : %s", uniqueID().c_str(), shader_log.data());
+			printVka("Error compiling shader '%s' : %s", fileID().c_str(), shader_log.data());
 		}
 
 		std::stringstream shader_spv_path;
-		shader_spv_path << SHADER_SPV_DIR << "/" << uniqueID() << ".spv";
+		shader_spv_path << SHADER_SPV_DIR << "/spv/" << fileID() << ".spv";
 		std::string shader_spv_path_str = shader_spv_path.str();
 		printVka("About to open file %s\n", shader_spv_path_str.c_str());
 		auto shaderCode = readFile(shader_spv_path_str.c_str());

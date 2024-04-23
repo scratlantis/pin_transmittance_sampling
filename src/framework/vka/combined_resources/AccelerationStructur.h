@@ -7,7 +7,7 @@ namespace vka
 class BLAS
 {
   protected:
-	NonUniqueResource *asRes;
+	NonUniqueResource *asRes = nullptr;
 
   public:
 	VkAccelerationStructureKHR                            as;
@@ -16,7 +16,7 @@ class BLAS
 	bool                                                  isBuilt;
 	std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRange;
 	std::vector<VkAccelerationStructureGeometryKHR>       geometry;
-
+	BLAS() = default;
 	BLAS(
 	    ResourceTracker                                       *pTracker,
 	    std::vector<VkAccelerationStructureGeometryKHR>       &geomKHR,

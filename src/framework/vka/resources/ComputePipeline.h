@@ -9,11 +9,14 @@ namespace vka
 struct ComputePipelineState
 {
 	ShaderDefinition shaderDef;
-	PipelineLayoutDefinition layoutDef;
+	PipelineLayoutDefinition pipelineLayoutDef;
+
+	std::vector<uint32_t> specialisationEntrySizes;
+	std::vector<uint8_t> specializationData;
 
 	bool operator==(const ComputePipelineState& other) const
 	{
-		return shaderDef == other.shaderDef && layoutDef == other.layoutDef;
+		return shaderDef == other.shaderDef && pipelineLayoutDef == other.pipelineLayoutDef;
 	}
 	bool operator!=(const ComputePipelineState& other) const
 	{
@@ -24,7 +27,7 @@ struct ComputePipelineState
 	{
 		hash_t hash = 0;
 		hashCombine(hash, shaderDef.hash());
-		hashCombine(hash, layoutDef.hash());
+		hashCombine(hash, pipelineLayoutDef.hash());
 		return hash;
 	};
 
@@ -32,8 +35,15 @@ struct ComputePipelineState
 	VkComputePipelineCreateInfo ComputePipelineState::buildPipelineCI(ResourceTracker *pTracker) const
 	{
 		VkComputePipelineCreateInfo pipelineCreateInfo{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
-		pipelineCreateInfo.stage                                                                      = Shader(pTracker, shaderDef).getStageCI();
-		pipelineCreateInfo.layout = PipelineLayout(pTracker, layoutDef).getHandle();
+		VkPipelineShaderStageCreateInfo shaderStageCreateInfo = Shader(pTracker, shaderDef).getStageCI();
+		VkSpecializationInfo specializationInfo{};
+		uint32_t                        specDataSize = writeSpecializationInfo(specialisationEntrySizes.data(), specialisationEntrySizes.size(), specializationData.data(), specializationInfo);
+		if (specDataSize)
+		{
+			shaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
+		}
+		pipelineCreateInfo.stage                                                                  = shaderStageCreateInfo;
+		pipelineCreateInfo.layout = PipelineLayout(pTracker, pipelineLayoutDef).getHandle();
 		pipelineCreateInfo.basePipelineHandle                                                         = VK_NULL_HANDLE;
 		pipelineCreateInfo.basePipelineIndex = -1;
 		return pipelineCreateInfo;

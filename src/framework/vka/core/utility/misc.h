@@ -100,6 +100,10 @@ inline bool shallowCmpArray(const std::vector<T> &a, const std::vector<T> &b)
 	{
 		return false;
 	}
+	if (a.size() == 0)
+	{
+		return true;
+	}
 	return memcmp(a.data(), b.data(), a.size() * sizeof(T));
 }
 
@@ -217,9 +221,8 @@ inline uint32_t findMemoryTypeIndex(VkPhysicalDevice physicalDevice, uint32_t ty
 template<class T>
 inline uint32_t dataSize(std::vector<T> v)
 {
-	return static_cast<uint32_t>(v.size() * sizeof(T));}
-
-}        // namespace vka
+	return static_cast<uint32_t>(v.size() * sizeof(T));
+}
 
 
 struct SubmitSynchronizationInfo
@@ -256,3 +259,71 @@ inline void submit(VkCommandBuffer cmdBuf, VkQueue queue, const SubmitSynchroniz
 	submit.commandBufferCount   = 1;
 	ASSERT_VULKAN(vkQueueSubmit(queue, 1, &submit, syncInfo.signalFence));
 }
+
+constexpr VkExtent3D getExtent3D(const VkExtent2D extent)
+{
+	return {extent.width, extent.height, 1};
+}
+
+
+uint32_t inline writeSpecializationInfo(const uint32_t *pEntrySizes, uint32_t entrySizesCount,
+                                                    const void *data, VkSpecializationInfo &specInfo)
+{
+	std::vector<VkSpecializationMapEntry> specEntries;
+	uint32_t                              offset = 0;
+	for (uint32_t i = 0; i < entrySizesCount; i++)
+	{
+		VkSpecializationMapEntry specEntry;
+		specEntry.constantID = i;
+		specEntry.offset     = offset;
+		specEntry.size       = pEntrySizes[i];
+		offset += specEntry.size;
+	}
+	specInfo.mapEntryCount = specEntries.size();
+	specInfo.pMapEntries   = specEntries.data();
+	specInfo.dataSize      = offset;
+	specInfo.pData = data;
+
+	return offset;
+}
+void inline writeSpecializationInfo(
+    const std::vector<uint32_t> &entryCounts, const std::vector<uint32_t> &entrySizes,
+	const void *data, std::vector<VkSpecializationInfo> &specInfo)
+{
+	specInfo.resize(entryCounts.size());
+	char* dataPtr = (char*)data;
+	uint32_t sizesOffset = 0;
+	for (size_t i = 0; i < entryCounts.size(); i++)
+	{
+		if (entryCounts[i] == 0)
+		{
+			continue;
+		}
+		specInfo[i] = {};
+		uint32_t offset = writeSpecializationInfo(&entrySizes[sizesOffset], entryCounts[i], dataPtr, specInfo[i]);
+	}
+}
+
+
+
+glm::uvec3 inline getWorkGroupCount(const glm::uvec3 &workGroupSize, const glm::uvec3 &resolution)
+{
+	return {alignUp(resolution.x, workGroupSize.x) / workGroupSize.x,
+	        alignUp(resolution.y, workGroupSize.y) / workGroupSize.y,
+	        alignUp(resolution.z, workGroupSize.z) / workGroupSize.z};
+}
+
+std::vector<uint32_t> inline glm3VectorSizes()
+{
+	return {sizeof(uint32_t), sizeof(uint32_t), sizeof(uint32_t)};
+}
+
+std::vector<uint8_t> inline getByteVector(const glm::uvec3 &in)
+{
+	std::vector<uint32_t> v = {in.x,
+	                           in.y,
+	                           in.z};
+	return std::vector<uint8_t>(v.begin(), v.end());
+}
+
+}		// namespace vka

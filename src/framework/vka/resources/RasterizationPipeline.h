@@ -20,6 +20,13 @@ struct BlendMode
 struct RasterizationPipelineState
 {
 	std::vector<ShaderDefinition>                    shaderDefinitions;
+
+	std::vector<uint32_t>							 specialisationEntryCounts;
+	std::vector<uint32_t>							 specialisationEntrySizes;
+	std::vector<uint8_t>							 specialisationData;
+
+
+
 	std::vector<VkVertexInputBindingDescription>     vertexBindingDescription;
 	std::vector<VkVertexInputAttributeDescription>   vertexAttributeDescriptions;
 	VkViewport                                       viewport;

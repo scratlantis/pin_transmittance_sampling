@@ -27,10 +27,47 @@ void commitCmdBuffers(
 
 CmdBuffer::CmdBuffer()
 {
-	isRecording = true;
 }
-
 CmdBuffer::~CmdBuffer()
 {
 }
+
+ComputeCmdBuffer::ComputeCmdBuffer()
+{
 }
+
+ComputeCmdBuffer::ComputeCmdBuffer(ResourceTracker *pTracker, VkCommandBufferUsageFlags usage, uint32_t queueIdx, VkCommandBufferLevel level)
+{
+	VkCommandPool pool;
+	gState.cmdAlloc.createCmdBuffersCompute(queueIdx, level, 1, handle, pool);
+	VkCommandBufferBeginInfo beginInfo {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+	beginInfo.flags = usage;
+	res = new CmdBuffer_R(handle, pool);
+	pTracker->add(res);
+	isRecording = true;
+	stateBits   = 0;
+}
+
+ComputeCmdBuffer::~ComputeCmdBuffer()
+{
+}
+
+UniversalCmdBuffer::UniversalCmdBuffer()
+{
+}
+
+UniversalCmdBuffer::UniversalCmdBuffer(ResourceTracker *pTracker, VkCommandBufferUsageFlags usage, uint32_t queueIdx, VkCommandBufferLevel level)
+{
+	VkCommandPool pool;
+	gState.cmdAlloc.createCmdBuffersUniversal(queueIdx, level, 1, handle, pool);
+	VkCommandBufferBeginInfo beginInfo {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+	beginInfo.flags = usage;
+	res = new CmdBuffer_R(handle, pool);
+	pTracker->add(res);
+	isRecording = true;
+}
+
+UniversalCmdBuffer::~UniversalCmdBuffer()
+{
+}
+}        // namespace vka

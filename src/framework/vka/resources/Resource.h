@@ -286,6 +286,4 @@ class CmdBuffer_R : public NonUniqueResource
 	VkCommandBuffer handle;
 	VkCommandPool   cmdPool;
 };
-
-
 }        // namespace vka

@@ -28,36 +28,30 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 FILE(GLOB_RECURSE SRCS_FRAMEWORK
 "src/framework/*.cpp"
 "src/framework/*.h"
-"resources/shaders/src/framework/*.vert"
-"resources/shaders/src/framework/*.frag"
-"resources/shaders/src/framework/*.glsl"
-"resources/shaders/src/framework/*.comp"
-"resources/shaders/src/framework/*.geom"
-"resources/shaders/src/framework/*.rgen"
-"resources/shaders/src/framework/*.rchit"
-"resources/shaders/src/framework/*.rahit"
-"resources/shaders/src/framework/*.rmiss"
+"resources/shaders/framework/*.vert"
+"resources/shaders/framework/*.frag"
+"resources/shaders/framework/*.glsl"
+"resources/shaders/framework/*.comp"
+"resources/shaders/framework/*.geom"
+"resources/shaders/framework/*.rgen"
+"resources/shaders/framework/*.rchit"
+"resources/shaders/framework/*.rahit"
+"resources/shaders/framework/*.rmiss"
 )
 
 FILE(GLOB_RECURSE SRCS_APPLICATIONS
 "src/applications/*.cpp"
 "src/applications/*.h"
-"resources/shaders/src/applications/*.vert"
-"resources/shaders/src/applications/*.frag"
-"resources/shaders/src/applications/*.glsl"
-"resources/shaders/src/applications/*.comp"
-"resources/shaders/src/applications/*.geom"
-"resources/shaders/src/applications/*.rgen"
-"resources/shaders/src/applications/*.rchit"
-"resources/shaders/src/applications/*.rahit"
-"resources/shaders/src/applications/*.rmiss"
+"resources/shaders/applications/*.vert"
+"resources/shaders/applications/*.frag"
+"resources/shaders/applications/*.glsl"
+"resources/shaders/applications/*.comp"
+"resources/shaders/applications/*.geom"
+"resources/shaders/applications/*.rgen"
+"resources/shaders/applications/*.rchit"
+"resources/shaders/applications/*.rahit"
+"resources/shaders/applications/*.rmiss"
 )
-
-
-
-#message(STATUS "Print Sources:")
-#message(STATUS ${SRCS})
-
 
 MACRO(SUBDIRLIST result curdir)
   FILE(GLOB children ${curdir}/*)
@@ -79,34 +73,37 @@ SET(SHADER_SRC_DIRS_VAR "{")
 SUBDIRLIST(SUBDIRS "${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/src/framework")
 
 
-FOREACH(subdir ${SUBDIRS})
-  MATH(EXPR SHADER_SRC_CNT_VAR "${SHADER_SRC_CNT_VAR}+1")
-  if(NOT ${SHADER_SRC_DIRS_VAR} STREQUAL "{")
-    SET(SHADER_SRC_DIRS_VAR "${SHADER_SRC_DIRS_VAR},")
-  endif()
-  SET(SHADER_SRC_DIRS_VAR "${SHADER_SRC_DIRS_VAR} ${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/src/framework/${subdir}")
-ENDFOREACH()
+#FOREACH(subdir ${SUBDIRS})
+#  MATH(EXPR SHADER_SRC_CNT_VAR "${SHADER_SRC_CNT_VAR}+1")
+#  if(NOT ${SHADER_SRC_DIRS_VAR} STREQUAL "{")
+#    SET(SHADER_SRC_DIRS_VAR "${SHADER_SRC_DIRS_VAR},")
+#  endif()
+#  SET(SHADER_SRC_DIRS_VAR "${SHADER_SRC_DIRS_VAR} ${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/src/framework/${subdir}")
+#ENDFOREACH()
+#
+#SUBDIRLIST(SUBDIRS "${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/src/applications")
+#FOREACH(subdir ${SUBDIRS})
+#  MATH(EXPR SHADER_SRC_CNT_VAR "${SHADER_SRC_CNT_VAR}+1")
+#  if(NOT ${SHADER_SRC_CNT_VAR} MATCHES "0")
+#    SET(SHADER_SRC_DIRS_VAR "${SHADER_SRC_DIRS_VAR},")
+#  endif()
+#  SET(SHADER_SRC_DIRS_VAR "${SHADER_SRC_DIRS_VAR} ${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/src/applications/${subdir}")
+#ENDFOREACH()
 
-SUBDIRLIST(SUBDIRS "${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/src/applications")
-FOREACH(subdir ${SUBDIRS})
-  MATH(EXPR SHADER_SRC_CNT_VAR "${SHADER_SRC_CNT_VAR}+1")
-  if(NOT ${SHADER_SRC_CNT_VAR} MATCHES "0")
-    SET(SHADER_SRC_DIRS_VAR "${SHADER_SRC_DIRS_VAR},")
-  endif()
-  SET(SHADER_SRC_DIRS_VAR "${SHADER_SRC_DIRS_VAR} ${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/src/applications/${subdir}")
-ENDFOREACH()
 
 
+#SET(SHADER_SRC_DIRS_VAR "${SHADER_SRC_DIRS_VAR} }")
+#add_compile_definitions(SHADER_SRC_DIR="${SHADER_SRC_DIRS_VAR}")
+#message(STATUS "SHADER_SRC_DIRS:")
+#message(STATUS ${SHADER_SRC_DIRS_VAR})
+#add_compile_definitions(SHADER_SRC_CNT="${SHADER_SRC_CNT_VAR}")
+#message(STATUS "SHADER_SRC_CNT_VAR:")
+#message(STATUS ${SHADER_SRC_CNT_VAR})
 
-SET(SHADER_SRC_DIRS_VAR "${SHADER_SRC_DIRS_VAR} }")
-add_compile_definitions(SHADER_SRC_DIR="${SHADER_SRC_DIRS_VAR}")
-message(STATUS "SHADER_SRC_DIRS:")
-message(STATUS ${SHADER_SRC_DIRS_VAR})
-add_compile_definitions(SHADER_SRC_CNT="${SHADER_SRC_CNT_VAR}")
-message(STATUS "SHADER_SRC_CNT_VAR:")
-message(STATUS ${SHADER_SRC_CNT_VAR})
-add_compile_definitions(SHADER_SPV_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/spv")
-add_compile_definitions(SHADER_LOG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/log")
+
+#add_compile_definitions(SHADER_SPV_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/spv")
+#add_compile_definitions(SHADER_LOG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/log")
+
 
 
 foreach(FILE ${SRCS_FRAMEWORK}) 
@@ -154,9 +151,22 @@ ${SRCS_FRAMEWORK}
 SET(target_list "${PROJECT_NAME}")
 SUBDIRLIST(SUBDIRS "${CMAKE_CURRENT_SOURCE_DIR}/src/applications")
 FOREACH(subdir ${SUBDIRS})
-  FILE(GLOB_RECURSE current_sources "src/applications/${subdir}/*.cpp" "src/applications/${subdir}/*.h")
+  #FILE(GLOB_RECURSE current_sources "src/applications/${subdir}/*.cpp" "src/applications/${subdir}/*.h")
+  FILE(GLOB_RECURSE current_sources 
+  "src/applications/${subdir}/*.cpp"
+  "src/applications/${subdir}/*.h"
+  "resources/shaders/applications/${subdir}/*.vert"
+  "resources/shaders/applications/${subdir}/*.frag"
+  "resources/shaders/applications/${subdir}/*.glsl"
+  "resources/shaders/applications/${subdir}/*.comp"
+  "resources/shaders/applications/${subdir}/*.geom"
+  "resources/shaders/applications/${subdir}/*.rgen"
+  "resources/shaders/applications/${subdir}/*.rchit"
+  "resources/shaders/applications/${subdir}/*.rahit"
+  "resources/shaders/applications/${subdir}/*.rmiss")
   add_executable(${subdir} ${current_sources})
   LIST(APPEND target_list "${subdir}")
+  target_compile_definitions(${subdir} PUBLIC SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/applications/${subdir}")
 ENDFOREACH()
 
 

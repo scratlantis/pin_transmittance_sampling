@@ -7,7 +7,7 @@ namespace vka
 class Buffer
 {
   protected:
-	MappableResource *res;
+	MappableResource *res     = nullptr;
 	BufferView_R     *viewRes = nullptr;
 
   public:
@@ -16,9 +16,20 @@ class Buffer
 	VkDeviceSize      size;
 
 	void *data = nullptr;        // used for mapping
+	Buffer()   = default;
+
+	VkDescriptorBufferInfo getDescriptorInfo() const
+	{
+		VkDescriptorBufferInfo info{};
+		info.buffer = buf;
+		info.offset = 0;
+		info.range  = VK_WHOLE_SIZE;
+		return info;
+	}
 
 	void move(ResourceTracker* pNewTracker)
 	{
+		ASSERT_TRUE(res != nullptr);
 		res->move(pNewTracker);
 		if (viewRes != nullptr)
 		{
@@ -106,7 +117,7 @@ struct BufferDedicated : public Buffer
 	BufferDedicated(ResourceTracker      *pTracker,
 	                VkDeviceSize          deviceSize,
 	                VkBufferUsageFlags    bufferUsageFlags,
-	                VkMemoryPropertyFlags memoryPropertyFlags)
+	                VkMemoryPropertyFlags memoryPropertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
 	{
 		VkDeviceMemory mem;
 		gState.memAlloc.createBufferDedicated(deviceSize, bufferUsageFlags, memoryPropertyFlags, &this->buf, &mem);
@@ -118,10 +129,10 @@ struct BufferDedicated : public Buffer
 
 struct BufferVma : public Buffer
 {
-	BufferVma(ResourceTracker       *pTracker,
-	                VkDeviceSize          deviceSize,
-	                VkBufferUsageFlags    bufferUsageFlags,
-	          VmaMemoryUsage     memoryUsage)
+	BufferVma(ResourceTracker   *pTracker,
+	          VkDeviceSize       deviceSize,
+	          VkBufferUsageFlags bufferUsageFlags,
+	          VmaMemoryUsage     memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY)
 	{
 		VmaAllocation alloc;
 		gState.memAlloc.createBuffer(deviceSize, bufferUsageFlags, memoryUsage, &this->buf, &alloc);

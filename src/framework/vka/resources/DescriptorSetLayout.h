@@ -20,6 +20,9 @@ struct DescriptorSetLayoutDefinition
 	{
 		return flags == other.flags && shallowCmpArray(bindings, other.bindings);
 	}
+
+	void addStorageImage(VkShaderStageFlags shaderStage);
+	void addUniformBuffer(VkShaderStageFlags shaderStage);
 };
 
 }        // namespace vka

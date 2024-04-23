@@ -28,21 +28,23 @@ void CmdAllocator::init()
 	gState.initBits |= STATE_INIT_CMDALLOC_BIT;
 }
 
-void CmdAllocator::createCmdBuffersUniversal(uint32_t queueIdx, VkCommandBufferLevel cmdBufLevel, uint32_t count, VkCommandBuffer &cmdBuf)
+void CmdAllocator::createCmdBuffersUniversal(uint32_t queueIdx, VkCommandBufferLevel cmdBufLevel, uint32_t count, VkCommandBuffer &cmdBuf, VkCommandPool &cmdPool)
 {
 	VkCommandBufferAllocateInfo allocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
 	allocInfo.commandPool                 = universalPools[queueIdx];
 	allocInfo.level						  = cmdBufLevel;
 	allocInfo.commandBufferCount          = count;
+	cmdPool = universalPools[queueIdx];
 	ASSERT_VULKAN(vkAllocateCommandBuffers(gState.device.logical, &allocInfo, &cmdBuf));
 }
 
-void CmdAllocator::createCmdBuffersCompute(uint32_t queueIdx, VkCommandBufferLevel cmdBufLevel, uint32_t count, VkCommandBuffer &cmdBuf)
+void CmdAllocator::createCmdBuffersCompute(uint32_t queueIdx, VkCommandBufferLevel cmdBufLevel, uint32_t count, VkCommandBuffer &cmdBuf, VkCommandPool &cmdPool)
 {
 	VkCommandBufferAllocateInfo allocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
 	allocInfo.commandPool        = computePools[queueIdx];
 	allocInfo.level              = cmdBufLevel;
 	allocInfo.commandBufferCount = count;
+	cmdPool                      = computePools[queueIdx];
 	ASSERT_VULKAN(vkAllocateCommandBuffers(gState.device.logical, &allocInfo, &cmdBuf));
 }
 

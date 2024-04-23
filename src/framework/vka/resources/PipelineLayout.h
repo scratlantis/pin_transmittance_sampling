@@ -8,18 +8,18 @@ namespace vka
 struct PipelineLayoutDefinition
 {
 	std::vector<VkPushConstantRange>           pcRanges;
-	std::vector<DescriptorSetLayoutDefinition> layoutDefinitions;
+	std::vector<DescriptorSetLayoutDefinition> descSetLayoutDef;
 
 	hash_t hash() const
 	{
 		hash_t hash = shallowHashArray(pcRanges);
-		hashCombine(hash, hashArray(layoutDefinitions));
+		hashCombine(hash, hashArray(descSetLayoutDef));
 		return hash;
 	}
 
 	bool operator==(const PipelineLayoutDefinition &other) const
 	{
-		return shallowCmpArray(pcRanges, other.pcRanges) && cmpArray(layoutDefinitions, other.layoutDefinitions);
+		return shallowCmpArray(pcRanges, other.pcRanges) && cmpArray(descSetLayoutDef, other.descSetLayoutDef);
 	}
 };
 }        // namespace vka
@@ -48,9 +48,9 @@ class PipelineLayout : public UniqueResource<VkPipelineLayout>
 	{
 		VkPipelineLayoutCreateInfo ci{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
 		std::vector<VkDescriptorSetLayout> descSetLayouts;
-		for (size_t i = 0; i < definition.layoutDefinitions.size(); i++)
+		for (size_t i = 0; i < definition.descSetLayoutDef.size(); i++)
 		{
-			descSetLayouts.push_back(DescriptorSetLayout(pTracker, definition.layoutDefinitions[i]).getHandle());
+			descSetLayouts.push_back(DescriptorSetLayout(pTracker, definition.descSetLayoutDef[i]).getHandle());
 		}
 		ci.setLayoutCount         = descSetLayouts.size();
 		ci.pSetLayouts            = descSetLayouts.data();

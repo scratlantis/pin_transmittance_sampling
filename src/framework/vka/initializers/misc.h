@@ -148,4 +148,26 @@ struct RayTracingShaderGroupCreateInfo_Empty : VkRayTracingShaderGroupCreateInfo
 };
 
 
+struct ImageCreateInfo_Swapchain : public VkImageCreateInfo
+{
+	ImageCreateInfo_Swapchain(VkImageUsageFlags usageFlags)
+	{
+	this->sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	this->pNext = nullptr;
+	this->flags = 0;
+	this->imageType = VK_IMAGE_TYPE_2D;
+	this->format = gState.io.format;
+	this->extent        = getExtent3D(gState.io.extent);
+	this->mipLevels = 1;
+	this->arrayLayers = 1;
+	this->samples = VK_SAMPLE_COUNT_1_BIT;
+	this->tiling =  VK_IMAGE_TILING_OPTIMAL;
+	this->usage         = usageFlags;
+	this->sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+	this->queueFamilyIndexCount = 0;
+	this->pQueueFamilyIndices = nullptr;
+	this->initialLayout         = VK_IMAGE_LAYOUT_PREINITIALIZED;
+	}
+};
+
 } // namespace vka

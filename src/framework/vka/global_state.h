@@ -315,3 +315,4 @@ class AppState
 
 }        // namespace vka
 extern vka::AppState gState;
+extern const std::string gShaderPath;
