@@ -16,7 +16,8 @@ struct ComputePipelineState
 
 	bool operator==(const ComputePipelineState& other) const
 	{
-		return shaderDef == other.shaderDef && pipelineLayoutDef == other.pipelineLayoutDef;
+		bool isEqual = shaderDef == other.shaderDef && pipelineLayoutDef == other.pipelineLayoutDef;
+		return isEqual;
 	}
 	bool operator!=(const ComputePipelineState& other) const
 	{
@@ -34,7 +35,7 @@ struct ComputePipelineState
 
 	VkComputePipelineCreateInfo ComputePipelineState::buildPipelineCI(ResourceTracker *pTracker) const
 	{
-		VkComputePipelineCreateInfo pipelineCreateInfo{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
+		VkComputePipelineCreateInfo pipelineCreateInfo{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
 		VkPipelineShaderStageCreateInfo shaderStageCreateInfo = Shader(pTracker, shaderDef).getStageCI();
 		VkSpecializationInfo specializationInfo{};
 		uint32_t                        specDataSize = writeSpecializationInfo(specialisationEntrySizes.data(), specialisationEntrySizes.size(), specializationData.data(), specializationInfo);
@@ -62,15 +63,32 @@ class ComputePipeline : public UniqueResource<VkPipeline>
 		VkComputePipelineCreateInfo ci = pipelineState.buildPipelineCI(pTracker);
 		ASSERT_VULKAN(vkCreateComputePipelines(gState.device.logical, VK_NULL_HANDLE, 1, &ci, nullptr, &handle));
 	}
-	virtual bool _equals(ComputePipeline const &other) const
+	//virtual bool _equals(ComputePipeline const &other) const
+	//{
+	//	return this->pipelineState == other.pipelineState;
+	//}
+
+	virtual bool _equals(Resource const &other) const
 	{
-		return this->pipelineState == other.pipelineState;
+		if (typeid(*this) != typeid(other))
+			return false;
+		auto that = static_cast<ComputePipeline const &>(other);
+		return *this == that;
 	}
+
+
+
 	ComputePipeline *copyToHeap() const
 	{
 		return new ComputePipeline(*this);
 	}
   public:
+	bool operator==(const ComputePipeline &other) const
+	{
+		bool isEqual = this->pipelineState == other.pipelineState;
+		return isEqual;
+		/*return this->pipelineState == other.pipelineState;*/
+	}
 	hash_t _hash() const
 	{
 		return pipelineState.hash();

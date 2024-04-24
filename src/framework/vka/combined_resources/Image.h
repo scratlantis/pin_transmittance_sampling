@@ -38,17 +38,17 @@ class Image
 			viewRes->move(pNewTracker);
 		}
 	}
-};
 
-// Resource Owned by the swapchain
-class SwapchainImage : public Image
-{
-
-};
-
-// Dedicated allocation
-class ImageDedicated : public Image
-{
+	void createImageView(ResourceTracker *pTracker, const VkImageViewCreateInfo &viewCI)
+	{
+		if (viewRes != nullptr)
+		{
+			return;
+		}
+		ASSERT_VULKAN(vkCreateImageView(gState.device.logical, &viewCI, nullptr, &view));
+		viewRes = new ImageView_R(view);
+		pTracker->add(viewRes);
+	}
 
 };
 
@@ -73,15 +73,22 @@ class ImageVma : public Image
 	}
 };
 
+class SwapchainImage : public Image
+{
+  public:
+	SwapchainImage();
+	~SwapchainImage();
+	SwapchainImage(ResourceTracker *pTracker, VkImage swapchainImage, VkFormat swapchainFormat, VkExtent2D swapchainExtent);
+};
 
 // provide special functionality for framebuffer images
-class FramebufferImage : public ImageVma
-{
-
-
-  public:
-	FramebufferImage();
-	~FramebufferImage();
-};
+//class FramebufferImage : public ImageVma
+//{
+//
+//
+//  public:
+//	FramebufferImage();
+//	~FramebufferImage();
+//};
 
 }        // namespace vka

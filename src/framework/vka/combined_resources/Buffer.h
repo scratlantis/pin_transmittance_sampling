@@ -90,7 +90,7 @@ class Buffer
 		unmap();
 	};
 
-	void createView(ResourceTracker *pTracker, VkFormat format, VkDeviceSize range, VkDeviceSize offset)
+	void createView(ResourceTracker *pTracker, VkFormat format)
 	{
 		if (viewRes != nullptr)
 		{
@@ -104,10 +104,6 @@ class Buffer
 		ASSERT_VULKAN(vkCreateBufferView(gState.device.logical, &viewInfo, nullptr, &view));
 		viewRes = new BufferView_R(view);
 		pTracker->add(viewRes);
-	}
-	void createView(ResourceTracker *pTracker, VkFormat format)
-	{
-		createView(pTracker, format, size, 0);
 	}
 	protected:
 };

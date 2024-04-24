@@ -2,6 +2,7 @@
 #include "initializers/misc.h"
 #include "setup/setup.h"
 #include "combined_resources/CmdBuffer.h"
+#include "combined_resources/Image.h"
 
 namespace vka
 {
@@ -211,11 +212,11 @@ void vka::IOController::init()
 	gState.initBits |= STATE_INIT_IO_BIT;
 }
 
-void vka::IOController::updateSwapchain()
+bool vka::IOController::updateSwapchain()
 {
 	if (!shouldRecreateSwapchain)
 	{
-		return;
+		return false;
 	}
 	while (window->size().height == 0 || window->size().width == 0)
 	{
@@ -266,27 +267,28 @@ void vka::IOController::updateSwapchain()
 
 	ASSERT_VULKAN(vkCreateSwapchainKHR(gState.device.logical, &vkSwapchainCI, nullptr, &swapchain));
 
-	if ((gState.initBits & STATE_INIT_IO_SWAPCHAIN_BIT))
+	if ((gState.initBits & (STATE_INIT_IO_SWAPCHAIN_BIT)))
 	{
+		ASSERT_TRUE((gState.initBits & (STATE_INIT_FRAME_BIT)))
 		for (size_t i = 0; i < imageCount; i++)
 		{
-			vkDestroyImageView(gState.device.logical, imageViews[i], nullptr);
+			images[i].moveView(&gState.frame->stack);
 		}
 		vkDestroySwapchainKHR(gState.device.logical, oldSwapchain, nullptr);
 	}
 
-	std::vector<VkImage> images(imageCount);
-	imageViews.resize(imageCount);
-	vkGetSwapchainImagesKHR(gState.device.logical, swapchain, &imageCount, images.data());
+	std::vector<VkImage> vkImages(imageCount);
+	images.resize(imageCount);
+	vkGetSwapchainImagesKHR(gState.device.logical, swapchain, &imageCount, vkImages.data());
 
 	for (size_t i = 0; i < imageCount; i++)
 	{
-		VkImageViewCreateInfo imageViewCI = ImageViewCreateInfo_Swapchain(images[i], format);
-		ASSERT_VULKAN(vkCreateImageView(gState.device.logical, &imageViewCI, nullptr, &imageViews[i]));
+		images[i]                     = SwapchainImage(&gState.heap, vkImages[i], format, extent);
 	}
 
 	gState.initBits |= STATE_INIT_IO_SWAPCHAIN_BIT;
 	shouldRecreateSwapchain = false;
+	return true;
 }
 void vka::IOController::requestSwapchainRecreation()
 {
@@ -305,7 +307,7 @@ void vka::IOController::destroy()
 	vkDestroySwapchainKHR(gState.device.logical, swapchain, nullptr);
 	for (size_t i = 0; i < imageCount; i++)
 	{
-		vkDestroyImageView(gState.device.logical, imageViews[i], nullptr);
+		images[i].moveView(&gState.frame->stack);
 	}
 	vkDestroySurfaceKHR(gState.device.instance, surface, nullptr);
 	window->destroy();
@@ -339,6 +341,7 @@ void vka::AppState::initFrames()
 	}
 	frame = frames.data();
 	initBits |= STATE_INIT_FRAME_SEMAPHORE_BIT;
+	initBits |= STATE_INIT_FRAME_BIT;
 }
 
 void vka::AppState::destroyFrames()
@@ -348,6 +351,7 @@ void vka::AppState::destroyFrames()
 		vkDestroySemaphore(device.logical, frame.imageAvailableSemaphore, nullptr);
 		vkDestroySemaphore(device.logical, frame.renderFinishedSemaphore, nullptr);
 		vkDestroyFence(device.logical, frame.inFlightFence, nullptr);
+		frame.stack.clear();
 	}
 }
 
@@ -378,6 +382,11 @@ void AppState::swapBuffers(std::vector<CmdBuffer> cmdBufs)
 {
 	endFrame(cmdBufs);
 	nextFrame();
+	bool swapchainRecreated = io.updateSwapchain();
+	if (swapchainRecreated)
+	{
+		frame = frames.data();
+	}
 }
 
 void AppState::nextFrame()
@@ -412,14 +421,15 @@ void AppState::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *wi
 }
 void AppState::destroy()
 {
+	vkDeviceWaitIdle(device.logical);
+	io.destroy();
+	destroyFrames();
 	heap.clear();
 	cache.clear();
 	cmdAlloc.destroy();
 	queryAlloc.destroy();
 	descAlloc.destroy();
 	memAlloc.destroy();
-	destroyFrames();
-	io.destroy();
 	device.destroy();
 	io.terminateWindowManager();
 }

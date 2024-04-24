@@ -18,6 +18,7 @@ class UniqueResource : public Resource
 		}
 	virtual void     free()            = 0;
 	virtual void     buildHandle()     = 0;
+	virtual bool    _equals(Resource const &other) const = 0;
 	virtual UniqueResource<T>* copyToHeap() const      = 0;
 	T            handle;
 	ResourceTracker *pTracker;
@@ -46,6 +47,10 @@ class UniqueResource : public Resource
 				pTracker->add(d);
 				return d->handle;
 			}
+		}
+		else
+		{
+			return handle;
 		}
 		//return handle;
 	}

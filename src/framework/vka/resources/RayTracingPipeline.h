@@ -85,8 +85,20 @@ class RayTracingPipeline : public UniqueResource<VkPipeline>
 		return new RayTracingPipeline(*this);
 	}
 
+	virtual bool _equals(Resource const &other) const
+	{
+		if (typeid(*this) != typeid(other))
+			return false;
+		auto that = static_cast<RayTracingPipeline const &>(other);
+		return *this == that;
+	}
   public:
-	bool _equals(const RayTracingPipeline& other) const
+	//bool _equals(const RayTracingPipeline& other) const
+	//{
+	//	return pipelineState == other.pipelineState;
+	//}
+
+	bool operator==(const RayTracingPipeline &other) const
 	{
 		return pipelineState == other.pipelineState;
 	}

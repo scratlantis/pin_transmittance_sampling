@@ -19,7 +19,8 @@ struct PipelineLayoutDefinition
 
 	bool operator==(const PipelineLayoutDefinition &other) const
 	{
-		return shallowCmpArray(pcRanges, other.pcRanges) && cmpArray(descSetLayoutDef, other.descSetLayoutDef);
+		bool isEqual = shallowCmpArray(pcRanges, other.pcRanges) && cmpArray(descSetLayoutDef, other.descSetLayoutDef);
+		return isEqual;
 	}
 };
 }        // namespace vka
@@ -59,9 +60,18 @@ class PipelineLayout : public UniqueResource<VkPipelineLayout>
 		ASSERT_VULKAN(vkCreatePipelineLayout(gState.device.logical, &ci, nullptr, &handle));
 		
 	}
-	virtual bool _equals(PipelineLayout const &other) const
+	//virtual bool _equals(PipelineLayout const &other) const
+	//{
+	//	return this->definition == other.definition;
+	//}
+
+
+	virtual bool _equals(Resource const &other) const
 	{
-		return this->definition == other.definition;
+		if (typeid(*this) != typeid(other))
+			return false;
+		auto that = static_cast<PipelineLayout const &>(other);
+		return *this == that;
 	}
 	PipelineLayout *copyToHeap() const
 	{
@@ -69,6 +79,10 @@ class PipelineLayout : public UniqueResource<VkPipelineLayout>
 	}
 
   public:
+	bool operator==(const PipelineLayout &other) const
+	{
+		return this->definition == other.definition;
+	}
 	hash_t _hash() const
 	{
 		return definition.hash();

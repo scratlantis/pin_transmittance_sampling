@@ -54,25 +54,36 @@ class Resource
   protected:
 	ResourceTracker* pTracker;
 	virtual void free() = 0;
+	virtual bool _equals(Resource const &other) const = 0;
   public:
-	virtual bool _equals(Resource const &other) const
+	//{
+	//	std::string a = typeid(*this).name();
+	//	std::string b = typeid(other).name();
+	//	if (typeid(*this) != typeid(other))
+	//	{
+	//		return false;
+	//	}
+	//	else
+	//	{
+	//		DEBUG_BREAK
+	//		return true;
+	//	}
+	//}
+	virtual hash_t _hash() const = 0;
+	friend class ResourceTracker;
+
+	bool operator==(Resource const &other) const
 	{
+		std::string a = typeid(*this).name();
+		std::string b = typeid(other).name();
 		if (typeid(*this) != typeid(other))
 		{
 			return false;
 		}
 		else
 		{
-			DEBUG_BREAK
-			return true;
+			return this->_equals(other);
 		}
-	}
-	virtual hash_t _hash() const = 0;
-	friend class ResourceTracker;
-
-	bool operator==(Resource const &other) const
-	{
-		return this->_equals(other);
 	}
 
 	void move(ResourceTracker *pNewTracker)
@@ -222,7 +233,8 @@ class IOController
 	VkSwapchainKHR           swapchain;
 	VkPresentModeKHR         presentMode;
 	uint32_t                 imageCount;
-	std::vector<VkImageView> imageViews;
+	std::vector<Image>	     images;
+	//std::vector<VkImageView> imageViews;
 	Mouse                    mouse;
 	bool                     keyPressed[KEY_COUNT];
 	bool                     keyEvent[KEY_COUNT];
@@ -235,12 +247,12 @@ class IOController
 	void destroy();
 	void terminateWindowManager();
 	bool shouldTerminate();
+	bool updateSwapchain();
 
 	DELETE_COPY_CONSTRUCTORS(IOController);
 
   private:
 	bool               shouldRecreateSwapchain;
-	void updateSwapchain();
 	Window            *window;
 	IOControlerCI      controllerCI;
 	SwapChainDetails   swapChainDetails;

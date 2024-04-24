@@ -24,7 +24,8 @@ struct ShaderDefinition
 
 	bool operator==(const ShaderDefinition &other) const
 	{
-		return name == other.name && cmpArray(args,other.args);
+		bool isEqual = name == other.name &&cmpArray(args, other.args);
+		return isEqual;
 	}
 	bool operator!=(const ShaderDefinition &other) const
 	{
@@ -71,9 +72,19 @@ class Shader : public UniqueResource<VkShaderModule>
 	{
 		createModule();
 	}
-	virtual bool _equals(Shader const &other) const
+	//virtual bool _equals(Shader const &other) const
+	//{
+	//	return def == other.def;
+	//}
+
+	
+
+	virtual bool _equals(Resource const &other) const
 	{
-		return def == other.def;
+		if (typeid(*this) != typeid(other))
+			return false;
+		auto that = static_cast<Shader const &>(other);
+		return *this == that;
 	}
 
 	Shader *copyToHeap() const
@@ -101,7 +112,7 @@ class Shader : public UniqueResource<VkShaderModule>
 
 	bool operator==(const Shader &other) const
 	{
-		return _equals(other);
+		return def == other.def;
 	}
 
 	VkPipelineShaderStageCreateInfo getStageCI()
@@ -167,7 +178,7 @@ class Shader : public UniqueResource<VkShaderModule>
 			cmdShaderCompile << " -D" << def.args[i].name << "=" << def.args[i].value;
 		}
 		std::string suffix = def.name.substr(def.name.find_last_of(".") + 1);
-		std::string prefix = def.name.substr(0, def.name.find_first_of("/"));
+		std::string prefix = def.name.substr(0, def.name.find_first_of("."));
 		for (auto &c : suffix)
 			c = toupper(c);
 		for (auto &c : prefix)
@@ -185,7 +196,7 @@ class Shader : public UniqueResource<VkShaderModule>
 		std::vector<char> shader_log;
 		compile();
 		std::stringstream shader_log_path;
-		shader_log_path << SHADER_LOG_DIR << "/log/" << fileID() << ".log.txt";
+		shader_log_path << gShaderPath << "/log/" << fileID() << ".log.txt";
 		std::string shader_log_path_str = shader_log_path.str();
 		printVka("About to open file %s\n", shader_log_path_str.c_str());
 		shader_log = readFile(shader_log_path_str);
@@ -196,7 +207,7 @@ class Shader : public UniqueResource<VkShaderModule>
 		}
 
 		std::stringstream shader_spv_path;
-		shader_spv_path << SHADER_SPV_DIR << "/spv/" << fileID() << ".spv";
+		shader_spv_path << gShaderPath << "/spv/" << fileID() << ".spv";
 		std::string shader_spv_path_str = shader_spv_path.str();
 		printVka("About to open file %s\n", shader_spv_path_str.c_str());
 		auto shaderCode = readFile(shader_spv_path_str.c_str());

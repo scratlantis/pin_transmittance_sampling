@@ -138,12 +138,22 @@ class RasterizationPipeline : public UniqueResource<VkPipeline>
 		VkGraphicsPipelineCreateInfo ci = pipelineState.buildPipelineCI(pTracker, renderPass, subpassIndex);
 		ASSERT_VULKAN(vkCreateGraphicsPipelines(gState.device.logical, VK_NULL_HANDLE, 1, &ci, nullptr, &handle));
 	}
-	virtual bool _equals(RasterizationPipeline const &other) const
+	//virtual bool _equals(RasterizationPipeline const &other) const
+	//{
+	//	return this->pipelineState == other.pipelineState
+	//		&& this->renderPass == other.renderPass
+	//		&& this->subpassIndex == other.subpassIndex;
+	//}
+
+
+	virtual bool _equals(Resource const &other) const
 	{
-		return this->pipelineState == other.pipelineState
-			&& this->renderPass == other.renderPass
-			&& this->subpassIndex == other.subpassIndex;
+		if (typeid(*this) != typeid(other))
+			return false;
+		auto that = static_cast<RasterizationPipeline const &>(other);
+		return *this == that;
 	}
+
 
 	RasterizationPipeline *copyToHeap() const
 	{
@@ -151,6 +161,10 @@ class RasterizationPipeline : public UniqueResource<VkPipeline>
 	}
 
   public:
+	bool operator==(const RasterizationPipeline &other) const
+	{
+		return this->pipelineState == other.pipelineState && this->renderPass == other.renderPass && this->subpassIndex == other.subpassIndex;
+	}
 	hash_t _hash() const
 	{
 		hash_t hash = 0;

@@ -38,14 +38,15 @@ ComputeCmdBuffer::ComputeCmdBuffer()
 
 ComputeCmdBuffer::ComputeCmdBuffer(ResourceTracker *pTracker, VkCommandBufferUsageFlags usage, uint32_t queueIdx, VkCommandBufferLevel level)
 {
+	this->pTracker = pTracker;
 	VkCommandPool pool;
 	gState.cmdAlloc.createCmdBuffersCompute(queueIdx, level, 1, handle, pool);
 	VkCommandBufferBeginInfo beginInfo {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 	beginInfo.flags = usage;
+	ASSERT_VULKAN(vkBeginCommandBuffer(handle, &beginInfo));
 	res = new CmdBuffer_R(handle, pool);
 	pTracker->add(res);
-	isRecording = true;
-	stateBits   = 0;
+	stateBits   = CMD_BUF_STATE_IS_RECORDING;
 }
 
 ComputeCmdBuffer::~ComputeCmdBuffer()
@@ -58,13 +59,15 @@ UniversalCmdBuffer::UniversalCmdBuffer()
 
 UniversalCmdBuffer::UniversalCmdBuffer(ResourceTracker *pTracker, VkCommandBufferUsageFlags usage, uint32_t queueIdx, VkCommandBufferLevel level)
 {
+	this->pTracker = pTracker;
 	VkCommandPool pool;
 	gState.cmdAlloc.createCmdBuffersUniversal(queueIdx, level, 1, handle, pool);
 	VkCommandBufferBeginInfo beginInfo {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 	beginInfo.flags = usage;
+	ASSERT_VULKAN(vkBeginCommandBuffer(handle, &beginInfo));
 	res = new CmdBuffer_R(handle, pool);
 	pTracker->add(res);
-	isRecording = true;
+	stateBits = CMD_BUF_STATE_IS_RECORDING;
 }
 
 UniversalCmdBuffer::~UniversalCmdBuffer()

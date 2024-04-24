@@ -104,7 +104,8 @@ inline bool shallowCmpArray(const std::vector<T> &a, const std::vector<T> &b)
 	{
 		return true;
 	}
-	return memcmp(a.data(), b.data(), a.size() * sizeof(T));
+	bool isEqual = memcmp(a.data(), b.data(), a.size() * sizeof(T)) == 0;
+	return isEqual;
 }
 
 
@@ -324,6 +325,65 @@ std::vector<uint8_t> inline getByteVector(const glm::uvec3 &in)
 	                           in.y,
 	                           in.z};
 	return std::vector<uint8_t>(v.begin(), v.end());
+}
+
+// CIV
+VkImageAspectFlags inline getAspectFlags(VkFormat format)
+{
+	VkImageAspectFlags aspectFlags = 0;
+	if (format == VK_FORMAT_D16_UNORM || format == VK_FORMAT_D32_SFLOAT || format == VK_FORMAT_D16_UNORM_S8_UINT ||
+		format == VK_FORMAT_D24_UNORM_S8_UINT || format == VK_FORMAT_D32_SFLOAT_S8_UINT)
+	{
+		aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+	}
+	else
+	{
+		aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+	}
+	return aspectFlags;
+}
+
+VkAccessFlags inline getAccessFlags(VkImageLayout layout)
+{
+	switch (layout)
+	{
+		case VK_IMAGE_LAYOUT_PREINITIALIZED:
+			return VK_ACCESS_HOST_WRITE_BIT;
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			return VK_ACCESS_TRANSFER_WRITE_BIT;
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			return VK_ACCESS_TRANSFER_READ_BIT;
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+			return VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			return VK_ACCESS_SHADER_READ_BIT;
+		default:
+			return VkAccessFlags();
+	}
+}
+
+VkPipelineStageFlags inline getStageFlags(VkImageLayout oldImageLayout)
+{
+	switch (oldImageLayout)
+	{
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			return VK_PIPELINE_STAGE_TRANSFER_BIT;
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+			return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+		case VK_IMAGE_LAYOUT_PREINITIALIZED:
+			return VK_PIPELINE_STAGE_HOST_BIT;
+		case VK_IMAGE_LAYOUT_UNDEFINED:
+			return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		default:
+			return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	}
 }
 
 }		// namespace vka

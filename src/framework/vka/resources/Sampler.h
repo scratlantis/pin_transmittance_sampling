@@ -17,16 +17,30 @@ class Sampler : public UniqueResource<VkSampler>
 	{
 		ASSERT_VULKAN(vkCreateSampler(gState.device.logical, &ci, nullptr, &handle));
 	}
-	virtual bool _equals(Sampler const &other) const
+
+
+	virtual bool _equals(Resource const &other) const
 	{
-		return shallowCmpStructure(&this->ci, &other.ci);
+		if (typeid(*this) != typeid(other))
+			return false;
+		auto that = static_cast<Sampler const &>(other);
+		return *this == that;
 	}
+
+	//virtual bool _equals(Sampler const &other) const
+	//{
+	//	return shallowCmpStructure(&this->ci, &other.ci);
+	//}
 	Sampler *copyToHeap() const
 	{
 		return new Sampler(pTracker, ci);
 	}
 
   public:
+	bool operator==(const Sampler &other) const
+	{
+		return shallowCmpStructure(&this->ci, &other.ci);
+	}
 	hash_t _hash() const
 	{
 		return shallowHashStructure(&ci);

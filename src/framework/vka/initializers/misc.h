@@ -36,7 +36,7 @@ inline ImageViewCreateInfo_Swapchain::ImageViewCreateInfo_Swapchain(const VkImag
 		computeQueueCount		= 0;
 
 		// Instance Extensions
-		enabledInstanceExtensions = {};
+		enabledInstanceExtensions = {VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME};
 
 		// Device Extensions
 		enabledDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -47,6 +47,7 @@ inline ImageViewCreateInfo_Swapchain::ImageViewCreateInfo_Swapchain(const VkImag
 		enabledDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
+		enabledDeviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 
 		// Device Features
 		VkPhysicalDeviceVulkan11Features vulkan11Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};

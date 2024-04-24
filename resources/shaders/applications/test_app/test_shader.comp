@@ -21,7 +21,7 @@ layout(binding = 1, set = 0, rgba32f) uniform image2D imageOut;
 void main()
 {
 	uvec2 gID = gl_GlobalInvocationID.xy;
-	if(gID.xx >= pfc.width || gID.y >= pfc.height) return;
+	if(gID.x >= pfc.width || gID.y >= pfc.height) return;
 	ivec2 p = ivec2(gID);
 	vec4 newColor = vec4(1.0, 0.0, 0.0, 1.0);
 	imageStore(imageOut, p, newColor);

@@ -58,9 +58,18 @@ class DescriptorSetLayout : public UniqueResource <VkDescriptorSetLayout>
 		  ci.pBindings = definition.bindings.data();
 		  ASSERT_VULKAN(vkCreateDescriptorSetLayout(gState.device.logical, &ci, nullptr, &handle));
 	}
-	virtual bool _equals(DescriptorSetLayout const &other) const
+	//virtual bool _equals(DescriptorSetLayout const &other) const
+	//{
+	//	return this->definition == other.definition;
+	//}
+
+
+	virtual bool _equals(Resource const &other) const
 	{
-		return this->definition == other.definition;
+		if (typeid(*this) != typeid(other))
+			return false;
+		auto that = static_cast<DescriptorSetLayout const &>(other);
+		return *this == that;
 	}
 
 	DescriptorSetLayout* copyToHeap() const
@@ -68,6 +77,10 @@ class DescriptorSetLayout : public UniqueResource <VkDescriptorSetLayout>
 		return new DescriptorSetLayout(pTracker, definition);
 	}
   public:
+	bool operator==(const DescriptorSetLayout &other) const
+	{
+		return this->definition == other.definition;
+	}
 
 
 	hash_t _hash() const
