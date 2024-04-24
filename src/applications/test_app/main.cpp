@@ -34,7 +34,7 @@ struct PerFrameConstants
 
 	uint32_t width;
 	uint32_t height;
-	uint32_t placeholder1;
+	uint32_t frameCounter;
 	uint32_t placeholder2;
 };
 
@@ -48,8 +48,15 @@ int main()
 	// Resource Creation
 	FramebufferImage offscreenImage = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
 	Buffer           ubo            = BufferVma(&gState.heap, sizeof(PerFrameConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	uint32_t         cnt            = 0;
 	while (!gState.io.shouldTerminate())
 	{
+		// Hot Reload
+		if (gState.io.keyEvent[GLFW_KEY_R] && gState.io.keyPressed[GLFW_KEY_R])
+		{
+			vkDeviceWaitIdle(gState.device.logical);
+			gState.cache.clear();
+		}
 		// Pipeline Creation
 		glm::uvec3           workGroupSize  = {1, 1, 1};
 		glm::uvec3           resolution     = {gState.io.extent.width, gState.io.extent.height, 1};
@@ -72,6 +79,7 @@ int main()
 		PerFrameConstants pfc{};
 		pfc.width = gState.io.extent.width;
 		pfc.height = gState.io.extent.height;
+		pfc.frameCounter = cnt++;
 		cmdBuf.uploadData(&pfc, sizeof(pfc), ubo);
 		cmdBuf.pushDescriptors(0, ubo, (Image)offscreenImage);
 		cmdBuf.dispatch(workGroupCount);
