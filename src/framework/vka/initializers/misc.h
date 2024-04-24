@@ -24,7 +24,7 @@ inline ImageViewCreateInfo_Swapchain::ImageViewCreateInfo_Swapchain(const VkImag
 	subresourceRange.layerCount     = 1;
 	image                           = vkImage;
 	format                          = vkFormat;
-	subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+	subresourceRange.aspectMask     = getAspectFlags(vkFormat);
 }
 
 	struct D3VKPTDeviceCI : DeviceCI
@@ -168,6 +168,28 @@ struct ImageCreateInfo_Swapchain : public VkImageCreateInfo
 	this->queueFamilyIndexCount = 0;
 	this->pQueueFamilyIndices = nullptr;
 	this->initialLayout         = VK_IMAGE_LAYOUT_PREINITIALIZED;
+	}
+};
+
+struct ImageCreateInfo_Framebuffer : public VkImageCreateInfo
+{
+	ImageCreateInfo_Framebuffer(VkImageUsageFlags usageFlags, VkExtent2D extent, VkFormat format)
+	{
+		this->sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		this->pNext                 = nullptr;
+		this->flags                 = 0;
+		this->imageType             = VK_IMAGE_TYPE_2D;
+		this->format                = format;
+		this->extent                = getExtent3D(extent);
+		this->mipLevels             = 1;
+		this->arrayLayers           = 1;
+		this->samples               = VK_SAMPLE_COUNT_1_BIT;
+		this->tiling                = VK_IMAGE_TILING_OPTIMAL;
+		this->usage                 = usageFlags;
+		this->sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
+		this->queueFamilyIndexCount = 0;
+		this->pQueueFamilyIndices   = nullptr;
+		this->initialLayout         = VK_IMAGE_LAYOUT_PREINITIALIZED;
 	}
 };
 

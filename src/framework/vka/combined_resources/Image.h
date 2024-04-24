@@ -56,10 +56,11 @@ class Image
 class ImageVma : public Image
 {
   public:
-	ImageVma(ResourceTracker *pTracker, const VkImageCreateInfo imgCI, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY)
+	ImageVma();
+	ImageVma(ResourceTracker *pTracker, const VkImageCreateInfo &imgCI, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY)
 	  {
 		  VmaAllocationCreateInfo vmaAllocationCreateInfo = {};
-		  vmaAllocationCreateInfo.usage                   = VMA_MEMORY_USAGE_GPU_ONLY;
+		  vmaAllocationCreateInfo.usage                   = memUsage;
 		  VmaAllocation alloc;
 		  gState.memAlloc.createImage(&imgCI, &vmaAllocationCreateInfo, &img, &alloc);
 
@@ -73,7 +74,7 @@ class ImageVma : public Image
 	}
 };
 
-class SwapchainImage : public Image
+class SwapchainImage : public ImageVma
 {
   public:
 	SwapchainImage();
@@ -82,13 +83,20 @@ class SwapchainImage : public Image
 };
 
 // provide special functionality for framebuffer images
-//class FramebufferImage : public ImageVma
-//{
-//
-//
-//  public:
-//	FramebufferImage();
-//	~FramebufferImage();
-//};
+class FramebufferImage : public ImageVma
+{
+	
+  protected:
+	void create(ResourceTracker *pTracker, const VkImageCreateInfo &imgCI);
+	void recreate(ResourceTracker *pTracker, ResourceTracker *pGarbageTracker);
+	void destroy(ResourceTracker *pGarbageTracker);
+  public:
+	FramebufferImage(ResourceTracker *pTracker, VkImageUsageFlags usage, VkFormat format, VkExtent2D extent);
+	void update(ResourceTracker *pTracker, ResourceTracker *pGarbageTracker, VkExtent2D newExtent);
+	void update(ResourceTracker *pTracker, ResourceTracker *pGarbageTracker, VkImageUsageFlags newUsage);
+	void update(ResourceTracker *pTracker, ResourceTracker *pGarbageTracker, VkFormat newFormat);
+	~FramebufferImage();
+	FramebufferImage();
+};
 
 }        // namespace vka

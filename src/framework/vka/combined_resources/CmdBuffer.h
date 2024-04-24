@@ -29,16 +29,28 @@ class CmdBuffer
 	template <class T>
 	void uploadData(T dataStruct, Buffer dst, ResourceTracker *garbageTracker = &gState.frame->stack)
 	{
-		VkDeviceSize size = sizeof(T);
-		uploadData(dst, 0, &dataStruct, size, garbageTracker);
+	    VkDeviceSize size = sizeof(T);
+	    uploadData(dst, 0, &dataStruct, size, garbageTracker);
 	}
 
 	template <class T>
-	Buffer uploadData(T dataStruct, ResourceTracker *bufferTracker, VkBufferUsageFlags usageFlags, ResourceTracker *garbageTracker = &gState.frame->stack)
+	Buffer uploadData(T dataStruct, VkBufferUsageFlags usageFlags, ResourceTracker *bufferTracker, ResourceTracker *garbageTracker = &gState.frame->stack)
 	{
-		VkDeviceSize size = sizeof(T);
-		Buffer       dst  = BufferVma(bufferTracker, size, usageFlags | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);	
-		uploadData(dataStruct, dst);
+	    VkDeviceSize size = sizeof(T);
+	    Buffer       dst  = BufferVma(bufferTracker, size, usageFlags | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	    uploadData(dataStruct, dst);
+	    return dst;
+	}
+
+	void uploadData(const void* data, size_t size, Buffer dst, ResourceTracker *garbageTracker = &gState.frame->stack)
+	{
+		uploadData(dst, 0, data, size, garbageTracker);
+	}
+
+	Buffer uploadData(const void *data, size_t size, VkBufferUsageFlags usageFlags, ResourceTracker *bufferTracker, ResourceTracker *garbageTracker = &gState.frame->stack)
+	{
+		Buffer       dst  = BufferVma(bufferTracker, size, usageFlags | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+		uploadData(data, size, dst);
 		return dst;
 	}
 
@@ -246,49 +258,7 @@ class ComputeCmdBuffer : public CmdBuffer
 		write.pBufferInfo = &bufferInfos.back();
 		writes.push_back(write);
 	}
-	template <class T, class... Args>
-	void pushDescriptors(uint32_t                             setIdx,
-	                     std::vector<VkWriteDescriptorSet>   &writes,
-	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
-	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
-	                     T									 &dataStruct,
-	                     Args... args)
-	{
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, dataStruct);
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, args...);
-	}
-	template <class T, class... Args>
-	void pushDescriptors(uint32_t                             setIdx,
-	                     std::vector<VkWriteDescriptorSet>   &writes,
-	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
-	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
-	                     T                                   &dataStruct)
-	{
-		ASSERT_TRUE(pipelineLayoutDef.descSetLayoutDef[setIdx].bindings.size() > writes.size());
-		VkBufferUsageFlags usage = 0;
-		switch (pipelineLayoutDef.descSetLayoutDef[setIdx].bindings[writes.size()].descriptorType)
-		{
-			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-				usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-				break;
-			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-				usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-				break;
-			default:
-				__debugbreak();
-				break;
-		}
-		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uploadData(dataStruct, &gState.frame->stack, usage).buf;
-		bufferInfo.range  = VK_WHOLE_SIZE;
-		bufferInfos.push_back(bufferInfo);
-		VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-		write.dstBinding      = writes.size();
-		write.descriptorCount = 1;
-		write.descriptorType  = pipelineLayoutDef.descSetLayoutDef[setIdx].bindings[write.dstBinding].descriptorType;
-		write.pBufferInfo     = &bufferInfos.back();
-		writes.push_back(write);
-	}
+
 	template <class... Args>
 	void pushDescriptors(uint32_t                             setIdx,
 	                     std::vector<VkWriteDescriptorSet>   &writes,
@@ -319,6 +289,94 @@ class ComputeCmdBuffer : public CmdBuffer
 		write.pImageInfo      = &imageInfos.back();
 		writes.push_back(write);
 	}
+	/*template <class... Args>
+	void pushDescriptors(uint32_t                             setIdx,
+	                     std::vector<VkWriteDescriptorSet>   &writes,
+	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
+	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
+	                     const void                          *data,
+	                     size_t                               dataSize,
+	                     Args... args)
+	{
+		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, data, dataSize);
+		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, args...);
+	}
+	void pushDescriptors(uint32_t                             setIdx,
+	                     std::vector<VkWriteDescriptorSet>   &writes,
+	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
+	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
+	                     const void                          *data,
+	                     size_t                               dataSize)
+	{
+		ASSERT_TRUE(pipelineLayoutDef.descSetLayoutDef[setIdx].bindings.size() > writes.size());
+		VkBufferUsageFlags usage = 0;
+		switch (pipelineLayoutDef.descSetLayoutDef[setIdx].bindings[writes.size()].descriptorType)
+		{
+			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+				usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+				break;
+			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+				usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+				break;
+			default:
+				__debugbreak();
+				break;
+		}
+		VkDescriptorBufferInfo bufferInfo{};
+		bufferInfo.buffer = uploadData(data, dataSize, usage, &gState.frame->stack).buf;
+		bufferInfo.range  = VK_WHOLE_SIZE;
+		bufferInfos.push_back(bufferInfo);
+		VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+		write.dstBinding      = writes.size();
+		write.descriptorCount = 1;
+		write.descriptorType  = pipelineLayoutDef.descSetLayoutDef[setIdx].bindings[write.dstBinding].descriptorType;
+		write.pBufferInfo     = &bufferInfos.back();
+		writes.push_back(write);
+	}*/
+	/*template <class T, class... Args>
+	void pushDescriptors(uint32_t                             setIdx,
+	                     std::vector<VkWriteDescriptorSet>   &writes,
+	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
+	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
+	                     T                                    dataStruct,
+	                     Args... args)
+	{
+		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, dataStruct);
+		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, args...);
+	}
+	template <class T>
+	void pushDescriptors(uint32_t                             setIdx,
+	                     std::vector<VkWriteDescriptorSet>   &writes,
+	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
+	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
+	                     T                                    dataStruct)
+	{
+		ASSERT_TRUE(pipelineLayoutDef.descSetLayoutDef[setIdx].bindings.size() > writes.size());
+		VkBufferUsageFlags usage = 0;
+		switch (pipelineLayoutDef.descSetLayoutDef[setIdx].bindings[writes.size()].descriptorType)
+		{
+			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+				usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+				break;
+			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+				usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+				break;
+			default:
+				__debugbreak();
+				break;
+		}
+		VkDescriptorBufferInfo bufferInfo{};
+		bufferInfo.buffer = uploadData(dataStruct, usage, &gState.frame->stack).buf;
+		bufferInfo.range  = VK_WHOLE_SIZE;
+		bufferInfos.push_back(bufferInfo);
+		VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+		write.dstBinding      = writes.size();
+		write.descriptorCount = 1;
+		write.descriptorType  = pipelineLayoutDef.descSetLayoutDef[setIdx].bindings[write.dstBinding].descriptorType;
+		write.pBufferInfo     = &bufferInfos.back();
+		writes.push_back(write);
+	}*/
+	
 
 	~ComputeCmdBuffer();
 

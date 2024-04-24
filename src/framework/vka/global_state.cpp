@@ -222,6 +222,7 @@ bool vka::IOController::updateSwapchain()
 	{
 		window->waitEvents();
 	}
+	swapChainDetails = getSwapchainDetails(gState.device.physical, window->getSurface());
 	ASSERT_TRUE(gState.initBits & STATE_INIT_DEVICE_BIT);
 	vkDeviceWaitIdle(gState.device.logical);
 
