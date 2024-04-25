@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 
 # set the project name
-project(VkBase VERSION 1.0
-                       DESCRIPTION "Vulkan Base Framework"
+project(master_thesis VERSION 1.0
+                       DESCRIPTION "Master Thesis Sidney"
                        LANGUAGES CXX)
 
 add_subdirectory(external)
@@ -144,11 +144,11 @@ find_package(Vulkan REQUIRED)
 
 
 
-add_library(${PROJECT_NAME} STATIC
+add_library(vulkan_framework STATIC
 ${SRCS_FRAMEWORK}
 )
 
-SET(target_list "${PROJECT_NAME}")
+SET(target_list "vulkan_framework")
 SUBDIRLIST(SUBDIRS "${CMAKE_CURRENT_SOURCE_DIR}/src/applications")
 FOREACH(subdir ${SUBDIRS})
   #FILE(GLOB_RECURSE current_sources "src/applications/${subdir}/*.cpp" "src/applications/${subdir}/*.h")
@@ -193,8 +193,8 @@ add_subdirectory(external/GLFW/glfw-3.3.4)
 
 
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_PACKAGE_VERSION_MAJOR "${VkBase_VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${VkBase_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_MAJOR "${vulkan_framework_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${vulkan_framework_VERSION_MINOR}")
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
@@ -210,8 +210,8 @@ FOREACH(target ${target_list})
   target_link_libraries(${target} glfw)
   target_link_libraries(${target} Vulkan::Vulkan imgui stb glm tinyobjloader vma ktx csvwriter nlohmann_json)
   target_link_libraries(${target} ${CMAKE_DL_LIBS} Threads::Threads)
-  if(NOT ${target} MATCHES  ${PROJECT_NAME})
-    target_link_libraries(${target} ${PROJECT_NAME})
+  if(NOT ${target} MATCHES  vulkan_framework)
+    target_link_libraries(${target} vulkan_framework)
   endif()
 ENDFOREACH()
 
