@@ -291,6 +291,10 @@ bool vka::IOController::updateSwapchain()
 	shouldRecreateSwapchain = false;
 	return true;
 }
+Window* IOController::getWindow()
+{
+	return window;
+}
 void vka::IOController::requestSwapchainRecreation()
 {
 	shouldRecreateSwapchain = true;

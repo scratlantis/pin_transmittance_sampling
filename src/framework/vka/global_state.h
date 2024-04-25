@@ -7,6 +7,7 @@
 #include "allocators/MemAllocator.h"
 #include "allocators/QueryAllocator.h"
 #include "allocators/DescriptorAllocator.h"
+#include "global_var.h"
 
 #define KEY_COUNT 1024
 
@@ -204,6 +205,7 @@ class Window
 	virtual void                      changeSize(VkExtent2D newSize)                = 0;
 	virtual VkSurfaceKHR              getSurface() const                            = 0;
 	virtual void                      destroy()                                     = 0;
+	virtual void                      initGui()                                     = 0;
 	virtual void                      addInstanceExtensions(std::vector<const char *> &extensions) = 0;
   private:
 };
@@ -248,6 +250,7 @@ class IOController
 	void terminateWindowManager();
 	bool shouldTerminate();
 	bool updateSwapchain();
+	Window *getWindow();
 
 	DELETE_COPY_CONSTRUCTORS(IOController);
 
@@ -328,3 +331,4 @@ class AppState
 }        // namespace vka
 extern vka::AppState gState;
 extern const std::string gShaderPath;
+extern std::vector<vka::GVar *> gVars;

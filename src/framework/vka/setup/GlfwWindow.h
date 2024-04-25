@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.h>
 #include "../global_state.h"
 #include "../core/macros/macros.h"
+//#include <imgui_impl_glfw.h>
 namespace vka
 {
 
@@ -25,6 +26,7 @@ class GlfwWindow : public Window
 	void         requestClose();
 	void         changeSize(VkExtent2D newSize);
 	void		 addInstanceExtensions(std::vector<const char *> &extensions); 
+	void         initGui();
 	void         destroy();
 
 	~GlfwWindow();

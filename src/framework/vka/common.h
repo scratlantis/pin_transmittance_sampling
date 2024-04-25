@@ -5,6 +5,7 @@
 #include <vma/vk_mem_alloc.h>
 #include <vector>
 #include <unordered_set>
+#include <glm/glm.hpp>
 
 namespace vka
 {

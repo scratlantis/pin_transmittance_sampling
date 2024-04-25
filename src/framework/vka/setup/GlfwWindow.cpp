@@ -113,6 +113,11 @@ void GlfwWindow::addInstanceExtensions(std::vector<const char *> &extensions)
 	}
 }
 
+void GlfwWindow::initGui()
+{
+		//ImGui_ImplGlfw_InitForVulkan(window, true);
+}
+
 void GlfwWindow::destroy()
 {
 	glfwDestroyWindow(window);

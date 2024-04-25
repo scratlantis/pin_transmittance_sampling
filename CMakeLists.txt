@@ -51,6 +51,7 @@ FILE(GLOB_RECURSE SRCS_APPLICATIONS
 "resources/shaders/applications/*.rchit"
 "resources/shaders/applications/*.rahit"
 "resources/shaders/applications/*.rmiss"
+"resources/shaders/applications/*.log.txt"
 )
 
 MACRO(SUBDIRLIST result curdir)
@@ -163,7 +164,8 @@ FOREACH(subdir ${SUBDIRS})
   "resources/shaders/applications/${subdir}/*.rgen"
   "resources/shaders/applications/${subdir}/*.rchit"
   "resources/shaders/applications/${subdir}/*.rahit"
-  "resources/shaders/applications/${subdir}/*.rmiss")
+  "resources/shaders/applications/${subdir}/*.rmiss"
+  "resources/shaders/applications/${subdir}/*.log.txt")
   add_executable(${subdir} ${current_sources})
   LIST(APPEND target_list "${subdir}")
   target_compile_definitions(${subdir} PUBLIC SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/applications/${subdir}")
