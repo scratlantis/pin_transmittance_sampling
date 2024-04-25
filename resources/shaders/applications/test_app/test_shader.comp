@@ -14,11 +14,18 @@ struct PerFrameConstants
 	uint width;
 	uint height;
 	uint frameCounter;
+	uint mousePosX;
+
+	uint mousePosY;
 	uint placeholder2;
+	uint placeholder3;
+	uint placeholder4;
 };
 
 layout(binding = 0) uniform PFC {PerFrameConstants pfc;};
-layout(binding = 1, rgba32f) uniform image2D imageOut;
+layout(binding = 1, rgba32f) uniform image2D imageOffscreen;
+layout(binding = 2, rgba32f) uniform image2D imageIn;
+layout(binding = 3, rgba32f) uniform image2D imageOut;
 void main()
 {
 	uvec2 gID = gl_GlobalInvocationID.xy;
@@ -29,6 +36,32 @@ void main()
 	float noise_r = snoise(vec4(scale*gID.x, scale*gID.y, timeScale*pfc.frameCounter, 845.2121));
 	float noise_g = snoise(vec4(scale*gID.x, scale*gID.y, timeScale*pfc.frameCounter, 789.10221));
 	float noise_b = snoise(vec4(scale*gID.x, scale*gID.y, timeScale*pfc.frameCounter, 228.3813));
-	vec4 newColor = vec4(noise_r, noise_g, noise_b, 1.0);
-	imageStore(imageOut, p, newColor);
+	vec3 noiseColor = vec3(noise_r, noise_g, noise_b);
+	vec3 neighborColor = vec3(0.0);
+	int kernelRadius = 2;
+	float normalizationCoef = 1.0/((kernelRadius*2.0+1.0)*(kernelRadius*2.0+1.0));
+	for(int x = -kernelRadius; x <= kernelRadius; x++)
+	{
+		for(int y = -kernelRadius; y <= kernelRadius; y++)
+		{
+			neighborColor += (2.0*normalizationCoef*imageLoad(imageIn, ivec2(x,y))).rgb;
+		}
+	}
+	float dist = distance(p,vec2(pfc.mousePosX, pfc.mousePosY));
+	dist = max(dist, 1.0);
+	float invDist = 1.0/sqrt(dist);
+	invDist = clamp(invDist-0.02, 0.0, 1.0);
+	invDist*=10.0;
+	vec3 lastFrameColor = imageLoad(imageIn, p).rgb;
+	vec3 mouseColor = (lastFrameColor+vec3(0.1))*invDist;
+
+	vec3 newColor = mouseColor + mouseColor*noiseColor + neighborColor;
+	newColor = mix(newColor, lastFrameColor, 0.95);
+	//vec4 outStore = vec4(newColor + noiseColor*0.01, 1.0);
+	vec4 outColor = vec4(newColor, 1.0);
+	imageStore(imageOut, p, outColor);
+	imageStore(imageOffscreen, p, outColor);
+
+	//imageStore(imageOut, p, vec4(imageLoad(imageIn, p).rgb*0.99,1.0));
+	//imageStore(imageOffscreen, p, vec4(imageLoad(imageIn, p).rgb*0.99,1.0));
 }
