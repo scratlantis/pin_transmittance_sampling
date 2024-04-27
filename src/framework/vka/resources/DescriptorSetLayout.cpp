@@ -36,4 +36,15 @@ void DescriptorSetLayoutDefinition::addUniformBuffer(VkShaderStageFlags shaderSt
 	bindings.push_back(uboBinding);
 }
 
+void DescriptorSetLayoutDefinition::addDescriptor(VkShaderStageFlags shaderStage, VkDescriptorType type)
+{
+	VkDescriptorSetLayoutBinding uboBinding{};
+	uboBinding.binding            = VKA_COUNT(bindings);
+	uboBinding.descriptorType     = type;
+	uboBinding.descriptorCount    = 1;
+	uboBinding.stageFlags         = shaderStage;
+	uboBinding.pImmutableSamplers = nullptr;
+	bindings.push_back(uboBinding);
+}
+
 }        // namespace vka

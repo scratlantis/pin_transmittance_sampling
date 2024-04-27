@@ -23,6 +23,7 @@ struct DescriptorSetLayoutDefinition
 
 	void addStorageImage(VkShaderStageFlags shaderStage);
 	void addUniformBuffer(VkShaderStageFlags shaderStage);
+	void addDescriptor(VkShaderStageFlags shaderStage, VkDescriptorType type);
 };
 
 }        // namespace vka

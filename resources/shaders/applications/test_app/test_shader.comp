@@ -17,8 +17,8 @@ struct PerFrameConstants
 	uint mousePosX;
 
 	uint mousePosY;
-	uint placeholder2;
-	uint placeholder3;
+	uint mousePosLastFrameX;
+	uint mousePosLastFrameY;
 	uint placeholder4;
 };
 
@@ -26,6 +26,7 @@ layout(binding = 0) uniform PFC {PerFrameConstants pfc;};
 layout(binding = 1, rgba32f) uniform image2D imageOffscreen;
 layout(binding = 2, rgba32f) uniform image2D imageIn;
 layout(binding = 3, rgba32f) uniform image2D imageOut;
+layout(binding = 4) buffer MOUSE_POS_HISTORY {uvec2 mph[20];};
 void main()
 {
 	uvec2 gID = gl_GlobalInvocationID.xy;
@@ -44,24 +45,77 @@ void main()
 	{
 		for(int y = -kernelRadius; y <= kernelRadius; y++)
 		{
-			neighborColor += (2.0*normalizationCoef*imageLoad(imageIn, ivec2(x,y))).rgb;
+			neighborColor += (1.8*normalizationCoef*imageLoad(imageIn, ivec2(p.x + x, p.y + y))).rgb;
 		}
 	}
-	float dist = distance(p,vec2(pfc.mousePosX, pfc.mousePosY));
+	vec2 mousePos = vec2(pfc.mousePosX, pfc.mousePosY);
+	vec2 mousePosLastFrame = vec2(pfc.mousePosLastFrameX, pfc.mousePosLastFrameY);
+	float dist = min(distance(p,mousePos), distance(p,mousePosLastFrame));
+	if(distance(mousePos,mousePosLastFrame) > 0.01)
+	{
+		vec2 mouseDir = normalize(mousePos-mousePosLastFrame);
+		vec2 distVector = p-mousePosLastFrame;
+		vec2 distVectorInv = p-mousePos;
+		vec2 distDir = normalize(distVector);
+		vec2 distDirInv = normalize(distVectorInv);
+		if( (dot(distDir,mouseDir) > 0.0) && (dot(distDirInv, -mouseDir) > 0.0))
+		{
+			float cosine = dot(distDir, mouseDir);
+			float gamma = acos(cosine);
+			dist = sin(gamma)*length(distVector);
+		}
+	}
 	dist = max(dist, 1.0);
 	float invDist = 1.0/sqrt(dist);
-	invDist = clamp(invDist-0.02, 0.0, 1.0);
-	invDist*=10.0;
+	invDist = clamp(invDist-0.12, 0.0, 1.0);
+	invDist*=100.0;
 	vec3 lastFrameColor = imageLoad(imageIn, p).rgb;
 	vec3 mouseColor = (lastFrameColor+vec3(0.1))*invDist;
 
-	vec3 newColor = mouseColor + mouseColor*noiseColor + neighborColor;
-	newColor = mix(newColor, lastFrameColor, 0.95);
+	vec3 newColor = mouseColor + mouseColor*noiseColor + neighborColor*mouseColor*1.8 + neighborColor*0.8;
+	//newColor = mouseColor + mouseColor*noiseColor;
 	//vec4 outStore = vec4(newColor + noiseColor*0.01, 1.0);
+	float distanceCenter = distance(vec2(p.x, p.y), vec2(pfc.width/2.0, pfc.height/2.0));
+	float timeCoefR = (1.0+0.1*sin(-0.1*pfc.frameCounter+ 0.02*distanceCenter));
+	float timeCoefG = (1.0+0.42*sin(-0.2*pfc.frameCounter+ 0.1*distanceCenter + 1.0));
+	float timeCoefB = (1.0+0.8*sin(-0.6*pfc.frameCounter+ 0.25*distanceCenter + 2.0));
+
+	vec3 timeCoef = vec3(timeCoefR,timeCoefG,timeCoefB);
+
+	vec3 waveCoef = vec3(0.0);
+	if(pfc.frameCounter > 20*2)
+	{
+		for(int i = 0; i < 20; i++)
+		{
+			uint index = (pfc.frameCounter/2)%20;
+			uint deltaT;
+			if(index < i)
+			{
+				deltaT = 20 - i + index;
+			}
+			else
+			{
+				deltaT = (pfc.frameCounter/2)%20 - i;
+			}
+			float timeCoef = float(20-deltaT)/20.0;
+			//timeCoef = float(deltaT)/20.0;
+
+			timeCoef*=timeCoef;
+			float disteToHistoryPoint = distance(vec2(p.x, p.y), vec2(mph[i].x, mph[i].y));
+			float timeCoefR = (1.0+0.58*sin(-0.3*pfc.frameCounter+ 0.1*disteToHistoryPoint));
+			float timeCoefG = (1.0+0.12*sin(-0.5*pfc.frameCounter+ 0.08*disteToHistoryPoint + 1.0));
+			float timeCoefB = (1.0+0.8*sin(-0.8*pfc.frameCounter+ 0.05*disteToHistoryPoint + 2.0));
+			disteToHistoryPoint = max(disteToHistoryPoint, 0.1);
+			float invDist = 100.0/(100.0+sqrt(disteToHistoryPoint));
+			waveCoef += 0.08*vec3(timeCoefR,timeCoefG,timeCoefB)*vec3(timeCoefR,timeCoefG,timeCoefB)*invDist*timeCoef;
+
+		}
+	}
+	newColor += waveCoef*0.2;
+	newColor += noiseColor * waveCoef;
+	newColor = newColor*waveCoef*waveCoef;
+	newColor = mix(newColor, lastFrameColor, 0.95);
 	vec4 outColor = vec4(newColor, 1.0);
 	imageStore(imageOut, p, outColor);
 	imageStore(imageOffscreen, p, outColor);
-
-	//imageStore(imageOut, p, vec4(imageLoad(imageIn, p).rgb*0.99,1.0));
-	//imageStore(imageOffscreen, p, vec4(imageLoad(imageIn, p).rgb*0.99,1.0));
 }

@@ -38,10 +38,12 @@ struct PerFrameConstants
 	uint32_t mousePosX;
 
 	uint32_t mousePosY;
-	uint32_t placeholder2;
-	uint32_t placeholder3;
+	uint32_t mousePosLastFrameX;
+	uint32_t mousePosLastFrameY;
 	uint32_t placeholder4;
 };
+
+
 
 int main()
 {
@@ -55,7 +57,15 @@ int main()
 	FramebufferImage inputImage     = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_FORMAT_R16G16B16A16_UNORM, gState.io.extent);
 	FramebufferImage outputImage     = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_FORMAT_R16G16B16A16_UNORM, gState.io.extent);
 	Buffer           ubo            = BufferVma(&gState.heap, sizeof(PerFrameConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	std::vector<glm::uvec2> mousePosHistory;
+	mousePosHistory.resize(20);
+	Buffer mousePosHistoryBuffer = BufferVma(&gState.heap, sizeof(glm::uvec2) * mousePosHistory.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	uint32_t         cnt            = 0;
+	PerFrameConstants pfc{};
+	pfc.mousePosX                    = gState.io.mouse.pos.x;
+	pfc.mousePosY                    = gState.io.mouse.pos.y;
+	pfc.mousePosLastFrameX           = pfc.mousePosX;
+	pfc.mousePosLastFrameY           = pfc.mousePosY;
 	while (!gState.io.shouldTerminate())
 	{
 		// Hot Reload
@@ -75,6 +85,7 @@ int main()
 		layoutDefinition.addStorageImage(VK_SHADER_STAGE_COMPUTE_BIT);
 		layoutDefinition.addStorageImage(VK_SHADER_STAGE_COMPUTE_BIT);
 		layoutDefinition.addStorageImage(VK_SHADER_STAGE_COMPUTE_BIT);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags                          = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 		computeState.pipelineLayoutDef.descSetLayoutDef = {layoutDefinition};
 		computeState.specialisationEntrySizes           = glm3VectorSizes();
@@ -90,14 +101,25 @@ int main()
 		cmdBuf.transitionLayout(outputImage, VK_IMAGE_LAYOUT_GENERAL);
 
 		cmdBuf.bindPipeline(computePipeline);
-		PerFrameConstants pfc{};
+		
 		pfc.width = gState.io.extent.width;
 		pfc.height = gState.io.extent.height;
 		pfc.frameCounter = cnt++;
+		/*if (gState.io.mouse.leftEvent && gState.io.mouse.leftPressed)
+		{
+		}*/
+		pfc.mousePosLastFrameX = pfc.mousePosX;
+		pfc.mousePosLastFrameY = pfc.mousePosY;
 		pfc.mousePosX    = gState.io.mouse.pos.x;
 		pfc.mousePosY    = gState.io.mouse.pos.y;
 		cmdBuf.uploadData(&pfc, sizeof(pfc), ubo);
-		cmdBuf.pushDescriptors(0, ubo, (Image) offscreenImage, (Image) inputImage, (Image) outputImage);
+		if (cnt % 2 == 0)
+		{
+			mousePosHistory[(cnt / 2) % mousePosHistory.size()].x = pfc.mousePosX;
+			mousePosHistory[(cnt / 2) % mousePosHistory.size()].y = pfc.mousePosY;
+		}
+		cmdBuf.uploadData(mousePosHistory.data(), sizeof(glm::uvec2) * mousePosHistory.size(), mousePosHistoryBuffer);
+		cmdBuf.pushDescriptors(0, ubo, (Image) offscreenImage, (Image) inputImage, (Image) outputImage, mousePosHistoryBuffer);
 		cmdBuf.dispatch(workGroupCount);
 		cmdBuf.copyToSwapchain(offscreenImage);
 		cmdBuf.copyImage(outputImage, inputImage);
