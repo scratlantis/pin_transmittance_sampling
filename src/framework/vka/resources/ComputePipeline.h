@@ -8,6 +8,9 @@ namespace vka
 
 struct ComputePipelineState
 {
+  private:
+	std::vector<VkSpecializationMapEntry> specMapEntries;
+  public:
 	ShaderDefinition shaderDef;
 	PipelineLayoutDefinition pipelineLayoutDef;
 
@@ -33,12 +36,15 @@ struct ComputePipelineState
 	};
 
 
-	VkComputePipelineCreateInfo ComputePipelineState::buildPipelineCI(ResourceTracker *pTracker) const
+	VkComputePipelineCreateInfo ComputePipelineState::buildPipelineCI(ResourceTracker *pTracker)
 	{
 		VkComputePipelineCreateInfo pipelineCreateInfo{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
 		VkPipelineShaderStageCreateInfo shaderStageCreateInfo = Shader(pTracker, shaderDef).getStageCI();
 		VkSpecializationInfo specializationInfo{};
-		uint32_t                        specDataSize = writeSpecializationInfo(specialisationEntrySizes.data(), specialisationEntrySizes.size(), specializationData.data(), specializationInfo);
+		uint32_t                        mapEntryOffset  = 0;
+		specMapEntries.resize(specialisationEntrySizes.size());
+		uint32_t                        specDataSize = writeSpecializationInfo(specialisationEntrySizes.data(), specialisationEntrySizes.size(),
+		                                                specializationData.data(), specializationInfo, mapEntryOffset, specMapEntries);
 		if (specDataSize)
 		{
 			shaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
@@ -96,7 +102,7 @@ class ComputePipeline : public UniqueResource<VkPipeline>
 	ComputePipeline(ResourceTracker *pTracker, const ComputePipelineState pipelineState);
 	~ComputePipeline();
 
-	const ComputePipelineState       pipelineState;
+	ComputePipelineState       pipelineState;
   private:
 };
 }		// namespace vka

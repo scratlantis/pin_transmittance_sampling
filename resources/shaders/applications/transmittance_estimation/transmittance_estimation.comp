@@ -31,7 +31,7 @@ layout(binding = 0) uniform PFC {PerFrameConstants pfc;};
 layout(binding = 1, rgba32f) uniform image2D imageOffscreen;
 
 
-float rayMarchSimplex(vec3 start, vec3 end)
+vec3 rayMarchSimplex(vec3 start, vec3 end, vec3 probePos)
 {
 	float emission = 1.f;
 	const float stepSize = 5.0;
@@ -45,20 +45,20 @@ float rayMarchSimplex(vec3 start, vec3 end)
 	float emissionScale = 0.1;
 	vec4 offset = vec4(432.34,391.3,942.1, 421.3);
 
-	vec4 target         = pfc.inverseProjectionMat * vec4(0, 0, 1, 1);
-    vec3 direction      = (pfc.inverseViewMat * vec4(normalize(target.xyz), 0)).xyz;
+	
 
-	vec3 probePos = pfc.camPos.xyz + direction*200;
+	//return rayDir;
 
 	for(float d = 0; d<rayLength; d+= stepSize)
 	{
 		vec3 pos = start + d*rayDir;
 		//emission+=emissionScale*snoise(offset+vec4(distScale*pos, time));
 		float probeDistance = length(probePos-pos);
-		float noise = clamp(0.0,1.0,0.05*probeDistance + snoise(offset+vec4(distScale*pos, time)));
+		float noise = clamp(0.0,1.0,0.01*probeDistance + snoise(offset+vec4(distScale*pos, time)));
+		//noise = snoise(offset+vec4(distScale*pos, time));
 		emission*=mix(0.40,1.0,noise);
 	}
-	return emission;
+	return vec3(emission);
 }
 
 void main()
@@ -94,10 +94,13 @@ void main()
     vec2 d              = inUV * 2.0 - 1.0;
     vec4 target         = pfc.inverseProjectionMat * vec4(d.x, d.y, 1, 1);
     vec3 direction      = (pfc.inverseViewMat * vec4(normalize(target.xyz), 0)).xyz;
+	direction = normalize(direction);
 
-	float fog = rayMarchSimplex(pfc.camPos.xyz, pfc.camPos.xyz + direction*100.0);
-	fog = 0.0;
-	fog = rayMarchSimplex(vec3(0.0), vec3(10.0));
-	outColor.rgb = vec3(fog);
+	vec3 probePos = vec3(0.0,0.0,-100);
+
+	vec3 fog = rayMarchSimplex(pfc.camPos.xyz, pfc.camPos.xyz + direction*100.0, probePos);
+	//fog = rayMarchSimplex(vec3(0.0), vec3(10.0));
+	outColor.rgb = fog;
+	//outColor.rgb = direction;
 	imageStore(imageOffscreen, p, outColor);
 }
