@@ -73,7 +73,11 @@ int main()
 		}
 		// Update Camera
 		camera.key_control(gState.io.keyPressed, 0.016);
-		camera.mouse_control(gState.io.mouse.change.x, gState.io.mouse.change.y);
+
+		if (gState.io.mouse.leftPressed)
+		{
+			camera.mouse_control(gState.io.mouse.change.x, gState.io.mouse.change.y);
+		}
 		// Update per frame constants
 		PerFrameConstants pfc{};
 		pfc.width        = gState.io.extent.width;

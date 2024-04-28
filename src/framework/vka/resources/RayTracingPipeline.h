@@ -49,7 +49,7 @@ struct RayTracingPipelineState
 	PipelineLayoutDefinition						 layoutDef;
 	std::vector<ShaderDefinition>					 hitShaders;
 	std::vector<HitGroup>							 hitGroups;
-	VkRayTracingPipelineCreateInfoKHR                RayTracingPipelineState::buildPipelineCI(ResourceTracker *pTracker) const;
+	VkRayTracingPipelineCreateInfoKHR                RayTracingPipelineState::buildPipelineCI(ResourceTracker *pTracker);
 
 	
 
@@ -108,8 +108,12 @@ class RayTracingPipeline : public UniqueResource<VkPipeline>
 	}
 	RayTracingPipeline(ResourceTracker *pTracker, const RayTracingPipelineState pipelineState);
 	~RayTracingPipeline();
+	RayTracingPipelineState getState() const
+	{
+		return pipelineState;
+	}
   private:
-	const RayTracingPipelineState pipelineState;
+	RayTracingPipelineState pipelineState;
 };
 
 

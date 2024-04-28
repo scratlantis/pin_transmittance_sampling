@@ -114,7 +114,7 @@ void main()
 	newColor += waveCoef*0.2;
 	newColor += noiseColor * waveCoef;
 	newColor = newColor*waveCoef*waveCoef;
-	newColor = mix(newColor, lastFrameColor, 0.95);
+	newColor = mix(newColor, lastFrameColor, 0.99);
 	vec4 outColor = vec4(newColor, 1.0);
 	imageStore(imageOut, p, outColor);
 	imageStore(imageOffscreen, p, outColor);

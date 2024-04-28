@@ -193,7 +193,7 @@ class ComputeCmdBuffer : public CmdBuffer
 	void bindPipeline(ComputePipeline pipeline)
 	{
 		vkCmdBindPipeline(handle, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.getHandle());
-		pipelineLayoutDef = pipeline.pipelineState.pipelineLayoutDef;
+		pipelineLayoutDef = pipeline.getState().pipelineLayoutDef;
 		bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
 		stateBits |= CMD_BUF_STATE_BOUND_PIPELINE;
 		// State: layout, bindpoint

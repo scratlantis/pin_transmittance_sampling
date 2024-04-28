@@ -75,7 +75,7 @@ int main()
 			gState.cache.clear();
 		}
 		// Pipeline Creation
-		glm::uvec3           workGroupSize  = {1, 1, 1};
+		glm::uvec3           workGroupSize  = {16, 16, 1};
 		glm::uvec3           resolution     = {gState.io.extent.width, gState.io.extent.height, 1};
 		glm::uvec3           workGroupCount = getWorkGroupCount(workGroupSize, resolution);
 		ComputePipelineState computeState{};

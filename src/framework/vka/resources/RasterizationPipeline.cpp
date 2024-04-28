@@ -175,58 +175,37 @@ bool RasterizationPipelineState::_equals(RasterizationPipelineState const &other
 	// clang-format on
 }
 
-VkGraphicsPipelineCreateInfo RasterizationPipelineState::buildPipelineCI(ResourceTracker *pTracker,VkRenderPass renderPass, uint32_t subpassIndex) const
+VkGraphicsPipelineCreateInfo RasterizationPipelineState::buildPipelineCI(ResourceTracker *pTracker,VkRenderPass renderPass, uint32_t subpassIndex)
 {
-	std::vector<VkPipelineShaderStageCreateInfo> stages;
-
-
+	stages.clear();
 	for (size_t i = 0; i < shaderDefinitions.size(); i++)
 	{
 		stages.push_back(Shader(pTracker, shaderDefinitions[i]).getStageCI());
 	}
 
-	std::vector<VkSpecializationInfo> specialisationInfo;
-	if (!specialisationEntryCounts.empty())
-	{
-		writeSpecializationInfo(specialisationEntryCounts, specialisationEntrySizes, specialisationData.data(), specialisationInfo);
-		for (size_t i = 0; i < specialisationInfo.size(); i++)
-		{
-			if (specialisationInfo[i].mapEntryCount > 0)
-			{
-				stages[i].pSpecializationInfo = &specialisationInfo[i];
-			}
-		}
-	}
-
-	VkPipelineVertexInputStateCreateInfo c_vertexInputState = vertexInputState;
-	VkPipelineColorBlendStateCreateInfo  c_colorBlendState  = colorBlendState;
-	VkPipelineDynamicStateCreateInfo     c_dynamicState     = dynamicState;
-
-
-
-	c_dynamicState.dynamicStateCount = dynamicStates.size();
-	c_dynamicState.pDynamicStates    = dynamicStates.data();
+	dynamicState.dynamicStateCount = dynamicStates.size();
+	dynamicState.pDynamicStates    = dynamicStates.data();
 	
-	c_colorBlendState.attachmentCount = blendAttachments.size();
-	c_colorBlendState.pAttachments    = blendAttachments.data();
+	colorBlendState.attachmentCount = blendAttachments.size();
+	colorBlendState.pAttachments    = blendAttachments.data();
 	
-	c_vertexInputState.vertexBindingDescriptionCount   = vertexBindingDescription.size();
-	c_vertexInputState.pVertexBindingDescriptions      = vertexBindingDescription.data();
-	c_vertexInputState.vertexAttributeDescriptionCount = vertexAttributeDescriptions.size();
-	c_vertexInputState.pVertexAttributeDescriptions    = vertexAttributeDescriptions.data();
+	vertexInputState.vertexBindingDescriptionCount   = vertexBindingDescription.size();
+	vertexInputState.pVertexBindingDescriptions      = vertexBindingDescription.data();
+	vertexInputState.vertexAttributeDescriptionCount = vertexAttributeDescriptions.size();
+	vertexInputState.pVertexAttributeDescriptions    = vertexAttributeDescriptions.data();
 	
 	VkGraphicsPipelineCreateInfo pipelineCreateInfo{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
 	pipelineCreateInfo.stageCount          = stages.size();
 	pipelineCreateInfo.pStages             = stages.data();
-	pipelineCreateInfo.pVertexInputState   = &c_vertexInputState;
+	pipelineCreateInfo.pVertexInputState   = &vertexInputState;
 	pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 	pipelineCreateInfo.pTessellationState  = nullptr;
 	pipelineCreateInfo.pViewportState      = &viewportState;
 	pipelineCreateInfo.pRasterizationState = &rasterizationState;
 	pipelineCreateInfo.pMultisampleState   = &multisampleState;
 	pipelineCreateInfo.pDepthStencilState  = &depthStencilState;
-	pipelineCreateInfo.pColorBlendState    = &c_colorBlendState;
-	pipelineCreateInfo.pDynamicState       = &c_dynamicState;
+	pipelineCreateInfo.pColorBlendState    = &colorBlendState;
+	pipelineCreateInfo.pDynamicState       = &dynamicState;
 	pipelineCreateInfo.layout              = PipelineLayout(pTracker, layout).getHandle();
 	pipelineCreateInfo.renderPass          = renderPass;
 	pipelineCreateInfo.subpass             = subpassIndex;

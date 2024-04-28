@@ -10,6 +10,7 @@ struct ComputePipelineState
 {
   private:
 	std::vector<VkSpecializationMapEntry> specMapEntries;
+	VkSpecializationInfo specInfo;
   public:
 	ShaderDefinition shaderDef;
 	PipelineLayoutDefinition pipelineLayoutDef;
@@ -40,14 +41,17 @@ struct ComputePipelineState
 	{
 		VkComputePipelineCreateInfo pipelineCreateInfo{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
 		VkPipelineShaderStageCreateInfo shaderStageCreateInfo = Shader(pTracker, shaderDef).getStageCI();
-		VkSpecializationInfo specializationInfo{};
-		uint32_t                        mapEntryOffset  = 0;
-		specMapEntries.resize(specialisationEntrySizes.size());
-		uint32_t                        specDataSize = writeSpecializationInfo(specialisationEntrySizes.data(), specialisationEntrySizes.size(),
-		                                                specializationData.data(), specializationInfo, mapEntryOffset, specMapEntries);
-		if (specDataSize)
+
+		writeSpecializationInfo(specialisationEntrySizes, specializationData.data(), specMapEntries,specInfo);
+		for (size_t i = 0; i < 3; i++)
 		{
-			shaderStageCreateInfo.pSpecializationInfo = &specializationInfo;
+			printVka("data1b:  index: %d specData: %d\n", i, ((uint8_t *) specializationData.data())[i]);
+			printVka("data4b:  index: %d specData: %d\n", i, ((uint32_t *) specializationData.data())[i]);
+		}
+
+		if (!specializationData.empty())
+		{
+			shaderStageCreateInfo.pSpecializationInfo = &specInfo;
 		}
 		pipelineCreateInfo.stage                                                                  = shaderStageCreateInfo;
 		pipelineCreateInfo.layout = PipelineLayout(pTracker, pipelineLayoutDef).getHandle();
@@ -67,6 +71,11 @@ class ComputePipeline : public UniqueResource<VkPipeline>
 	void buildHandle()
 	{
 		VkComputePipelineCreateInfo ci = pipelineState.buildPipelineCI(pTracker);
+		for (size_t i = 0; i < 3; i++)
+		{
+			printVka("State:  index: %d specData: %d\n", i, pipelineState.specializationData[i]);
+			printVka("CI:  index: %d specData: %d\n", i, ((uint32_t *) ci.stage.pSpecializationInfo->pData)[i]);
+		}
 		ASSERT_VULKAN(vkCreateComputePipelines(gState.device.logical, VK_NULL_HANDLE, 1, &ci, nullptr, &handle));
 	}
 	//virtual bool _equals(ComputePipeline const &other) const
@@ -102,7 +111,11 @@ class ComputePipeline : public UniqueResource<VkPipeline>
 	ComputePipeline(ResourceTracker *pTracker, const ComputePipelineState pipelineState);
 	~ComputePipeline();
 
-	ComputePipelineState       pipelineState;
+	ComputePipelineState getState() const
+	{
+		return pipelineState;
+	}
   private:
+	ComputePipelineState       pipelineState;
 };
 }		// namespace vka

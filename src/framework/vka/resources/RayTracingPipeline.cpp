@@ -34,7 +34,7 @@ hash_t RayTracingPipelineState::hash() const
 	return hash;
 }
 
-VkRayTracingPipelineCreateInfoKHR RayTracingPipelineState::buildPipelineCI(ResourceTracker* pTracker) const
+VkRayTracingPipelineCreateInfoKHR RayTracingPipelineState::buildPipelineCI(ResourceTracker* pTracker)
 {
 	std::vector<VkPipelineShaderStageCreateInfo>      shaderStages;
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> groups;

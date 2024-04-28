@@ -19,6 +19,9 @@ struct BlendMode
 
 struct RasterizationPipelineState
 {
+  private:
+	std::vector<VkPipelineShaderStageCreateInfo>	 stages;
+  public:
 	std::vector<ShaderDefinition>                    shaderDefinitions;
 
 	std::vector<uint32_t>							 specialisationEntryCounts;
@@ -55,7 +58,7 @@ struct RasterizationPipelineState
 	hash_t hash() const;
 
 
-	VkGraphicsPipelineCreateInfo buildPipelineCI(ResourceTracker *pTracker, VkRenderPass renderPass, uint32_t subpassIndex) const;
+	VkGraphicsPipelineCreateInfo buildPipelineCI(ResourceTracker *pTracker, VkRenderPass renderPass, uint32_t subpassIndex);
 
 
 	RasterizationPipelineState();
@@ -176,11 +179,14 @@ class RasterizationPipeline : public UniqueResource<VkPipeline>
 	RasterizationPipeline(ResourceTracker *pTracker, const RasterizationPipelineState pipelineState, VkRenderPass renderPass, uint32_t subpassIndex);
 	~RasterizationPipeline();
 
-	const RasterizationPipelineState pipelineState;
 	const VkRenderPass               renderPass;
 	const uint32_t                   subpassIndex;
-
+	RasterizationPipelineState       getState() const
+	{
+		return pipelineState;
+	}
   private:
+	RasterizationPipelineState pipelineState;
 };
 
 }

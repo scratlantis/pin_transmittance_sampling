@@ -34,14 +34,15 @@ layout(binding = 1, rgba32f) uniform image2D imageOffscreen;
 vec3 rayMarchSimplex(vec3 start, vec3 end, vec3 probePos)
 {
 	float emission = 1.f;
-	const float stepSize = 5.0;
+	const float stepSize = 20.0;
 	vec3 rayDir = normalize(end-start);
 	float rayLength = length(end-start);
 	float d = 0;
-	int cycleTime = 1000;
+	int cycleTime = 100000;
 	float cycle = abs(int(pfc.frameCounter)%(2*cycleTime)-cycleTime);
-	float time = 0.01f*cycle;
-	float distScale = 0.05;
+	float time = 0.001f*cycle;
+	time = 0.0;
+	float distScale = 0.01;
 	float emissionScale = 0.1;
 	vec4 offset = vec4(432.34,391.3,942.1, 421.3);
 
@@ -98,7 +99,7 @@ void main()
 
 	vec3 probePos = vec3(0.0,0.0,-100);
 
-	vec3 fog = rayMarchSimplex(pfc.camPos.xyz, pfc.camPos.xyz + direction*100.0, probePos);
+	vec3 fog = rayMarchSimplex(pfc.camPos.xyz, pfc.camPos.xyz + direction*300.0, probePos);
 	//fog = rayMarchSimplex(vec3(0.0), vec3(10.0));
 	outColor.rgb = fog;
 	//outColor.rgb = direction;

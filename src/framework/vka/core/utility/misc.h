@@ -267,51 +267,65 @@ constexpr VkExtent3D getExtent3D(const VkExtent2D extent)
 }
 
 
-uint32_t inline writeSpecializationInfo(const uint32_t *pEntrySizes, uint32_t entrySizesCount,
-                                        const void *data, VkSpecializationInfo &specInfo,
-                                        uint32_t &specEntryOffset, std::vector<VkSpecializationMapEntry> &mapEntries)
+VkSpecializationInfo inline writeSpecializationInfo(
+    const uint32_t mapEntriesCount,
+	std::vector<VkSpecializationMapEntry> &mapEntries, const std::vector<uint32_t> &entrySizes, uint32_t &mapEntryOffset,
+    const void *data, uint32_t &dataOffset)
 {
-	uint32_t                              offset = 0;
-	for (uint32_t i = 0; i < entrySizesCount; i++)
+	VkSpecializationInfo specInfo{};
+	specInfo.pData = (char *) data + dataOffset;
+	specInfo.dataSize = 0;
+	specInfo.pMapEntries   = &mapEntries[mapEntryOffset];
+	specInfo.mapEntryCount = mapEntriesCount;
+	for (uint32_t i = 0; i < mapEntriesCount; i++)
 	{
 		VkSpecializationMapEntry specEntry{};
 		specEntry.constantID = i;
-		specEntry.offset     = offset;
-		specEntry.size       = pEntrySizes[i];
-		offset += specEntry.size;
-		mapEntries[specEntryOffset++] = specEntry;
+		specEntry.offset     = specInfo.dataSize;
+		specEntry.size       = entrySizes[i + mapEntryOffset];
+		specInfo.dataSize += specEntry.size;
+		mapEntries[i + mapEntryOffset] = specEntry;
 	}
-	specInfo.mapEntryCount = mapEntries.size();
-	specInfo.pMapEntries   = mapEntries.data();
-	specInfo.dataSize      = offset;
-	specInfo.pData = data;
+	mapEntryOffset += mapEntriesCount;
+	dataOffset += specInfo.dataSize;
+	return specInfo;
+}
 
-	return offset;
-}
 void inline writeSpecializationInfo(
-    const std::vector<uint32_t> &entryCounts, const std::vector<uint32_t> &entrySizes,
-    const void *data, std::vector<VkSpecializationInfo> &specInfo, std::vector<VkSpecializationMapEntry> &mapEntries)
+    const std::vector<uint32_t>           &entrySizes,
+    const void                            *data,
+    std::vector<VkSpecializationMapEntry> &mapEntries,
+    VkSpecializationInfo     &specInfo)
 {
-	uint32_t mapEntryCount = 0;
+	mapEntries.resize(entrySizes.size());
+	uint32_t mapEntryOffset = 0;
+	uint32_t dataOffset     = 0;
+	specInfo                = writeSpecializationInfo(entrySizes.size(), mapEntries, entrySizes, mapEntryOffset, data, dataOffset);
+}
+
+void inline writeSpecializationInfos(
+    const std::vector<uint32_t> &entryCounts,
+    const std::vector<uint32_t> &entrySizes,
+    const void                  *data,
+    std::vector<VkSpecializationMapEntry> &mapEntries,
+    std::vector<VkSpecializationInfo>     &specInfos)
+{
+	uint32_t totalMapEntryCount = 0;
 	for (size_t i = 0; i < entryCounts.size(); i++)
 	{
-		mapEntryCount += entryCounts[i];
+		totalMapEntryCount += entryCounts[i];
 	}
-	mapEntries.resize(mapEntryCount);
-	specInfo.resize(entryCounts.size());
-	uint32_t specEntryOffset = 0;
-	char* dataPtr = (char*)data;
-	uint32_t sizesOffset = 0;
+	mapEntries.resize(totalMapEntryCount);
+	specInfos.resize(entryCounts.size());
+
+	uint32_t mapEntryOffset = 0;
+	uint32_t dataOffset     = 0;
 	for (size_t i = 0; i < entryCounts.size(); i++)
 	{
-		if (entryCounts[i] == 0)
-		{
-			continue;
-		}
-		specInfo[i] = {};
-		uint32_t offset = writeSpecializationInfo(&entrySizes[sizesOffset], entryCounts[i], dataPtr, specInfo[i], specEntryOffset, mapEntries);
+		specInfos[i] = writeSpecializationInfo(entryCounts[i], mapEntries, entrySizes, mapEntryOffset, data, dataOffset);
 	}
 }
+
 
 
 
@@ -329,10 +343,10 @@ std::vector<uint32_t> inline glm3VectorSizes()
 
 std::vector<uint8_t> inline getByteVector(const glm::uvec3 &in)
 {
-	std::vector<uint32_t> v = {in.x,
-	                           in.y,
-	                           in.z};
-	return std::vector<uint8_t>(v.begin(), v.end());
+	uint32_t v[] = {in.x, in.y, in.z};
+	std::vector<uint8_t> out(3 * sizeof(uint32_t));
+	memcpy(out.data(), v, 3 * sizeof(uint32_t));
+	return out;
 }
 
 // CIV
