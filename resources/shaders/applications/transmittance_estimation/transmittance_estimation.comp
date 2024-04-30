@@ -34,7 +34,7 @@ layout(binding = 1, rgba32f) uniform image2D imageOffscreen;
 vec3 rayMarchSimplex(vec3 start, vec3 end, vec3 probePos)
 {
 	float emission = 1.f;
-	const float stepSize = 20.0;
+	const float stepSize = 10.0;
 	vec3 rayDir = normalize(end-start);
 	float rayLength = length(end-start);
 	float d = 0;
@@ -55,12 +55,17 @@ vec3 rayMarchSimplex(vec3 start, vec3 end, vec3 probePos)
 		vec3 pos = start + d*rayDir;
 		//emission+=emissionScale*snoise(offset+vec4(distScale*pos, time));
 		float probeDistance = length(probePos-pos);
-		float noise = clamp(0.0,1.0,0.01*probeDistance + snoise(offset+vec4(distScale*pos, time)));
+		probeDistance+=0.0;
+		float coef=probeDistance;
+		float noise = clamp(0.0,1.0,0.01*coef);
+		//float noise = clamp(0.0,1.0,0.01*probeDistance + snoise(offset+vec4(distScale*pos, time)));
 		//noise = snoise(offset+vec4(distScale*pos, time));
 		emission*=mix(0.40,1.0,noise);
 	}
 	return vec3(emission);
 }
+
+
 
 void main()
 {
@@ -100,7 +105,7 @@ void main()
 	vec3 probePos = vec3(0.0,0.0,-100);
 
 	vec3 fog = rayMarchSimplex(pfc.camPos.xyz, pfc.camPos.xyz + direction*300.0, probePos);
-	//fog = rayMarchSimplex(vec3(0.0), vec3(10.0));
+	//fog = testRay(pfc.camPos.xyz, pfc.camPos.xyz + direction*300.0);
 	outColor.rgb = fog;
 	//outColor.rgb = direction;
 	imageStore(imageOffscreen, p, outColor);

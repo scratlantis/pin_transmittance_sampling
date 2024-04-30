@@ -1,0 +1,153 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "../../framework/simplex.glsl"
+
+#define MAX_RAY_DISTANCE 10000.0
+#define MIN_RAY_DISTANCE 0.1
+
+#define EPSILON 0.0001
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+struct Cube
+{
+	mat4 modelMatrix;
+	mat4 invModelMatrix;
+};
+
+
+struct PerFrameConstants
+{
+	vec4 camPos;
+
+	mat4 viewMat;
+	mat4 inverseViewMat;
+	mat4 projectionMat;
+	mat4 inverseProjectionMat;
+
+	uint width;
+	uint height;
+	uint frameCounter;
+	uint mousePosX;
+
+	uint mousePosY;
+	uint invertColors;
+	uint placeholder3;
+	uint placeholder4;
+
+	Cube cube;
+};
+
+
+struct RaySegment
+{
+	vec3 origin;
+	vec3 direction;
+	float tMin;
+	float tMax;
+
+};
+
+
+layout(binding = 0) uniform PFC {PerFrameConstants pfc;};
+layout(binding = 1, rgba32f) uniform image2D imageOffscreen;
+
+void getPoints(RaySegment seg, inout vec3 p1, inout vec3 p2)
+{
+	p1 = seg.origin + seg.direction * seg.tMin;
+	p2 = seg.origin + seg.direction * seg.tMax;
+}
+
+void getRaySegment(inout RaySegment seg, vec3 p1, vec3 p2)
+{
+	seg.origin = p1;
+	seg.direction = normalize(p2 - p1);
+	seg.tMin = 0.0;
+	seg.tMax = length(p2 - p1);
+}
+
+RaySegment transform(RaySegment seg, mat4 m)
+{
+	RaySegment outSeg = seg;
+	outSeg.origin = (m * vec4(seg.origin, 1)).xyz;
+	outSeg.direction = (m * vec4(seg.direction, 0)).xyz;
+	float invScale = length(seg.direction / outSeg.direction);
+	outSeg.tMin = seg.tMin * invScale;
+	outSeg.tMax = seg.tMax * invScale;
+	return outSeg;
+
+}
+
+bool intersectCube(inout RaySegment raySegOut, RaySegment raySegIn, Cube cube)
+{
+	RaySegment raySeg = transform(raySegIn, cube.invModelMatrix);
+	if(abs(raySeg.direction.x) < EPSILON)
+	{
+		raySeg.direction.x = EPSILON;
+	}
+	if(abs(raySeg.direction.y) < EPSILON)
+	{
+		raySeg.direction.y = EPSILON;
+	}
+	if(abs(raySeg.direction.z) < EPSILON)
+	{
+		raySeg.direction.z = EPSILON;
+	}
+	vec3 invDir = 1.0 / raySeg.direction;
+	vec3 c1 = -raySeg.origin*invDir;
+	vec3 c2 = c1 + invDir; // (vec(1.0)-raySeg.origin)*invDir;
+
+	float tmin = max(max(min(c1.x, c2.x), min(c1.y, c2.y)), min(c1.z, c2.z));
+	float tmax = min(min(max(c1.x, c2.x), max(c1.y, c2.y)), max(c1.z, c2.z)); 
+
+	if (tmax < 0 || tmin > tmax)
+	{
+		return false;
+	}
+
+	raySeg.tMin = tmin;
+	raySeg.tMax = tmax;
+	raySegOut = raySeg;
+	return true;
+}
+
+
+vec3 getRayDir(ivec2 pixel)
+{
+	vec2 pixel_center   =   vec2(pixel) + vec2(0.5);
+    vec2 uv           = (pixel_center)/vec2(pfc.width, pfc.height);
+    vec2 device_coord     = uv * 2.0 - 1.0;
+	vec4 clipCoords = vec4(device_coord.x, device_coord.y, 1.0, 1.0);
+    vec4 target         = pfc.inverseProjectionMat * clipCoords;
+    vec4 direction      = pfc.inverseViewMat * target;
+	return normalize(direction.xyz);
+}
+
+RaySegment getPrimaryRay(ivec2 pixel)
+{
+	RaySegment seg;
+	seg.origin = pfc.camPos.xyz;
+	seg.direction = getRayDir(pixel);
+	seg.tMin = MIN_RAY_DISTANCE;
+	seg.tMax = MAX_RAY_DISTANCE;
+	return seg;
+}
+
+void main()
+{
+	uvec2 gID = gl_GlobalInvocationID.xy;
+	if(gID.x >= pfc.width || gID.y >= pfc.height) return;
+	ivec2 p = ivec2(gID);
+
+	RaySegment primaryRay = getPrimaryRay(p);
+	RaySegment cubeRaySegment;
+	vec3 outColor = vec3(1.0);
+
+	if(intersectCube(cubeRaySegment, primaryRay, pfc.cube))
+	{
+		float depth = cubeRaySegment.tMax-cubeRaySegment.tMin;
+		float coef = exp(-depth);
+		outColor = vec3(coef);
+	}
+	imageStore(imageOffscreen, p, vec4(outColor,1.0));
+}

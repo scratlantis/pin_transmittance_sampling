@@ -169,6 +169,7 @@ FOREACH(subdir ${SUBDIRS})
   add_executable(${subdir} ${current_sources})
   LIST(APPEND target_list "${subdir}")
   target_compile_definitions(${subdir} PUBLIC SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/applications/${subdir}")
+  target_compile_definitions(${subdir} PUBLIC APP_NAME="${subdir}")
 ENDFOREACH()
 
 
