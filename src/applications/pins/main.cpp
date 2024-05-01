@@ -254,6 +254,7 @@ int main()
 		gState.swapBuffers({cmdBuf});
 	}
 	// Cleanup
+	vkDeviceWaitIdle(gState.device.logical);
 	imguiWrapper.destroy();
 	gState.destroy();
 	delete window;

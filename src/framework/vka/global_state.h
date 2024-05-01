@@ -319,8 +319,13 @@ class AppState
 	void swapBuffers(std::vector<CmdBuffer> cmdBufs);
 	void nextFrame();
 	void destroy();
+	bool swapchainRecreated()
+	{
+		return swapchainWasRecreated;
+	}
 	private:
 	std::vector<Frame> frames;
+	bool               swapchainWasRecreated;
 	void initFrames();
 	void destroyFrames();
 

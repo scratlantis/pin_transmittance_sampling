@@ -218,13 +218,26 @@ bool vka::IOController::updateSwapchain()
 	{
 		return false;
 	}
+	vkDeviceWaitIdle(gState.device.logical);
+	//if (window->size().height == 0 || window->size().width == 0)
+	//{
+	//	while (window->size().height == 0 || window->size().width == 0)
+	//	{
+	//		window->waitEvents();
+	//	}
+	//	VkExtent2D newSize = window->size();
+	//	if (extent.height == newSize.height && extent.width == newSize.width)
+	//	{
+	//		return false;
+	//	}
+	//}
+
 	while (window->size().height == 0 || window->size().width == 0)
 	{
 		window->waitEvents();
 	}
 	swapChainDetails = getSwapchainDetails(gState.device.physical, window->getSurface());
 	ASSERT_TRUE(gState.initBits & STATE_INIT_DEVICE_BIT);
-	vkDeviceWaitIdle(gState.device.logical);
 
 	extent = window->size();
 	clamp(extent, swapChainDetails.surfaceCapabilities.minImageExtent, swapChainDetails.surfaceCapabilities.maxImageExtent);
@@ -387,8 +400,8 @@ void AppState::swapBuffers(std::vector<CmdBuffer> cmdBufs)
 {
 	endFrame(cmdBufs);
 	nextFrame();
-	bool swapchainRecreated = io.updateSwapchain();
-	if (swapchainRecreated)
+	swapchainWasRecreated = io.updateSwapchain();
+	if (swapchainWasRecreated)
 	{
 		frame = frames.data();
 	}

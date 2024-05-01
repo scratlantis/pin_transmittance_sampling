@@ -233,6 +233,7 @@ void ImGuiWrapper::destroy()
 	}
 	framebuffers.clear();
 	vkDestroyRenderPass(gState.device.logical, renderPass, nullptr);
+	vkDestroyDescriptorPool(gState.device.logical, descriptorPool, nullptr);
 	renderPass = VK_NULL_HANDLE;
 	ImGui_ImplVulkan_Shutdown();
 }
@@ -316,7 +317,7 @@ void ImGuiWrapper::createFramebuffers()
 
 void ImGuiWrapper::updatFramebuffers()
 {
-	if (framebufferExtent.width == gState.io.extent.width && framebufferExtent.height == gState.io.extent.height)
+	if ((framebufferExtent.width == gState.io.extent.width && framebufferExtent.height == gState.io.extent.height) && !gState.swapchainRecreated())
 	{
 		return;
 	}
