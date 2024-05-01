@@ -4,7 +4,7 @@ namespace vka
 {
 
 void commitCmdBuffers(
-    std::vector<CmdBuffer> cmdBufs, ResourceTracker* pTracker, VkQueue queue, const SubmitSynchronizationInfo syncInfo)
+    std::vector<CmdBuffer> cmdBufs, ResourceTracker *pTracker, VkQueue queue, const SubmitSynchronizationInfo syncInfo)
 {
 	std::vector<VkCommandBuffer> vkCmdBufs;
 	for (size_t i = 0; i < cmdBufs.size(); i++)

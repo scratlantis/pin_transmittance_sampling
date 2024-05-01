@@ -26,6 +26,15 @@ class CmdBuffer
 	CmdBuffer();
 	~CmdBuffer();
 
+
+	void barrier(VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccesFlags, VkAccessFlags dstAccesFlags)
+	{
+		VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+		barrier.srcAccessMask = srcAccesFlags;
+		barrier.dstAccessMask = dstAccesFlags;
+		vkCmdPipelineBarrier(handle, srcStage, dstStage,
+		                     0, 1, &barrier, 0, nullptr, 0, nullptr);	}
+
 	template <class T>
 	void uploadData(T dataStruct, Buffer dst, ResourceTracker *garbageTracker = &gState.frame->stack)
 	{

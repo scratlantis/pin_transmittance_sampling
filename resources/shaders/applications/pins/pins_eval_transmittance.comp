@@ -1,0 +1,13 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "pins_common.glsl"
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+layout(binding = 0) buffer GAUSSIAN_STORAGE_BUFFER {Gaussian gaussians[GAUSSIAN_COUNT];};
+layout(binding = 1) buffer PINS_STORAGE_BUFFER {Pin pin[PIN_COUNT];};
+layout(binding = 2) buffer PINS_TRANSMITTANCE_STORAGE_BUFFER {float transmittance[PIN_COUNT];};
+
+void main()
+{
+	uvec3 gID = gl_GlobalInvocationID;
+	if(gID.x >= PIN_COUNT) return;
+}

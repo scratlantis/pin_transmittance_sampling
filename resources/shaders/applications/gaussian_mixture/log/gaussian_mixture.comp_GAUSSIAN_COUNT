@@ -1,0 +1,1 @@
+glslc: error: linking multiple files is not supported yet. Use -c to compile files individually.

@@ -48,10 +48,20 @@ struct ShaderDefinition
 		return id;
 	}
 
+
 	hash_t hash() const
 	{
 		return std::hash<std::string>()(fileID());
 	};
+
+	std::string fileIDShort() const
+	{
+		std::string id = name;
+		id.append(std::to_string(hash()));
+		return id;
+	}
+
+
 };
 
 #define VKA_NULL_SHADER \
@@ -108,6 +118,11 @@ class Shader : public UniqueResource<VkShaderModule>
 	std::string fileID() const
 	{
 		return def.fileID();
+	}
+
+	std::string fileIDShort() const
+	{
+		return def.fileIDShort();
 	}
 
 	bool operator==(const Shader &other) const
@@ -169,8 +184,8 @@ class Shader : public UniqueResource<VkShaderModule>
 		std::stringstream shader_log_path;
 		std::stringstream cmdShaderCompile;
 		shader_src_path << gShaderPath << "/" << def.name;
-		shader_spv_path << gShaderPath << "/spv/" << fileID() << ".spv";
-		shader_log_path << gShaderPath << "/log/" << fileID() << ".log.txt";
+		shader_spv_path << gShaderPath << "/spv/" << fileIDShort() << ".spv";
+		shader_log_path << gShaderPath << "/log/" << fileIDShort() << ".log.txt";
 
 		cmdShaderCompile << GLSLC_COMMAND;
 		for (size_t i = 0; i < def.args.size(); i++)
@@ -196,18 +211,18 @@ class Shader : public UniqueResource<VkShaderModule>
 		std::vector<char> shader_log;
 		compile();
 		std::stringstream shader_log_path;
-		shader_log_path << gShaderPath << "/log/" << fileID() << ".log.txt";
+		shader_log_path << gShaderPath << "/log/" << fileIDShort() << ".log.txt";
 		std::string shader_log_path_str = shader_log_path.str();
 		printVka("About to open file %s\n", shader_log_path_str.c_str());
 		shader_log = readFile(shader_log_path_str);
 		printVka("Succes!\n");
 		if (shader_log.size() > 0)
 		{
-			printVka("Error compiling shader '%s' : %s", fileID().c_str(), shader_log.data());
+			printVka("Error compiling shader '%s' : %s", fileIDShort().c_str(), shader_log.data());
 		}
 
 		std::stringstream shader_spv_path;
-		shader_spv_path << gShaderPath << "/spv/" << fileID() << ".spv";
+		shader_spv_path << gShaderPath << "/spv/" << fileIDShort() << ".spv";
 		std::string shader_spv_path_str = shader_spv_path.str();
 		printVka("About to open file %s\n", shader_spv_path_str.c_str());
 		auto shaderCode = readFile(shader_spv_path_str.c_str());
