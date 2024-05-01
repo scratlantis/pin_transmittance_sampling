@@ -18,7 +18,7 @@ struct PerFrameConstants
 	uint mousePosX;
 
 	uint mousePosY;
-	uint invertColors;
+	uint usePins;
 	uint placeholder3;
 	uint placeholder4;
 
@@ -88,16 +88,16 @@ void main()
 		uint pinIdx = pinID[minDotIdx];
 		float transmittance = pinTransmittance[pinIdx];
 		outColor = vec3(transmittance);
-
-		transmittance = 1.0;
-		for(int i = 0; i < GAUSSIAN_COUNT; i++)
+		if(pfc.usePins == 0)
 		{
-			float coef = clamp(1.0-evalTransmittanceGaussian(cubeRaySeg, gaussians[i]), 0.0, 1.0);
-			transmittance *= coef;
+			transmittance = 1.0;
+			for(int i = 0; i < GAUSSIAN_COUNT; i++)
+			{
+				float coef = clamp(1.0-evalTransmittanceGaussian(cubeRaySeg, gaussians[i]), 0.0, 1.0);
+				transmittance *= coef;
+			}
+			outColor = vec3(transmittance);
 		}
-
-		//outColor = vec3(transmittance);
-		//outColor = vec3((p1ID.x%11)/11.0, (p1ID.y%143)/143.0, (p1ID.z%1091)/1091.0);
 	}
 	imageStore(imageOffscreen, p, vec4(outColor,1.0));
 }

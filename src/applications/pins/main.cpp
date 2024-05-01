@@ -16,6 +16,7 @@
 #include <framework/vka/resources/ComputePipeline.h>
 #include <framework/vka/resources/DescriptorSetLayout.h>
 #include <framework/vka/resources/Shader.h>
+#include <framework/vka/gui/ImGuiWrapper.h>
 #include <random>
 
 using namespace vka;
@@ -28,9 +29,9 @@ using namespace vka;
 #	define APP_NAME ""
 #endif        // !TARGET_NAME     // !TARGET_NAME
 
-GVar                gvar_test_button{"test_button", false, GVAR_BOOL, GVAR_APPLICATION};
+GVar                gvar_use_pins{"use pins", true, GVAR_BOOL, GVAR_APPLICATION};
 std::vector<GVar *> gVars{
-    &gvar_test_button};
+    &gvar_use_pins};
 AppState          gState;
 const std::string gShaderPath = SHADER_DIR;
 
@@ -73,7 +74,7 @@ struct PerFrameConstants
 	uint32_t mousePosX;
 
 	uint32_t mousePosY;
-	uint32_t invertColors;
+	uint32_t usePins;
 	uint32_t placeholder3;
 	uint32_t placeholder4;
 
@@ -94,6 +95,9 @@ int main()
 	gState.init(deviceCI, ioCI, window);
 	// Camera initialization
 	Camera camera = Camera(CameraCI_Default());
+	// ImGui initialization
+	ImGuiWrapper imguiWrapper = ImGuiWrapper();
+	imguiWrapper.init();
 	// Resource Creation
 	FramebufferImage                      offscreenImage = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
 	Buffer                                ubo            = BufferVma(&gState.heap, sizeof(PerFrameConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
@@ -127,6 +131,7 @@ int main()
 	}
 	ComputeCmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 	// Upload data
+	imguiWrapper.uploadResources(cmdBuf);
 	cmdBuf.uploadData(gaussiansData.data(), sizeof(Gaussian) * GAUSSIAN_COUNT, gaussiansBuf);
 	cmdBuf.uploadData(pins.data(), sizeof(Pin) * pins.size(), pinBuf);
 	cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
@@ -179,10 +184,12 @@ int main()
 	}
 	commitCmdBuffers({cmdBuf}, &gState.frame->stack, gState.device.universalQueues[0]);
 	vkDeviceWaitIdle(gState.device.logical);
+	imguiWrapper.destroyStagingResources();
 
 	uint32_t cnt = 0;
 	while (!gState.io.shouldTerminate())
 	{
+		imguiWrapper.newFrame();
 		// Hot Reload
 		if (gState.io.keyEvent[GLFW_KEY_R] && gState.io.keyPressed[GLFW_KEY_R])
 		{
@@ -200,7 +207,7 @@ int main()
 		PerFrameConstants pfc{};
 		pfc.width                = gState.io.extent.width;
 		pfc.height               = gState.io.extent.height;
-		pfc.invertColors         = gvar_test_button.val.bool32();
+		pfc.usePins              = gvar_use_pins.val.bool32();
 		pfc.frameCounter         = cnt++;
 		pfc.mousePosX            = gState.io.mouse.pos.x;
 		pfc.mousePosY            = gState.io.mouse.pos.y;
@@ -234,7 +241,7 @@ int main()
 		computeState.specializationData                 = getByteVector(workGroupSize);
 		ComputePipeline computePipeline                 = ComputePipeline(&gState.cache, computeState);
 		// Record commands
-		ComputeCmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+		UniversalCmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 		offscreenImage.update(&gState.heap, &gState.frame->stack, gState.io.extent);
 		cmdBuf.transitionLayout(offscreenImage, VK_IMAGE_LAYOUT_GENERAL);
 		cmdBuf.bindPipeline(computePipeline);
@@ -242,10 +249,12 @@ int main()
 		cmdBuf.pushDescriptors(0, ubo, (Image) offscreenImage, pinTransmittanceBuf, pinGridBuf, pinGridIdBuf, gaussiansBuf);
 		cmdBuf.dispatch(workGroupCount);
 		cmdBuf.copyToSwapchain(offscreenImage);
+		imguiWrapper.renderGui(cmdBuf);
 		// Submit commands and present
 		gState.swapBuffers({cmdBuf});
 	}
 	// Cleanup
+	imguiWrapper.destroy();
 	gState.destroy();
 	delete window;
 }

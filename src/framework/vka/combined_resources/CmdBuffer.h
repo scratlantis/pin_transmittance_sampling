@@ -3,6 +3,8 @@
 #include "../resources/ComputePipeline.h"
 #include "../combined_resources/Buffer.h"
 #include "../combined_resources/Image.h"
+#include "../compatibility.h"
+
 namespace vka
 {
 
@@ -14,6 +16,8 @@ enum CmdBufferStateBits
 
 class CmdBuffer;
 void commitCmdBuffers(std::vector<CmdBuffer> cmdBufs, ResourceTracker *pTracker, VkQueue queue, const SubmitSynchronizationInfo syncInfo = {});
+
+
 
 class CmdBuffer
 {
@@ -164,11 +168,7 @@ class CmdBuffer
 		}
 	}
 	friend void commitCmdBuffers(std::vector<CmdBuffer> cmdBufs, ResourceTracker *pTracker, VkQueue queue, const SubmitSynchronizationInfo syncInfo);
-
-
-
-
-
+	friend VkCommandBuffer vka_compatibility::getHandle(CmdBuffer cmdBuf);
   private:
 };
 
@@ -298,93 +298,7 @@ class ComputeCmdBuffer : public CmdBuffer
 		write.pImageInfo      = &imageInfos.back();
 		writes.push_back(write);
 	}
-	/*template <class... Args>
-	void pushDescriptors(uint32_t                             setIdx,
-	                     std::vector<VkWriteDescriptorSet>   &writes,
-	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
-	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
-	                     const void                          *data,
-	                     size_t                               dataSize,
-	                     Args... args)
-	{
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, data, dataSize);
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, args...);
-	}
-	void pushDescriptors(uint32_t                             setIdx,
-	                     std::vector<VkWriteDescriptorSet>   &writes,
-	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
-	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
-	                     const void                          *data,
-	                     size_t                               dataSize)
-	{
-		ASSERT_TRUE(pipelineLayoutDef.descSetLayoutDef[setIdx].bindings.size() > writes.size());
-		VkBufferUsageFlags usage = 0;
-		switch (pipelineLayoutDef.descSetLayoutDef[setIdx].bindings[writes.size()].descriptorType)
-		{
-			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-				usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-				break;
-			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-				usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-				break;
-			default:
-				__debugbreak();
-				break;
-		}
-		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uploadData(data, dataSize, usage, &gState.frame->stack).buf;
-		bufferInfo.range  = VK_WHOLE_SIZE;
-		bufferInfos.push_back(bufferInfo);
-		VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-		write.dstBinding      = writes.size();
-		write.descriptorCount = 1;
-		write.descriptorType  = pipelineLayoutDef.descSetLayoutDef[setIdx].bindings[write.dstBinding].descriptorType;
-		write.pBufferInfo     = &bufferInfos.back();
-		writes.push_back(write);
-	}*/
-	/*template <class T, class... Args>
-	void pushDescriptors(uint32_t                             setIdx,
-	                     std::vector<VkWriteDescriptorSet>   &writes,
-	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
-	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
-	                     T                                    dataStruct,
-	                     Args... args)
-	{
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, dataStruct);
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, args...);
-	}
-	template <class T>
-	void pushDescriptors(uint32_t                             setIdx,
-	                     std::vector<VkWriteDescriptorSet>   &writes,
-	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
-	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
-	                     T                                    dataStruct)
-	{
-		ASSERT_TRUE(pipelineLayoutDef.descSetLayoutDef[setIdx].bindings.size() > writes.size());
-		VkBufferUsageFlags usage = 0;
-		switch (pipelineLayoutDef.descSetLayoutDef[setIdx].bindings[writes.size()].descriptorType)
-		{
-			case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-				usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-				break;
-			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-				usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-				break;
-			default:
-				__debugbreak();
-				break;
-		}
-		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = uploadData(dataStruct, usage, &gState.frame->stack).buf;
-		bufferInfo.range  = VK_WHOLE_SIZE;
-		bufferInfos.push_back(bufferInfo);
-		VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-		write.dstBinding      = writes.size();
-		write.descriptorCount = 1;
-		write.descriptorType  = pipelineLayoutDef.descSetLayoutDef[setIdx].bindings[write.dstBinding].descriptorType;
-		write.pBufferInfo     = &bufferInfos.back();
-		writes.push_back(write);
-	}*/
+	
 	
 
 	~ComputeCmdBuffer();
@@ -399,6 +313,37 @@ class UniversalCmdBuffer : public ComputeCmdBuffer
   public:
 	UniversalCmdBuffer(); 
 	UniversalCmdBuffer(ResourceTracker *pTracker, VkCommandBufferUsageFlags usage, uint32_t queueIdx = 0, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
+	void startRenderPass(VkRenderPass renderpass, VkFramebuffer framebuffer, std::vector<VkClearValue> clearValues, VkExtent2D extent = gState.io.extent)
+	{
+		VkRenderPassBeginInfo renderPassBeginInfo;
+		renderPassBeginInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.pNext             = nullptr;
+		renderPassBeginInfo.renderPass        = renderpass;
+		renderPassBeginInfo.framebuffer       = framebuffer;
+		renderPassBeginInfo.renderArea.offset = {0, 0};
+		renderPassBeginInfo.renderArea.extent = extent;
+		renderPassBeginInfo.clearValueCount   = clearValues.size();
+		renderPassBeginInfo.pClearValues      = clearValues.data();
+
+		vkCmdBeginRenderPass(handle, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		VkViewport viewport;
+		viewport.x        = 0.0f;
+		viewport.y        = 0.0f;
+		viewport.width    = extent.width;
+		viewport.height   = extent.height;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(handle, 0, 1, &viewport);
+		VkRect2D scissor;
+		scissor.offset = {0, 0};
+		scissor.extent = {extent.width, extent.height};
+		vkCmdSetScissor(handle, 0, 1, &scissor);
+	}
+	void endRenderPass()
+	{
+		vkCmdEndRenderPass(handle);
+	}
 	~UniversalCmdBuffer();
 };
 
