@@ -98,12 +98,13 @@ int main()
 
 	// Init gaussians:
 	std::vector<Gaussian> gaussiansData(GAUSSIAN_COUNT);
+	float                 coef = 0.3;
 	for (size_t i = 0; i < GAUSSIAN_COUNT; i++)
 	{
-		gaussiansData[i].mean.x      = unormDistribution(gen32);
-		gaussiansData[i].mean.y      = unormDistribution(gen32);
-		gaussiansData[i].mean.z      = unormDistribution(gen32);
-		gaussiansData[i].variance    = 0.5*unormDistribution(gen32);
+		gaussiansData[i].mean.x   = (1.0-coef) / 2.0 + coef * unormDistribution(gen32);
+		gaussiansData[i].mean.y   = (1.0-coef) / 2.0 + coef * unormDistribution(gen32);
+		gaussiansData[i].mean.z   = (1.0-coef) / 2.0 + coef * unormDistribution(gen32);
+		gaussiansData[i].variance = 0.4 * coef * unormDistribution(gen32);
 	}
 	UPLOAD_IDLE(gaussiansData.data(), sizeof(Gaussian) * GAUSSIAN_COUNT, gaussians);
 

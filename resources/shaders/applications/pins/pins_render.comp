@@ -29,7 +29,7 @@ struct PerFrameConstants
 layout(binding = 0) uniform PFC {PerFrameConstants pfc;};
 layout(binding = 1, rgba32f) uniform image2D imageOffscreen;
 
-layout(binding = 2) buffer PINS_TRANSMITTANCE_STORAGE_BUFFER {float transmittance[PIN_COUNT];};
+layout(binding = 2) buffer PINS_TRANSMITTANCE_STORAGE_BUFFER {float pinTransmittance[PIN_COUNT];};
 layout(binding = 3) buffer PIN_GRID_STORAGE_BUFFER {Pin pins[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
 layout(binding = 4) buffer PIN_GRID_ID_STORAGE_BUFFER {uint pinID[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
 
@@ -69,11 +69,25 @@ void main()
 	{
 		vec3 p1 = max(vec3(0.0,0.0,0.0),(cubeRaySeg.origin + cubeRaySeg.tMin * cubeRaySeg.direction));
 		uvec3 p1ID = uvec3(floor(p1*PIN_GRID_SIZE));
-		//outColor = vec3(p1ID/float(PIN_GRID_SIZE));
 		uint gridIdx = getCellIndex(p1ID);
-		//outColor = vec3((gridIdx%11)/11.0, (gridIdx%143)/143.0, (gridIdx%1091)/1091.0);
-		uint firstPinIdx = pinID[gridIdx];
-		outColor = vec3((firstPinIdx%11)/11.0, (firstPinIdx%143)/143.0, (firstPinIdx%1091)/1091.0);
+		float minDot = 1.0;
+		uint minDotIdx = gridIdx;
+		for(uint i = 0; i < PINS_PER_GRID_CELL; i++)
+		{
+			Pin pin = pins[gridIdx + i];
+			vec3 origin,direction;
+			getRay(pin, origin, direction);
+			float dotProd = dot(direction, cubeRaySeg.direction);
+			if(dotProd < minDot)
+			{
+				minDot = dotProd;
+				minDotIdx = i + gridIdx;
+			}
+		}
+		uint pinIdx = pinID[minDotIdx];
+		float transmittance = pinTransmittance[pinIdx];
+		//outColor = vec3((firstPinIdx%11)/11.0, (firstPinIdx%143)/143.0, (firstPinIdx%1091)/1091.0);
+		outColor = vec3(transmittance);
 	}
 	imageStore(imageOffscreen, p, vec4(outColor,1.0));
 }

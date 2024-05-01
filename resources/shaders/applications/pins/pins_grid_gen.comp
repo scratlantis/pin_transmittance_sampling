@@ -8,15 +8,7 @@ layout(binding = 1) buffer PIN_GRID_STORAGE_BUFFER {Pin pinGrid[PIN_GRID_SIZE*PI
 layout(binding = 2) buffer PIN_GRID_ID_STORAGE_BUFFER {uint pinGridID[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
 
 
-void getRay(Pin pin, inout vec3 origin, inout vec3 direction)
-{
-	vec2 x = sin(pin.phi) * cos(pin.theta);
-    vec2 y = sin(pin.phi) * sin(pin.theta);
-    vec2 z = cos(pin.phi);
-	origin = vec3(x.x, y.x, z.x)+vec3(0.5);
-	origin*=0.866025403784; // sqrt(3)/2
-	direction = normalize(vec3(x.y - x.x, y.y - y.x, z.y - z.x));
-}
+
 
 bool intersect(Pin pin)
 {

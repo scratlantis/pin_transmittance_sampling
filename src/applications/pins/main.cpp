@@ -107,14 +107,14 @@ int main()
 
 	// Init gaussians:
 	std::vector<Gaussian> gaussiansData(GAUSSIAN_COUNT);
+	float                 coef = 0.3;
 	for (size_t i = 0; i < GAUSSIAN_COUNT; i++)
 	{
-		gaussiansData[i].mean.x      = unormDistribution(gen32);
-		gaussiansData[i].mean.y      = unormDistribution(gen32);
-		gaussiansData[i].mean.z      = unormDistribution(gen32);
-		gaussiansData[i].variance    = 0.5*unormDistribution(gen32);
+		gaussiansData[i].mean.x   = (1.0 - coef) / 2.0 + coef * unormDistribution(gen32);
+		gaussiansData[i].mean.y   = (1.0 - coef) / 2.0 + coef * unormDistribution(gen32);
+		gaussiansData[i].mean.z   = (1.0 - coef) / 2.0 + coef * unormDistribution(gen32);
+		gaussiansData[i].variance = 0.4 * coef * unormDistribution(gen32);
 	}
-
 	std::vector<Pin> pinGrid(PIN_GRID_SIZE * PIN_GRID_SIZE * PIN_GRID_SIZE * PINS_PER_GRID_CELL);
 	std::vector<Pin> pins(PIN_COUNT);
 	Buffer           pinBuf     = BufferVma(&gState.heap, sizeof(Pin) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
@@ -138,7 +138,7 @@ int main()
 	cmdBuf.uploadData(pins.data(), sizeof(Pin) * pins.size(), pinBuf);
 	cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	// Calc pin transmittance in shader:
-	if (0)
+	if (1)
 	{
 		glm::uvec3           workGroupSize  = {128, 1, 1};
 		glm::uvec3           resolution     = {pins.size(), 1, 1};
