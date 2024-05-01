@@ -48,3 +48,6 @@ CMakeSettings.json
 
 # compiled shaders
 *.spv
+
+# shader logs
+*.log.txt

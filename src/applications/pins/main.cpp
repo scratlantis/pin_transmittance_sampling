@@ -43,8 +43,8 @@ const std::string gShaderPath = SHADER_DIR;
 
 
 #define GAUSSIAN_COUNT 10
-#define PIN_GRID_SIZE 10
-#define PINS_PER_GRID_CELL 10
+#define PIN_GRID_SIZE 20
+#define PINS_PER_GRID_CELL 20
 #define PI 3.14159265359
 #define PIN_COUNT PIN_GRID_SIZE *PIN_GRID_SIZE *PIN_GRID_SIZE * PINS_PER_GRID_CELL
 
@@ -113,7 +113,7 @@ int main()
 		gaussiansData[i].mean.x   = (1.0 - coef) / 2.0 + coef * unormDistribution(gen32);
 		gaussiansData[i].mean.y   = (1.0 - coef) / 2.0 + coef * unormDistribution(gen32);
 		gaussiansData[i].mean.z   = (1.0 - coef) / 2.0 + coef * unormDistribution(gen32);
-		gaussiansData[i].variance = 0.4 * coef * unormDistribution(gen32);
+		gaussiansData[i].variance = 0.5 * coef * unormDistribution(gen32);
 	}
 	std::vector<Pin> pinGrid(PIN_GRID_SIZE * PIN_GRID_SIZE * PIN_GRID_SIZE * PINS_PER_GRID_CELL);
 	std::vector<Pin> pins(PIN_COUNT);
@@ -235,6 +235,7 @@ int main()
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags                          = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 		computeState.pipelineLayoutDef.descSetLayoutDef = {layoutDefinition};
 		computeState.specialisationEntrySizes           = glm3VectorSizes();
@@ -246,7 +247,7 @@ int main()
 		cmdBuf.transitionLayout(offscreenImage, VK_IMAGE_LAYOUT_GENERAL);
 		cmdBuf.bindPipeline(computePipeline);
 		cmdBuf.uploadData(&pfc, sizeof(pfc), ubo);
-		cmdBuf.pushDescriptors(0, ubo, (Image) offscreenImage, pinTransmittanceBuf, pinGridBuf, pinGridIdBuf);
+		cmdBuf.pushDescriptors(0, ubo, (Image) offscreenImage, pinTransmittanceBuf, pinGridBuf, pinGridIdBuf, gaussiansBuf);
 		cmdBuf.dispatch(workGroupCount);
 		cmdBuf.copyToSwapchain(offscreenImage);
 		// Submit commands and present
