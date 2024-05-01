@@ -1,6 +1,6 @@
 #include "GlfwWindow.h"
 #include "setup.h"
-
+#include <imgui_impl_glfw.h>
 
 namespace vka
 {
@@ -115,7 +115,7 @@ void GlfwWindow::addInstanceExtensions(std::vector<const char *> &extensions)
 
 void GlfwWindow::initGui()
 {
-		//ImGui_ImplGlfw_InitForVulkan(window, true);
+		ImGui_ImplGlfw_InitForVulkan(window, true);
 }
 
 void GlfwWindow::destroy()

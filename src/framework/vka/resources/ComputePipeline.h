@@ -43,11 +43,6 @@ struct ComputePipelineState
 		VkPipelineShaderStageCreateInfo shaderStageCreateInfo = Shader(pTracker, shaderDef).getStageCI();
 
 		writeSpecializationInfo(specialisationEntrySizes, specializationData.data(), specMapEntries,specInfo);
-		for (size_t i = 0; i < 3; i++)
-		{
-			printVka("data1b:  index: %d specData: %d\n", i, ((uint8_t *) specializationData.data())[i]);
-			printVka("data4b:  index: %d specData: %d\n", i, ((uint32_t *) specializationData.data())[i]);
-		}
 
 		if (!specializationData.empty())
 		{
@@ -71,11 +66,6 @@ class ComputePipeline : public UniqueResource<VkPipeline>
 	void buildHandle()
 	{
 		VkComputePipelineCreateInfo ci = pipelineState.buildPipelineCI(pTracker);
-		for (size_t i = 0; i < 3; i++)
-		{
-			printVka("State:  index: %d specData: %d\n", i, pipelineState.specializationData[i]);
-			printVka("CI:  index: %d specData: %d\n", i, ((uint32_t *) ci.stage.pSpecializationInfo->pData)[i]);
-		}
 		ASSERT_VULKAN(vkCreateComputePipelines(gState.device.logical, VK_NULL_HANDLE, 1, &ci, nullptr, &handle));
 	}
 	//virtual bool _equals(ComputePipeline const &other) const

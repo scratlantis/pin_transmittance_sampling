@@ -1,4 +1,6 @@
-//#pragma once
+#pragma once
+#include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
 //#include "../global_state.h"
 //#include <imgui.h>
 //#include <imgui_impl_vulkan.h>

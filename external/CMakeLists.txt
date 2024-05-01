@@ -4,10 +4,6 @@ target_include_directories(tinyobjloader INTERFACE TINY_OBJ_LOADER/tinyobjloader
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE STB)
 
-add_library(imgui INTERFACE)
-target_include_directories(imgui INTERFACE IMGUI
-                                            IMGUI/backends)
-
 add_library(glm INTERFACE)
 target_include_directories(glm INTERFACE GLM)
 

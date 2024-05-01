@@ -10,7 +10,7 @@ project(master_thesis VERSION 1.0
                        DESCRIPTION "Master Thesis Sidney"
                        LANGUAGES CXX)
 
-add_subdirectory(external)
+#add_subdirectory(external)
 
 # control where the static and shared libraries are built so that on windows
 # we don't need to tinker with the path to run the executable
@@ -143,6 +143,19 @@ endforeach()
 # we depend on vulkan 
 find_package(Vulkan REQUIRED)
 
+
+add_subdirectory(external)
+
+
+FILE(GLOB SRCS_IMGUI "external/IMGUI/*.cpp" "external/IMGUI/*.h"
+"external/IMGUI/backends/imgui_impl_vulkan.h"
+"external/IMGUI/backends/imgui_impl_vulkan.cpp"
+"external/IMGUI/backends/imgui_impl_glfw.h"
+"external/IMGUI/backends/imgui_impl_glfw.cpp")
+add_library(imgui STATIC ${SRCS_IMGUI})
+target_include_directories(imgui PUBLIC   ./external/IMGUI/ ./external/IMGUI/backends/)
+target_include_directories(imgui PRIVATE ${Vulkan_INCLUDE_DIRS})
+target_link_libraries(imgui glfw Vulkan::Vulkan)
 
 
 add_library(vulkan_framework STATIC

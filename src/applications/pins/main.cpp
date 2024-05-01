@@ -34,26 +34,23 @@ std::vector<GVar *> gVars{
 AppState          gState;
 const std::string gShaderPath = SHADER_DIR;
 
-
 #define UPLOAD_IDLE(data, size, buffer)                                                                       \
 	CmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT); \
 	cmdBuf.uploadData(data, size, buffer);                                                                    \
 	commitCmdBuffers({cmdBuf}, &gState.frame->stack, gState.device.universalQueues[0]);                       \
 	vkDeviceWaitIdle(gState.device.logical);
 
-
 #define GAUSSIAN_COUNT 10
 #define PIN_GRID_SIZE 20
 #define PINS_PER_GRID_CELL 20
 #define PI 3.14159265359
-#define PIN_COUNT PIN_GRID_SIZE *PIN_GRID_SIZE *PIN_GRID_SIZE * PINS_PER_GRID_CELL
+#define PIN_COUNT PIN_GRID_SIZE *PIN_GRID_SIZE *PIN_GRID_SIZE *PINS_PER_GRID_CELL
 
 struct Pin
 {
 	glm::vec2 theta;
 	glm::vec2 phi;
 };
-
 
 struct Cube
 {
@@ -84,10 +81,9 @@ struct PerFrameConstants
 };
 struct Gaussian
 {
-	glm::vec3  mean;
-	float variance;
+	glm::vec3 mean;
+	float     variance;
 };
-
 
 int main()
 {
@@ -99,10 +95,10 @@ int main()
 	// Camera initialization
 	Camera camera = Camera(CameraCI_Default());
 	// Resource Creation
-	FramebufferImage offscreenImage = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
-	Buffer           ubo            = BufferVma(&gState.heap, sizeof(PerFrameConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	Buffer           gaussiansBuf      = BufferVma(&gState.heap, sizeof(Gaussian) * GAUSSIAN_COUNT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	std::mt19937     gen32(42);
+	FramebufferImage                      offscreenImage = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
+	Buffer                                ubo            = BufferVma(&gState.heap, sizeof(PerFrameConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	Buffer                                gaussiansBuf   = BufferVma(&gState.heap, sizeof(Gaussian) * GAUSSIAN_COUNT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	std::mt19937                          gen32(42);
 	std::uniform_real_distribution<float> unormDistribution(0.0, 1.0);
 
 	// Init gaussians:
@@ -117,21 +113,18 @@ int main()
 	}
 	std::vector<Pin> pinGrid(PIN_GRID_SIZE * PIN_GRID_SIZE * PIN_GRID_SIZE * PINS_PER_GRID_CELL);
 	std::vector<Pin> pins(PIN_COUNT);
-	Buffer           pinBuf     = BufferVma(&gState.heap, sizeof(Pin) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	Buffer           pinTransmittanceBuf     = BufferVma(&gState.heap, sizeof(float) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	Buffer           pinGridBuf = BufferVma(&gState.heap, sizeof(Pin) * pinGrid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	Buffer           pinGridIdBuf            = BufferVma(&gState.heap, sizeof(uint32_t) * pinGrid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-
-	
+	Buffer           pinBuf              = BufferVma(&gState.heap, sizeof(Pin) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	Buffer           pinTransmittanceBuf = BufferVma(&gState.heap, sizeof(float) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+	Buffer           pinGridBuf          = BufferVma(&gState.heap, sizeof(Pin) * pinGrid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+	Buffer           pinGridIdBuf        = BufferVma(&gState.heap, sizeof(uint32_t) * pinGrid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 	// Init pins:
 	for (size_t i = 0; i < pins.size(); i++)
 	{
 		pins[i].theta.x = 2.0 * PI * unormDistribution(gen32);
 		pins[i].theta.y = 2.0 * PI * unormDistribution(gen32);
-		pins[i].phi.x = glm::acos(1.0 - 2.0*unormDistribution(gen32));
-		pins[i].phi.y = glm::acos(1.0 - 2.0*unormDistribution(gen32));
+		pins[i].phi.x   = glm::acos(1.0 - 2.0 * unormDistribution(gen32));
+		pins[i].phi.y   = glm::acos(1.0 - 2.0 * unormDistribution(gen32));
 	}
-
 	ComputeCmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 	// Upload data
 	cmdBuf.uploadData(gaussiansData.data(), sizeof(Gaussian) * GAUSSIAN_COUNT, gaussiansBuf);
@@ -187,7 +180,7 @@ int main()
 	commitCmdBuffers({cmdBuf}, &gState.frame->stack, gState.device.universalQueues[0]);
 	vkDeviceWaitIdle(gState.device.logical);
 
-	uint32_t         cnt            = 0;
+	uint32_t cnt = 0;
 	while (!gState.io.shouldTerminate())
 	{
 		// Hot Reload
@@ -205,20 +198,19 @@ int main()
 		}
 		// Update per frame constants
 		PerFrameConstants pfc{};
-		pfc.width        = gState.io.extent.width;
-		pfc.height       = gState.io.extent.height;
-		pfc.invertColors = gvar_test_button.val.bool32();
-		pfc.frameCounter = cnt++;
-		pfc.mousePosX    = gState.io.mouse.pos.x;
-		pfc.mousePosY    = gState.io.mouse.pos.y;
-		pfc.camPos       = glm::vec4(camera.get_camera_position(), 1.0);
+		pfc.width                = gState.io.extent.width;
+		pfc.height               = gState.io.extent.height;
+		pfc.invertColors         = gvar_test_button.val.bool32();
+		pfc.frameCounter         = cnt++;
+		pfc.mousePosX            = gState.io.mouse.pos.x;
+		pfc.mousePosY            = gState.io.mouse.pos.y;
+		pfc.camPos               = glm::vec4(camera.get_camera_position(), 1.0);
 		pfc.viewMat              = camera.calculate_viewmatrix();
 		pfc.viewMat[3]           = glm::vec4(0.0, 0.0, 0.0, 1.0);
 		pfc.inverseViewMat       = glm::inverse(pfc.viewMat);
 		pfc.projectionMat        = glm::perspective(glm::radians(60.0f), (float) gState.io.extent.width / (float) gState.io.extent.height, 1.0f, 500.0f);
 		pfc.inverseProjectionMat = glm::inverse(pfc.projectionMat);
-		pfc.cube = Cube{glm::mat4(1.0), glm::mat4(1.0)};
-
+		pfc.cube                 = Cube{glm::mat4(1.0), glm::mat4(1.0)};
 		// Pipeline Creation
 		glm::uvec3           workGroupSize  = {16, 16, 1};
 		glm::uvec3           resolution     = {gState.io.extent.width, gState.io.extent.height, 1};
