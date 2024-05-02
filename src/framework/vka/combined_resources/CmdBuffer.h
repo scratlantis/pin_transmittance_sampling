@@ -31,6 +31,33 @@ class CmdBuffer
 	~CmdBuffer();
 
 
+	void uploadImage(void *data, size_t dataSize, Image &dst, VkImageLayout newLayout, uint32_t layer = 0, uint32_t mipLevel = 0, ResourceTracker *garbageTracker = &gState.frame->stack)
+	{
+		Buffer       stageingBuffer = BufferVma(garbageTracker, dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+		stageingBuffer.write(data, dataSize);
+		imageMemoryBarrier(dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layer, 1);
+		copyBufferToImage(stageingBuffer, dst, layer, mipLevel);
+		imageMemoryBarrier(dst, newLayout);
+	}
+
+
+	void copyBufferToImage(Buffer src, Image &dst, uint32_t layer = 0, uint32_t mipLevel = 0)
+	{
+		VkDeviceSize dstSize = dst.getSize();
+		ASSERT_TRUE(src.size == dstSize);
+		VkBufferImageCopy region{};
+		region.bufferOffset                    = src.getOffset();
+		region.bufferRowLength                 = 0;
+		region.bufferImageHeight               = 0;
+		region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel       = mipLevel;
+		region.imageSubresource.baseArrayLayer = layer;
+		region.imageSubresource.layerCount     = 1;
+		region.imageOffset                     = {0, 0, 0};
+		region.imageExtent                     = dst.extent;
+		vkCmdCopyBufferToImage(handle, src.buf, dst.img, dst.layout, 1, &region);
+	}
+
 	void barrier(VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccesFlags, VkAccessFlags dstAccesFlags)
 	{
 		VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
@@ -73,6 +100,11 @@ class CmdBuffer
 		stagingBuf.write(data, size);
 		VkBufferCopy copyRegion{0, dstOffset, size};
 		vkCmdCopyBuffer(handle, stagingBuf.buf, dst.buf, 1, &copyRegion);
+	}
+
+	void imageMemoryBarrier(Image &image)
+	{
+		imageMemoryBarrier(image, image.layout);
 	}
 
 	void imageMemoryBarrier(Image &image, VkImageLayout newLayout, uint32_t baseLayer = 0, uint32_t layerCount = 1)
@@ -290,6 +322,36 @@ class ComputeCmdBuffer : public CmdBuffer
 		VkDescriptorImageInfo imgInfo{};
 		imgInfo.imageLayout = image.layout;
 		imgInfo.imageView   = image.view;
+		imageInfos.push_back(imgInfo);
+		VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+		write.dstBinding      = writes.size();
+		write.descriptorCount = 1;
+		write.descriptorType  = pipelineLayoutDef.descSetLayoutDef[setIdx].bindings[write.dstBinding].descriptorType;
+		write.pImageInfo      = &imageInfos.back();
+		writes.push_back(write);
+	}
+
+	template <class... Args>
+	void pushDescriptors(uint32_t                             setIdx,
+	                     std::vector<VkWriteDescriptorSet>   &writes,
+	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
+	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
+	                     Sampler                               &sampler,
+	                     Args... args)
+	{
+		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, sampler);
+		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, args...);
+	}
+	template <class... Args>
+	void pushDescriptors(uint32_t                             setIdx,
+	                     std::vector<VkWriteDescriptorSet>   &writes,
+	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
+	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
+	                     Sampler                             &sampler)
+	{
+		ASSERT_TRUE(pipelineLayoutDef.descSetLayoutDef[setIdx].bindings.size() > writes.size());
+		VkDescriptorImageInfo imgInfo{};
+		imgInfo.sampler   = sampler.getHandle();
 		imageInfos.push_back(imgInfo);
 		VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
 		write.dstBinding      = writes.size();

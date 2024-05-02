@@ -18,6 +18,11 @@ class Buffer
 	void *data = nullptr;        // used for mapping
 	Buffer()   = default;
 
+	uint32_t getOffset() const
+	{
+		return 0;
+	}	
+
 	VkDescriptorBufferInfo getDescriptorInfo() const
 	{
 		VkDescriptorBufferInfo info{};

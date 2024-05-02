@@ -1,0 +1,119 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "pins_common.glsl"
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+struct PerFrameConstants
+{
+	vec4 camPos;
+
+	mat4 viewMat;
+	mat4 inverseViewMat;
+	mat4 projectionMat;
+	mat4 inverseProjectionMat;
+
+	uint width;
+	uint height;
+	uint frameCounter;
+	uint mousePosX;
+
+	uint mousePosY;
+	uint usePins;
+	uint placeholder3;
+	uint placeholder4;
+
+	Cube cube;
+};
+
+
+layout(binding = 0) uniform PFC {PerFrameConstants pfc;};
+layout(binding = 1, rgba32f) uniform image2D imageOffscreen;
+
+layout(binding = 2) buffer PINS_TRANSMITTANCE_STORAGE_BUFFER {float pinTransmittance[PIN_COUNT];};
+layout(binding = 3) buffer PIN_GRID_STORAGE_BUFFER {Pin pins[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
+layout(binding = 4) buffer PIN_GRID_ID_STORAGE_BUFFER {uint pinID[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
+layout(binding = 5) buffer GAUSSIAN_STORAGE_BUFFER {Gaussian gaussians[GAUSSIAN_COUNT];};
+layout(binding = 6) uniform sampler envMapSampler;
+layout(binding = 7) uniform texture2D envMap;
+
+
+
+vec3 getRayDir(ivec2 pixel)
+{
+	vec2 pixel_center   =   vec2(pixel) + vec2(0.5);
+    vec2 uv           = (pixel_center)/vec2(pfc.width, pfc.height);
+    vec2 device_coord     = uv * 2.0 - 1.0;
+	vec4 clipCoords = vec4(device_coord.x, device_coord.y, 1.0, 1.0);
+    vec4 target         = pfc.inverseProjectionMat * clipCoords;
+    vec4 direction      = pfc.inverseViewMat * target;
+	return normalize(direction.xyz);
+}
+
+RaySegment getPrimaryRay(ivec2 pixel)
+{
+	RaySegment seg;
+	seg.origin = pfc.camPos.xyz;
+	seg.direction = getRayDir(pixel);
+	seg.tMin = MIN_RAY_DISTANCE;
+	seg.tMax = MAX_RAY_DISTANCE;
+	return seg;
+}
+
+void main()
+{
+	uvec2 gID = gl_GlobalInvocationID.xy;
+	if(gID.x >= pfc.width || gID.y >= pfc.height) return;
+	ivec2 p = ivec2(gID);
+
+	RaySegment primaryRay = getPrimaryRay(p);
+	RaySegment cubeRaySeg;
+	vec3 outColor = vec3(1.0);
+	if(intersectCube(cubeRaySeg, primaryRay, pfc.cube))
+	{
+		vec3 p1 = max(vec3(0.0,0.0,0.0),(cubeRaySeg.origin + (cubeRaySeg.tMin+EPSILON) * cubeRaySeg.direction));
+		uvec3 p1ID = uvec3(floor(p1*PIN_GRID_SIZE));
+		uint gridIdx = getCellIndex(p1ID);
+		float minDot = 1.0;
+		uint minDotIdx = gridIdx;
+		for(uint i = 0; i < PINS_PER_GRID_CELL; i++)
+		{
+			Pin pin = pins[gridIdx + i];
+			vec3 origin,direction;
+			getRay(pin, origin, direction);
+			float dotProd = dot(direction, cubeRaySeg.direction);
+			if(dotProd < minDot)
+			{
+				minDot = dotProd;
+				minDotIdx = i + gridIdx;
+			}
+		}
+		uint pinIdx = pinID[minDotIdx];
+		float transmittance = pinTransmittance[pinIdx];
+		outColor = vec3(transmittance);
+		if(pfc.usePins == 0)
+		{
+			transmittance = 1.0;
+			for(int i = 0; i < GAUSSIAN_COUNT; i++)
+			{
+				float coef = clamp(1.0-evalTransmittanceGaussian(cubeRaySeg, gaussians[i]), 0.0, 1.0);
+				transmittance *= coef;
+			}
+			outColor = vec3(transmittance);
+		}
+
+		outColor.b *= 0.9;
+	}
+	vec2 texCoords = vec2(gID)/vec2(pfc.height, pfc.width);
+	vec3 viewDir = primaryRay.direction;
+	float theta = atan(viewDir.y/viewDir.x);
+	float phi = atan(length(viewDir.xy), viewDir.z);
+	//float theta = atan(viewDir.x/viewDir.y);
+	//float phi = atan(length(viewDir.yx), viewDir.z);
+	//float theta = atan(viewDir.y/viewDir.z);
+	//float phi = atan(length(viewDir.zy), viewDir.x);
+	texCoords.x = theta/(2.0*PI);
+	texCoords.y = phi/PI;
+	vec4 texColor = texture(sampler2D(envMap, envMapSampler),	texCoords);
+	outColor *= texColor.rgb;
+	imageStore(imageOffscreen, p, vec4(outColor,1.0));
+}

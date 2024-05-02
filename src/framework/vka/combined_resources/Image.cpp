@@ -16,7 +16,7 @@ SwapchainImage::SwapchainImage(ResourceTracker *pTracker, VkImage swapchainImage
 	mipLevels                         = 1;
 	usage                             = 0;
 	img                               = swapchainImage;
-	VkImageViewCreateInfo imageViewCI = ImageViewCreateInfo_Swapchain(swapchainImage, format);
+	VkImageViewCreateInfo imageViewCI = ImageViewCreateInfo_Default(swapchainImage, format);
 	ASSERT_VULKAN(vkCreateImageView(gState.device.logical, &imageViewCI, nullptr, &view));
 	viewRes = new ImageView_R(view);
 	pTracker->add(viewRes);
@@ -24,7 +24,7 @@ SwapchainImage::SwapchainImage(ResourceTracker *pTracker, VkImage swapchainImage
 
 FramebufferImage::FramebufferImage(ResourceTracker *pTracker, VkImageUsageFlags usage, VkFormat format, VkExtent2D extent)
 {
-	VkImageCreateInfo imgCI = ImageCreateInfo_Framebuffer(usage, extent, format);
+	VkImageCreateInfo imgCI = ImageCreateInfo_Default(usage, extent, format);
 	create(pTracker, imgCI);
 }
 
@@ -41,14 +41,14 @@ void FramebufferImage::create(ResourceTracker *pTracker, const VkImageCreateInfo
 	usage     = imgCI.usage;
 	res       = new ImageVMA_R(img, alloc);
 	pTracker->add(res);
-	createImageView(pTracker, ImageViewCreateInfo_Swapchain(img, format));
+	createImageView(pTracker, ImageViewCreateInfo_Default(img, format));
 }
 
 void FramebufferImage::recreate(ResourceTracker *pTracker, ResourceTracker *pGarbageTracker)
 {
 	destroy(pGarbageTracker);
 	VkExtent2D newExtent = {extent.width, extent.height};
-	VkImageCreateInfo imgCI     = ImageCreateInfo_Framebuffer(usage, newExtent, format);
+	VkImageCreateInfo imgCI     = ImageCreateInfo_Default(usage, newExtent, format);
 	create(pTracker, imgCI);
 }
 

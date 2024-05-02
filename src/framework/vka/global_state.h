@@ -303,11 +303,11 @@ class AppState
 {
   public:
 	uint32_t            initBits;
-	Device        device;
-	IOController io;
-	ResourceTracker    heap;
-	ResourceTracker    cache;
-	Frame *frame;
+	Device              device;
+	IOController        io;
+	ResourceTracker     heap;
+	ResourceTracker     cache;
+	Frame              *frame;
 	MemAllocator        memAlloc;
 	DescriptorAllocator descAlloc;
 	QueryAllocator      queryAlloc;

@@ -219,18 +219,6 @@ bool vka::IOController::updateSwapchain()
 		return false;
 	}
 	vkDeviceWaitIdle(gState.device.logical);
-	//if (window->size().height == 0 || window->size().width == 0)
-	//{
-	//	while (window->size().height == 0 || window->size().width == 0)
-	//	{
-	//		window->waitEvents();
-	//	}
-	//	VkExtent2D newSize = window->size();
-	//	if (extent.height == newSize.height && extent.width == newSize.width)
-	//	{
-	//		return false;
-	//	}
-	//}
 
 	while (window->size().height == 0 || window->size().width == 0)
 	{

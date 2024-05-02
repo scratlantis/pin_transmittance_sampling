@@ -21,6 +21,14 @@ class Image
 	// Set on creation & updated on layout transform or renderpass (for framebuffer images)
 	VkImageLayout layout;
 	Image() = default;
+
+	VkDeviceSize getSize()
+	{
+		VkDeviceSize size = extent.width * extent.height * extent.depth;
+		size *= mipLevels;
+		size *= cVkFormatTable.at(format).size;
+		return size;
+	}
 	void move(ResourceTracker *pNewTracker)
 	{
 		ASSERT_TRUE(res != nullptr);

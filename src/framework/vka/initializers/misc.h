@@ -4,12 +4,12 @@
 
 namespace vka
 {
-struct ImageViewCreateInfo_Swapchain : public VkImageViewCreateInfo
+struct ImageViewCreateInfo_Default : public VkImageViewCreateInfo
 {
-	ImageViewCreateInfo_Swapchain(const VkImage &vkImage, const VkFormat &vkFormat);
+	ImageViewCreateInfo_Default(const VkImage &vkImage, const VkFormat &vkFormat);
 };
 
-inline ImageViewCreateInfo_Swapchain::ImageViewCreateInfo_Swapchain(const VkImage &vkImage, const VkFormat &vkFormat) :
+inline ImageViewCreateInfo_Default::ImageViewCreateInfo_Default(const VkImage &vkImage, const VkFormat &vkFormat) :
     VkImageViewCreateInfo()
 {
 	sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -171,9 +171,9 @@ struct ImageCreateInfo_Swapchain : public VkImageCreateInfo
 	}
 };
 
-struct ImageCreateInfo_Framebuffer : public VkImageCreateInfo
+struct ImageCreateInfo_Default : public VkImageCreateInfo
 {
-	ImageCreateInfo_Framebuffer(VkImageUsageFlags usageFlags, VkExtent2D extent, VkFormat format)
+	ImageCreateInfo_Default(VkImageUsageFlags usageFlags, VkExtent2D extent, VkFormat format)
 	{
 		this->sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		this->pNext                 = nullptr;
@@ -190,6 +190,31 @@ struct ImageCreateInfo_Framebuffer : public VkImageCreateInfo
 		this->queueFamilyIndexCount = 0;
 		this->pQueueFamilyIndices   = nullptr;
 		this->initialLayout         = VK_IMAGE_LAYOUT_PREINITIALIZED;
+	}
+};
+
+struct SamplerCreateInfo_Default : public VkSamplerCreateInfo
+{
+	SamplerCreateInfo_Default(float maxLodValue)
+	{
+		sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		pNext                   = nullptr;
+		flags                   = 0;
+		magFilter               = VK_FILTER_LINEAR;
+		minFilter               = VK_FILTER_LINEAR;
+		mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		addressModeU            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		addressModeV            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		addressModeW            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		mipLodBias              = 0.0;
+		anisotropyEnable        = VK_FALSE;
+		maxAnisotropy           = 1.0;
+		compareEnable           = VK_FALSE;
+		compareOp               = VK_COMPARE_OP_NEVER;
+		minLod                  = 0.0;
+		maxLod                  = maxLodValue;
+		borderColor             = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+		unnormalizedCoordinates = VK_FALSE;
 	}
 };
 

@@ -55,7 +55,7 @@ struct Pin
 
 struct Cube
 {
-	glm::mat4 centerSize;
+	glm::mat4 modelMat;
 	glm::mat4 invModelMatrix;
 };
 
@@ -115,6 +115,7 @@ int main()
 		gaussiansData[i].mean.z   = (1.0 - coef) / 2.0 + coef * unormDistribution(gen32);
 		gaussiansData[i].variance = 0.5 * coef * unormDistribution(gen32);
 	}
+
 	std::vector<Pin> pinGrid(PIN_GRID_SIZE * PIN_GRID_SIZE * PIN_GRID_SIZE * PINS_PER_GRID_CELL);
 	std::vector<Pin> pins(PIN_COUNT);
 	Buffer           pinBuf              = BufferVma(&gState.heap, sizeof(Pin) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
@@ -196,6 +197,10 @@ int main()
 			vkDeviceWaitIdle(gState.device.logical);
 			gState.cache.clear();
 		}
+		if (gState.io.keyEvent[GLFW_KEY_E] && gState.io.keyPressed[GLFW_KEY_E])
+		{
+			gvar_use_pins.val.v_bool = !gvar_use_pins.val.v_bool;
+		}
 		// Update Camera
 		camera.key_control(gState.io.keyPressed, 0.016);
 
@@ -218,6 +223,11 @@ int main()
 		pfc.projectionMat        = glm::perspective(glm::radians(60.0f), (float) gState.io.extent.width / (float) gState.io.extent.height, 1.0f, 500.0f);
 		pfc.inverseProjectionMat = glm::inverse(pfc.projectionMat);
 		pfc.cube                 = Cube{glm::mat4(1.0), glm::mat4(1.0)};
+		// pfc.cube.modelMat        = glm::translate(pfc.cube.modelMat, glm::vec3(-0.5, -0.5, -0.5));
+		
+		pfc.cube.modelMat       = glm::rotate(pfc.cube.modelMat, glm::radians(cnt / 20.f), glm::vec3(0.0, 1.0, 0.0));
+		pfc.cube.modelMat       = glm::translate(pfc.cube.modelMat, -glm::vec3(0.5, 0.5, 0.5));
+		pfc.cube.invModelMatrix = glm::inverse(pfc.cube.modelMat);
 		// Pipeline Creation
 		glm::uvec3           workGroupSize  = {16, 16, 1};
 		glm::uvec3           resolution     = {gState.io.extent.width, gState.io.extent.height, 1};
