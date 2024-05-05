@@ -656,4 +656,48 @@ const std::map<VkFormat, VULKAN_FORMAT_INFO> cVkFormatTable = {
 
 const VkExtent2D cResolution4k = {3840, 2160};
 const VkExtent2D cResolution2k = {2048, 1024};
+
+
+inline VkVertexInputBindingDescription getBindingDescription(uint32_t size)
+{
+	VkVertexInputBindingDescription vertexInputBindingDescription{};
+	vertexInputBindingDescription.binding   = 0;
+	vertexInputBindingDescription.stride    = size;
+	vertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	return vertexInputBindingDescription;
+}
+
+
+template <class... Args>
+inline std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(VkFormat nextFormat, uint32_t nextOffset, Args... args)
+{
+	std::vector<VkFormat> formats = {nextFormat};
+	std::vector<uint32_t> offsets = {nextOffset};
+	return getAttributeDescriptions(formats, offsets, args...);
+}
+
+template <class... Args>
+inline std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(
+    std::vector<VkFormat> &formats, std::vector<uint32_t> &offsets, VkFormat nextFormat, uint32_t nextOffset, Args... args)
+{
+	formats.push_back(nextFormat);
+	offsets.push_back(nextOffset);
+	return getAttributeDescriptions(formats, offsets, args...);
+}
+inline std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(
+	std::vector<VkFormat> &formats, std::vector<uint32_t> &offsets)
+{
+	std::vector<VkVertexInputAttributeDescription> vertexInputAttributeDescriptions;
+	for (size_t i = 0; i < formats.size(); i++)
+	{
+		VkVertexInputAttributeDescription attributeDescription{};
+		attributeDescription.location = i;
+		attributeDescription.format   = formats[i];
+		attributeDescription.offset   = offsets[i];
+		vertexInputAttributeDescriptions.push_back(attributeDescription);
+	}
+	return vertexInputAttributeDescriptions;
+}
+
+
 }		// namespace vka

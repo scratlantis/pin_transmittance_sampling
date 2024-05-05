@@ -19,6 +19,7 @@
 #include <framework/vka/gui/ImGuiWrapper.h>
 #include <framework/vka/default/DefaultModels.h>
 #include <random>
+#include "DataStructs.h"
 
 using namespace vka;
 #ifndef SHADER_DIR
@@ -34,57 +35,14 @@ GVar                gvar_use_pins{"use pins", true, GVAR_BOOL, GVAR_APPLICATION}
 std::vector<GVar *> gVars{
     &gvar_use_pins};
 AppState          gState;
+
 const std::string gShaderPath = SHADER_DIR;
 
-#define UPLOAD_IDLE(data, size, buffer)                                                                       \
-	CmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT); \
-	cmdBuf.uploadData(data, size, buffer);                                                                    \
-	commitCmdBuffers({cmdBuf}, &gState.frame->stack, gState.device.universalQueues[0]);                       \
-	vkDeviceWaitIdle(gState.device.logical);
-
-#define GAUSSIAN_COUNT 10
-#define PIN_GRID_SIZE 20
-#define PINS_PER_GRID_CELL 20
-#define PI 3.14159265359
-#define PIN_COUNT PIN_GRID_SIZE *PIN_GRID_SIZE *PIN_GRID_SIZE *PINS_PER_GRID_CELL
-
-struct Pin
+enum class MaterialType
 {
-	glm::vec2 theta;
-	glm::vec2 phi;
-};
-
-struct Cube
-{
-	glm::mat4 modelMat;
-	glm::mat4 invModelMatrix;
-};
-
-struct PerFrameConstants
-{
-	glm::vec4 camPos;
-
-	glm::mat4 viewMat;
-	glm::mat4 inverseViewMat;
-	glm::mat4 projectionMat;
-	glm::mat4 inverseProjectionMat;
-
-	uint32_t width;
-	uint32_t height;
-	uint32_t frameCounter;
-	uint32_t mousePosX;
-
-	uint32_t mousePosY;
-	uint32_t usePins;
-	uint32_t placeholder3;
-	uint32_t placeholder4;
-
-	Cube cube;
-};
-struct Gaussian
-{
-	glm::vec3 mean;
-	float     variance;
+	MATERIAL_TYPE_GAUSSIAN,
+	MATERIAL_TYPE_PINS,
+	MATERIAL_TYPE_PINS_GRID
 };
 
 int main()
@@ -99,14 +57,12 @@ int main()
 	// ImGui initialization
 	ImGuiWrapper imguiWrapper = ImGuiWrapper();
 	imguiWrapper.init();
-	// Resource Creation
-	FramebufferImage                      offscreenImage = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
-	Buffer                                ubo            = BufferVma(&gState.heap, sizeof(PerFrameConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	Buffer                                gaussiansBuf   = BufferVma(&gState.heap, sizeof(Gaussian) * GAUSSIAN_COUNT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	Geometry_T<PosVertex>  cubeGeom  = Geometry_T<PosVertex>(&gState.heap, cCubeVertecies, cCubeIndices);
+	DefaulModel<PosVertex>                      cubeModel = DefaulModel<PosVertex>(&cubeGeom, nullptr);
+	//DefaulModel<PosVertex>                      cubeModel = DefaulModel<PosVertex>();
+
 	std::mt19937                          gen32(42);
 	std::uniform_real_distribution<float> unormDistribution(0.0, 1.0);
-
-
 	// Init gaussians:
 	std::vector<Gaussian> gaussiansData(GAUSSIAN_COUNT);
 	float                 coef = 0.3;
@@ -117,13 +73,7 @@ int main()
 		gaussiansData[i].mean.z   = (1.0 - coef) / 2.0 + coef * unormDistribution(gen32);
 		gaussiansData[i].variance = 0.5 * coef * unormDistribution(gen32);
 	}
-
-	std::vector<Pin> pinGrid(PIN_GRID_SIZE * PIN_GRID_SIZE * PIN_GRID_SIZE * PINS_PER_GRID_CELL);
 	std::vector<Pin> pins(PIN_COUNT);
-	Buffer           pinBuf              = BufferVma(&gState.heap, sizeof(Pin) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	Buffer           pinTransmittanceBuf = BufferVma(&gState.heap, sizeof(float) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	Buffer           pinGridBuf          = BufferVma(&gState.heap, sizeof(Pin) * pinGrid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	Buffer           pinGridIdBuf        = BufferVma(&gState.heap, sizeof(uint32_t) * pinGrid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 	// Init pins:
 	for (size_t i = 0; i < pins.size(); i++)
 	{
@@ -132,11 +82,26 @@ int main()
 		pins[i].phi.x   = glm::acos(1.0 - 2.0 * unormDistribution(gen32));
 		pins[i].phi.y   = glm::acos(1.0 - 2.0 * unormDistribution(gen32));
 	}
+
+	// Resource Creation
+	FramebufferImage offscreenImage = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
+	Buffer           pfcBuf         = BufferVma(&gState.heap, sizeof(PerFrameConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	Buffer           gaussiansBuf   = BufferVma(&gState.heap, sizeof(Gaussian) * gaussiansData.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	Buffer           pinBuf         = BufferVma(&gState.heap, sizeof(Pin) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+
+
+
+
+	std::vector<Pin> pinGrid(PIN_GRID_SIZE * PIN_GRID_SIZE * PIN_GRID_SIZE * PINS_PER_GRID_CELL);
+	Buffer           pinTransmittanceBuf = BufferVma(&gState.heap, sizeof(float) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+	Buffer           pinGridBuf          = BufferVma(&gState.heap, sizeof(Pin) * pinGrid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+	Buffer           pinGridIdBuf        = BufferVma(&gState.heap, sizeof(uint32_t) * pinGrid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 	ComputeCmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 	// Upload data
 	imguiWrapper.uploadResources(cmdBuf);
 	cmdBuf.uploadData(gaussiansData.data(), sizeof(Gaussian) * GAUSSIAN_COUNT, gaussiansBuf);
 	cmdBuf.uploadData(pins.data(), sizeof(Pin) * pins.size(), pinBuf);
+	cubeGeom.upload(cmdBuf);
 	cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	// Calc pin transmittance in shader:
 	if (1)
@@ -257,8 +222,8 @@ int main()
 		offscreenImage.update(&gState.heap, &gState.frame->stack, gState.io.extent);
 		cmdBuf.transitionLayout(offscreenImage, VK_IMAGE_LAYOUT_GENERAL);
 		cmdBuf.bindPipeline(computePipeline);
-		cmdBuf.uploadData(&pfc, sizeof(pfc), ubo);
-		cmdBuf.pushDescriptors(0, ubo, (Image) offscreenImage, pinTransmittanceBuf, pinGridBuf, pinGridIdBuf, gaussiansBuf);
+		cmdBuf.uploadData(&pfc, sizeof(pfc), pfcBuf);
+		cmdBuf.pushDescriptors(0, pfcBuf, (Image) offscreenImage, pinTransmittanceBuf, pinGridBuf, pinGridIdBuf, gaussiansBuf);
 		cmdBuf.dispatch(workGroupCount);
 		cmdBuf.copyToSwapchain(offscreenImage);
 		imguiWrapper.renderGui(cmdBuf);
