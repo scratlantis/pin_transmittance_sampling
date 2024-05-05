@@ -117,6 +117,61 @@ hash_t RasterizationPipelineState::hash() const
 bool RasterizationPipelineState::_equals(RasterizationPipelineState const &other) const
 {
 	// clang-format off
+	/*bool tmp1 = cmpArray(shaderDefinitions, other.shaderDefinitions)										   ;
+	bool tmp2= shallowCmpArray(vertexBindingDescription, other.vertexBindingDescription)					   ;
+	bool tmp3 = shallowCmpArray(vertexAttributeDescriptions, other.vertexAttributeDescriptions)				   ;
+	bool tmp4 = inputAssemblyState.topology == other.inputAssemblyState.topology							   ;
+	bool tmp5 = viewport.height == other.viewport.height													   ;
+	bool tmp6 = viewport.width == other.viewport.width														   ;
+	bool tmp7 = rasterizationState.cullMode == other.rasterizationState.cullMode							   ;
+	bool tmp8 = rasterizationState.frontFace == other.rasterizationState.frontFace							   ;
+	bool tmp9 = depthStencilState.depthCompareOp == other.depthStencilState.depthCompareOp					   ;
+	bool tmp10 = depthStencilState.depthTestEnable == other.depthStencilState.depthTestEnable				   ;
+	bool tmp11= depthStencilState.depthWriteEnable == other.depthStencilState.depthWriteEnable				   ;
+	bool tmp12 = shallowCmpArray(blendAttachments, other.blendAttachments)									   ;
+	bool tmp13 = layout == other.layout																		   ;
+	bool tmp14 = shallowCmpArray(dynamicStates, other.dynamicStates)										   ;
+	bool tmp15 = dynamicState.flags == other.dynamicState.flags												   ;
+	bool tmp16 = rasterizationState.depthBiasClamp == other.rasterizationState.depthBiasClamp				   ;
+	bool tmp17 = rasterizationState.depthBiasConstantFactor == other.rasterizationState.depthBiasConstantFactor;
+	bool tmp18 = rasterizationState.depthBiasEnable == other.rasterizationState.depthBiasEnable				   ;
+	bool tmp19 = rasterizationState.depthBiasSlopeFactor == other.rasterizationState.depthBiasSlopeFactor	   ;
+	bool tmp20 = rasterizationState.depthClampEnable == other.rasterizationState.depthClampEnable			   ;
+	bool tmp21 = rasterizationState.flags == other.rasterizationState.flags									   ;
+	bool tmp22 = rasterizationState.lineWidth == other.rasterizationState.lineWidth							   ;
+	bool tmp23 = rasterizationState.polygonMode == other.rasterizationState.polygonMode						   ;
+	bool tmp24 = rasterizationState.rasterizerDiscardEnable == other.rasterizationState.rasterizerDiscardEnable;
+	bool tmp25 = vertexInputState.flags == other.vertexInputState.flags										   ;
+	bool tmp26 = inputAssemblyState.flags == other.inputAssemblyState.flags									   ;
+	bool tmp27 = inputAssemblyState.primitiveRestartEnable == other.inputAssemblyState.primitiveRestartEnable  ;
+	bool tmp28 = colorBlendState.blendConstants[0] == other.colorBlendState.blendConstants[0]				   ;
+	bool tmp29 = colorBlendState.blendConstants[1] == other.colorBlendState.blendConstants[1]				   ;
+	bool tmp30 = colorBlendState.blendConstants[2] == other.colorBlendState.blendConstants[2]				   ;
+	bool tmp31 = colorBlendState.blendConstants[3] == other.colorBlendState.blendConstants[3]				   ;
+	bool tmp32 = colorBlendState.flags == other.colorBlendState.flags										   ;
+	bool tmp33 = colorBlendState.logicOp == other.colorBlendState.logicOp									   ;
+	bool tmp34 = colorBlendState.logicOpEnable == other.colorBlendState.logicOpEnable						   ;
+	bool tmp35 = viewportState.flags == other.viewportState.flags											   ;
+	bool tmp36 = viewport.maxDepth == other.viewport.maxDepth												   ;
+	bool tmp37 = viewport.minDepth == other.viewport.minDepth												   ;
+	bool tmp38 = viewport.x == other.viewport.x &&viewport.y == other.viewport.y							   ;
+	bool tmp39 = shallowCmpStructure(&depthStencilState.back, &other.depthStencilState.back)				   ;
+	bool tmp40 = depthStencilState.depthBoundsTestEnable == other.depthStencilState.depthBoundsTestEnable	   ;
+	bool tmp41 = depthStencilState.flags == other.depthStencilState.flags									   ;
+	bool tmp42 = shallowCmpStructure(&depthStencilState.front, &other.depthStencilState.front)				   ;
+	bool tmp43 = depthStencilState.stencilTestEnable == other.depthStencilState.stencilTestEnable			   ;
+	bool tmp44 = depthStencilState.maxDepthBounds == other.depthStencilState.maxDepthBounds					   ;
+	bool tmp45 = depthStencilState.minDepthBounds == other.depthStencilState.minDepthBounds					   ;
+	bool tmp46 = multisampleState.alphaToCoverageEnable == other.multisampleState.alphaToCoverageEnable		   ;
+	bool tmp47 = multisampleState.alphaToOneEnable == other.multisampleState.alphaToOneEnable				   ;
+	bool tmp48 = multisampleState.flags == other.multisampleState.flags										   ;
+	bool tmp49 = multisampleState.minSampleShading == other.multisampleState.minSampleShading				   ;
+	bool tmp50 = multisampleState.rasterizationSamples == other.multisampleState.rasterizationSamples		   ;
+	bool tmp51 = multisampleState.sampleShadingEnable == other.multisampleState.sampleShadingEnable			   ;
+	bool tmp52 = shallowCmpStructure(multisampleState.pSampleMask, other.multisampleState.pSampleMask)		   ;
+	bool tmp53 = shallowCmpArray(specialisationEntryCounts, other.specialisationEntryCounts)				   ;
+	bool tmp54 = shallowCmpArray(specialisationEntrySizes, other.specialisationEntrySizes)					   ;
+	bool tmp55 = shallowCmpArray(specialisationData, other.specialisationData)								   ;*/
 	return cmpArray(shaderDefinitions, other.shaderDefinitions)
 		&& shallowCmpArray(vertexBindingDescription, other.vertexBindingDescription)
 		&& shallowCmpArray(vertexAttributeDescriptions, other.vertexAttributeDescriptions)
@@ -313,9 +368,9 @@ RasterizationPipelineState &RasterizationPipelineState::disableDepthTest()
 	return *this;
 }
 
-RasterizationPipelineState &RasterizationPipelineState::setLayoutDefinition(PipelineLayoutDefinition layout)
+RasterizationPipelineState &RasterizationPipelineState::setDescriptorLayout(DescriptorSetLayoutDefinition layout)
 {
-	this->layout = layout;
+	this->layout.descSetLayoutDef = {layout};
 	return *this;
 }
 

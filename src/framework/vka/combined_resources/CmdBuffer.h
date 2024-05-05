@@ -1,6 +1,7 @@
 #pragma once
 #include "../resources/Resource.h"
 #include "../resources/ComputePipeline.h"
+#include "../resources/RasterizationPipeline.h"
 #include "../combined_resources/Buffer.h"
 #include "../combined_resources/Image.h"
 #include "../compatibility.h"
@@ -240,6 +241,7 @@ class ComputeCmdBuffer : public CmdBuffer
 		// State: layout, bindpoint
 	}
 
+
 	// global params: pipeline layout, bind point, set index
 	// per write params: desc_count, desc_type
 	//		buffer: buffer, offset, range
@@ -376,6 +378,15 @@ class UniversalCmdBuffer : public ComputeCmdBuffer
 	UniversalCmdBuffer(); 
 	UniversalCmdBuffer(ResourceTracker *pTracker, VkCommandBufferUsageFlags usage, uint32_t queueIdx = 0, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
+	void bindRasterizationPipeline(RasterizationPipeline pipeline)
+	{
+		vkCmdBindPipeline(handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.getHandle());
+		pipelineLayoutDef = pipeline.getState().layout;
+		bindPoint         = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		stateBits |= CMD_BUF_STATE_BOUND_PIPELINE;
+		// State: layout, bindpoint
+	}
+
 	void startRenderPass(VkRenderPass renderpass, VkFramebuffer framebuffer, std::vector<VkClearValue> clearValues, VkExtent2D extent = gState.io.extent)
 	{
 		VkRenderPassBeginInfo renderPassBeginInfo;
@@ -406,6 +417,18 @@ class UniversalCmdBuffer : public ComputeCmdBuffer
 	{
 		vkCmdEndRenderPass(handle);
 	}
+
+	void bindVertexBuffer(Buffer buffer, VkDeviceSize offset = 0)
+	{
+		vkCmdBindVertexBuffers(handle, 0, 1, &buffer.buf, &offset);
+	}
+
+	void draw(uint32_t vertexCount)
+	{
+		ASSERT_TRUE(stateBits & CMD_BUF_STATE_BOUND_PIPELINE);
+		vkCmdDraw(handle, vertexCount, 1, 0, 0);
+	}
+
 	~UniversalCmdBuffer();
 };
 

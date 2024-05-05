@@ -152,4 +152,7 @@ static std::string errorString(VkResult errorCode)
 #define NEXT_INDEX(x, y) ((x + 1) % (y))
 #define PREVIOUS_INDEX(x, y) (((x + y - 1) % y))
 
-#define ESACPE_NAMESPACE_VKA(CODE) } CODE namespace vka {
+#define ESACPE_NAMESPACE_VKA(CODE) \
+	}                              \
+	CODE namespace vka             \
+	{

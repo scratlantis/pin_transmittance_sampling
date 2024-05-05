@@ -178,13 +178,13 @@ class RenderEntity
 {
   public:
 	RenderEntity(const Model *pModel, glm::mat4 modelMat = glm::mat4(1.0)) :
-	    pModel(pModel), modelMat(modelMat){};
+	    pModel(pModel), modelMatrices({modelMat}){};
 	//~RenderEntity(){};
 	void getModelDrawSurfs()
 	{
 		pDrawSurfs = &pModel->getDrawSurf();
 	}
-	glm::mat4                       modelMat;
+	std::vector<glm::mat4>        modelMatrices;
 	std::vector<DrawSurface> *pDrawSurfs;
   private:
 	const Model                    *pModel;

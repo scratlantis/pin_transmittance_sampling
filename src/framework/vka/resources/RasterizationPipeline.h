@@ -70,6 +70,8 @@ struct RasterizationPipelineState
 
 	RasterizationPipelineState &setExtent(uint32_t width, uint32_t height);
 
+	RasterizationPipelineState &setDescriptorLayout(DescriptorSetLayoutDefinition layout);
+
 	RasterizationPipelineState &setCullMode(VkCullModeFlags cullMode, VkFrontFace frontFace);
 
 	RasterizationPipelineState &enableDepthTest(VkCompareOp compareOp, VkBool32 enableDepthWrite);
@@ -88,7 +90,7 @@ struct RasterizationPipelineState
 	template <class... Args>
 	void addShaderDefinitions(ShaderDefinition shaderDef, Args... args)
 	{
-		shaderDefinitions.push_back(shader);
+		shaderDefinitions.push_back(shaderDef);
 		addShaderDefinitions(args...);
 	}
 

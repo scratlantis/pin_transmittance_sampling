@@ -90,7 +90,7 @@ inline bool shallowCmpStructure(const T *a, const T *b)
 	{
 		return false;
 	}
-	return memcmp(a, b, sizeof(T));
+	return memcmp(a, b, sizeof(T)) == 0;
 }
 
 
@@ -657,7 +657,6 @@ const std::map<VkFormat, VULKAN_FORMAT_INFO> cVkFormatTable = {
 const VkExtent2D cResolution4k = {3840, 2160};
 const VkExtent2D cResolution2k = {2048, 1024};
 
-
 inline VkVertexInputBindingDescription getBindingDescription(uint32_t size)
 {
 	VkVertexInputBindingDescription vertexInputBindingDescription{};
@@ -666,7 +665,6 @@ inline VkVertexInputBindingDescription getBindingDescription(uint32_t size)
 	vertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 	return vertexInputBindingDescription;
 }
-
 
 template <class... Args>
 inline std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(VkFormat nextFormat, uint32_t nextOffset, Args... args)
@@ -685,7 +683,7 @@ inline std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(
 	return getAttributeDescriptions(formats, offsets, args...);
 }
 inline std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(
-	std::vector<VkFormat> &formats, std::vector<uint32_t> &offsets)
+    std::vector<VkFormat> &formats, std::vector<uint32_t> &offsets)
 {
 	std::vector<VkVertexInputAttributeDescription> vertexInputAttributeDescriptions;
 	for (size_t i = 0; i < formats.size(); i++)
