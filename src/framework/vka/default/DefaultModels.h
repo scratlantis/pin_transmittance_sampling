@@ -47,6 +47,29 @@ ESACPE_NAMESPACE_VKA(
     MAKE_VERTEX_1ARG(PosVertex, glm::vec3, pos, VK_FORMAT_R32G32B32_SFLOAT)
 )
 
+class Transform
+{
+	glm::mat4 mat;
+	glm::mat4 invMat;
+    VkVertexInputBindingDescription getBindingDescription(uint32_t bindingIdx)
+	{
+		return getInstanceBindingDescription(sizeof(Transform), bindingIdx);
+	}
+	std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions()
+    {
+        return vka::getAttributeDescriptions(
+            VK_FORMAT_R32G32B32A32_SFLOAT, 0,
+            VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(glm::vec4),
+            VK_FORMAT_R32G32B32A32_SFLOAT, 2*sizeof(glm::vec4),
+            VK_FORMAT_R32G32B32A32_SFLOAT, 3*sizeof(glm::vec4),
+            VK_FORMAT_R32G32B32A32_SFLOAT, 4*sizeof(glm::vec4),
+            VK_FORMAT_R32G32B32A32_SFLOAT, 5*sizeof(glm::vec4),
+            VK_FORMAT_R32G32B32A32_SFLOAT, 6*sizeof(glm::vec4),
+            VK_FORMAT_R32G32B32A32_SFLOAT, 7*sizeof(glm::vec4));
+    }
+};
+
+
 std::vector<PosVertex> cCubeVertecies =
     {
         PosVertex(glm::vec3(-1.0, -1.0, 1.0)),

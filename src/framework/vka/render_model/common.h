@@ -105,7 +105,7 @@ class Material
 	Material(){};
 	~Material(){};
 
-	virtual void render(CmdBuffer &cmdBuf) const    = 0;
+	virtual void bindPipeline(CmdBuffer &cmdBuf) const    = 0;
 	virtual void move(ResourceTracker *pNewTracker) = 0;
 
   private:
@@ -169,26 +169,71 @@ class Model_T : public Model
 	virtual std::vector<DrawSurface> getDrawSurf() const = 0;
 };
 
-
-
-
-
-
-class RenderEntity
+class DrawSurfaceInstance
 {
   public:
-	RenderEntity(const Model *pModel, glm::mat4 modelMat = glm::mat4(1.0)) :
-	    pModel(pModel), modelMatrices({modelMat}){};
-	//~RenderEntity(){};
-	void getModelDrawSurfs()
+	DrawSurfaceInstance(const DrawSurface drawSurf, void* instanceData, size_t instanceDataSize) : drawSurf(drawSurf)
 	{
-		pDrawSurfs = &pModel->getDrawSurf();
+		this->instanceData = getByteVector(instanceData, instanceDataSize);
 	}
-	std::vector<glm::mat4>        modelMatrices;
-	std::vector<DrawSurface> *pDrawSurfs;
+	DrawSurfaceInstance(){};
+	~DrawSurfaceInstance(){};
+
+	const DrawSurface drawSurf;
+	std::vector<uint8_t>  getInstanceData() const
+	{
+		return instanceData;
+	}
   private:
-	const Model                    *pModel;
+	std::vector<uint8_t> instanceData;
 };
+
+
+class DrawCall
+{
+  public:
+	DrawCall(){};
+	DrawCall(const DrawSurfaceInstance drawInstance) :
+	    drawSurf(drawInstance.drawSurf), instanceCount(1)
+	{
+		instanceData = {drawInstance.getInstanceData()};
+	}
+	void addInstance(const DrawSurfaceInstance drawInstance)
+	{
+		std::vector<uint8_t> newDrawInstanceData = drawInstance.getInstanceData();
+		instanceData.insert(instanceData.end(), newDrawInstanceData.begin(), newDrawInstanceData.end());
+		instanceCount++;
+	}
+	const DrawSurface drawSurf;
+	uint32_t          instanceCount;
+	std::vector<uint8_t> instanceData;
+
+	void submit(UniversalCmdBuffer &cmdBuf, ResourceTracker* pStack)
+	{
+		Buffer instanceBuffer = cmdBuf.uploadData(instanceData.data(), instanceData.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, pStack, pStack);
+		std::vector buffers        = {drawSurf.pVertexBuffer->buf, instanceBuffer.buf};
+		cmdBuf.bindVertexBuffers(buffers);
+		cmdBuf.bindIndexBuffer(*drawSurf.pIndexBuffer);
+		cmdBuf.drawIndexed(drawSurf.indexCount, instanceCount);
+	}
+  private:
+};
+
+//template <typename InstanceData>
+//class Instance_T
+//{
+//  public:
+//	  const Model *pModel;
+//	  const InstanceData instanceData;
+//	Instance_T(){};
+//	Instance_T(const Model *pModel, const InstanceData &instanceData) :
+//	    pModel(pModel), instanceData(instanceData){}
+//	~Instance_T(){};
+//
+//
+//
+//  private:
+//};
 
 
 

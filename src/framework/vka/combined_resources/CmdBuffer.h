@@ -423,10 +423,27 @@ class UniversalCmdBuffer : public ComputeCmdBuffer
 		vkCmdBindVertexBuffers(handle, 0, 1, &buffer.buf, &offset);
 	}
 
+	void bindIndexBuffer(Buffer buffer, VkDeviceSize offset = 0)
+	{
+		vkCmdBindIndexBuffer(handle, buffer.buf, offset, VK_INDEX_TYPE_UINT32);
+	}
+
+	void bindVertexBuffers(std::vector<VkBuffer> buffers)
+	{
+		std::vector<VkDeviceSize> offsets(buffers.size(), 0);
+		vkCmdBindVertexBuffers(handle, 0, buffers.size(), buffers.data(), offsets.data());
+	}
+
 	void draw(uint32_t vertexCount)
 	{
 		ASSERT_TRUE(stateBits & CMD_BUF_STATE_BOUND_PIPELINE);
 		vkCmdDraw(handle, vertexCount, 1, 0, 0);
+	}
+
+	void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, uint32_t vertexOffset = 0, uint32_t firstInstance = 0)
+	{
+		ASSERT_TRUE(stateBits & CMD_BUF_STATE_BOUND_PIPELINE);
+		vkCmdDrawIndexed(handle, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
 	~UniversalCmdBuffer();

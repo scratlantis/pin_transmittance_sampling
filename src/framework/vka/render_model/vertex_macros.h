@@ -1,4 +1,4 @@
-#define MAKE_VERTEX_1ARG(CLASS_NAME, ARG1_TYPE, ARG1_NAME, ARG1_LAYOUT)                              \
+#define MAKE_VERTEX_1ARG(CLASS_NAME, ARG1_TYPE, ARG1_NAME, ARG1_LAYOUT)                         \
 	class CLASS_NAME                                                                            \
 	{                                                                                           \
 	  public:                                                                                   \
@@ -15,7 +15,7 @@
 		}                                                                                       \
 		static VkVertexInputBindingDescription getBindingDescription()                          \
 		{                                                                                       \
-			return vka::getBindingDescription(sizeof(CLASS_NAME));                              \
+			return vka::getVertexBindingDescription(sizeof(CLASS_NAME));                        \
 		}                                                                                       \
 		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions()        \
 		{                                                                                       \
@@ -57,7 +57,7 @@ ARG2_TYPE, ARG2_NAME, ARG2_LAYOUT)																\
 		}                                                                                       \
 		static VkVertexInputBindingDescription getBindingDescription()                          \
 		{                                                                                       \
-			return vka::getBindingDescription(sizeof(CLASS_NAME));                              \
+			return vka::getVertexBindingDescription(sizeof(CLASS_NAME));                              \
 		}                                                                                       \
 		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions()        \
 		{                                                                                       \
@@ -79,4 +79,52 @@ ARG2_TYPE, ARG2_NAME, ARG2_LAYOUT)																\
 			return h;																			\
 		}                                                                                       \
 	};																							\
+	}
+
+
+
+#define MAKE_INSTANCE_1ARG(CLASS_NAME, ARG1_TYPE, ARG1_NAME, ARG1_LAYOUT)                         \
+	class CLASS_NAME                                                                            \
+	{                                                                                           \
+	  public:                                                                                   \
+		ARG1_TYPE ARG1_NAME;                                                                    \
+		CLASS_NAME(                                                                             \
+		    ARG1_TYPE ARG1_NAME) :                                                              \
+		    ARG1_NAME(ARG1_NAME){};                                                             \
+		CLASS_NAME(){};                                                                         \
+		static VkVertexInputBindingDescription getBindingDescription()                          \
+		{                                                                                       \
+			return vka::getInstanceBindingDescription(sizeof(CLASS_NAME));                        \
+		}                                                                                       \
+		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions()        \
+		{                                                                                       \
+			return vka::getAttributeDescriptions(ARG1_LAYOUT, offsetof(CLASS_NAME, ARG1_NAME)); \
+		}                                                                                       \
+	};                                                                                          \
+	}
+
+#define MAKE_INSTANCE_2ARG(CLASS_NAME,                                                     \
+                         ARG1_TYPE, ARG1_NAME, ARG1_LAYOUT,                              \
+                         ARG2_TYPE, ARG2_NAME, ARG2_LAYOUT)                              \
+	class CLASS_NAME                                                                     \
+	{                                                                                    \
+	  public:                                                                            \
+		ARG1_TYPE ARG1_NAME;                                                             \
+		ARG2_TYPE ARG2_NAME;                                                             \
+		CLASS_NAME(                                                                      \
+		    ARG1_TYPE ARG1_NAME,                                                         \
+		    ARG2_TYPE ARG2_NAME) :                                                       \
+		    ARG1_NAME(ARG1_NAME),                                                        \
+		    ARG2_NAME(ARG2_NAME){};                                                      \
+		CLASS_NAME(){};                                                                  \
+		static VkVertexInputBindingDescription getBindingDescription()                   \
+		{                                                                                \
+			return vka::getInstanceBindingDescription(sizeof(CLASS_NAME));                 \
+		}                                                                                \
+		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() \
+		{                                                                                \
+			return vka::getAttributeDescriptions(                                        \
+			    ARG1_LAYOUT, offsetof(CLASS_NAME, ARG1_NAME),                            \
+			    ARG2_LAYOUT, offsetof(CLASS_NAME, ARG2_NAME));                           \
+		}                                                                                \
 	}

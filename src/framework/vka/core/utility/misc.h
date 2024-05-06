@@ -350,6 +350,13 @@ std::vector<uint8_t> inline getByteVector(const glm::uvec3 &in)
 	return out;
 }
 
+std::vector<uint8_t> inline getByteVector(void* data, size_t size)
+{
+	std::vector<uint8_t> out(size);
+	memcpy(out.data(), data, size);
+	return out;
+}
+
 // CIV
 VkImageAspectFlags inline getAspectFlags(VkFormat format)
 {
@@ -657,12 +664,21 @@ const std::map<VkFormat, VULKAN_FORMAT_INFO> cVkFormatTable = {
 const VkExtent2D cResolution4k = {3840, 2160};
 const VkExtent2D cResolution2k = {2048, 1024};
 
-inline VkVertexInputBindingDescription getBindingDescription(uint32_t size)
+inline VkVertexInputBindingDescription getVertexBindingDescription(uint32_t size, uint32_t binding = 0)
 {
 	VkVertexInputBindingDescription vertexInputBindingDescription{};
-	vertexInputBindingDescription.binding   = 0;
+	vertexInputBindingDescription.binding   = binding;
 	vertexInputBindingDescription.stride    = size;
 	vertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	return vertexInputBindingDescription;
+}
+
+inline VkVertexInputBindingDescription getInstanceBindingDescription(uint32_t size, uint32_t binding = 1)
+{
+	VkVertexInputBindingDescription vertexInputBindingDescription{};
+	vertexInputBindingDescription.binding   = binding;
+	vertexInputBindingDescription.stride    = size;
+	vertexInputBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
 	return vertexInputBindingDescription;
 }
 
