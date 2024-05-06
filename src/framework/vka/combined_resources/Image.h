@@ -58,6 +58,8 @@ class Image
 		pTracker->add(viewRes);
 	}
 
+	void createImageView(ResourceTracker *pTracker);
+
 };
 
 // Memory allocated by VMA

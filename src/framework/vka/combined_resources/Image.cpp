@@ -103,4 +103,16 @@ FramebufferImage::FramebufferImage()
 ImageVma::ImageVma()
 {
 }
+void Image::createImageView(ResourceTracker *pTracker)
+{
+	VkImageViewCreateInfo viewCI = ImageViewCreateInfo_Default(img, format);
+	if (viewRes != nullptr)
+	{
+		return;
+	}
+	ASSERT_VULKAN(vkCreateImageView(gState.device.logical, &viewCI, nullptr, &view));
+	viewRes = new ImageView_R(view);
+	pTracker->add(viewRes);
+}
+
 }        // namespace vka

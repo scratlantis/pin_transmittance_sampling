@@ -25,8 +25,14 @@ void DefaultRenderPass::createRenderPass()
 	attachmentDescription.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	attachmentDescription.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachmentDescription.finalLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	attachmentDescription.format         = gState.io.format;
+	if (pOffscreenImage == nullptr)
+	{
+		attachmentDescription.format = gState.io.format;
+	}
+	else
+	{
+		attachmentDescription.format = pOffscreenImage->format;
+	}
 	attachmentDescription.finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 	std::vector<VkSubpassDependency> subpassDependencies;
@@ -78,15 +84,30 @@ void DefaultRenderPass::createFramebuffers()
 	ASSERT_TRUE(renderPass != VK_NULL_HANDLE);
 	ASSERT_TRUE(framebuffers.empty());
 	framebuffers.resize(gState.io.imageCount);
+	if (pOffscreenImage == nullptr)
+	{
+		framebufferExtent = gState.io.extent;
+	}
+	else
+	{
+		framebufferExtent = {pOffscreenImage->extent.width, pOffscreenImage->extent.height};
+	}
 	framebufferExtent = gState.io.extent;
 	for (size_t i = 0; i < gState.io.imageCount; i++)
 	{
 		VkFramebufferCreateInfo framebufferCreateInfo{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
 		framebufferCreateInfo.renderPass      = renderPass;
 		framebufferCreateInfo.attachmentCount = 1;
-		framebufferCreateInfo.pAttachments    = &gState.io.images[i].view;
-		framebufferCreateInfo.width           = gState.io.extent.width;
-		framebufferCreateInfo.height          = gState.io.extent.height;
+		if (pOffscreenImage == nullptr)
+		{
+			framebufferCreateInfo.pAttachments    = &gState.io.images[i].view;
+		}
+		else
+		{
+			framebufferCreateInfo.pAttachments    = &pOffscreenImage->view;
+		}
+		framebufferCreateInfo.width           = framebufferExtent.width;
+		framebufferCreateInfo.height          = framebufferExtent.height;
 		framebufferCreateInfo.layers          = 1;
 		ASSERT_VULKAN(vkCreateFramebuffer(gState.device.logical, &framebufferCreateInfo, nullptr, &framebuffers[i]));
 	}
@@ -109,10 +130,10 @@ void DefaultRenderPass::updatFramebuffers()
 	}
 }
 
-DefaultRenderPass::DefaultRenderPass()
+DefaultRenderPass::DefaultRenderPass(Image* pOffscreenImage) :
+	pOffscreenImage(pOffscreenImage)
 {
 }
-
 DefaultRenderPass::~DefaultRenderPass()
 {
 }
@@ -132,7 +153,12 @@ void DefaultRenderPass::beginRender(UniversalCmdBuffer cmdBuf)
 
 void DefaultRenderPass::endRender(UniversalCmdBuffer cmdBuf)
 {
+	if (pOffscreenImage != nullptr)
+	{
+		pOffscreenImage->layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	}
 	cmdBuf.endRenderPass();
+
 }
 
 RasterizationPipeline DefaultRenderPass::createPipeline(const RasterizationPipelineState pipelineState, uint32_t subpassIndex)
