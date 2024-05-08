@@ -99,19 +99,29 @@ class Geometry_T : public Geometry
 };
 
 // Backend stuff
+class DrawSurface;
 class Material
 {
   public:
 	Material(){};
 	~Material(){};
 
-	virtual void bindPipeline(CmdBuffer &cmdBuf) const    = 0;
+	virtual void bind(UniversalCmdBuffer &cmdBuf) const = 0;
 	virtual void move(ResourceTracker *pNewTracker) = 0;
 
   private:
+	virtual void bindPipeline(CmdBuffer &cmdBuf) const = 0;
 	DELETE_COPY_CONSTRUCTORS(Material);
 };
 
+template<typename View>
+class Material_T : public Material
+{
+  public:
+	Material_T(){};
+	~Material_T(){};
+	virtual void load(UniversalCmdBuffer &cmdBuf, const View& view) = 0;
+};
 class DrawSurface
 {
   public:
@@ -125,6 +135,23 @@ class DrawSurface
 	Buffer   *pIndexBuffer;
 	uint32_t  indexCount;
 	uint32_t  indexOffset;
+
+  private:
+};
+template <typename View>
+class DrawSurface_T : public DrawSurface
+{
+  public:
+	DrawSurface_T(){};
+	~DrawSurface_T(){};
+
+	Material_T<View> *pMaterial;
+	Buffer           *pVertexBuffer;
+	uint32_t          vertexCount;
+	uint32_t          vertexOffset;
+	Buffer           *pIndexBuffer;
+	uint32_t          indexCount;
+	uint32_t          indexOffset;
 
   private:
 };

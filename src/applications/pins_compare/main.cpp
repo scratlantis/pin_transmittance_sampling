@@ -38,12 +38,6 @@ AppState          gState;
 
 const std::string gShaderPath = SHADER_DIR;
 
-enum class MaterialType
-{
-	MATERIAL_TYPE_GAUSSIAN,
-	MATERIAL_TYPE_PINS,
-	MATERIAL_TYPE_PINS_GRID
-};
 
 int main()
 {
