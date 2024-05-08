@@ -3,7 +3,7 @@
 using namespace vka;
 namespace vka_compatibility
 {
-VkCommandBuffer getHandle(CmdBuffer cmdBuf)
+VkCommandBuffer getHandle(CmdBuffer& cmdBuf)
 {
 	return cmdBuf.handle;
 }

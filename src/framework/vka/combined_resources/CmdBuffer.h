@@ -16,17 +16,20 @@ enum CmdBufferStateBits
 };
 
 class CmdBuffer;
-void commitCmdBuffers(std::vector<CmdBuffer> cmdBufs, ResourceTracker *pTracker, VkQueue queue, const SubmitSynchronizationInfo syncInfo = {});
-
+void commitCmdBuffers(CmdBuffer *pCmdBufs, uint32_t cmdBufCount, ResourceTracker *pTracker, VkQueue queue, const SubmitSynchronizationInfo syncInfo = {});
 
 
 class CmdBuffer
 {
   protected:
+	CmdBuffer(const CmdBuffer &)                              = default;
+	CmdBuffer         &operator=(const CmdBuffer &srcMyClass) = default;
 	NonUniqueResource *res;
 	VkCommandBuffer handle;
 	ResourceTracker *pTracker;
 	uint32_t        stateBits;
+
+	//DELETE_COPY_CONSTRUCTORS(CmdBuffer);
   public:
 	CmdBuffer();
 	~CmdBuffer();
@@ -200,8 +203,8 @@ class CmdBuffer
 			stateBits &= ~CMD_BUF_STATE_IS_RECORDING;
 		}
 	}
-	friend void commitCmdBuffers(std::vector<CmdBuffer> cmdBufs, ResourceTracker *pTracker, VkQueue queue, const SubmitSynchronizationInfo syncInfo);
-	friend VkCommandBuffer vka_compatibility::getHandle(CmdBuffer cmdBuf);
+	friend void            commitCmdBuffers(CmdBuffer *pCmdBufs, uint32_t cmdBufCount, ResourceTracker *pTracker, VkQueue queue, const SubmitSynchronizationInfo syncInfo);
+	friend VkCommandBuffer vka_compatibility::getHandle(CmdBuffer& cmdBuf);
   private:
 };
 
@@ -210,13 +213,13 @@ class CmdBuffer
 class ComputeCmdBuffer : public CmdBuffer
 {
   protected:
+	ComputeCmdBuffer(const ComputeCmdBuffer &) = default;
+	ComputeCmdBuffer &operator=(const ComputeCmdBuffer &srcMyClass) = default;
 	  // state
 	PipelineLayoutDefinition pipelineLayoutDef;
 	VkPipelineBindPoint bindPoint;
-
-
-
   public:
+
 	ComputeCmdBuffer();
 	ComputeCmdBuffer(ResourceTracker *pTracker, VkCommandBufferUsageFlags usage, uint32_t queueIdx = 0, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
@@ -374,7 +377,11 @@ class ComputeCmdBuffer : public CmdBuffer
 
 class UniversalCmdBuffer : public ComputeCmdBuffer
 {
+  protected:
+	UniversalCmdBuffer(const UniversalCmdBuffer &) = default;
+	UniversalCmdBuffer &operator=(const UniversalCmdBuffer &srcMyClass) = default;
   public:
+
 	UniversalCmdBuffer(); 
 	UniversalCmdBuffer(ResourceTracker *pTracker, VkCommandBufferUsageFlags usage, uint32_t queueIdx = 0, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 

@@ -361,7 +361,7 @@ void vka::AppState::destroyFrames()
 	}
 }
 
-void AppState::endFrame(std::vector<CmdBuffer> cmdBufs)
+void AppState::endFrame(CmdBuffer* cmdBufs, uint32_t cmdBufCount)
 {
 	uint32_t imageIndex;
 	ASSERT_VULKAN(vkAcquireNextImageKHR(device.logical, io.swapchain, UINT64_MAX, frame->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex));
@@ -372,7 +372,7 @@ void AppState::endFrame(std::vector<CmdBuffer> cmdBufs)
 	syncInfo.signalSemaphores = {frame->renderFinishedSemaphore};
 	syncInfo.signalFence = frame->inFlightFence;
 
-	commitCmdBuffers(cmdBufs, &frame->stack, device.universalQueues[0], syncInfo);
+	commitCmdBuffers(cmdBufs, cmdBufCount, & frame->stack, device.universalQueues[0], syncInfo);
 
 	VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
 	presentInfo.waitSemaphoreCount = syncInfo.signalSemaphores.size();
@@ -384,9 +384,9 @@ void AppState::endFrame(std::vector<CmdBuffer> cmdBufs)
 }
 
 
-void AppState::swapBuffers(std::vector<CmdBuffer> cmdBufs)
+void AppState::swapBuffers(CmdBuffer* cmdBufs, uint32_t cmdBufCount)
 {
-	endFrame(cmdBufs);
+	endFrame(cmdBufs, cmdBufCount);
 	nextFrame();
 	swapchainWasRecreated = io.updateSwapchain();
 	if (swapchainWasRecreated)

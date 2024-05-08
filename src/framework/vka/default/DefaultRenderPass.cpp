@@ -144,14 +144,14 @@ void DefaultRenderPass::init()
 	createFramebuffers();
 }
 
-void DefaultRenderPass::beginRender(UniversalCmdBuffer cmdBuf)
+void DefaultRenderPass::beginRender(UniversalCmdBuffer& cmdBuf)
 {
 	updatFramebuffers();
 	std::vector<VkClearValue> clearValues = {{0.0f, 0.0f, 0.0f, 1.0f}};
 	cmdBuf.startRenderPass(renderPass, framebuffers[gState.frame->frameIndex], clearValues);
 }
 
-void DefaultRenderPass::endRender(UniversalCmdBuffer cmdBuf)
+void DefaultRenderPass::endRender(UniversalCmdBuffer &cmdBuf)
 {
 	if (pOffscreenImage != nullptr)
 	{

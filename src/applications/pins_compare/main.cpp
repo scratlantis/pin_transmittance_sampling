@@ -96,7 +96,7 @@ int main()
 	Buffer           pinTransmittanceBuf = BufferVma(&gState.heap, sizeof(float) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 	Buffer           pinGridBuf          = BufferVma(&gState.heap, sizeof(Pin) * pinGrid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 	Buffer           pinGridIdBuf        = BufferVma(&gState.heap, sizeof(uint32_t) * pinGrid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	ComputeCmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+	UniversalCmdBuffer cmdBuf              = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 	// Upload data
 	imguiWrapper.uploadResources(cmdBuf);
 	cmdBuf.uploadData(gaussiansData.data(), sizeof(Gaussian) * GAUSSIAN_COUNT, gaussiansBuf);
@@ -150,7 +150,7 @@ int main()
 		cmdBuf.pushDescriptors(0, pinBuf, pinGridBuf, pinGridIdBuf);
 		cmdBuf.dispatch(workGroupCount);
 	}
-	commitCmdBuffers({cmdBuf}, &gState.frame->stack, gState.device.universalQueues[0]);
+	commitCmdBuffers(&cmdBuf, 1, &gState.frame->stack, gState.device.universalQueues[0]);
 	vkDeviceWaitIdle(gState.device.logical);
 	imguiWrapper.destroyStagingResources();
 
@@ -228,7 +228,7 @@ int main()
 		cmdBuf.copyToSwapchain(offscreenImage);
 		imguiWrapper.renderGui(cmdBuf);
 		// Submit commands and present
-		gState.swapBuffers({cmdBuf});
+		gState.swapBuffers(&cmdBuf);
 	}
 	// Cleanup
 	vkDeviceWaitIdle(gState.device.logical);

@@ -315,8 +315,7 @@ class AppState
 
 	AppState();
 	void init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window* window);
-	void endFrame(std::vector<CmdBuffer> cmdBufs);
-	void swapBuffers(std::vector<CmdBuffer> cmdBufs);
+	void swapBuffers(CmdBuffer *cmdBufs, uint32_t cmdBufCount = 1);
 	void nextFrame();
 	void destroy();
 	bool swapchainRecreated()
@@ -324,6 +323,7 @@ class AppState
 		return swapchainWasRecreated;
 	}
 	private:
+	void endFrame(CmdBuffer *cmdBufs, uint32_t cmdBufCount = 1);
 	std::vector<Frame> frames;
 	bool               swapchainWasRecreated;
 	void initFrames();

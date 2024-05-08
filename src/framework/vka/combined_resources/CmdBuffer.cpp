@@ -4,14 +4,14 @@ namespace vka
 {
 
 void commitCmdBuffers(
-    std::vector<CmdBuffer> cmdBufs, ResourceTracker *pTracker, VkQueue queue, const SubmitSynchronizationInfo syncInfo)
+    CmdBuffer* pCmdBufs, uint32_t cmdBufCount, ResourceTracker *pTracker, VkQueue queue, const SubmitSynchronizationInfo syncInfo)
 {
 	std::vector<VkCommandBuffer> vkCmdBufs;
-	for (size_t i = 0; i < cmdBufs.size(); i++)
+	for (size_t i = 0; i < cmdBufCount; i++)
 	{
-		cmdBufs[i].end();
-		cmdBufs[i].move(pTracker);
-		vkCmdBufs.push_back(cmdBufs[i].handle);
+		pCmdBufs[i].end();
+		pCmdBufs[i].move(pTracker);
+		vkCmdBufs.push_back(pCmdBufs[i].handle);
 	}
 	VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
 	submit.waitSemaphoreCount   = syncInfo.waitSemaphores.size();

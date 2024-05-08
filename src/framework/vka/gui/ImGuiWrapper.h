@@ -18,8 +18,8 @@ class ImGuiWrapper
 	ImGuiWrapper();
 	~ImGuiWrapper();
 
-	void renderGui(UniversalCmdBuffer cmdBuf);
-	void uploadResources(CmdBuffer cmdBuf);
+	void renderGui(UniversalCmdBuffer& cmdBuf);
+	void uploadResources(CmdBuffer& cmdBuf);
 	void destroyStagingResources();
 	void newFrame();
 	void init();
@@ -119,7 +119,7 @@ void ImGuiWrapper::initImGui(VkRenderPass renderPass)
 	ImGui_ImplVulkan_Init(&initInfo, renderPass);
 }
 
-void ImGuiWrapper::uploadResources(CmdBuffer cmdBuf)
+void ImGuiWrapper::uploadResources(CmdBuffer& cmdBuf)
 {
 	ImGui_ImplVulkan_CreateFontsTexture(vka_compatibility::getHandle(cmdBuf));
 }
@@ -339,7 +339,7 @@ void ImGuiWrapper::init()
 	initImGui(renderPass);
 }
 
-void ImGuiWrapper::renderGui(UniversalCmdBuffer cmdBuf)
+void ImGuiWrapper::renderGui(UniversalCmdBuffer& cmdBuf)
 {
 	updatFramebuffers();
 	std::vector<VkClearValue> clearValues = {{0.0f, 0.0f, 0.0f, 1.0f}};
