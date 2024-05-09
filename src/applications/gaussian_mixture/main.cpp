@@ -73,7 +73,7 @@ struct PerFrameConstants
 
 	Cube cube;
 };
-struct Gaussian
+struct Gaussian_M
 {
 	glm::vec3  mean;
 	float variance;
@@ -92,12 +92,12 @@ int main()
 	// Resource Creation
 	FramebufferImage offscreenImage = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
 	Buffer           ubo            = BufferVma(&gState.heap, sizeof(PerFrameConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	Buffer           gaussians      = BufferVma(&gState.heap, sizeof(Gaussian) * GAUSSIAN_COUNT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	Buffer           gaussians      = BufferVma(&gState.heap, sizeof(Gaussian_M) * GAUSSIAN_COUNT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	std::mt19937     gen32(42);
 	std::uniform_real_distribution<float> unormDistribution(0.0, 1.0);
 
 	// Init gaussians:
-	std::vector<Gaussian> gaussiansData(GAUSSIAN_COUNT);
+	std::vector<Gaussian_M> gaussiansData(GAUSSIAN_COUNT);
 	float                 coef = 0.3;
 	for (size_t i = 0; i < GAUSSIAN_COUNT; i++)
 	{
@@ -106,7 +106,7 @@ int main()
 		gaussiansData[i].mean.z   = (1.0-coef) / 2.0 + coef * unormDistribution(gen32);
 		gaussiansData[i].variance = 0.4 * coef * unormDistribution(gen32);
 	}
-	UPLOAD_IDLE(gaussiansData.data(), sizeof(Gaussian) * GAUSSIAN_COUNT, gaussians);
+	UPLOAD_IDLE(gaussiansData.data(), sizeof(Gaussian_M) * GAUSSIAN_COUNT, gaussians);
 
 	uint32_t         cnt            = 0;
 	while (!gState.io.shouldTerminate())

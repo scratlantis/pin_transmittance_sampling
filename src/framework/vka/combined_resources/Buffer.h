@@ -4,6 +4,57 @@
 namespace vka
 {
 
+class MemoryBlock
+{
+  protected:
+	MappableResource *res = nullptr;
+  public:
+	MemoryBlock(){};
+	MemoryBlock(ResourceTracker *pTracker, size_t size, bool fillZero = true)
+	{
+		this->size = size;
+		if (fillZero)
+		{
+			data = std::calloc(size, 1);
+		}
+		else
+		{
+			data = std::malloc(size);
+		}
+		res = new BufferCPU_R(data, size);
+		pTracker->add(res);
+	}
+	size_t getSize() const
+	{
+		return size;
+	}
+
+	void *getData() const
+	{
+		return data;
+	}
+
+	void writeData(const void *src, size_t dataSize)
+	{
+		memcpy(data, src, dataSize);
+	}
+
+	void move(ResourceTracker *pNewTracker)
+	{
+		ASSERT_TRUE(res != nullptr);
+		res->move(pNewTracker);
+	}
+
+	~MemoryBlock(){};
+
+  private:
+	void *data = nullptr;
+	size_t size = 0;
+};
+
+
+
+
 class Buffer
 {
   protected:
@@ -11,9 +62,9 @@ class Buffer
 	BufferView_R     *viewRes = nullptr;
 
   public:
-	VkBuffer          buf;
-	VkBufferView      view;
-	VkDeviceSize      size;
+	VkBuffer     buf  = VK_NULL_HANDLE;
+	VkBufferView view = VK_NULL_HANDLE;
+	VkDeviceSize size = 0;
 
 	void *data = nullptr;        // used for mapping
 	Buffer()   = default;

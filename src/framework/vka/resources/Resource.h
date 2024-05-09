@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include "../global_state.h"
 
+#include <stdlib.h>
 
 
 namespace vka
@@ -126,6 +127,37 @@ class BufferVK_R : public MappableResource
 	VkBuffer       handle;
 	VkDeviceMemory deviceMemory;
 };
+
+
+class BufferCPU_R : public MappableResource
+{
+  public:
+	BufferCPU_R(void* handle, size_t size): handle(handle), size(size)
+	{
+	}
+	virtual uint64_t getId() const
+	{
+		return (uint64_t) this->handle;
+	}
+	void *map(uint32_t offset, uint32_t size)
+	{
+		return (char*)handle + offset;
+	}
+	void unmap()
+	{
+		// Do nothing
+	}
+  protected:
+	void free()
+	{
+		std::free(handle);
+	}
+
+  private:
+	void* const handle;
+	const size_t size;
+};
+
 
 class BufferVMA_R : public MappableResource
 {

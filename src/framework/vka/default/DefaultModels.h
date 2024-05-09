@@ -30,13 +30,13 @@ class DefaulModel : Model_T<VertexType>
 		for (size_t i = 0; i < pGeometry->vertexCounts.size(); i++)
 		{
 			DrawSurface drawSurf;
-			drawSurf.pMaterial     = pMaterial;
-			drawSurf.pVertexBuffer = &pGeometry->vertexBuffer;
-			drawSurf.vertexCount   = pGeometry->vertexCounts[i];
-			drawSurf.vertexOffset  = pGeometry->vertexOffsets[i];
-			drawSurf.pIndexBuffer  = &pGeometry->indexBuffer;
-			drawSurf.indexCount    = pGeometry->indexCounts[i];
-			drawSurf.indexOffset   = pGeometry->indexOffsets[i];
+			drawSurf.pMaterial    = pMaterial;
+			drawSurf.vertexBuffer = pGeometry->vertexBuffer;
+			drawSurf.vertexCount  = pGeometry->vertexCounts[i];
+			drawSurf.vertexOffset = pGeometry->vertexOffsets[i];
+			drawSurf.indexBuffer  = pGeometry->indexBuffer;
+			drawSurf.indexCount   = pGeometry->indexCounts[i];
+			drawSurf.indexOffset  = pGeometry->indexOffsets[i];
 			drawSurfs.push_back(drawSurf);
 		}
 		return drawSurfs;

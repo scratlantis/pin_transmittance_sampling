@@ -75,7 +75,7 @@ class PinBuffer : public BufferVma
 };
 
 
-class GaussianNN_M : public Material_T<PerFrameConstants>
+class GaussianNN_M : public Material
 {
   public:
 	GaussianNN_M(const GaussianBuffer *gaussianBuf, const PinBuffer *pinBuf) :
@@ -87,7 +87,7 @@ class GaussianNN_M : public Material_T<PerFrameConstants>
 };
 
 
-class Gaussian_M : public Material_T<PerFrameConstants>
+class Gaussian_M : public Material
 {
   public:
 	Gaussian_M(const GaussianBuffer *gaussianBuf) :
@@ -99,7 +99,7 @@ class Gaussian_M : public Material_T<PerFrameConstants>
 };
 
 
-class GaussianNNGrid_M : public Material_T<PerFrameConstants>
+class GaussianNNGrid_M : public Material
 {
   public:
 	GaussianNNGrid_M(const GaussianBuffer *gaussianBuf, const PinBuffer *pinBuf) :

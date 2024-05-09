@@ -81,7 +81,7 @@ struct PerFrameConstants
 
 	Cube cube;
 };
-struct Gaussian
+struct Gaussian_M
 {
 	glm::vec3 mean;
 	float     variance;
@@ -102,13 +102,13 @@ int main()
 	// Resource Creation
 	FramebufferImage                      offscreenImage = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
 	Buffer                                ubo            = BufferVma(&gState.heap, sizeof(PerFrameConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	Buffer                                gaussiansBuf   = BufferVma(&gState.heap, sizeof(Gaussian) * GAUSSIAN_COUNT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	Buffer                                gaussiansBuf   = BufferVma(&gState.heap, sizeof(Gaussian_M) * GAUSSIAN_COUNT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	std::mt19937                          gen32(42);
 	std::uniform_real_distribution<float> unormDistribution(0.0, 1.0);
 
 
 	// Init gaussians:
-	std::vector<Gaussian> gaussiansData(GAUSSIAN_COUNT);
+	std::vector<Gaussian_M> gaussiansData(GAUSSIAN_COUNT);
 	float                 coef = 0.3;
 	for (size_t i = 0; i < GAUSSIAN_COUNT; i++)
 	{
@@ -135,7 +135,7 @@ int main()
 	ComputeCmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 	// Upload data
 	imguiWrapper.uploadResources(cmdBuf);
-	cmdBuf.uploadData(gaussiansData.data(), sizeof(Gaussian) * GAUSSIAN_COUNT, gaussiansBuf);
+	cmdBuf.uploadData(gaussiansData.data(), sizeof(Gaussian_M) * GAUSSIAN_COUNT, gaussiansBuf);
 	cmdBuf.uploadData(pins.data(), sizeof(Pin) * pins.size(), pinBuf);
 	cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	// Calc pin transmittance in shader:

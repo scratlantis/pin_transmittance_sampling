@@ -1,4 +1,5 @@
 #pragma once
+#pragma once
 #include "../combined_resources/CmdBuffer.h"
 #include "../core/utility/misc.h"
 #include "vertex_macros.h"
@@ -8,14 +9,12 @@ namespace vka
 typedef uint32_t Index;
 
 // Frontend stuff
-
-
 class Geometry
 {
   public:
-	virtual void                     move(ResourceTracker *pNewTracker) = 0;
-	//virtual bool                     load(std::string path)             = 0;
-	virtual void                     upload(CmdBuffer &cmdBuf) const    = 0;
+	virtual void move(ResourceTracker *pNewTracker) = 0;
+	// virtual bool                     load(std::string path)             = 0;
+	virtual void upload(CmdBuffer &cmdBuf) const = 0;
 	Geometry(){};
 	~Geometry(){};
 
@@ -25,26 +24,26 @@ template <typename VertexType, typename SurfaceDescriptor>
 class GeometryMaterial_T : public Geometry
 {
   public:
-	std::vector<VertexType> vertices;
-	std::vector<Index>      indices;
+	std::vector<VertexType>        vertices;
+	std::vector<Index>             indices;
 	std::vector<SurfaceDescriptor> surfaces;
-	std::vector<uint32_t> vertexOffsets;
-	std::vector<uint32_t> vertexCounts;
-	std::vector<uint32_t> indexOffsets;
-	std::vector<uint32_t> indexCounts;
-	Buffer vertexBuffer;
-	Buffer indexBuffer;
-	GeometryMaterial_T(ResourceTracker *pTracker,
-		std::vector<VertexType> &vertices,
-	    std::vector<Index>      &indices) :
+	std::vector<uint32_t>          vertexOffsets;
+	std::vector<uint32_t>          vertexCounts;
+	std::vector<uint32_t>          indexOffsets;
+	std::vector<uint32_t>          indexCounts;
+	Buffer                         vertexBuffer;
+	Buffer                         indexBuffer;
+	GeometryMaterial_T(ResourceTracker         *pTracker,
+	                   std::vector<VertexType> &vertices,
+	                   std::vector<Index>      &indices) :
 	    vertices(vertices), indices(indices)
 	{
 		indexCounts   = {(uint32_t) indices.size()};
 		vertexCounts  = {(uint32_t) vertices.size()};
-		indexOffsets = {0};
+		indexOffsets  = {0};
 		vertexOffsets = {0};
-		surfaces = {};
-		vertexBuffer = BufferVma(pTracker, sizeof(VertexType) * vertices.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+		surfaces      = {};
+		vertexBuffer  = BufferVma(pTracker, sizeof(VertexType) * vertices.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 		indexBuffer   = BufferVma(pTracker, sizeof(Index) * indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
 	};
 	virtual void move(ResourceTracker *pNewTracker) override
@@ -64,14 +63,14 @@ template <typename VertexType>
 class Geometry_T : public Geometry
 {
   public:
-	std::vector<VertexType>        vertices;
-	std::vector<Index>             indices;
-	std::vector<uint32_t>          vertexOffsets;
-	std::vector<uint32_t>          vertexCounts;
-	std::vector<uint32_t>          indexOffsets;
-	std::vector<uint32_t>          indexCounts;
-	Buffer                         vertexBuffer;
-	Buffer                         indexBuffer;
+	std::vector<VertexType> vertices;
+	std::vector<Index>      indices;
+	std::vector<uint32_t>   vertexOffsets;
+	std::vector<uint32_t>   vertexCounts;
+	std::vector<uint32_t>   indexOffsets;
+	std::vector<uint32_t>   indexCounts;
+	Buffer                  vertexBuffer;
+	Buffer                  indexBuffer;
 	Geometry_T(ResourceTracker         *pTracker,
 	           std::vector<VertexType> &vertices,
 	           std::vector<Index>      &indices) :
@@ -98,71 +97,17 @@ class Geometry_T : public Geometry
   private:
 };
 
-// Backend stuff
+
 class DrawSurface;
-class Material
-{
-  public:
-	Material(){};
-	~Material(){};
-
-	virtual void bind(UniversalCmdBuffer &cmdBuf) const = 0;
-	virtual void move(ResourceTracker *pNewTracker) = 0;
-
-  private:
-	virtual void bindPipeline(CmdBuffer &cmdBuf) const = 0;
-	DELETE_COPY_CONSTRUCTORS(Material);
-};
-
-template<typename View>
-class Material_T : public Material
-{
-  public:
-	Material_T(){};
-	~Material_T(){};
-	virtual void load(UniversalCmdBuffer &cmdBuf, const View& view) = 0;
-};
-class DrawSurface
-{
-  public:
-	DrawSurface(){};
-	~DrawSurface(){};
-
-	Material *pMaterial;
-	Buffer   *pVertexBuffer;
-	uint32_t  vertexCount;
-	uint32_t  vertexOffset;
-	Buffer   *pIndexBuffer;
-	uint32_t  indexCount;
-	uint32_t  indexOffset;
-
-  private:
-};
-template <typename View>
-class DrawSurface_T : public DrawSurface
-{
-  public:
-	DrawSurface_T(){};
-	~DrawSurface_T(){};
-
-	Material_T<View> *pMaterial;
-	Buffer           *pVertexBuffer;
-	uint32_t          vertexCount;
-	uint32_t          vertexOffset;
-	Buffer           *pIndexBuffer;
-	uint32_t          indexCount;
-	uint32_t          indexOffset;
-
-  private:
-};
+class Material;
 
 class Model
 {
   public:
 	Model(){};
 	~Model(){};
-	//virtual void                     move(ResourceTracker *pNewTracker) = 0;
-	//virtual void                     upload(CmdBuffer &cmdBuf) = 0;
+	// virtual void                     move(ResourceTracker *pNewTracker) = 0;
+	// virtual void                     upload(CmdBuffer &cmdBuf) = 0;
 	virtual std::vector<DrawSurface> getDrawSurf() const = 0;
 
   private:
@@ -179,7 +124,7 @@ class MaterialModel_T : public Model
 	GeometryMaterial_T<VertexType, SurfaceDescriptor> *pGeometry;
 	/*virtual void                               move(ResourceTracker *pNewTracker) = 0;
 	virtual void                               upload(CmdBuffer &cmdBuf)          = 0;*/
-	virtual std::vector<DrawSurface>           getDrawSurf() const                = 0;
+	virtual std::vector<DrawSurface> getDrawSurf() const = 0;
 };
 
 template <typename VertexType>
@@ -187,7 +132,7 @@ class Model_T : public Model
 {
   public:
 	Model_T(){};
-	Model_T(Geometry_T<VertexType>* pGeometry) :
+	Model_T(Geometry_T<VertexType> *pGeometry) :
 	    pGeometry(pGeometry){};
 	~Model_T(){};
 	Geometry_T<VertexType> *pGeometry;
@@ -196,32 +141,72 @@ class Model_T : public Model
 	virtual std::vector<DrawSurface> getDrawSurf() const = 0;
 };
 
+
+
+
+
+// Backend stuff
+class Material
+{
+  public:
+	Material(){};
+	~Material(){};
+
+	virtual void load(UniversalCmdBuffer &cmdBuf, const MemoryBlock &view)         = 0;
+	virtual void bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const = 0;
+	virtual void move(ResourceTracker *pNewTracker)                                = 0;
+
+  private:
+	virtual void bindPipeline(CmdBuffer &cmdBuf) const = 0;
+	DELETE_COPY_CONSTRUCTORS(Material);
+};
+
+class DrawSurface
+{
+  public:
+	DrawSurface(){};
+	~DrawSurface(){};
+	MemoryBlock params;           // material params
+	MemoryBlock view;             // view params (projection matrix etc.)
+	Material   *pMaterial;        // material (pipepline, descriptor sets)
+	Buffer      vertexBuffer;
+	uint32_t    vertexCount;
+	uint32_t    vertexOffset;
+	Buffer      indexBuffer;
+	uint32_t    indexCount;
+	uint32_t    indexOffset;
+
+  private:
+};
+
+
 class DrawSurfaceInstance
 {
   public:
-	DrawSurfaceInstance(const DrawSurface drawSurf, void* instanceData, size_t instanceDataSize) : drawSurf(drawSurf)
+	DrawSurfaceInstance(const DrawSurface drawSurf, void *instanceData, size_t instanceDataSize) :
+	    pDrawSurf(drawSurf)
 	{
 		this->instanceData = getByteVector(instanceData, instanceDataSize);
 	}
 	DrawSurfaceInstance(){};
 	~DrawSurfaceInstance(){};
 
-	const DrawSurface drawSurf;
-	std::vector<uint8_t>  getInstanceData() const
+	const DrawSurface   pDrawSurf;
+	std::vector<uint8_t> getInstanceData() const
 	{
 		return instanceData;
 	}
+
   private:
 	std::vector<uint8_t> instanceData;
 };
-
 
 class DrawCall
 {
   public:
 	DrawCall(){};
 	DrawCall(const DrawSurfaceInstance drawInstance) :
-	    drawSurf(drawInstance.drawSurf), instanceCount(1)
+	    drawSurf(drawInstance.pDrawSurf), instanceCount(1)
 	{
 		instanceData = {drawInstance.getInstanceData()};
 	}
@@ -231,41 +216,18 @@ class DrawCall
 		instanceData.insert(instanceData.end(), newDrawInstanceData.begin(), newDrawInstanceData.end());
 		instanceCount++;
 	}
-	const DrawSurface drawSurf;
-	uint32_t          instanceCount;
+	const DrawSurface    drawSurf;
+	uint32_t             instanceCount;
 	std::vector<uint8_t> instanceData;
 
-	void submit(UniversalCmdBuffer &cmdBuf, ResourceTracker* pStack)
+	void submit(UniversalCmdBuffer &cmdBuf, ResourceTracker *pStack)
 	{
-		Buffer instanceBuffer = cmdBuf.uploadData(instanceData.data(), instanceData.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, pStack, pStack);
-		std::vector buffers        = {drawSurf.pVertexBuffer->buf, instanceBuffer.buf};
+		Buffer      instanceBuffer = cmdBuf.uploadData(instanceData.data(), instanceData.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, pStack, pStack);
+		std::vector<VkBuffer> buffers        = {drawSurf.vertexBuffer.buf, instanceBuffer.buf};
 		cmdBuf.bindVertexBuffers(buffers);
-		cmdBuf.bindIndexBuffer(*drawSurf.pIndexBuffer);
+		cmdBuf.bindIndexBuffer(drawSurf.indexBuffer);
 		cmdBuf.drawIndexed(drawSurf.indexCount, instanceCount);
 	}
   private:
 };
-
-//template <typename InstanceData>
-//class Instance_T
-//{
-//  public:
-//	  const Model *pModel;
-//	  const InstanceData instanceData;
-//	Instance_T(){};
-//	Instance_T(const Model *pModel, const InstanceData &instanceData) :
-//	    pModel(pModel), instanceData(instanceData){}
-//	~Instance_T(){};
-//
-//
-//
-//  private:
-//};
-
-
-
-
-
-} // namespace vka
-
-
+}        // namespace vka

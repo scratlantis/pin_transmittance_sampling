@@ -366,6 +366,12 @@ class ComputeCmdBuffer : public CmdBuffer
 		writes.push_back(write);
 	}
 	
+
+	void pushConstants(uint32_t offset, uint32_t size, const void *data)
+	{
+		ASSERT_TRUE(stateBits & CMD_BUF_STATE_BOUND_PIPELINE);
+		vkCmdPushConstants(handle, PipelineLayout(pTracker,pipelineLayoutDef).getHandle(), VK_SHADER_STAGE_COMPUTE_BIT, offset, size, data);
+	}
 	
 
 	~ComputeCmdBuffer();
@@ -384,6 +390,12 @@ class UniversalCmdBuffer : public ComputeCmdBuffer
 
 	UniversalCmdBuffer(); 
 	UniversalCmdBuffer(ResourceTracker *pTracker, VkCommandBufferUsageFlags usage, uint32_t queueIdx = 0, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
+	void pushConstants(VkShaderStageFlagBits shaderFlags ,uint32_t offset, uint32_t size, const void *data)
+	{
+		ASSERT_TRUE(stateBits & CMD_BUF_STATE_BOUND_PIPELINE);
+		vkCmdPushConstants(handle, PipelineLayout(pTracker, pipelineLayoutDef).getHandle(), shaderFlags, offset, size, data);
+	}
 
 	void bindRasterizationPipeline(RasterizationPipeline pipeline)
 	{
