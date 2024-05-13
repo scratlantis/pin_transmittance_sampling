@@ -10,7 +10,7 @@
 namespace vka
 {
 template <typename VertexType>
-class DefaulModel : Model_T<VertexType>
+class DefaulModel : public Model_T<VertexType>
 {
   public:
 	DefaulModel(){};
@@ -20,7 +20,6 @@ class DefaulModel : Model_T<VertexType>
         Model_T<VertexType>(pGeometry),
         pMaterial(pMaterial)
     {
-        //this->pGeometry = pGeometry;
     };
 	virtual std::vector<DrawSurface> getDrawSurf() const override
 	{
@@ -49,6 +48,8 @@ ESACPE_NAMESPACE_VKA(
 
 class Transform
 {
+  public:
+	Transform(glm::mat4 mat) : mat(mat), invMat(glm::inverse(mat)) {}
 	glm::mat4 mat;
 	glm::mat4 invMat;
     VkVertexInputBindingDescription getBindingDescription(uint32_t bindingIdx)

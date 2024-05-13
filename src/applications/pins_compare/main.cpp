@@ -18,8 +18,10 @@
 #include <framework/vka/resources/Shader.h>
 #include <framework/vka/gui/ImGuiWrapper.h>
 #include <framework/vka/default/DefaultModels.h>
+#include <framework/vka/default/DefaultRenderPass.h>
 #include <random>
 #include "DataStructs.h"
+#include "materials.h"
 
 using namespace vka;
 #ifndef SHADER_DIR
@@ -51,104 +53,70 @@ int main()
 	// ImGui initialization
 	ImGuiWrapper imguiWrapper = ImGuiWrapper();
 	imguiWrapper.init();
-	Geometry_T<PosVertex>  cubeGeom  = Geometry_T<PosVertex>(&gState.heap, cCubeVertecies, cCubeIndices);
-	DefaulModel<PosVertex>                      cubeModel = DefaulModel<PosVertex>(&cubeGeom, nullptr);
-	//DefaulModel<PosVertex>                      cubeModel = DefaulModel<PosVertex>();
 
-	std::mt19937                          gen32(42);
-	std::uniform_real_distribution<float> unormDistribution(0.0, 1.0);
-	// Init gaussians:
-	std::vector<Gaussian> gaussiansData(GAUSSIAN_COUNT);
-	float                 coef = 0.3;
-	for (size_t i = 0; i < GAUSSIAN_COUNT; i++)
+
+	// Resources
+	Buffer                viewBuf     = BufferVma(&gState.heap, sizeof(View), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	GaussianBuffer        gaussianBuf = GaussianBuffer(GAUSSIAN_COUNT, GAUSSIAN_MARGIN);
+	PinBuffer             pinBuf      = PinBuffer(PIN_COUNT);
+	GridBuffer            pinGridBuf  = GridBuffer(PIN_GRID_SIZE, PINS_PER_GRID_CELL, &pinBuf, &gaussianBuf);
+	Buffer                pinTransmittanceBuf;
+	DefaultRenderPass     renderPass = DefaultRenderPass();
+	Geometry_T<PosVertex> cubeGeom   = Geometry_T<PosVertex>(&gState.heap, cCubeVertecies, cCubeIndices);
+
+	std::vector<Model *>     models;
+	std::vector<Transform *> transforms;
+
+	Gaussian_M             gaussianMat                 = Gaussian_M(&renderPass, &viewBuf, &gaussianBuf);
+	DefaulModel<PosVertex> gaussianCube                = DefaulModel<PosVertex>(&cubeGeom, &gaussianMat);
+	Transform              gaussianCubeTransform       = Transform(glm::translate(glm::mat4(1.0), glm::vec3(-1.0, 0.0, 0.0)));
+	models.push_back(&gaussianCube);
+	transforms.push_back(&gaussianCubeTransform);
+
+	GaussianNN_M           gaussianNNMat               = GaussianNN_M(&renderPass, &viewBuf, &gaussianBuf, &pinBuf, &pinTransmittanceBuf);
+	DefaulModel<PosVertex> gaussianNNCube              = DefaulModel<PosVertex>(&cubeGeom, &gaussianNNMat);
+	Transform              gaussianNNCubeTransform     = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 0.0)));
+	models.push_back(&gaussianNNCube);
+	transforms.push_back(&gaussianNNCubeTransform);
+
+	GaussianNNGrid_M       gaussianNNGridMat           = GaussianNNGrid_M(&renderPass, &viewBuf, &gaussianBuf, &pinBuf, &pinTransmittanceBuf, &pinGridBuf);
+	DefaulModel<PosVertex> gaussianNNGridCube          = DefaulModel<PosVertex>(&cubeGeom, &gaussianNNGridMat);
+	Transform              gaussianNNGridCubeTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(1.0, 0.0, 0.0)));
+
+
+	models.push_back(&gaussianNNGridCube);
+	transforms.push_back(&gaussianNNGridCubeTransform);
+
+	// Create draw calls
+	std::vector<DrawCall> drawCalls;
+	for (size_t i = 0; i < models.size(); i++)
 	{
-		gaussiansData[i].mean.x   = (1.0 - coef) / 2.0 + coef * unormDistribution(gen32);
-		gaussiansData[i].mean.y   = (1.0 - coef) / 2.0 + coef * unormDistribution(gen32);
-		gaussiansData[i].mean.z   = (1.0 - coef) / 2.0 + coef * unormDistribution(gen32);
-		gaussiansData[i].variance = 0.5 * coef * unormDistribution(gen32);
-	}
-	std::vector<Pin> pins(PIN_COUNT);
-	// Init pins:
-	for (size_t i = 0; i < pins.size(); i++)
-	{
-		pins[i].theta.x = 2.0 * PI * unormDistribution(gen32);
-		pins[i].theta.y = 2.0 * PI * unormDistribution(gen32);
-		pins[i].phi.x   = glm::acos(1.0 - 2.0 * unormDistribution(gen32));
-		pins[i].phi.y   = glm::acos(1.0 - 2.0 * unormDistribution(gen32));
+		std::vector<DrawSurface>         drawSurf = models[i]->getDrawSurf();
+		std::vector<DrawSurfaceInstance> drawSurfInst;
+		for (size_t j = 0; j < drawSurf.size(); j++)
+		{
+			drawSurfInst.push_back(DrawSurfaceInstance(drawSurf[j], transforms[i], sizeof(Transform)));
+		}
+		drawCalls.push_back(DrawCall(drawSurfInst));
 	}
 
-	// Resource Creation
-	FramebufferImage offscreenImage = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
-	Buffer           pfcBuf         = BufferVma(&gState.heap, sizeof(PerFrameConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	Buffer           gaussiansBuf   = BufferVma(&gState.heap, sizeof(Gaussian) * gaussiansData.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	Buffer           pinBuf         = BufferVma(&gState.heap, sizeof(Pin) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-
-
-
-
-	std::vector<Pin> pinGrid(PIN_GRID_SIZE * PIN_GRID_SIZE * PIN_GRID_SIZE * PINS_PER_GRID_CELL);
-	Buffer           pinTransmittanceBuf = BufferVma(&gState.heap, sizeof(float) * pins.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	Buffer           pinGridBuf          = BufferVma(&gState.heap, sizeof(Pin) * pinGrid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	Buffer           pinGridIdBuf        = BufferVma(&gState.heap, sizeof(uint32_t) * pinGrid.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	UniversalCmdBuffer cmdBuf              = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 	// Upload data
+	UniversalCmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 	imguiWrapper.uploadResources(cmdBuf);
-	cmdBuf.uploadData(gaussiansData.data(), sizeof(Gaussian) * GAUSSIAN_COUNT, gaussiansBuf);
-	cmdBuf.uploadData(pins.data(), sizeof(Pin) * pins.size(), pinBuf);
 	cubeGeom.upload(cmdBuf);
+	gaussianBuf.upload(cmdBuf);
+	pinBuf.upload(cmdBuf);
 	cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-	// Calc pin transmittance in shader:
-	if (1)
-	{
-		glm::uvec3           workGroupSize  = {128, 1, 1};
-		glm::uvec3           resolution     = {pins.size(), 1, 1};
-		glm::uvec3           workGroupCount = getWorkGroupCount(workGroupSize, resolution);
-		ComputePipelineState computeState{};
-		computeState.shaderDef.name = "pins_eval_transmittance.comp";
-		computeState.shaderDef.args.push_back({"GAUSSIAN_COUNT", std::to_string(GAUSSIAN_COUNT)});
-		computeState.shaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
-		DescriptorSetLayoutDefinition layoutDefinition{};
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.flags                          = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-		computeState.pipelineLayoutDef.descSetLayoutDef = {layoutDefinition};
-		computeState.specialisationEntrySizes           = glm3VectorSizes();
-		computeState.specializationData                 = getByteVector(workGroupSize);
-		ComputePipeline computePipeline                 = ComputePipeline(&gState.cache, computeState);
-		cmdBuf.bindPipeline(computePipeline);
-		cmdBuf.pushDescriptors(0, gaussiansBuf, pinBuf, pinTransmittanceBuf);
-		cmdBuf.dispatch(workGroupCount);
-	}
-	// Generate pin grid in shader:
-	if (1)
-	{
-		glm::uvec3           workGroupSize  = {8, 8, 8};
-		glm::uvec3           resolution     = {PIN_GRID_SIZE, PIN_GRID_SIZE, PIN_GRID_SIZE};
-		glm::uvec3           workGroupCount = getWorkGroupCount(workGroupSize, resolution);
-		ComputePipelineState computeState{};
-		computeState.shaderDef.name = "pins_grid_gen.comp";
-		computeState.shaderDef.args.push_back({"PIN_GRID_SIZE", std::to_string(PIN_GRID_SIZE)});
-		computeState.shaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
-		computeState.shaderDef.args.push_back({"PINS_PER_GRID_CELL", std::to_string(PINS_PER_GRID_CELL)});
-		DescriptorSetLayoutDefinition layoutDefinition{};
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.flags                          = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-		computeState.pipelineLayoutDef.descSetLayoutDef = {layoutDefinition};
-		computeState.specialisationEntrySizes           = glm3VectorSizes();
-		computeState.specializationData                 = getByteVector(workGroupSize);
-		ComputePipeline computePipeline                 = ComputePipeline(&gState.cache, computeState);
-		cmdBuf.bindPipeline(computePipeline);
-		cmdBuf.pushDescriptors(0, pinBuf, pinGridBuf, pinGridIdBuf);
-		cmdBuf.dispatch(workGroupCount);
-	}
+	// Build buffers
+	pinGridBuf.build(cmdBuf);
+	pinTransmittanceBuf = pinBuf.buildTransmittanceBuffer(cmdBuf, &gaussianBuf);
 	commitCmdBuffers(&cmdBuf, 1, &gState.frame->stack, gState.device.universalQueues[0]);
 	vkDeviceWaitIdle(gState.device.logical);
 	imguiWrapper.destroyStagingResources();
 
+	// Main loop
 	uint32_t cnt = 0;
+	View     view{};
 	while (!gState.io.shouldTerminate())
 	{
 		imguiWrapper.newFrame();
@@ -158,70 +126,23 @@ int main()
 			vkDeviceWaitIdle(gState.device.logical);
 			gState.cache.clear();
 		}
-		if (gState.io.keyEvent[GLFW_KEY_E] && gState.io.keyPressed[GLFW_KEY_E])
-		{
-			gvar_use_pins.val.v_bool = !gvar_use_pins.val.v_bool;
-		}
-		// Update Camera
+		// Update cpu data
 		camera.key_control(gState.io.keyPressed, 0.016);
+		view.update(cnt, camera);
 
-		if (gState.io.mouse.leftPressed)
-		{
-			camera.mouse_control(gState.io.mouse.change.x, gState.io.mouse.change.y);
-		}
-		// Update per frame constants
-		PerFrameConstants pfc{};
-		pfc.width                = gState.io.extent.width;
-		pfc.height               = gState.io.extent.height;
-		pfc.usePins              = gvar_use_pins.val.bool32();
-		pfc.frameCounter         = cnt++;
-		pfc.mousePosX            = gState.io.mouse.pos.x;
-		pfc.mousePosY            = gState.io.mouse.pos.y;
-		pfc.camPos               = glm::vec4(camera.get_camera_position(), 1.0);
-		pfc.viewMat              = camera.calculate_viewmatrix();
-		pfc.viewMat[3]           = glm::vec4(0.0, 0.0, 0.0, 1.0);
-		pfc.inverseViewMat       = glm::inverse(pfc.viewMat);
-		pfc.projectionMat        = glm::perspective(glm::radians(60.0f), (float) gState.io.extent.width / (float) gState.io.extent.height, 1.0f, 500.0f);
-		pfc.inverseProjectionMat = glm::inverse(pfc.projectionMat);
-		pfc.cube                 = Cube{glm::mat4(1.0), glm::mat4(1.0)};
-		// pfc.cube.modelMat        = glm::translate(pfc.cube.modelMat, glm::vec3(-0.5, -0.5, -0.5));
-		
-		pfc.cube.modelMat       = glm::rotate(pfc.cube.modelMat, glm::radians(cnt / 20.f), glm::vec3(0.0, 1.0, 0.0));
-		pfc.cube.modelMat       = glm::translate(pfc.cube.modelMat, -glm::vec3(0.5, 0.5, 0.5));
-		pfc.cube.invModelMatrix = glm::inverse(pfc.cube.modelMat);
-		// Pipeline Creation
-		glm::uvec3           workGroupSize  = {16, 16, 1};
-		glm::uvec3           resolution     = {gState.io.extent.width, gState.io.extent.height, 1};
-		glm::uvec3           workGroupCount = getWorkGroupCount(workGroupSize, resolution);
-		ComputePipelineState computeState{};
-		computeState.shaderDef.name = "pins_render.comp";
-		computeState.shaderDef.args.push_back({"GAUSSIAN_COUNT", std::to_string(GAUSSIAN_COUNT)});
-		computeState.shaderDef.args.push_back({"PIN_GRID_SIZE", std::to_string(PIN_GRID_SIZE)});
-		computeState.shaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
-		computeState.shaderDef.args.push_back({"PINS_PER_GRID_CELL", std::to_string(PINS_PER_GRID_CELL)});
-		DescriptorSetLayoutDefinition layoutDefinition{};
-		layoutDefinition.addUniformBuffer(VK_SHADER_STAGE_COMPUTE_BIT);
-		layoutDefinition.addStorageImage(VK_SHADER_STAGE_COMPUTE_BIT);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.flags                          = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-		computeState.pipelineLayoutDef.descSetLayoutDef = {layoutDefinition};
-		computeState.specialisationEntrySizes           = glm3VectorSizes();
-		computeState.specializationData                 = getByteVector(workGroupSize);
-		ComputePipeline computePipeline                 = ComputePipeline(&gState.cache, computeState);
-		// Record commands
 		UniversalCmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-		offscreenImage.update(&gState.heap, &gState.frame->stack, gState.io.extent);
-		cmdBuf.transitionLayout(offscreenImage, VK_IMAGE_LAYOUT_GENERAL);
-		cmdBuf.bindPipeline(computePipeline);
-		cmdBuf.uploadData(&pfc, sizeof(pfc), pfcBuf);
-		cmdBuf.pushDescriptors(0, pfcBuf, (Image) offscreenImage, pinTransmittanceBuf, pinGridBuf, pinGridIdBuf, gaussiansBuf);
-		cmdBuf.dispatch(workGroupCount);
-		cmdBuf.copyToSwapchain(offscreenImage);
+		// Upload data
+		cmdBuf.uploadData(viewBuf, 0, &view, sizeof(View));
+		cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+		// Render
+		renderPass.beginRender(cmdBuf);
+		for each (DrawCall dc in drawCalls)
+		{
+			dc.drawSurf.pMaterial->bind(cmdBuf);
+			dc.submit(cmdBuf, &gState.frame->stack);
+		}
+		renderPass.endRender(cmdBuf);
 		imguiWrapper.renderGui(cmdBuf);
-		// Submit commands and present
 		gState.swapBuffers(&cmdBuf);
 	}
 	// Cleanup

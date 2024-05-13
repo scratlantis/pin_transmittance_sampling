@@ -129,7 +129,7 @@ class BufferVK_R : public MappableResource
 };
 
 
-class BufferCPU_R : public MappableResource
+class BufferCPU_R : public NonUniqueResource
 {
   public:
 	BufferCPU_R(void* handle, size_t size): handle(handle), size(size)
@@ -138,14 +138,6 @@ class BufferCPU_R : public MappableResource
 	virtual uint64_t getId() const
 	{
 		return (uint64_t) this->handle;
-	}
-	void *map(uint32_t offset, uint32_t size)
-	{
-		return (char*)handle + offset;
-	}
-	void unmap()
-	{
-		// Do nothing
 	}
   protected:
 	void free()

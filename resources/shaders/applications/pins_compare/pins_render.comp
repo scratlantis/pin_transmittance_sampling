@@ -3,29 +3,6 @@
 #include "pins_common.glsl"
 layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
 
-struct PerFrameConstants
-{
-	vec4 camPos;
-
-	mat4 viewMat;
-	mat4 inverseViewMat;
-	mat4 projectionMat;
-	mat4 inverseProjectionMat;
-
-	uint width;
-	uint height;
-	uint frameCounter;
-	uint mousePosX;
-
-	uint mousePosY;
-	uint usePins;
-	uint placeholder3;
-	uint placeholder4;
-
-	Cube cube;
-};
-
-
 layout(binding = 0) uniform PFC {PerFrameConstants pfc;};
 layout(binding = 1, rgba32f) uniform image2D imageOffscreen;
 
@@ -36,26 +13,26 @@ layout(binding = 5) buffer GAUSSIAN_STORAGE_BUFFER {Gaussian gaussians[GAUSSIAN_
 
 
 
-vec3 getRayDir(ivec2 pixel)
-{
-	vec2 pixel_center   =   vec2(pixel) + vec2(0.5);
-    vec2 uv           = (pixel_center)/vec2(pfc.width, pfc.height);
-    vec2 device_coord     = uv * 2.0 - 1.0;
-	vec4 clipCoords = vec4(device_coord.x, device_coord.y, 1.0, 1.0);
-    vec4 target         = pfc.inverseProjectionMat * clipCoords;
-    vec4 direction      = pfc.inverseViewMat * target;
-	return normalize(direction.xyz);
-}
-
-RaySegment getPrimaryRay(ivec2 pixel)
-{
-	RaySegment seg;
-	seg.origin = pfc.camPos.xyz;
-	seg.direction = getRayDir(pixel);
-	seg.tMin = MIN_RAY_DISTANCE;
-	seg.tMax = MAX_RAY_DISTANCE;
-	return seg;
-}
+//vec3 getRayDir(ivec2 pixel)
+//{
+//	vec2 pixel_center   =   vec2(pixel) + vec2(0.5);
+//    vec2 uv           = (pixel_center)/vec2(pfc.width, pfc.height);
+//    vec2 device_coord     = uv * 2.0 - 1.0;
+//	vec4 clipCoords = vec4(device_coord.x, device_coord.y, 1.0, 1.0);
+//    vec4 target         = pfc.inverseProjectionMat * clipCoords;
+//    vec4 direction      = pfc.inverseViewMat * target;
+//	return normalize(direction.xyz);
+//}
+//
+//RaySegment getPrimaryRay(ivec2 pixel)
+//{
+//	RaySegment seg;
+//	seg.origin = pfc.camPos.xyz;
+//	seg.direction = getRayDir(pixel);
+//	seg.tMin = MIN_RAY_DISTANCE;
+//	seg.tMax = MAX_RAY_DISTANCE;
+//	return seg;
+//}
 
 void main()
 {

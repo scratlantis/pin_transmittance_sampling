@@ -7,11 +7,17 @@ namespace vka
 class MemoryBlock
 {
   protected:
-	MappableResource *res = nullptr;
+	NonUniqueResource *res = nullptr;
+	bool isEmpty = true;
   public:
 	MemoryBlock(){};
 	MemoryBlock(ResourceTracker *pTracker, size_t size, bool fillZero = true)
 	{
+		if (size == 0)
+		{
+			return;
+		}
+		this->isEmpty = false;
 		this->size = size;
 		if (fillZero)
 		{
@@ -24,6 +30,29 @@ class MemoryBlock
 		res = new BufferCPU_R(data, size);
 		pTracker->add(res);
 	}
+
+	MemoryBlock(ResourceTracker *pTracker, void *data, size_t size, bool fillZero = true)
+	{
+		if (size == 0)
+		{
+			return;
+		}
+		this->isEmpty = false;
+		this->size    = size;
+		if (fillZero)
+		{
+			data = std::calloc(size, 1);
+		}
+		else
+		{
+			data = std::malloc(size);
+		}
+		res = new BufferCPU_R(data, size);
+		pTracker->add(res);
+
+		memcpy(this->data, data, size);
+	}
+
 	size_t getSize() const
 	{
 		return size;
@@ -43,6 +72,11 @@ class MemoryBlock
 	{
 		ASSERT_TRUE(res != nullptr);
 		res->move(pNewTracker);
+	}
+
+	bool isEmpty() const
+	{
+		return isEmpty;
 	}
 
 	~MemoryBlock(){};

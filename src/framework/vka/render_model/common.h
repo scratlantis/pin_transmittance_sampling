@@ -152,12 +152,15 @@ class Material
 	Material(){};
 	~Material(){};
 
-	virtual void load(UniversalCmdBuffer &cmdBuf, const MemoryBlock &view)         = 0;
+	virtual void load(UniversalCmdBuffer &cmdBuf, const MemoryBlock &view){};
+	virtual void bind(UniversalCmdBuffer &cmdBuf) const
+	{
+		bind(cmdBuf, MemoryBlock());
+	}
 	virtual void bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const = 0;
-	virtual void move(ResourceTracker *pNewTracker)                                = 0;
+	virtual void move(ResourceTracker *pNewTracker){};
 
   private:
-	virtual void bindPipeline(CmdBuffer &cmdBuf) const = 0;
 	DELETE_COPY_CONSTRUCTORS(Material);
 };
 
@@ -205,6 +208,15 @@ class DrawCall
 {
   public:
 	DrawCall(){};
+	DrawCall(std::vector<DrawSurfaceInstance> drawInstances):
+		drawSurf(drawInstances[0].pDrawSurf), instanceCount(drawInstances.size())
+	{
+		for (const DrawSurfaceInstance &drawInstance : drawInstances)
+		{
+			std::vector<uint8_t> newDrawInstanceData = drawInstance.getInstanceData();
+			instanceData.insert(instanceData.end(), newDrawInstanceData.begin(), newDrawInstanceData.end());
+		}
+	}
 	DrawCall(const DrawSurfaceInstance drawInstance) :
 	    drawSurf(drawInstance.pDrawSurf), instanceCount(1)
 	{

@@ -18,11 +18,7 @@
 	#define PIN_COUNT 10
 #endif
 
-struct Cube
-{
-	mat4 modelMatrix;
-	mat4 invModelMatrix;
-};
+
 
 struct Gaussian
 {
@@ -86,18 +82,6 @@ void assureNotZero(inout vec3 v)
 	{
 		v.z = EPSILON;
 	}
-}
-
-bool intersectCube(inout RaySegment raySegOut, RaySegment raySegIn, Cube cube)
-{
-	raySegOut = transform(raySegIn, cube.invModelMatrix);
-	assureNotZero(raySegOut.direction);
-	vec3 invDir = 1.0 / raySegOut.direction;
-	vec3 c1 = -raySegOut.origin*invDir;
-	vec3 c2 = c1 + invDir; // (vec(1.0)-raySeg.origin)*invDir;
-	raySegOut.tMin = max(max(min(c1.x, c2.x), min(c1.y, c2.y)), min(c1.z, c2.z));
-	raySegOut.tMax = min(min(max(c1.x, c2.x), max(c1.y, c2.y)), max(c1.z, c2.z)); 
-	return !(raySegOut.tMax < 0 || raySegOut.tMin > raySegOut.tMax);
 }
 
 bool intersectAABB(vec3 origin, vec3 direction, vec3 boxMin, vec3 boxMax)
