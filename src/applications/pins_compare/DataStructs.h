@@ -10,7 +10,8 @@
 #include <framework/vka/core/utility/misc.h>
 #include <framework/vka/global_state.h>
 
-GVar gvar_use_pins{"use pins", true, GVAR_BOOL, GVAR_APPLICATION};
+
+GVar gvar_use_pins{"show pins", 0, GVAR_ENUM, GVAR_APPLICATION, {"None", "Activ", "All"}};
 GVar gvar_pin_selection_coef{"pin selection coef", 1.0f, GVAR_UNORM, GVAR_APPLICATION};
 
 struct Pin
@@ -26,7 +27,7 @@ struct PinData
 };
 struct PinGridEntry
 {
-	Pin pin;
+	Pin     pin;
 	PinData data;
 };
 
@@ -46,38 +47,36 @@ struct View
 	glm::mat4 rotationMatrix;
 
 	glm::vec4 camPos;
-	uint32_t width;
-	uint32_t height;
-	uint32_t frameCounter;
-	uint32_t usePins;
+	uint32_t  width;
+	uint32_t  height;
+	uint32_t  frameCounter;
+	uint32_t  showPins;
 
-	float pinSelectionCoef;
+	float    pinSelectionCoef;
 	uint32_t padding[3];
 
-	Cube      cube;
-	void update(uint32_t& cnt, Camera& camera)
+	Cube cube;
+	void update(uint32_t &cnt, Camera &camera)
 	{
-		width				 = gState.io.extent.width;
-		height               = gState.io.extent.height;
-		frameCounter         = cnt++;
-		camPos               = glm::vec4(camera.get_camera_position(), 1.0);
-		viewMat              = camera.calculate_viewmatrix();
-		//viewMat              = glm::mat4(1.0);
-		//viewMat[3]           = glm::vec4(0.0, 0.0, 0.0, 1.0);
-		inverseViewMat       = glm::inverse(viewMat);
-		projectionMat        = glm::perspective(glm::radians(60.0f), (float) gState.io.extent.width / (float) gState.io.extent.height, 0.1f, 500.0f);
-		//projectionMat = glm::mat4(1.0);
+		width        = gState.io.extent.width;
+		height       = gState.io.extent.height;
+		frameCounter = cnt++;
+		camPos       = glm::vec4(camera.get_camera_position(), 1.0);
+		viewMat      = camera.calculate_viewmatrix();
+		// viewMat              = glm::mat4(1.0);
+		// viewMat[3]           = glm::vec4(0.0, 0.0, 0.0, 1.0);
+		inverseViewMat = glm::inverse(viewMat);
+		projectionMat  = glm::perspective(glm::radians(60.0f), (float) gState.io.extent.width / (float) gState.io.extent.height, 0.1f, 500.0f);
+		// projectionMat = glm::mat4(1.0);
 		inverseProjectionMat = glm::inverse(projectionMat);
-		cube             = Cube{glm::mat4(1.0), glm::mat4(1.0)};
-		usePins = gvar_use_pins.val.bool32();
-		pinSelectionCoef = gvar_pin_selection_coef.val.v_float;
+		cube                 = Cube{glm::mat4(1.0), glm::mat4(1.0)};
+		showPins              = gvar_use_pins.val.v_int;
+		pinSelectionCoef     = gvar_pin_selection_coef.val.v_float;
 	}
 };
-
 
 struct Gaussian
 {
 	glm::vec3 mean;
 	float     variance;
-
 };

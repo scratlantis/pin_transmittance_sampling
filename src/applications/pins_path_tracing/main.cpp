@@ -83,7 +83,7 @@ struct PerFrameConstants
 	uint32_t mousePosX;
 
 	uint32_t mousePosY;
-	uint32_t usePins;
+	uint32_t showPins;
 	uint32_t placeholder3;
 	uint32_t placeholder4;
 
@@ -235,7 +235,7 @@ int main()
 		PerFrameConstants pfc{};
 		pfc.width                = gState.io.extent.width;
 		pfc.height               = gState.io.extent.height;
-		pfc.usePins              = gvar_use_pins.val.bool32();
+		pfc.showPins              = gvar_use_pins.val.bool32();
 		pfc.frameCounter         = cnt++;
 		pfc.mousePosX            = gState.io.mouse.pos.x;
 		pfc.mousePosY            = gState.io.mouse.pos.y;

@@ -91,6 +91,16 @@ class CmdBuffer
 		uploadData(dst, 0, data, size, garbageTracker);
 	}*/
 
+	void fillBuffer(Buffer dst, VkDeviceSize offset, VkDeviceSize size, uint32_t data)
+	{
+		vkCmdFillBuffer(handle, dst.buf, offset, size, data);
+	}
+
+	void fillBuffer(Buffer dst, uint32_t data)
+	{
+		vkCmdFillBuffer(handle, dst.buf, 0, VK_WHOLE_SIZE, data);
+	}
+
 	Buffer uploadData(const void *data, size_t size, VkBufferUsageFlags usageFlags, ResourceTracker *bufferTracker, ResourceTracker *garbageTracker = &gState.frame->stack)
 	{
 		Buffer       dst  = BufferVma(bufferTracker, size, usageFlags | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);

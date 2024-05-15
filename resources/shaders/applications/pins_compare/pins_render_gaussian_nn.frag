@@ -14,7 +14,7 @@ layout(binding = 0) uniform VIEW {View view;};
 layout(binding = 1) buffer PINS {Pin pins[PIN_COUNT];};
 layout(binding = 2) buffer PIN_TRANSMITTANCE {float pin_transmittance[PIN_COUNT];};
 layout(binding = 3) buffer PIN_DIRECTION {vec4 pin_dir[PIN_COUNT];};
-
+layout(binding = 4) buffer PINS_USED {uint pinsUsed[PIN_COUNT];};
 void main()
 {
 	vec3 worldPos = (fragment_modelMat*vec4(fragment_position,1.0)).xyz;
@@ -53,13 +53,19 @@ void main()
 			maxDot = dotProd;
 			maxDotIdx = i+offset;
 		}
+		pinsUsed[i+offset] = 0;
 	}
-
+	pinsUsed[maxDotIdx] = 1;
 
 	//float deltaTheta = min(abs(theta), abs(theta));
 	gl_FragDepth = 1.0-maxDot;
-	float transmittance = pin_transmittance[maxDotIdx];
+	float invTransmittance = 1.0-pin_transmittance[maxDotIdx];
+	//invTransmittance/=float(PIN_COUNT_SQRT);
+	float transmittance = 1.0-invTransmittance;
+	//transmittance*=0.1;
+	//transmittance=0.0;
 	outColor = vec4(transmittance, transmittance, transmittance, 1.0);
+	//outColor = vec4(0.0, 0.0, 0.0, 1.0);
 	//outColor = vec4(maxDot*0.2, maxDot*0.2, maxDot*0.2, 1.0);
 	//vec3 color = vec3(phi);
 	//outColor = vec4(color, 1.0);

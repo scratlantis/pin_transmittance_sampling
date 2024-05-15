@@ -69,7 +69,7 @@ struct View
 	uint width;
 	uint height;
 	uint frameCounter;
-	uint usePins;
+	uint showPins;
 
 	float pinSelectionCoef;
 	uint padding[3];

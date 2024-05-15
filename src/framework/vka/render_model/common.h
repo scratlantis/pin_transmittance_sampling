@@ -83,6 +83,15 @@ class Geometry_T : public Geometry
 		vertexBuffer  = BufferVma(pTracker, sizeof(VertexType) * vertices.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		indexBuffer   = BufferVma(pTracker, sizeof(Index) * indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	};
+	Geometry_T(ResourceTracker *pTracker,
+	           Buffer vertexBuffer, uint32_t vertexCount,
+	           Buffer indexBuffer, uint32_t indexCount) :
+	    vertexBuffer(vertexBuffer), vertexCounts({vertexCount}), indexBuffer(indexBuffer), indexCounts({indexCount})
+	{
+		indexOffsets  = {0};
+		vertexOffsets = {0};
+	};
+
 	virtual void move(ResourceTracker *pNewTracker) override
 	{
 		vertexBuffer.move(pNewTracker);
@@ -96,7 +105,6 @@ class Geometry_T : public Geometry
 
   private:
 };
-
 
 class DrawSurface;
 class Material;
@@ -141,10 +149,6 @@ class Model_T : public Model
 	virtual std::vector<DrawSurface> getDrawSurf() const = 0;
 };
 
-
-
-
-
 // Backend stuff
 class Material
 {
@@ -182,7 +186,6 @@ class DrawSurface
   private:
 };
 
-
 class DrawSurfaceInstance
 {
   public:
@@ -194,7 +197,7 @@ class DrawSurfaceInstance
 	DrawSurfaceInstance(){};
 	~DrawSurfaceInstance(){};
 
-	DrawSurface   pDrawSurf;
+	DrawSurface          pDrawSurf;
 	std::vector<uint8_t> getInstanceData() const
 	{
 		return instanceData;
@@ -208,8 +211,8 @@ class DrawCall
 {
   public:
 	DrawCall(){};
-	DrawCall(std::vector<DrawSurfaceInstance> drawInstances):
-		drawSurf(drawInstances[0].pDrawSurf), instanceCount(drawInstances.size())
+	DrawCall(std::vector<DrawSurfaceInstance> drawInstances) :
+	    drawSurf(drawInstances[0].pDrawSurf), instanceCount(drawInstances.size())
 	{
 		for (DrawSurfaceInstance &drawInstance : drawInstances)
 		{
@@ -233,25 +236,25 @@ class DrawCall
 		instanceBuffer = cmdBuf.uploadData(instanceData.data(), instanceData.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, pStack, pStack);
 		cmdBuf.uploadData(instanceData.data(), instanceData.size(), instanceBuffer);
 	}
-	DrawSurface    drawSurf;
+	DrawSurface          drawSurf;
 	uint32_t             instanceCount;
 	std::vector<uint8_t> instanceData;
 	Buffer               instanceBuffer;
 
 	void submit(UniversalCmdBuffer &cmdBuf)
 	{
-		std::vector<VkBuffer> buffers        = {drawSurf.vertexBuffer.buf, instanceBuffer.buf};
+		std::vector<VkBuffer> buffers = {drawSurf.vertexBuffer.buf, instanceBuffer.buf};
 		cmdBuf.bindVertexBuffers(buffers);
 		cmdBuf.bindIndexBuffer(drawSurf.indexBuffer);
 		cmdBuf.drawIndexed(drawSurf.indexCount, instanceCount);
 	}
-	//void submit(UniversalCmdBuffer &cmdBuf)
+	// void submit(UniversalCmdBuffer &cmdBuf)
 	//{
 	//	cmdBuf.bindVertexBuffers({drawSurf.vertexBuffer.buf});
 	//	cmdBuf.draw(drawSurf.vertexCount);
 	//	//cmdBuf.bindIndexBuffer(drawSurf.indexBuffer);
 	//	//cmdBuf.drawIndexed(drawSurf.indexCount, instanceCount);
-	//}
+	// }
   private:
 };
 }        // namespace vka
