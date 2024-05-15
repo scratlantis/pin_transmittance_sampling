@@ -40,5 +40,5 @@ void main()
 	}
 	uint pinIdx = grid[maxDotIdx].data.pinIndex;
 	float transmittance = pin_transmittance[pinIdx];
-	outColor = vec4(transmittance-0.1, transmittance, transmittance, 1.0);
+	outColor = vec4(transmittance, transmittance, transmittance, 1.0);
 }

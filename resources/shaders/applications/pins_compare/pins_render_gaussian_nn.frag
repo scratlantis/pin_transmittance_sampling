@@ -40,7 +40,7 @@ void main()
 		//float dotProd = abs(dot(dir, pin_dir[i+offset].xyz));
 		float dotProd = abs(dot(dir, direction));
 		float dist = 1.0-distance(origin,fragment_position);
-		dotProd = mix(dotProd, dist, 0.5);
+		dotProd = mix(dotProd, dist, view.pinSelectionCoef);
 		//deltaPhi = min(abs(deltaPhi), abs(deltaPhi+PI));
 		//deltaTheta = min(abs(deltaTheta), abs(deltaTheta+2*PI));
 	
@@ -59,7 +59,7 @@ void main()
 	//float deltaTheta = min(abs(theta), abs(theta));
 	gl_FragDepth = 1.0-maxDot;
 	float transmittance = pin_transmittance[maxDotIdx];
-	outColor = vec4(transmittance-0.1, transmittance, transmittance, 1.0);
+	outColor = vec4(transmittance, transmittance, transmittance, 1.0);
 	//outColor = vec4(maxDot*0.2, maxDot*0.2, maxDot*0.2, 1.0);
 	//vec3 color = vec3(phi);
 	//outColor = vec4(color, 1.0);

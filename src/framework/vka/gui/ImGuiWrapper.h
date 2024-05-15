@@ -158,6 +158,9 @@ void ImGuiWrapper::addGVar(GVar *gv)
 		case GVAR_FLOAT:
 			ImGui::InputScalar(gv->name.c_str(), ImGuiDataType_Float, &gv->val.v_float);
 			break;
+		case GVAR_UNORM:
+			ImGui::SliderFloat(gv->name.c_str(), &gv->val.v_float, 0.0f, 1.0f); 
+			break;
 		case GVAR_UINT:
 			ImGui::InputScalar(gv->name.c_str(), ImGuiDataType_U32, &gv->val.v_uint);
 			break;

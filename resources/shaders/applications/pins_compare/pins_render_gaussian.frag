@@ -27,6 +27,6 @@ void main()
 		float coef = clamp(1.0-evalTransmittanceGaussian(fragment_position, dir, gaussians[i]), 0.0, 1.0);
 		transmittance *= coef;
 	}
-	outColor = vec4(transmittance-0.1, transmittance, transmittance, 1.0);
+	outColor = vec4(transmittance, transmittance, transmittance, 1.0);
 	//outColor = vec4(dir ,1.0);
 }

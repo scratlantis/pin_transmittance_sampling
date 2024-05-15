@@ -36,7 +36,9 @@ using namespace vka;
 
 
 std::vector<GVar *> gVars{
-    &gvar_use_pins};
+    &gvar_use_pins,
+	&gvar_pin_selection_coef
+};
 AppState          gState;
 
 const std::string gShaderPath = SHADER_DIR;
@@ -46,7 +48,7 @@ int main()
 {
 	// Global State Initialization
 	DeviceCI      deviceCI = D3VKPTDeviceCI(APP_NAME);
-	IOControlerCI ioCI     = DefaultIOControlerCI(APP_NAME, 400, 400);
+	IOControlerCI ioCI     = DefaultIOControlerCI(APP_NAME, 1000, 700);
 	Window       *window   = new vka::GlfwWindow();
 	gState.init(deviceCI, ioCI, window);
 	// Camera initialization
@@ -128,7 +130,7 @@ int main()
 		}
 		// Update cpu data
 		camera.key_control(gState.io.keyPressed, 0.016);
-		if (gState.io.mouse.leftPressed)
+		if (gState.io.mouse.rightPressed)
 		{
 			camera.mouse_control(gState.io.mouse.change.x, gState.io.mouse.change.y);
 		}

@@ -26,14 +26,14 @@ struct CameraCI_Default : public CameraCI
 {
 	CameraCI_Default()
 	{
-		//start_position              = glm::vec3(-5.0f, 0.0f, 0.0f);
-		start_position              = glm::vec3(0.0f, 0.0f, 0.0f);
+		start_position              = glm::vec3(0.0f, 0.0f, -1.0f);
+		//start_position              = glm::vec3(0.0f, 0.0f, 0.0f);
 		near_plane                  = 1.0f;
 		far_plane                   = 10000.f;
 		angle                       = 0.0f;
 		fov                         = 60.f;
 		start_up                    = glm::vec3(0.0f, 1.0f, 0.0f);
-		start_yaw                   = 0.f;
+		start_yaw                   = 90.f;
 		start_pitch                 = 0.0f;
 		start_move_speed            = 0.1f;
 		start_turn_speed            = 0.25f;

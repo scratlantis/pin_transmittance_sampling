@@ -11,6 +11,7 @@
 #include <framework/vka/global_state.h>
 
 GVar gvar_use_pins{"use pins", true, GVAR_BOOL, GVAR_APPLICATION};
+GVar gvar_pin_selection_coef{"pin selection coef", 1.0f, GVAR_UNORM, GVAR_APPLICATION};
 
 struct Pin
 {
@@ -49,6 +50,10 @@ struct View
 	uint32_t height;
 	uint32_t frameCounter;
 	uint32_t usePins;
+
+	float pinSelectionCoef;
+	uint32_t padding[3];
+
 	Cube      cube;
 	void update(uint32_t& cnt, Camera& camera)
 	{
@@ -65,6 +70,7 @@ struct View
 		inverseProjectionMat = glm::inverse(projectionMat);
 		cube             = Cube{glm::mat4(1.0), glm::mat4(1.0)};
 		usePins = gvar_use_pins.val.bool32();
+		pinSelectionCoef = gvar_pin_selection_coef.val.v_float;
 	}
 };
 

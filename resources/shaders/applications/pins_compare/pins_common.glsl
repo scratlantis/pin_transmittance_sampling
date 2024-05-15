@@ -71,6 +71,9 @@ struct View
 	uint frameCounter;
 	uint usePins;
 
+	float pinSelectionCoef;
+	uint padding[3];
+
 	Cube cube;
 };
 
