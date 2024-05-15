@@ -3,6 +3,12 @@
 #include <framework/vka/render_model/common.h>
 #include <random>
 
+
+BlendMode BLEND_MODE_NONE      = {VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
+BlendMode BLEND_MODE_OVERWRITE = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD};
+BlendMode BLEND_MODE_ADD       = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
+BlendMode BLEND_MODE_ALPHA     = {VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD};
+
 using namespace vka;
 
 class GaussianBuffer : public BufferVma
@@ -21,7 +27,7 @@ class GaussianBuffer : public BufferVma
 			gaussiansData[i].mean.x   = (1.0 - margin) / 2.0 + margin * unormDistribution(gen32);
 			gaussiansData[i].mean.y   = (1.0 - margin) / 2.0 + margin * unormDistribution(gen32);
 			gaussiansData[i].mean.z   = (1.0 - margin) / 2.0 + margin * unormDistribution(gen32);
-			gaussiansData[i].variance = 0.5 * margin * unormDistribution(gen32);
+			gaussiansData[i].variance = 0.5 * unormDistribution(gen32);
 		}
 	}
 
@@ -52,10 +58,10 @@ class PinBuffer : public BufferVma
 		pins.resize(count);
 		for (size_t i = 0; i < pins.size(); i++)
 		{
-			pins[i].theta.x = 2.0 * PI * unormDistribution(gen32);
-			pins[i].theta.y = 2.0 * PI * unormDistribution(gen32);
-			pins[i].phi.x   = glm::acos(1.0 - 2.0 * unormDistribution(gen32));
-			pins[i].phi.y   = glm::acos(1.0 - 2.0 * unormDistribution(gen32));
+			pins[i].phi.x = 2.0 * PI * unormDistribution(gen32);
+			pins[i].phi.y   = 2.0 * PI * unormDistribution(gen32);
+			pins[i].theta.x   = glm::acos(1.0 - 2.0 * unormDistribution(gen32));
+			pins[i].theta.y = glm::acos(1.0 - 2.0 * unormDistribution(gen32));
 		}
 	}
 	size_t size() const
@@ -91,6 +97,24 @@ class PinBuffer : public BufferVma
 		cmdBuf.pushDescriptors(0, (Buffer) *gaussianBuf, (Buffer) *this, (Buffer) pinTransmittanceBuf);
 		cmdBuf.dispatch(workGroupCount);
 		return pinTransmittanceBuf;
+	}
+
+	Buffer buildDirectionBuffer(UniversalCmdBuffer &cmdBuf)
+	{
+		Buffer               pinDirectionsBuf = BufferVma(&gState.heap, sizeof(glm::vec4) * size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		std::vector<glm::vec4> directions(size());
+		for (size_t i = 0; i < size(); i++)
+		{
+			glm::vec2 x = sin(pins[i].phi) * cos(pins[i].theta);
+			glm::vec2 y = sin(pins[i].phi) * sin(pins[i].theta);
+			glm::vec2 z = cos(pins[i].phi);
+			glm::vec3 origin = glm::vec3(x.x, y.x, z.x) + glm::vec3(0.5);
+			origin *= 0.866025403784;        // sqrt(3)/2
+			glm::vec3 direction = glm::normalize(glm::vec3(x.y - x.x, y.y - y.x, z.y - z.x));
+			directions[i] = glm::vec4(direction, 0.0);
+		}
+		cmdBuf.uploadData(directions.data(), sizeof(glm::vec4) * directions.size(), pinDirectionsBuf, &gState.heap);
+		return pinDirectionsBuf;
 	}
 	~PinBuffer(){};
 
@@ -156,18 +180,22 @@ class GaussianNN_M : public Material
 	    const DefaultRenderPass *defaultRenderPass,
 	    const Buffer            *viewBuf,
 	    const PinBuffer         *pinBuf,
-	    const Buffer            *pinTransmittanceBuf) :
-	    pinBuf(pinBuf), pinTransmittanceBuf(pinTransmittanceBuf), viewBuf(viewBuf), defaultRenderPass(defaultRenderPass){};
+	    const Buffer            *pinTransmittanceBuf,
+	    const Buffer            *pinDirectionsBuffer
+	) :
+	    pinBuf(pinBuf), pinTransmittanceBuf(pinTransmittanceBuf),
+		viewBuf(viewBuf), defaultRenderPass(defaultRenderPass), pinDirectionsBuffer(pinDirectionsBuffer){};
 	~GaussianNN_M(){};
 	const PinBuffer         *pinBuf;
 	const Buffer            *pinTransmittanceBuf;
 	const DefaultRenderPass *defaultRenderPass;
 	const Buffer            *viewBuf;
+	const Buffer            *pinDirectionsBuffer;
 
 	virtual void bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
 	{
 		bindPipeline(cmdBuf);
-		cmdBuf.pushDescriptors(0, (Buffer) *viewBuf, (Buffer) *pinBuf, (Buffer) *pinTransmittanceBuf);
+		cmdBuf.pushDescriptors(0, (Buffer) *viewBuf, (Buffer) *pinBuf, (Buffer) *pinTransmittanceBuf, (Buffer) *pinDirectionsBuffer);
 	}
 
   private:
@@ -175,12 +203,14 @@ class GaussianNN_M : public Material
 	{
 		DescriptorSetLayoutDefinition layoutDefinition{};
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 		ShaderDefinition vertShaderDef{"pins_render.vert"};
 		ShaderDefinition fragShaderDef{"pins_render_gaussian_nn.frag"};
 		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
+		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT_SQRT)});
 		vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
 		RasterizationPipelineState pipelineState = RasterizationPipelineState();
 		pipelineState
@@ -192,7 +222,8 @@ class GaussianNN_M : public Material
 		    .setVertexBinding(PosVertex::getBindingDescription(0), Transform::getBindingDescription(1))
 		    .setDescriptorLayout(layoutDefinition)
 		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
-		    .setBlendMode(1, blendMode);
+		    .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
+		    .setBlendMode(1, BLEND_MODE_OVERWRITE);
 		RasterizationPipeline pipeline = defaultRenderPass->createPipeline(pipelineState, 0);
 		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
@@ -222,7 +253,7 @@ class Gaussian_M : public Material
 	{
 		DescriptorSetLayoutDefinition layoutDefinition{};
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 		ShaderDefinition vertShaderDef{"pins_render.vert"};
 		ShaderDefinition fragShaderDef{"pins_render_gaussian.frag"};
@@ -238,7 +269,8 @@ class Gaussian_M : public Material
 		    .setVertexBinding(PosVertex::getBindingDescription(0), Transform::getBindingDescription(1))
 		    .setDescriptorLayout(layoutDefinition)
 		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
-		    .setBlendMode(1, blendMode);
+		    .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
+		    .setBlendMode(1, BLEND_MODE_OVERWRITE);
 		RasterizationPipeline pipeline = defaultRenderPass->createPipeline(pipelineState, 0);
 		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
@@ -270,8 +302,8 @@ class GaussianNNGrid_M : public Material
 	{
 		DescriptorSetLayoutDefinition layoutDefinition{};
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 		ShaderDefinition vertShaderDef{"pins_render.vert"};
 		ShaderDefinition fragShaderDef{"pins_render_gaussian_nn_grid.frag"};
@@ -289,7 +321,8 @@ class GaussianNNGrid_M : public Material
 		    .setVertexBinding(PosVertex::getBindingDescription(0), Transform::getBindingDescription(1))
 		    .setDescriptorLayout(layoutDefinition)
 		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
-		    .setBlendMode(1, blendMode);
+		    .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
+		    .setBlendMode(1, BLEND_MODE_OVERWRITE);
 		RasterizationPipeline pipeline = defaultRenderPass->createPipeline(pipelineState, 0);
 		cmdBuf.bindRasterizationPipeline(pipeline);
 	}

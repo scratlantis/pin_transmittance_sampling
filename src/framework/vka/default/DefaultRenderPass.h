@@ -15,7 +15,7 @@ namespace vka
 class DefaultRenderPass
 {
   public:
-	DefaultRenderPass(Image *pOffscreenImage = nullptr);
+	DefaultRenderPass(Image* depthImage ,Image *pOffscreenImage = nullptr);
 	~DefaultRenderPass();
 
 	//void renderGui(UniversalCmdBuffer cmdBuf);
@@ -34,5 +34,6 @@ class DefaultRenderPass
 	std::vector<VkFramebuffer> framebuffers;
 	VkExtent2D                 framebufferExtent;
 	Image                     *pOffscreenImage = nullptr;
+	Image                     *pDepthImage = nullptr;
 };
 }        // namespace vka

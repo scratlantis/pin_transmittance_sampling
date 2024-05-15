@@ -18,7 +18,12 @@
 	#define PIN_COUNT 10
 #endif
 
+#ifndef PIN_COUNT_SQRT
+	#define PIN_COUNT_SQRT 10
+#endif
 
+#define GAUS_COEF 0.2
+#define PI 3.14159265359
 
 struct Gaussian
 {
@@ -154,7 +159,7 @@ float eval_gaussian(float x, float mean, float variance)
 {
 	float c = 0.3989422804014337; // 1/sqrt(2*pi)
 	float a = (x - mean) / variance;
-	return (1.0/variance)*c*exp(-0.5 * a * a);
+	return GAUS_COEF*(1.0/variance)*c*exp(-0.5 * a * a);
 }
 
 float evalTransmittanceGaussian(RaySegment raySegIn, Gaussian g)
@@ -165,16 +170,26 @@ float evalTransmittanceGaussian(RaySegment raySegIn, Gaussian g)
 	 float f1 = eval_gaussian(d, 0.0, g.variance);
 	 return f1;
 }
+float evalTransmittanceGaussian(vec3 origin, vec3 direction, Gaussian g)
+{
+	 float t = dot(direction, g.mean - origin);
+	 vec3 p = origin + t * direction;
+	 float d = length(p - g.mean);
+	 float f1 = eval_gaussian(d, 0.0, g.variance);
+	 return f1;
+}
 
 void getRay(Pin pin, inout vec3 origin, inout vec3 direction)
 {
-	vec2 x = sin(pin.phi) * cos(pin.theta);
-    vec2 y = sin(pin.phi) * sin(pin.theta);
-    vec2 z = cos(pin.phi);
+	vec2 x = sin(pin.theta) * cos(pin.phi);
+    vec2 y = sin(pin.theta) * sin(pin.phi);
+    vec2 z = cos(pin.theta);
 	origin = vec3(x.x, y.x, z.x)+vec3(0.5);
 	origin*=0.866025403784; // sqrt(3)/2
 	direction = normalize(vec3(x.y - x.x, y.y - y.x, z.y - z.x));
 }
+
+
 
 
 uint hash( uint x ) {

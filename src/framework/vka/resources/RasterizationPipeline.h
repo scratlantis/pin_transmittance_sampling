@@ -11,6 +11,10 @@ struct BlendMode
 	VkBlendFactor dstFactor;
 	VkBlendOp     blendOp;
 
+	VkBlendFactor alphaSrcFactor;
+	VkBlendFactor alphaDstFactor;
+	VkBlendOp     alphaBlendOp;
+
 	bool operator==(BlendMode right)
 	{
 		return (srcFactor == right.srcFactor) && (dstFactor == right.dstFactor) && (blendOp == right.blendOp);

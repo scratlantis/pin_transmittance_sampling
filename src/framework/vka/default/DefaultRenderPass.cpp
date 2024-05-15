@@ -18,22 +18,34 @@ void DefaultRenderPass::destroy()
 void DefaultRenderPass::createRenderPass()
 {
 	ASSERT_TRUE(renderPass == VK_NULL_HANDLE);
-	VkAttachmentDescription attachmentDescription{};
-	attachmentDescription.samples        = VK_SAMPLE_COUNT_1_BIT;
-	attachmentDescription.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachmentDescription.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
-	attachmentDescription.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachmentDescription.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+	VkAttachmentDescription colorAttachmentDescription{};
+	colorAttachmentDescription.samples        = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachmentDescription.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachmentDescription.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachmentDescription.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachmentDescription.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+
 	if (pOffscreenImage == nullptr)
 	{
-		attachmentDescription.format = gState.io.format;
+		colorAttachmentDescription.format = gState.io.format;
 	}
 	else
 	{
-		attachmentDescription.format = pOffscreenImage->format;
+		colorAttachmentDescription.format = pOffscreenImage->format;
 	}
-	attachmentDescription.finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colorAttachmentDescription.finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	VkAttachmentDescription depthAttachmentDescription{};
+	depthAttachmentDescription.samples                   = VK_SAMPLE_COUNT_1_BIT;
+	depthAttachmentDescription.loadOp                    = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachmentDescription.storeOp                   = VK_ATTACHMENT_STORE_OP_STORE;
+	depthAttachmentDescription.stencilLoadOp             = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachmentDescription.stencilStoreOp            = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachmentDescription.initialLayout             = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	depthAttachmentDescription.finalLayout               = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	depthAttachmentDescription.format                    = VK_FORMAT_D32_SFLOAT;
+
 
 	std::vector<VkSubpassDependency> subpassDependencies;
 	{
@@ -59,18 +71,27 @@ void DefaultRenderPass::createRenderPass()
 		subpassDependencies.push_back(subpassDependency);
 	}
 
-	VkAttachmentReference attachmetReference{};
-	attachmetReference.attachment = 0;
-	attachmetReference.layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	VkAttachmentReference colorAttachmetReference{};
+	colorAttachmetReference.attachment = 0;
+	colorAttachmetReference.layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference depthAttachmetReference{};
+	depthAttachmetReference.attachment = 1;
+	depthAttachmetReference.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 
 	VkSubpassDescription subpassDescription{};
 	subpassDescription.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpassDescription.colorAttachmentCount = 1;
-	subpassDescription.pColorAttachments    = &attachmetReference;
+	subpassDescription.pColorAttachments       = &colorAttachmetReference;
+	subpassDescription.pDepthStencilAttachment = &depthAttachmetReference;
+
+
+	std::vector<VkAttachmentDescription> attachments = {colorAttachmentDescription, depthAttachmentDescription};
 
 	VkRenderPassCreateInfo renderPassCreateInfo{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-	renderPassCreateInfo.attachmentCount = 1;
-	renderPassCreateInfo.pAttachments    = &attachmentDescription;
+	renderPassCreateInfo.attachmentCount = attachments.size();
+	renderPassCreateInfo.pAttachments    = attachments.data();
 	renderPassCreateInfo.subpassCount    = 1;
 	renderPassCreateInfo.pSubpasses      = &subpassDescription;
 	renderPassCreateInfo.dependencyCount = subpassDependencies.size();
@@ -97,15 +118,18 @@ void DefaultRenderPass::createFramebuffers()
 	{
 		VkFramebufferCreateInfo framebufferCreateInfo{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
 		framebufferCreateInfo.renderPass      = renderPass;
-		framebufferCreateInfo.attachmentCount = 1;
+		framebufferCreateInfo.attachmentCount = 2;
+		VkImageView attachments[2];
 		if (pOffscreenImage == nullptr)
 		{
-			framebufferCreateInfo.pAttachments    = &gState.io.images[i].view;
+			attachments[0] = gState.io.images[i].view;
 		}
 		else
 		{
-			framebufferCreateInfo.pAttachments    = &pOffscreenImage->view;
+			attachments[0] = pOffscreenImage->view;
 		}
+		attachments[1] = pDepthImage->view;
+		framebufferCreateInfo.pAttachments = &attachments[0];
 		framebufferCreateInfo.width           = framebufferExtent.width;
 		framebufferCreateInfo.height          = framebufferExtent.height;
 		framebufferCreateInfo.layers          = 1;
@@ -130,8 +154,9 @@ void DefaultRenderPass::updatFramebuffers()
 	}
 }
 
-DefaultRenderPass::DefaultRenderPass(Image* pOffscreenImage) :
-	pOffscreenImage(pOffscreenImage)
+DefaultRenderPass::DefaultRenderPass(Image* pDepthImage, Image* pOffscreenImage) :
+    pOffscreenImage(pOffscreenImage),
+    pDepthImage(pDepthImage)
 {
 }
 DefaultRenderPass::~DefaultRenderPass()
@@ -147,7 +172,7 @@ void DefaultRenderPass::init()
 void DefaultRenderPass::beginRender(UniversalCmdBuffer& cmdBuf)
 {
 	updatFramebuffers();
-	std::vector<VkClearValue> clearValues = {{0.0f, 0.0f, 0.0f, 1.0f}};
+	std::vector<VkClearValue> clearValues = {{1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 0}};
 	cmdBuf.startRenderPass(renderPass, framebuffers[gState.frame->frameIndex], clearValues);
 }
 

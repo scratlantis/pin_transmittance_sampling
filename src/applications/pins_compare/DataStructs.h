@@ -5,7 +5,8 @@
 #define PIN_GRID_SIZE 20
 #define PINS_PER_GRID_CELL 20
 #define PI 3.14159265359
-#define PIN_COUNT PIN_GRID_SIZE *PIN_GRID_SIZE *PIN_GRID_SIZE *PINS_PER_GRID_CELL
+#define PIN_COUNT_SQRT 100
+#define PIN_COUNT PIN_COUNT_SQRT *PIN_COUNT_SQRT
 #include <framework/vka/core/utility/misc.h>
 #include <framework/vka/global_state.h>
 

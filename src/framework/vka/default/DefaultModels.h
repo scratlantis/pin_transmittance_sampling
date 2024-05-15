@@ -61,9 +61,9 @@ class PosVertex
 class Transform
 {
   public:
-	Transform(glm::mat4 mat) : mat(mat), invMat(glm::inverse(mat)) {}
 	glm::mat4 mat;
 	glm::mat4 invMat;
+	Transform(glm::mat4 mat = glm::mat4(1.0)) : mat(mat), invMat(glm::inverse(mat)) {}
     static VkVertexInputBindingDescription getBindingDescription(uint32_t bindingIdx)
 	{
 		return getInstanceBindingDescription(sizeof(Transform), bindingIdx);
@@ -94,18 +94,27 @@ class Transform
 			});
     }
 };
-
+//std::vector<PosVertex> cCubeVertecies =
+//    {
+//        PosVertex(glm::vec3(-1.0, -1.0, 1.0)),
+//        PosVertex(glm::vec3(1.0, -1.0, 1.0)),
+//        PosVertex(glm::vec3(1.0, 1.0, 1.0)),
+//        PosVertex(glm::vec3(-1.0, 1.0, 1.0)),
+//        PosVertex(glm::vec3(-1.0, -1.0, -1.0)),
+//        PosVertex(glm::vec3(1.0, -1.0, -1.0)),
+//        PosVertex(glm::vec3(1.0, 1.0, -1.0)),
+//        PosVertex(glm::vec3(-1.0, 1.0, -1.0))};
 
 std::vector<PosVertex> cCubeVertecies =
     {
-        PosVertex(glm::vec3(-1.0, -1.0, 1.0)),
-        PosVertex(glm::vec3(1.0, -1.0, 1.0)),
+        PosVertex(glm::vec3(0.0, 0.0, 1.0)),
+        PosVertex(glm::vec3(1.0, 0.0, 1.0)),
         PosVertex(glm::vec3(1.0, 1.0, 1.0)),
-        PosVertex(glm::vec3(-1.0, 1.0, 1.0)),
-        PosVertex(glm::vec3(-1.0, -1.0, -1.0)),
-        PosVertex(glm::vec3(1.0, -1.0, -1.0)),
-        PosVertex(glm::vec3(1.0, 1.0, -1.0)),
-        PosVertex(glm::vec3(-1.0, 1.0, -1.0))};
+        PosVertex(glm::vec3(0.0, 1.0, 1.0)),
+        PosVertex(glm::vec3(0.0, 0.0, 0.0)),
+        PosVertex(glm::vec3(1.0, 0.0, 0.0)),
+        PosVertex(glm::vec3(1.0, 1.0, 0.0)),
+        PosVertex(glm::vec3(0.0, 1.0, 0.0))};
 std::vector<Index> cCubeIndices =
     {
         // front
@@ -127,5 +136,13 @@ std::vector<Index> cCubeIndices =
         3, 2, 6,
         6, 7, 3};
 
+
+std::vector<PosVertex> cTriangleVertecies =
+{
+        PosVertex(glm::vec3(-1.0, -1.0, 1.0)),
+        PosVertex(glm::vec3(1.0, -1.0, 1.0)),
+        PosVertex(glm::vec3(1.0, 1.0, 1.0))
+};
+std::vector<Index> cTriangleIndices = {0, 1, 2};
 
 }; // namespace vka

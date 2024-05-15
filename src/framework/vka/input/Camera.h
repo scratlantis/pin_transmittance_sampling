@@ -28,7 +28,7 @@ struct CameraCI_Default : public CameraCI
 	{
 		//start_position              = glm::vec3(-5.0f, 0.0f, 0.0f);
 		start_position              = glm::vec3(0.0f, 0.0f, 0.0f);
-		near_plane                  = 0.1f;
+		near_plane                  = 1.0f;
 		far_plane                   = 10000.f;
 		angle                       = 0.0f;
 		fov                         = 60.f;

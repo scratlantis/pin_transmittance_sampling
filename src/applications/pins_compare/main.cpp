@@ -58,14 +58,18 @@ int main()
 
 	// Resources
 	FramebufferImage offscreenImage = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
+	FramebufferImage      depthImage     = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_FORMAT_D32_SFLOAT, gState.io.extent);
+	depthImage.createImageView(&gState.heap);
 	Buffer                viewBuf     = BufferVma(&gState.heap, sizeof(View), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	GaussianBuffer        gaussianBuf = GaussianBuffer(GAUSSIAN_COUNT, GAUSSIAN_MARGIN);
 	PinBuffer             pinBuf      = PinBuffer(PIN_COUNT);
+	Buffer                pinDirectionsBuffer;
 	GridBuffer            pinGridBuf  = GridBuffer(PIN_GRID_SIZE, PINS_PER_GRID_CELL, &pinBuf, &gaussianBuf);
 	Buffer                pinTransmittanceBuf;
-	DefaultRenderPass     renderPass = DefaultRenderPass();
+	DefaultRenderPass     renderPass = DefaultRenderPass(&depthImage);
 	renderPass.init();
 	Geometry_T<PosVertex> cubeGeom   = Geometry_T<PosVertex>(&gState.heap, cCubeVertecies, cCubeIndices);
+	//Geometry_T<PosVertex> cubeGeom   = Geometry_T<PosVertex>(&gState.heap, cTriangleVertecies, cTriangleIndices);
 
 	std::vector<Model *>     models;
 	std::vector<Transform *> transforms;
@@ -76,32 +80,21 @@ int main()
 	models.push_back(&gaussianCube);
 	transforms.push_back(&gaussianCubeTransform);
 
-	GaussianNN_M           gaussianNNMat               = GaussianNN_M(&renderPass, &viewBuf, &pinBuf, &pinTransmittanceBuf);
+	GaussianNN_M           gaussianNNMat               = GaussianNN_M(&renderPass, &viewBuf, &pinBuf, &pinTransmittanceBuf, &pinDirectionsBuffer);
 	DefaulModel<PosVertex> gaussianNNCube              = DefaulModel<PosVertex>(&cubeGeom, &gaussianNNMat);
 	Transform              gaussianNNCubeTransform     = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 0.0)));
-	//models.push_back(&gaussianNNCube);
-	//transforms.push_back(&gaussianNNCubeTransform);
+	models.push_back(&gaussianNNCube);
+	transforms.push_back(&gaussianNNCubeTransform);
 
 	GaussianNNGrid_M       gaussianNNGridMat           = GaussianNNGrid_M(&renderPass, &viewBuf, &pinTransmittanceBuf, &pinGridBuf);
 	DefaulModel<PosVertex> gaussianNNGridCube          = DefaulModel<PosVertex>(&cubeGeom, &gaussianNNGridMat);
 	Transform              gaussianNNGridCubeTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(1.0, 0.0, 0.0)));
 
 
-	//models.push_back(&gaussianNNGridCube);
-	//transforms.push_back(&gaussianNNGridCubeTransform);
-
-	// Create draw calls
-	std::vector<DrawCall> drawCalls;
-	for (size_t i = 0; i < models.size(); i++)
-	{
-		std::vector<DrawSurface>         drawSurf = models[i]->getDrawSurf();
-		std::vector<DrawSurfaceInstance> drawSurfInst;
-		for (size_t j = 0; j < drawSurf.size(); j++)
-		{
-			drawSurfInst.push_back(DrawSurfaceInstance(drawSurf[j], transforms[i], sizeof(Transform)));
-		}
-		drawCalls.push_back(DrawCall(drawSurfInst));
-	}
+	models.push_back(&gaussianNNGridCube);
+	transforms.push_back(&gaussianNNGridCubeTransform);
+	std::vector<uint32_t> instanceCounts = {1, PIN_COUNT_SQRT, 1};
+	
 
 	// Upload data
 	UniversalCmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -109,12 +102,7 @@ int main()
 	cubeGeom.upload(cmdBuf);
 	gaussianBuf.upload(cmdBuf);
 	pinBuf.upload(cmdBuf);
-
-	//std::vector<Index> indices     = {0, 1, 2, 3, 4, 5, 6, 7};
-	//Buffer             indexBuffer = cmdBuf.uploadData(&indices[0], sizeof(Index) * indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, &gState.heap);
-	//Buffer             indexBuffer2 = BufferVma(&gState.heap, sizeof(Index) * indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	//cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-	//cmdBuf.copyBuffer(indexBuffer, indexBuffer2);
+	pinDirectionsBuffer = pinBuf.buildDirectionBuffer(cmdBuf);
 
 	cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	// Build buffers
@@ -128,6 +116,7 @@ int main()
 	uint32_t cnt = 0;
 	View     view{};
 	glm::mat4 lastViewMatrix = glm::mat4(1.0);
+	camera.mouse_control(0, 0);
 	while (!gState.io.shouldTerminate())
 	{
 		imguiWrapper.newFrame();
@@ -144,22 +133,33 @@ int main()
 			camera.mouse_control(gState.io.mouse.change.x, gState.io.mouse.change.y);
 		}
 		view.update(cnt, camera);
-		if (lastViewMatrix != view.viewMat)
+
+		std::vector<Transform> finalTransforms(transforms.size());
+		for (size_t i = 0; i < transforms.size(); i++)
 		{
-			lastViewMatrix = view.viewMat;
-			printVka("viewMat: \n %.3f %.3f %.3f %.3f \n %.3f %.3f %.3f %.3f \n %.3f %.3f %.3f %.3f \n %.3f %.3f %.3f %.3f \n",
-				view.viewMat[0].x, view.viewMat[1].x, view.viewMat[2].x, view.viewMat[3].x,
-				view.viewMat[0].y, view.viewMat[1].y, view.viewMat[2].y, view.viewMat[3].y,
-				view.viewMat[0].z, view.viewMat[1].z, view.viewMat[2].z, view.viewMat[3].z,
-				view.viewMat[0].w, view.viewMat[1].w, view.viewMat[2].w, view.viewMat[3].w
-			);
-			printVka("inverseViewMat: \n %.3f %.3f %.3f %.3f \n %.3f %.3f %.3f %.3f \n %.3f %.3f %.3f %.3f \n %.3f %.3f %.3f %.3f \n",
-			         view.inverseViewMat[0].x, view.inverseViewMat[1].x, view.inverseViewMat[2].x, view.inverseViewMat[3].x,
-			         view.inverseViewMat[0].y, view.inverseViewMat[1].y, view.inverseViewMat[2].y, view.inverseViewMat[3].y,
-			         view.inverseViewMat[0].z, view.inverseViewMat[1].z, view.inverseViewMat[2].z, view.inverseViewMat[3].z,
-			         view.inverseViewMat[0].w, view.inverseViewMat[1].w, view.inverseViewMat[2].w, view.inverseViewMat[3].w);
-			printVka("cam pos: \n %.3f %.3f %.3f\n", view.camPos.x, view.camPos.y, view.camPos.z);
+			glm::mat4 centerMat = glm::translate(glm::mat4(1.0), glm::vec3(-0.5, -0.5, -0.5));
+			glm::mat4 rotationMat = glm::rotate(glm::mat4(1.0), glm::radians(cnt / 20.f), glm::vec3(0.0, 1.0, 0.0));
+			//rotationMat     = glm::mat4(1.0);
+			glm::mat4 scaleMat = glm::scale(glm::mat4(1.0), glm::vec3(0.4, 0.4, 0.4));
+			finalTransforms[i].mat    = transforms[i]->mat * rotationMat * scaleMat * centerMat;
+			finalTransforms[i].invMat = glm::inverse(finalTransforms[i].mat);
 		}
+		// Create draw calls
+		std::vector<DrawCall> drawCalls;
+		for (size_t i = 0; i < models.size(); i++)
+		{
+			std::vector<DrawSurface>         drawSurf = models[i]->getDrawSurf();
+			std::vector<DrawSurfaceInstance> drawSurfInst;
+			for (size_t j = 0; j < drawSurf.size(); j++)
+			{
+				for (size_t k = 0; k < instanceCounts[i]; k++)
+				{
+					drawSurfInst.push_back(DrawSurfaceInstance(drawSurf[j], &finalTransforms[i], sizeof(Transform)));
+				}
+			}
+			drawCalls.push_back(DrawCall(drawSurfInst));
+		}
+
 
 		UniversalCmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 		// Upload data
@@ -172,6 +172,8 @@ int main()
 		}
 		
 		cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_INDEX_READ_BIT);
+		depthImage.update(&gState.heap, &gState.frame->stack, gState.io.extent);
+		cmdBuf.transitionLayout(depthImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 		renderPass.beginRender(cmdBuf);
 		for (size_t i = 0; i < drawCalls.size(); i++)
 		{
