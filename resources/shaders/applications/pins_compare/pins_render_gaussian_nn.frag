@@ -27,19 +27,20 @@ void main()
 
 	uint offset = fragment_instanceId * PIN_COUNT_SQRT;
 
-	float theta = acos(dir.z);
-	float phi = sign(dir.y)*acos(dir.x/length(dir.xy));
+	//float theta = acos(dir.z)/PI;
+	//float phi = 0.5+0.5*sign(dir.y)*acos(dir.x/length(dir.xy))/(PI);
 
-
+	
 	[[unroll]]
 	for(uint i = 0; i < PIN_COUNT_SQRT; i++)
 	{
-		float dotProd = abs(dot(dir, pin_dir[i+offset].xyz));
+		vec3 origin,direction;
 		Pin p = pins[i+offset];
-	
-		//float deltaPhi = p.phi.x - phi;
-		//float deltaTheta = p.theta.x - theta;
-	
+		getRay(p, origin, direction);
+		//float dotProd = abs(dot(dir, pin_dir[i+offset].xyz));
+		float dotProd = abs(dot(dir, direction));
+		float dist = 1.0-distance(origin,fragment_position);
+		dotProd = mix(dotProd, dist, 0.5);
 		//deltaPhi = min(abs(deltaPhi), abs(deltaPhi+PI));
 		//deltaTheta = min(abs(deltaTheta), abs(deltaTheta+2*PI));
 	
@@ -60,7 +61,8 @@ void main()
 	float transmittance = pin_transmittance[maxDotIdx];
 	outColor = vec4(transmittance-0.1, transmittance, transmittance, 1.0);
 	//outColor = vec4(maxDot*0.2, maxDot*0.2, maxDot*0.2, 1.0);
-
+	//vec3 color = vec3(phi);
+	//outColor = vec4(color, 1.0);
 
 	//float deltaPhi = abs(pins[i+offset].x - phi);
 	//outColor = vec4(deltaPhi/(PI),deltaTheta/(0.5*PI)+0.5,0.0,1.0);
