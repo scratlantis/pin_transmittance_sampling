@@ -4,8 +4,9 @@
 layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
 
 layout(binding = 0) buffer PINS_STORAGE_BUFFER {Pin pins[PIN_COUNT];};
-layout(binding = 1) buffer PIN_GRID_STORAGE_BUFFER {Pin pinGrid[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
-layout(binding = 2) buffer PIN_GRID_ID_STORAGE_BUFFER {uint pinGridID[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
+//layout(binding = 1) buffer PIN_GRID_STORAGE_BUFFER {Pin pinGrid[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
+layout(binding = 1) buffer PIN_GRID_STORAGE_BUFFER {PinGridEntry pinGrid[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
+//layout(binding = 2) buffer PIN_GRID_ID_STORAGE_BUFFER {uint pinGridID[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
 
 
 
@@ -32,8 +33,13 @@ void main()
 	for(; (i < PINS_PER_GRID_CELL)  && (pinsOffset < PIN_COUNT); i++)
 	{
 		while((!intersect(pins[pinsOffset++])) && pinsOffset < PIN_COUNT - PINS_PER_GRID_CELL) {}
-		pinGrid[baseIdx+i] = pins[pinsOffset-1];
-		pinGridID[baseIdx+i] = pinsOffset-1;
+		PinGridEntry gridEntry;
+		gridEntry.pin = pins[pinsOffset-1];
+		gridEntry.data.pinIndex = pinsOffset-1;
+		pinGrid[baseIdx+i] = gridEntry;
+		//pinGrid[baseIdx+i] = pins[pinsOffset-1];
+		//pinGridID[baseIdx+i] = pinsOffset-1;
+
 		pinsOffset++;
 	}
 }

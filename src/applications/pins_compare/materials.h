@@ -1,10 +1,9 @@
 #pragma once
-#include <framework/vka/render_model/common.h>
 #include "DataStructs.h"
+#include <framework/vka/render_model/common.h>
 #include <random>
 
 using namespace vka;
-
 
 class GaussianBuffer : public BufferVma
 {
@@ -16,7 +15,7 @@ class GaussianBuffer : public BufferVma
 		std::mt19937                          gen32(42);
 		std::uniform_real_distribution<float> unormDistribution(0.0, 1.0);
 		gaussiansData.resize(count);
-		float                 coef = 0.3;
+		float coef = 0.3;
 		for (size_t i = 0; i < count; i++)
 		{
 			gaussiansData[i].mean.x   = (1.0 - margin) / 2.0 + margin * unormDistribution(gen32);
@@ -31,11 +30,11 @@ class GaussianBuffer : public BufferVma
 		return gaussiansData.size();
 	}
 
-	void upload(CmdBuffer& cmdBuf)
+	void upload(CmdBuffer &cmdBuf)
 	{
-		cmdBuf.uploadData(*this, 0, gaussiansData.data(), sizeof(Gaussian) * gaussiansData.size());
+		cmdBuf.uploadData(gaussiansData.data(), sizeof(Gaussian) * gaussiansData.size(), *this);
 	}
-	~GaussianBuffer();
+	~GaussianBuffer(){};
 
   private:
 	std::vector<Gaussian> gaussiansData;
@@ -44,8 +43,8 @@ class GaussianBuffer : public BufferVma
 class PinBuffer : public BufferVma
 {
   public:
-	PinBuffer(uint32_t count,
-	               VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) :
+	PinBuffer(uint32_t           count,
+	          VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) :
 	    BufferVma(&gState.heap, sizeof(Pin) * count, bufferUsageFlags | VK_BUFFER_USAGE_TRANSFER_DST_BIT)
 	{
 		std::mt19937                          gen32(42);
@@ -66,16 +65,15 @@ class PinBuffer : public BufferVma
 
 	void upload(CmdBuffer &cmdBuf)
 	{
-		cmdBuf.uploadData(*this, 0, pins.data(), sizeof(Pin) * pins.size());
+		cmdBuf.uploadData(pins.data(), sizeof(Pin) * pins.size(), *this);
 	}
 
-
-	Buffer buildTransmittanceBuffer(UniversalCmdBuffer& cmdBuf, const GaussianBuffer* gaussianBuf)
+	Buffer buildTransmittanceBuffer(UniversalCmdBuffer &cmdBuf, const GaussianBuffer *gaussianBuf)
 	{
 		Buffer               pinTransmittanceBuf = BufferVma(&gState.heap, sizeof(float) * size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-		glm::uvec3           workGroupSize  = {128, 1, 1};
-		glm::uvec3           resolution     = {pins.size(), 1, 1};
-		glm::uvec3           workGroupCount = getWorkGroupCount(workGroupSize, resolution);
+		glm::uvec3           workGroupSize       = {128, 1, 1};
+		glm::uvec3           resolution          = {pins.size(), 1, 1};
+		glm::uvec3           workGroupCount      = getWorkGroupCount(workGroupSize, resolution);
 		ComputePipelineState computeState{};
 		computeState.shaderDef.name = "pins_eval_transmittance.comp";
 		computeState.shaderDef.args.push_back({"GAUSSIAN_COUNT", std::to_string(GAUSSIAN_COUNT)});
@@ -90,11 +88,11 @@ class PinBuffer : public BufferVma
 		computeState.specializationData                 = getByteVector(workGroupSize);
 		ComputePipeline computePipeline                 = ComputePipeline(&gState.cache, computeState);
 		cmdBuf.bindPipeline(computePipeline);
-		cmdBuf.pushDescriptors(0, *gaussianBuf, *this, pinTransmittanceBuf);
+		cmdBuf.pushDescriptors(0, (Buffer) *gaussianBuf, (Buffer) *this, (Buffer) pinTransmittanceBuf);
 		cmdBuf.dispatch(workGroupCount);
 		return pinTransmittanceBuf;
 	}
-	~PinBuffer();
+	~PinBuffer(){};
 
   private:
 	std::vector<Pin> pins;
@@ -104,9 +102,9 @@ class GridBuffer : public BufferVma
 {
   public:
 	GridBuffer(uint32_t resolution, uint32_t cellSize,
-	           const PinBuffer *pinBuf, const GaussianBuffer* gaussiansBuf,
-		VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) :
-	    BufferVma(&gState.heap, sizeof(Pin) * cellSize * resolution * resolution * resolution, bufferUsageFlags), res(resolution), cellSize(cellSize), pinBuf(pinBuf)
+	           const PinBuffer *pinBuf, const GaussianBuffer *gaussiansBuf,
+	           VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) :
+	    BufferVma(&gState.heap, sizeof(PinGridEntry) * cellSize * resolution * resolution * resolution, bufferUsageFlags), res(resolution), cellSize(cellSize), pinBuf(pinBuf)
 	{
 	}
 	size_t resolution() const
@@ -127,29 +125,29 @@ class GridBuffer : public BufferVma
 		DescriptorSetLayoutDefinition layoutDefinition{};
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		//layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags                          = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 		computeState.pipelineLayoutDef.descSetLayoutDef = {layoutDefinition};
 		computeState.specialisationEntrySizes           = glm3VectorSizes();
 		computeState.specializationData                 = getByteVector(workGroupSize);
 		ComputePipeline computePipeline                 = ComputePipeline(&gState.cache, computeState);
 		cmdBuf.bindPipeline(computePipeline);
-		cmdBuf.pushDescriptors(0, *pinBuf, (Buffer) *this);
+		cmdBuf.pushDescriptors(0, (Buffer) *pinBuf, (Buffer) * this);
 		cmdBuf.dispatch(workGroupCount);
 	}
 	~GridBuffer(){};
-	virtual void          bind(UniversalCmdBuffer& cmdBuf, const MemoryBlock& params) const
+	virtual void bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
 	{
 	}
+
   private:
-	virtual void bindPipeline(CmdBuffer& cmdBuf) const
+	virtual void bindPipeline(CmdBuffer &cmdBuf) const
 	{
 	}
-	uint32_t res;
-	uint32_t cellSize;
+	uint32_t         res;
+	uint32_t         cellSize;
 	const PinBuffer *pinBuf;
 };
-
 
 class GaussianNN_M : public Material
 {
@@ -157,70 +155,142 @@ class GaussianNN_M : public Material
 	GaussianNN_M(
 	    const DefaultRenderPass *defaultRenderPass,
 	    const Buffer            *viewBuf,
-	    const GaussianBuffer    *gaussianBuf,
 	    const PinBuffer         *pinBuf,
 	    const Buffer            *pinTransmittanceBuf) :
-	    gaussianBuf(gaussianBuf), pinBuf(pinBuf){};
+	    pinBuf(pinBuf), pinTransmittanceBuf(pinTransmittanceBuf), viewBuf(viewBuf), defaultRenderPass(defaultRenderPass){};
 	~GaussianNN_M(){};
-	const GaussianBuffer *gaussianBuf;
-	const PinBuffer      *pinBuf;
-	const Buffer         *pinTransmittanceBuf;
+	const PinBuffer         *pinBuf;
+	const Buffer            *pinTransmittanceBuf;
+	const DefaultRenderPass *defaultRenderPass;
+	const Buffer            *viewBuf;
 
 	virtual void bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
 	{
+		bindPipeline(cmdBuf);
+		cmdBuf.pushDescriptors(0, (Buffer) *viewBuf, (Buffer) *pinBuf, (Buffer) *pinTransmittanceBuf);
 	}
 
   private:
-	virtual void bindPipeline(CmdBuffer &cmdBuf) const
+	virtual void bindPipeline(UniversalCmdBuffer &cmdBuf) const
 	{
+		DescriptorSetLayoutDefinition layoutDefinition{};
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+		ShaderDefinition vertShaderDef{"pins_render.vert"};
+		ShaderDefinition fragShaderDef{"pins_render_gaussian_nn.frag"};
+		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
+		vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
+		RasterizationPipelineState pipelineState = RasterizationPipelineState();
+		pipelineState
+		    .addVertexAttribute(PosVertex::getAttributeDescriptions(0))
+		    .addVertexAttribute(Transform::getAttributeDescriptions(1))
+		    .setExtent(gState.io.extent.width, gState.io.extent.height)
+		    .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+		    .setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+		    .setVertexBinding(PosVertex::getBindingDescription(0), Transform::getBindingDescription(1))
+		    .setDescriptorLayout(layoutDefinition)
+		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
+		    .setBlendMode(1, blendMode);
+		RasterizationPipeline pipeline = defaultRenderPass->createPipeline(pipelineState, 0);
+		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
 };
-
 
 class Gaussian_M : public Material
 {
   public:
 	Gaussian_M(
 	    const DefaultRenderPass *defaultRenderPass,
-		const Buffer *viewBuf,
-		const GaussianBuffer *gaussianBuf) :
-	    gaussianBuf(gaussianBuf){};
+	    const Buffer            *viewBuf,
+	    const GaussianBuffer    *gaussianBuf) :
+	    gaussianBuf(gaussianBuf), defaultRenderPass(defaultRenderPass), viewBuf(viewBuf){};
 	~Gaussian_M(){};
 
-	const GaussianBuffer* gaussianBuf;
-	virtual void          bind(UniversalCmdBuffer& cmdBuf, const MemoryBlock& params) const
+	const GaussianBuffer    *gaussianBuf;
+	const DefaultRenderPass *defaultRenderPass;
+	const Buffer            *viewBuf;
+	virtual void             bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
 	{
+		bindPipeline(cmdBuf);
+		cmdBuf.pushDescriptors(0, *viewBuf, *gaussianBuf);
 	}
+
   private:
-	virtual void bindPipeline(CmdBuffer& cmdBuf) const
+	virtual void bindPipeline(UniversalCmdBuffer &cmdBuf) const
 	{
+		DescriptorSetLayoutDefinition layoutDefinition{};
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+		ShaderDefinition vertShaderDef{"pins_render.vert"};
+		ShaderDefinition fragShaderDef{"pins_render_gaussian.frag"};
+		fragShaderDef.args.push_back({"GAUSSIAN_COUNT", std::to_string(GAUSSIAN_COUNT)});
+		vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
+		RasterizationPipelineState pipelineState = RasterizationPipelineState();
+		pipelineState
+		    .addVertexAttribute(PosVertex::getAttributeDescriptions(0))
+		    .addVertexAttribute(Transform::getAttributeDescriptions(1))
+		    .setExtent(gState.io.extent.width, gState.io.extent.height)
+		    .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+		    .setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+		    .setVertexBinding(PosVertex::getBindingDescription(0), Transform::getBindingDescription(1))
+		    .setDescriptorLayout(layoutDefinition)
+		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
+		    .setBlendMode(1, blendMode);
+		RasterizationPipeline pipeline = defaultRenderPass->createPipeline(pipelineState, 0);
+		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
 };
-
 
 class GaussianNNGrid_M : public Material
 {
   public:
 	GaussianNNGrid_M(
 	    const DefaultRenderPass *defaultRenderPass,
-		const Buffer *viewBuf,
-		const GaussianBuffer *gaussianBuf,
-		const PinBuffer *pinBuf,
-		const Buffer *pinTransmittanceBuf,
-		const GridBuffer *gridBuffer) :
-		gaussianBuf(gaussianBuf), pinBuf(pinBuf){};
+	    const Buffer            *viewBuf,
+	    const Buffer            *pinTransmittanceBuf,
+	    const GridBuffer        *gridBuf) :
+	    defaultRenderPass(defaultRenderPass), viewBuf(viewBuf), pinTransmittanceBuf(pinTransmittanceBuf), gridBuf(gridBuf){};
 	~GaussianNNGrid_M(){};
-	const GaussianBuffer *gaussianBuf;
-	const PinBuffer      *pinBuf;
-	const Buffer         *pinTransmittanceBuf;
-	const GridBuffer     *gridBuffer;
+	const Buffer            *pinTransmittanceBuf;
+	const GridBuffer        *gridBuf;
+	const DefaultRenderPass *defaultRenderPass;
+	const Buffer            *viewBuf;
 
 	virtual void bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
 	{
+		bindPipeline(cmdBuf);
+		cmdBuf.pushDescriptors(0, (Buffer) *viewBuf, (Buffer) *pinTransmittanceBuf, (Buffer) *gridBuf);
 	}
 
   private:
-	virtual void bindPipeline(CmdBuffer &cmdBuf) const
+	virtual void bindPipeline(UniversalCmdBuffer &cmdBuf) const
 	{
+		DescriptorSetLayoutDefinition layoutDefinition{};
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+		ShaderDefinition vertShaderDef{"pins_render.vert"};
+		ShaderDefinition fragShaderDef{"pins_render_gaussian_nn_grid.frag"};
+		fragShaderDef.args.push_back({"PIN_GRID_SIZE", std::to_string(PIN_GRID_SIZE)});
+		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
+		fragShaderDef.args.push_back({"PINS_PER_GRID_CELL", std::to_string(PINS_PER_GRID_CELL)});
+		vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
+		RasterizationPipelineState pipelineState = RasterizationPipelineState();
+		pipelineState
+		    .addVertexAttribute(PosVertex::getAttributeDescriptions(0))
+		    .addVertexAttribute(Transform::getAttributeDescriptions(1))
+		    .setExtent(gState.io.extent.width, gState.io.extent.height)
+		    .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE)
+		    .setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+		    .setVertexBinding(PosVertex::getBindingDescription(0), Transform::getBindingDescription(1))
+		    .setDescriptorLayout(layoutDefinition)
+		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
+		    .setBlendMode(1, blendMode);
+		RasterizationPipeline pipeline = defaultRenderPass->createPipeline(pipelineState, 0);
+		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
 };

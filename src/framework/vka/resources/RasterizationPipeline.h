@@ -62,9 +62,11 @@ struct RasterizationPipelineState
 
 
 	RasterizationPipelineState();
-	void addVertexBinding(VkVertexInputBindingDescription desc);
+	RasterizationPipelineState &addVertexBinding(VkVertexInputBindingDescription desc);
+	RasterizationPipelineState &addVertexAttribute(VkVertexInputAttributeDescription desc);
+	RasterizationPipelineState &addVertexAttribute(std::vector<VkVertexInputAttributeDescription> desc);
 
-	RasterizationPipelineState &setVertexAttributes(std::vector<VkVertexInputAttributeDescription> vertexAttributes);
+	// &setVertexAttributes(std::vector<VkVertexInputAttributeDescription> vertexAttributes);
 
 	RasterizationPipelineState &setPrimitiveTopology(VkPrimitiveTopology topology);
 
@@ -77,8 +79,6 @@ struct RasterizationPipelineState
 	RasterizationPipelineState &enableDepthTest(VkCompareOp compareOp, VkBool32 enableDepthWrite);
 
 	RasterizationPipelineState &disableDepthTest();
-
-	RasterizationPipelineState &setLayoutDefinition(PipelineLayoutDefinition layout);
 
 
 	VkPipelineColorBlendAttachmentState getBlendAttachment(BlendMode blendMode);
@@ -115,6 +115,35 @@ struct RasterizationPipelineState
 		addVertexBinding(args...);
 		return *this;
 	}
+
+	template <typename... Args>
+	void addVertexAttribute(VkVertexInputBindingDescription desc, Args... args)
+	{
+		addVertexAttribute(desc);
+		addVertexAttribute(args...);
+	}
+
+	/*template <typename... Args>
+	void addVertexAttributes(std::vector<VkVertexInputBindingDescription> desc, Args... args)
+	{
+		addVertexAttributes(desc);
+		addVertexAttributes(args...);
+	}
+
+	template <typename... Args>
+	RasterizationPipelineState &setVertexAttribute(Args... args)
+	{
+		vertexAttributeDescriptions.clear();
+		addVertexAttribute(args...);
+		return *this;
+	}
+	template <typename... Args>
+	RasterizationPipelineState &setVertexAttributes(Args... args)
+	{
+		vertexAttributeDescriptions.clear();
+		addVertexAttributes(args...);
+		return *this;
+	}*/
 	template <typename... Args>
 	void addBlendMode(uint32_t attachmentCnt, BlendMode blendMode, Args... args)
 	{

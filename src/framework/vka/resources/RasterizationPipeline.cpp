@@ -243,7 +243,7 @@ VkGraphicsPipelineCreateInfo RasterizationPipelineState::buildPipelineCI(Resourc
 	
 	colorBlendState.attachmentCount = blendAttachments.size();
 	colorBlendState.pAttachments    = blendAttachments.data();
-	
+
 	vertexInputState.vertexBindingDescriptionCount   = vertexBindingDescription.size();
 	vertexInputState.pVertexBindingDescriptions      = vertexBindingDescription.data();
 	vertexInputState.vertexAttributeDescriptionCount = vertexAttributeDescriptions.size();
@@ -322,16 +322,34 @@ void RasterizationPipelineState::addShaderDefinitions(ShaderDefinition shaderDef
 	shaderDefinitions.push_back(shaderDef);
 }
 
-void RasterizationPipelineState::addVertexBinding(VkVertexInputBindingDescription desc)
+RasterizationPipelineState& RasterizationPipelineState::addVertexBinding(VkVertexInputBindingDescription desc)
 {
 	vertexBindingDescription.push_back(desc);
-}
-
-RasterizationPipelineState &RasterizationPipelineState::setVertexAttributes(std::vector<VkVertexInputAttributeDescription> vertexAttributes)
-{
-	vertexAttributeDescriptions = vertexAttributes;
 	return *this;
 }
+
+RasterizationPipelineState &RasterizationPipelineState::addVertexAttribute(VkVertexInputAttributeDescription desc)
+{
+	vertexAttributeDescriptions.push_back(desc);
+	return *this;
+}
+
+RasterizationPipelineState &RasterizationPipelineState::addVertexAttribute(std::vector<VkVertexInputAttributeDescription> desc)
+{
+	vertexAttributeDescriptions.insert(vertexAttributeDescriptions.end(), desc.begin(), desc.end());
+	for (size_t i = 0; i < vertexAttributeDescriptions.size(); i++)
+	{
+		vertexAttributeDescriptions[i].location = i;
+	}
+	return *this;
+}
+
+
+//RasterizationPipelineState &RasterizationPipelineState::setVertexAttributes(std::vector<VkVertexInputAttributeDescription> vertexAttributes)
+//{
+//	vertexAttributeDescriptions = vertexAttributes;
+//	return *this;
+//}
 
 RasterizationPipelineState &RasterizationPipelineState::setPrimitiveTopology(VkPrimitiveTopology topology)
 {

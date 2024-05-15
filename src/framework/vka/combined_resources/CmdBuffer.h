@@ -70,7 +70,7 @@ class CmdBuffer
 		vkCmdPipelineBarrier(handle, srcStage, dstStage,
 		                     0, 1, &barrier, 0, nullptr, 0, nullptr);	}
 
-	template <class T>
+	/*template <class T>
 	void uploadData(T dataStruct, Buffer dst, ResourceTracker *garbageTracker = &gState.frame->stack)
 	{
 	    VkDeviceSize size = sizeof(T);
@@ -84,26 +84,33 @@ class CmdBuffer
 	    Buffer       dst  = BufferVma(bufferTracker, size, usageFlags | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	    uploadData(dataStruct, dst);
 	    return dst;
-	}
+	}*/
 
-	void uploadData(const void* data, size_t size, Buffer dst, ResourceTracker *garbageTracker = &gState.frame->stack)
+	/*void uploadData(const void* data, size_t size, Buffer dst, ResourceTracker *garbageTracker = &gState.frame->stack)
 	{
 		uploadData(dst, 0, data, size, garbageTracker);
-	}
+	}*/
 
 	Buffer uploadData(const void *data, size_t size, VkBufferUsageFlags usageFlags, ResourceTracker *bufferTracker, ResourceTracker *garbageTracker = &gState.frame->stack)
 	{
 		Buffer       dst  = BufferVma(bufferTracker, size, usageFlags | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-		uploadData(data, size, dst);
+		uploadData(data, size, dst, garbageTracker);
 		return dst;
 	}
 
-	void uploadData(Buffer dst, uint32_t dstOffset, const void *data, VkDeviceSize size, ResourceTracker *garbageTracker = &gState.frame->stack)
+	void uploadData(const void *data, VkDeviceSize size, Buffer dst, ResourceTracker *garbageTracker = &gState.frame->stack)
 	{
 		Buffer stagingBuf = BufferVma(garbageTracker, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 		stagingBuf.write(data, size);
-		VkBufferCopy copyRegion{0, dstOffset, size};
+		VkBufferCopy copyRegion{0, 0, size};
 		vkCmdCopyBuffer(handle, stagingBuf.buf, dst.buf, 1, &copyRegion);
+	}
+
+	void copyBuffer(Buffer src, Buffer dst)
+	{
+		ASSERT_TRUE(src.size == dst.size);
+		VkBufferCopy copyRegion{0, 0, src.size};
+		vkCmdCopyBuffer(handle, src.buf, dst.buf, 1, &copyRegion);
 	}
 
 	void imageMemoryBarrier(Image &image)
@@ -270,14 +277,14 @@ class ComputeCmdBuffer : public CmdBuffer
 		writes.reserve(pipelineLayoutDef.descSetLayoutDef[setIdx].bindings.size());
 		bufferInfos.reserve(pipelineLayoutDef.descSetLayoutDef[setIdx].bindings.size());
 		imageInfos.reserve(pipelineLayoutDef.descSetLayoutDef[setIdx].bindings.size());
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, args...);
+		pushDescriptorsRecursive(setIdx, writes, bufferInfos, imageInfos, args...);
 
 
 		ASSERT_TRUE(writes.size() == pipelineLayoutDef.descSetLayoutDef[setIdx].bindings.size());
 		pvkCmdPushDescriptorSetKHR(handle, bindPoint, PipelineLayout(pTracker,pipelineLayoutDef).getHandle(), setIdx, writes.size(), writes.data());
 	}
 	template <class... Args>
-	void pushDescriptors(uint32_t                             setIdx,
+	void pushDescriptorsRecursive(uint32_t                             setIdx,
 	                     std::vector<VkWriteDescriptorSet>   &writes,
 	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
 	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
@@ -285,10 +292,10 @@ class ComputeCmdBuffer : public CmdBuffer
 	                     Args... args
 		)
 	{
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, buffer);
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, args...);
+		pushDescriptorsRecursive(setIdx, writes, bufferInfos, imageInfos, buffer);
+		pushDescriptorsRecursive(setIdx, writes, bufferInfos, imageInfos, args...);
 	}
-	void pushDescriptors(uint32_t                             setIdx,
+	void pushDescriptorsRecursive(uint32_t                             setIdx,
 	                     std::vector<VkWriteDescriptorSet>   &writes,
 	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
 	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
@@ -306,18 +313,18 @@ class ComputeCmdBuffer : public CmdBuffer
 	}
 
 	template <class... Args>
-	void pushDescriptors(uint32_t                             setIdx,
+	void pushDescriptorsRecursive(uint32_t                             setIdx,
 	                     std::vector<VkWriteDescriptorSet>   &writes,
 	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
 	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
 	                     Image                               &image,
 	                     Args... args)
 	{
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, image);
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, args...);
+		pushDescriptorsRecursive(setIdx, writes, bufferInfos, imageInfos, image);
+		pushDescriptorsRecursive(setIdx, writes, bufferInfos, imageInfos, args...);
 	}
 	template <class... Args>
-	void pushDescriptors(uint32_t                             setIdx,
+	void pushDescriptorsRecursive(uint32_t                             setIdx,
 	                     std::vector<VkWriteDescriptorSet>   &writes,
 	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
 	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
@@ -337,18 +344,18 @@ class ComputeCmdBuffer : public CmdBuffer
 	}
 
 	template <class... Args>
-	void pushDescriptors(uint32_t                             setIdx,
+	void pushDescriptorsRecursive(uint32_t                             setIdx,
 	                     std::vector<VkWriteDescriptorSet>   &writes,
 	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
 	                     std::vector<VkDescriptorImageInfo>  &imageInfos,
 	                     Sampler                               &sampler,
 	                     Args... args)
 	{
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, sampler);
-		pushDescriptors(setIdx, writes, bufferInfos, imageInfos, args...);
+		pushDescriptorsRecursive(setIdx, writes, bufferInfos, imageInfos, sampler);
+		pushDescriptorsRecursive(setIdx, writes, bufferInfos, imageInfos, args...);
 	}
 	template <class... Args>
-	void pushDescriptors(uint32_t                             setIdx,
+	void pushDescriptorsRecursive(uint32_t                             setIdx,
 	                     std::vector<VkWriteDescriptorSet>   &writes,
 	                     std::vector<VkDescriptorBufferInfo> &bufferInfos,
 	                     std::vector<VkDescriptorImageInfo>  &imageInfos,

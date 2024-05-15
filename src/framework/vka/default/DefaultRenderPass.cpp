@@ -161,7 +161,7 @@ void DefaultRenderPass::endRender(UniversalCmdBuffer &cmdBuf)
 
 }
 
-RasterizationPipeline DefaultRenderPass::createPipeline(const RasterizationPipelineState pipelineState, uint32_t subpassIndex)
+RasterizationPipeline DefaultRenderPass::createPipeline(const RasterizationPipelineState pipelineState, uint32_t subpassIndex) const
 {
 	return RasterizationPipeline(&gState.cache, pipelineState, renderPass, subpassIndex);
 }

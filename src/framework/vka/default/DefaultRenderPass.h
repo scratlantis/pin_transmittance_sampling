@@ -23,7 +23,7 @@ class DefaultRenderPass
 	void beginRender(UniversalCmdBuffer& cmdBuf);
 	void endRender(UniversalCmdBuffer& cmdBuf);
 	void destroy();
-	RasterizationPipeline createPipeline(const RasterizationPipelineState pipelineState, uint32_t subpassIndex);
+	RasterizationPipeline createPipeline(const RasterizationPipelineState pipelineState, uint32_t subpassIndex) const;
   private:
 	void updatFramebuffers();
 	void createRenderPass();

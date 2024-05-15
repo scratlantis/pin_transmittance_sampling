@@ -42,9 +42,21 @@ class DefaulModel : public Model_T<VertexType>
 	}
 };
 
-ESACPE_NAMESPACE_VKA(
-    MAKE_VERTEX_1ARG(PosVertex, glm::vec3, pos, VK_FORMAT_R32G32B32_SFLOAT)
-)
+class PosVertex
+{
+  public:
+	PosVertex(){};
+	PosVertex(glm::vec3 pos) : pos(pos) {}
+	glm::vec3 pos;
+	static VkVertexInputBindingDescription getBindingDescription(uint32_t bindingIdx)
+	{
+		return getVertexBindingDescription(sizeof(PosVertex), bindingIdx);
+	}
+	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(uint32_t binding)
+	{
+		return vka::getAttributeDescriptions(binding, {VK_FORMAT_R32G32B32_SFLOAT}, {0});
+	}
+};
 
 class Transform
 {
@@ -52,21 +64,34 @@ class Transform
 	Transform(glm::mat4 mat) : mat(mat), invMat(glm::inverse(mat)) {}
 	glm::mat4 mat;
 	glm::mat4 invMat;
-    VkVertexInputBindingDescription getBindingDescription(uint32_t bindingIdx)
+    static VkVertexInputBindingDescription getBindingDescription(uint32_t bindingIdx)
 	{
 		return getInstanceBindingDescription(sizeof(Transform), bindingIdx);
 	}
-	std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions()
+	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(uint32_t binding)
     {
-        return vka::getAttributeDescriptions(
-            VK_FORMAT_R32G32B32A32_SFLOAT, 0,
-            VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(glm::vec4),
-            VK_FORMAT_R32G32B32A32_SFLOAT, 2*sizeof(glm::vec4),
-            VK_FORMAT_R32G32B32A32_SFLOAT, 3*sizeof(glm::vec4),
-            VK_FORMAT_R32G32B32A32_SFLOAT, 4*sizeof(glm::vec4),
-            VK_FORMAT_R32G32B32A32_SFLOAT, 5*sizeof(glm::vec4),
-            VK_FORMAT_R32G32B32A32_SFLOAT, 6*sizeof(glm::vec4),
-            VK_FORMAT_R32G32B32A32_SFLOAT, 7*sizeof(glm::vec4));
+		return vka::getAttributeDescriptions(
+			binding,
+		    {
+			    VK_FORMAT_R32G32B32A32_SFLOAT,
+			    VK_FORMAT_R32G32B32A32_SFLOAT,
+			    VK_FORMAT_R32G32B32A32_SFLOAT,
+			    VK_FORMAT_R32G32B32A32_SFLOAT,
+			    VK_FORMAT_R32G32B32A32_SFLOAT,
+			    VK_FORMAT_R32G32B32A32_SFLOAT,
+			    VK_FORMAT_R32G32B32A32_SFLOAT,
+			    VK_FORMAT_R32G32B32A32_SFLOAT
+		    },
+			{
+				0,
+			    sizeof(glm::vec4),
+			    2 * sizeof(glm::vec4),
+			    3 * sizeof(glm::vec4),
+			    4 * sizeof(glm::vec4),
+			    5 * sizeof(glm::vec4),
+			    6 * sizeof(glm::vec4),
+			    7 * sizeof(glm::vec4)
+			});
     }
 };
 

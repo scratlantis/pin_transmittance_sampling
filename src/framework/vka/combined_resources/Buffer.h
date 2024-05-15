@@ -7,8 +7,9 @@ namespace vka
 class MemoryBlock
 {
   protected:
-	NonUniqueResource *res = nullptr;
-	bool isEmpty = true;
+	NonUniqueResource *res   = nullptr;
+	bool               empty = true;
+
   public:
 	MemoryBlock(){};
 	MemoryBlock(ResourceTracker *pTracker, size_t size, bool fillZero = true)
@@ -17,8 +18,8 @@ class MemoryBlock
 		{
 			return;
 		}
-		this->isEmpty = false;
-		this->size = size;
+		this->empty = false;
+		this->size  = size;
 		if (fillZero)
 		{
 			data = std::calloc(size, 1);
@@ -37,8 +38,8 @@ class MemoryBlock
 		{
 			return;
 		}
-		this->isEmpty = false;
-		this->size    = size;
+		this->empty = false;
+		this->size  = size;
 		if (fillZero)
 		{
 			data = std::calloc(size, 1);
@@ -76,18 +77,15 @@ class MemoryBlock
 
 	bool isEmpty() const
 	{
-		return isEmpty;
+		return empty;
 	}
 
 	~MemoryBlock(){};
 
   private:
-	void *data = nullptr;
+	void  *data = nullptr;
 	size_t size = 0;
 };
-
-
-
 
 class Buffer
 {
@@ -106,7 +104,7 @@ class Buffer
 	uint32_t getOffset() const
 	{
 		return 0;
-	}	
+	}
 
 	VkDescriptorBufferInfo getDescriptorInfo() const
 	{
@@ -117,7 +115,7 @@ class Buffer
 		return info;
 	}
 
-	void move(ResourceTracker* pNewTracker)
+	void move(ResourceTracker *pNewTracker)
 	{
 		ASSERT_TRUE(res != nullptr);
 		res->move(pNewTracker);
@@ -129,10 +127,10 @@ class Buffer
 
 	/*void moveView(ResourceTracker *pNewTracker)
 	{
-		if (viewRes != nullptr)
-		{
-			viewRes->move(pNewTracker);
-		}
+	    if (viewRes != nullptr)
+	    {
+	        viewRes->move(pNewTracker);
+	    }
 	}*/
 
 	void map(uint32_t offset = 0)
@@ -190,12 +188,13 @@ class Buffer
 		viewInfo.buffer = buf;
 		viewInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
 		viewInfo.offset = 0;
-		viewInfo.range = VK_WHOLE_SIZE;
+		viewInfo.range  = VK_WHOLE_SIZE;
 		ASSERT_VULKAN(vkCreateBufferView(gState.device.logical, &viewInfo, nullptr, &view));
 		viewRes = new BufferView_R(view);
 		pTracker->add(viewRes);
 	}
-	protected:
+
+  protected:
 };
 
 struct BufferDedicated : public Buffer
@@ -228,5 +227,4 @@ struct BufferVma : public Buffer
 	}
 };
 
-
-}
+}        // namespace vka
