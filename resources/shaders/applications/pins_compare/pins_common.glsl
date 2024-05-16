@@ -22,6 +22,11 @@
 	#define PIN_COUNT_SQRT 10
 #endif
 
+//#ifndef GAUSS_FILTER_RADIUS
+//	#define GAUSS_FILTER_RADIUS 4
+//#endif
+
+
 #define GAUS_COEF 0.2
 #define PI 3.14159265359
 
@@ -72,7 +77,8 @@ struct View
 	uint showPins;
 
 	float pinSelectionCoef;
-	uint padding[3];
+	float    expMovingAverageCoef;
+	uint padding[2];
 
 	Cube cube;
 };

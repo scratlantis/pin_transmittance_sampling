@@ -7,12 +7,19 @@
 #define PI 3.14159265359
 #define PIN_COUNT_SQRT 100
 #define PIN_COUNT PIN_COUNT_SQRT *PIN_COUNT_SQRT
+
+#define GAUSS_FILTER_RADIUS 4
+
+
 #include <framework/vka/core/utility/misc.h>
 #include <framework/vka/global_state.h>
 
 
 GVar gvar_use_pins{"show pins", 0, GVAR_ENUM, GVAR_APPLICATION, {"None", "Activ", "All"}};
 GVar gvar_pin_selection_coef{"pin selection coef", 1.0f, GVAR_UNORM, GVAR_APPLICATION};
+GVar gvar_use_exp_moving_average{"use exponential moving average", false, GVAR_BOOL, GVAR_APPLICATION};
+GVar gvar_use_gaus_blur{"use gauss blur", false, GVAR_BOOL, GVAR_APPLICATION};
+GVar gvar_exp_moving_average_coef{"exp moving average coef", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
 
 struct Pin
 {
@@ -53,7 +60,8 @@ struct View
 	uint32_t  showPins;
 
 	float    pinSelectionCoef;
-	uint32_t padding[3];
+	float    expMovingAverageCoef;
+	uint32_t padding[2];
 
 	Cube cube;
 	void update(uint32_t &cnt, Camera &camera)
@@ -72,6 +80,7 @@ struct View
 		cube                 = Cube{glm::mat4(1.0), glm::mat4(1.0)};
 		showPins              = gvar_use_pins.val.v_int;
 		pinSelectionCoef     = gvar_pin_selection_coef.val.v_float;
+		expMovingAverageCoef = gvar_exp_moving_average_coef.val.v_float;
 	}
 };
 
