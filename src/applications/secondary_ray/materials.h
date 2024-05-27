@@ -24,10 +24,11 @@ class GaussianBuffer : public BufferVma
 		float coef = 0.3;
 		for (size_t i = 0; i < count; i++)
 		{
-			gaussiansData[i].mean.x   = (1.0 - margin) / 2.0 + margin * unormDistribution(gen32);
-			gaussiansData[i].mean.y   = (1.0 - margin) / 2.0 + margin * unormDistribution(gen32);
-			gaussiansData[i].mean.z   = (1.0 - margin) / 2.0 + margin * unormDistribution(gen32);
-			gaussiansData[i].variance = 0.5 * unormDistribution(gen32);
+			gaussiansData[i].mean.x   = margin + (1.0 - 2.0 * margin) * unormDistribution(gen32);
+			gaussiansData[i].mean.y   = margin + (1.0 - 2.0 * margin) * unormDistribution(gen32);
+			gaussiansData[i].mean.z   = margin + (1.0 - 2.0 * margin) * unormDistribution(gen32);
+			float standardDeviation = 0.1 + 0.4 * unormDistribution(gen32);
+			gaussiansData[i].variance = standardDeviation * standardDeviation;
 		}
 	}
 
@@ -281,7 +282,7 @@ class Gaussian_M : public Material
 		    .addVertexAttribute(PosVertex::getAttributeDescriptions(0))
 		    .addVertexAttribute(Transform::getAttributeDescriptions(1))
 		    .setExtent(gState.io.extent.width, gState.io.extent.height)
-		    .setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE)
+		    .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
 		    .setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		    .setVertexBinding(PosVertex::getBindingDescription(0), Transform::getBindingDescription(1))
 		    .setDescriptorLayout(layoutDefinition)

@@ -1,6 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
-#define GAUSSIAN_COUNT 10
+#define GAUSSIAN_COUNT 30
 #define GAUSSIAN_MARGIN 0.2f
 #define PIN_GRID_SIZE 20
 #define PINS_PER_GRID_CELL 20
