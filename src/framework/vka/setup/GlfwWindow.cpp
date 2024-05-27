@@ -190,8 +190,9 @@ void GlfwWindow::mouse_button_callback(GLFWwindow *window, int button, int actio
 
 void GlfwWindow::mouse_scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
-	gState.io.mouse.scrollChange += yoffset - gState.io.mouse.scrollOffset;
-	gState.io.mouse.scrollOffset = yoffset;
+	/*gState.io.mouse.scrollChange += yoffset - gState.io.mouse.scrollOffset;
+	gState.io.mouse.scrollOffset = yoffset;*/
+	gState.io.mouse.scrollChange = yoffset;
 }
 
 

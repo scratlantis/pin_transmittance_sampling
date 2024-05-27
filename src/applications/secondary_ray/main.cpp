@@ -13,7 +13,8 @@
 #include <framework/vka/combined_resources/Buffer.h>
 #include <framework/vka/combined_resources/CmdBuffer.h>
 #include <framework/vka/combined_resources/Image.h>
-#include <framework/vka/input/Camera.h>
+#include <framework/vka/input/FreeCamera.h>
+#include <framework/vka/input/FixedCamera.h>
 #include <framework/vka/resources/ComputePipeline.h>
 #include <framework/vka/resources/DescriptorSetLayout.h>
 #include <framework/vka/resources/Shader.h>
@@ -60,7 +61,8 @@ int main()
 	Window       *window   = new vka::GlfwWindow();
 	gState.init(deviceCI, ioCI, window);
 	// Camera initialization
-	Camera camera = Camera(CameraCI_Default());
+	//FreeCamera camera = FreeCamera(FreeCameraCI_Default());
+	FixedCamera camera = FixedCamera(FixedCameraCI_Default());
 	// ImGui initialization
 	ImGuiWrapper imguiWrapper = ImGuiWrapper();
 	imguiWrapper.init();
@@ -183,7 +185,7 @@ int main()
 	uint32_t  cnt = 0;
 	View      view{};
 	glm::mat4 lastViewMatrix = glm::mat4(1.0);
-	camera.mouse_control(0, 0);
+	//camera.mouseControl(0, 0);
 	while (!gState.io.shouldTerminate())
 	{
 		imguiWrapper.newFrame();
@@ -196,10 +198,10 @@ int main()
 
 		// Update cpu data
 		{
-			camera.key_control(gState.io.keyPressed, 0.016);
+			camera.keyControl(0.016);
 			if (gState.io.mouse.rightPressed)
 			{
-				camera.mouse_control(gState.io.mouse.change.x, gState.io.mouse.change.y);
+				camera.mouseControl(0.016);
 			}
 			view.update(cnt, camera);
 		}

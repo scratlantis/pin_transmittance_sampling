@@ -103,7 +103,7 @@ int main()
 	Window       *window   = new vka::GlfwWindow();
 	gState.init(deviceCI, ioCI, window);
 	// Camera initialization
-	Camera camera = Camera(CameraCI_Default());
+	FreeCamera camera = FreeCamera(CameraCI_Default());
 	// ImGui initialization
 	ImGuiWrapper imguiWrapper = ImGuiWrapper();
 	imguiWrapper.init();

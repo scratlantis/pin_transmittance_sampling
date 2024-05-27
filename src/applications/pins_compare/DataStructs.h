@@ -69,8 +69,8 @@ struct View
 		width        = gState.io.extent.width;
 		height       = gState.io.extent.height;
 		frameCounter = cnt++;
-		camPos       = glm::vec4(camera.get_camera_position(), 1.0);
-		viewMat      = camera.calculate_viewmatrix();
+		camPos       = glm::vec4(camera.getPosition(), 1.0);
+		viewMat      = camera.getViewMatrix();
 		// viewMat              = glm::mat4(1.0);
 		// viewMat[3]           = glm::vec4(0.0, 0.0, 0.0, 1.0);
 		inverseViewMat = glm::inverse(viewMat);

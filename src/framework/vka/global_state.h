@@ -177,7 +177,7 @@ struct Mouse
 	bool      leftEvent;
 	bool      rightPressed;
 	bool      rightEvent;
-	double    scrollOffset;
+	//double    scrollOffset;
 	double    scrollChange;
 	void resetEvents()
 	{

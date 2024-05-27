@@ -88,7 +88,7 @@ int main()
 	Window       *window   = new vka::GlfwWindow();
 	gState.init(deviceCI, ioCI, window);
 	// Camera initialization
-	Camera camera = Camera(CameraCI_Default());
+	FreeCamera camera = FreeCamera(CameraCI_Default());
 	// Resource Creation
 	FramebufferImage offscreenImage = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
 	Buffer           ubo            = BufferVma(&gState.heap, sizeof(PerFrameConstants), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
