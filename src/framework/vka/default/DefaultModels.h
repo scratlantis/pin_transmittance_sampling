@@ -105,7 +105,7 @@ class Transform
 //        PosVertex(glm::vec3(1.0, 1.0, -1.0)),
 //        PosVertex(glm::vec3(-1.0, 1.0, -1.0))};
 
-std::vector<PosVertex> cCubeVertecies =
+static const std::vector<PosVertex> cCubeVertecies =
     {
         PosVertex(glm::vec3(0.0, 0.0, 1.0)),
         PosVertex(glm::vec3(1.0, 0.0, 1.0)),
@@ -115,7 +115,7 @@ std::vector<PosVertex> cCubeVertecies =
         PosVertex(glm::vec3(1.0, 0.0, 0.0)),
         PosVertex(glm::vec3(1.0, 1.0, 0.0)),
         PosVertex(glm::vec3(0.0, 1.0, 0.0))};
-std::vector<Index> cCubeIndices =
+static const std::vector<Index> cCubeIndices =
     {
         // front
         0, 1, 2,
@@ -137,12 +137,12 @@ std::vector<Index> cCubeIndices =
         6, 7, 3};
 
 
-std::vector<PosVertex> cTriangleVertecies =
-{
+static const std::vector<PosVertex> cTriangleVertecies =
+    {
         PosVertex(glm::vec3(-1.0, -1.0, 1.0)),
         PosVertex(glm::vec3(1.0, -1.0, 1.0)),
         PosVertex(glm::vec3(1.0, 1.0, 1.0))
 };
-std::vector<Index> cTriangleIndices = {0, 1, 2};
+static const std::vector<Index> cTriangleIndices = {0, 1, 2};
 
 }; // namespace vka

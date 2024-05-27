@@ -72,8 +72,8 @@ class Geometry_T : public Geometry
 	Buffer                  vertexBuffer;
 	Buffer                  indexBuffer;
 	Geometry_T(ResourceTracker         *pTracker,
-	           std::vector<VertexType> &vertices,
-	           std::vector<Index>      &indices) :
+	           const std::vector<VertexType> &vertices,
+	           const std::vector<Index>      &indices) :
 	    vertices(vertices), indices(indices)
 	{
 		indexCounts   = {(uint32_t) indices.size()};

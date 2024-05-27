@@ -1,0 +1,45 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "pins_common.glsl"
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+layout(binding = 0) buffer PINS_STORAGE_BUFFER {Pin pins[PIN_COUNT];};
+//layout(binding = 1) buffer PIN_GRID_STORAGE_BUFFER {Pin pinGrid[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
+layout(binding = 1) buffer PIN_GRID_STORAGE_BUFFER {PinGridEntry pinGrid[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
+//layout(binding = 2) buffer PIN_GRID_ID_STORAGE_BUFFER {uint pinGridID[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
+
+
+
+
+bool intersect(Pin pin)
+{
+	vec3 o, d;
+	getRay(pin, o, d);
+	vec3 boxMin = vec3(gl_GlobalInvocationID)/vec3(PIN_GRID_SIZE);
+	vec3 boxMax = boxMin + vec3(1.0)/vec3(PIN_GRID_SIZE) ;
+	return intersectAABB(o, d, boxMin, boxMax);
+}
+
+
+
+void main()
+{
+	uvec3 gID = gl_GlobalInvocationID;
+	if(gID.x >= PIN_GRID_SIZE || gID.y >= PIN_GRID_SIZE || gID.z >= PIN_GRID_SIZE) return;
+	uint baseIdx = getCellIndex(gl_GlobalInvocationID);
+	uint pinsOffset = 0;
+	uint i = 0;
+	uint h = hash(baseIdx);
+	for(; (i < PINS_PER_GRID_CELL)  && (pinsOffset < PIN_COUNT); i++)
+	{
+		while((!intersect(pins[pinsOffset++])) && pinsOffset < PIN_COUNT - PINS_PER_GRID_CELL) {}
+		PinGridEntry gridEntry;
+		gridEntry.pin = pins[pinsOffset-1];
+		gridEntry.data.pinIndex = pinsOffset-1;
+		pinGrid[baseIdx+i] = gridEntry;
+		//pinGrid[baseIdx+i] = pins[pinsOffset-1];
+		//pinGridID[baseIdx+i] = pinsOffset-1;
+
+		pinsOffset++;
+	}
+}

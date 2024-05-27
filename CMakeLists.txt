@@ -183,6 +183,7 @@ FOREACH(subdir ${SUBDIRS})
   LIST(APPEND target_list "${subdir}")
   target_compile_definitions(${subdir} PUBLIC SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/applications/${subdir}")
   target_compile_definitions(${subdir} PUBLIC TEXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources/textures")
+  target_compile_definitions(${subdir} PUBLIC MODEL_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources/models")
   target_compile_definitions(${subdir} PUBLIC APP_NAME="${subdir}")
 ENDFOREACH()
 
