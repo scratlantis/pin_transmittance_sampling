@@ -21,7 +21,7 @@ struct ConfigurableRenderPassCI
 	std::vector<VkClearValue>  colorClearValues;
 	std::vector<VkImageLayout> colorInitialLayout;
 	std::vector<VkImageLayout> colorTargetLayout;
-	VkRect2D                   renderArea;
+	Rect2D<float>              relRenderArea;
 };
 
 // Still only one subpass
@@ -55,7 +55,7 @@ class ConfigurableRenderPass : public RenderPass
 	std::vector<VkClearValue>  colorClearValues;
 	std::vector<VkImageLayout> colorInitialLayout;
 	std::vector<VkImageLayout> colorTargetLayout;
-	VkRect2D                   renderArea;
+	Rect2D<float>              relRenderArea;
 
 
 };

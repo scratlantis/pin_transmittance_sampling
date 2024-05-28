@@ -717,6 +717,14 @@ inline std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(u
 	return vertexInputAttributeDescriptions;
 }
 
+template<typename T>
+struct Rect2D
+{
+	T x;
+	T y;
+	T width;
+	T height;
+};
 
 /*template <class... Args>
 inline std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(uint32_t binding, VkFormat nextFormat, uint32_t nextOffset, Args... args)

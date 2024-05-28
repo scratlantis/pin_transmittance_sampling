@@ -111,6 +111,7 @@ int main()
 	Buffer            pinIndexBuffer  = BufferVma(&gState.heap, sizeof(Index) * 2 * PIN_COUNT, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	Buffer            pinUsedBuffer   = BufferVma(&gState.heap, sizeof(uint32_t) * PIN_COUNT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 
+	Rect2D<float> secondaryViewport = {0.8, 0.0, 0.2, 1.0};
 
 	// Render passes
 	std::vector<RenderPass *> renderPasses(3);
@@ -123,21 +124,21 @@ int main()
 		renderPassCI.colorClearValues   = {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}};
 		renderPassCI.colorInitialLayout = {VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 		renderPassCI.colorTargetLayout  = {VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-		renderPassCI.renderArea         = {0, 0, gState.io.extent.width, gState.io.extent.height};
+		renderPassCI.relRenderArea         = {0.0, 0.0, 1.0, 1.0};
 		renderPasses[RENDER_PASS_WIREFRAME] = new ConfigurableRenderPass(renderPassCI);
 	}
 	renderPasses[RENDER_PASS_VOLUME] = new DefaultRenderPass(&depthImage, &offscreenImage);
-	if (0)
+	if (1)
 	{
-		/*renderPassCI.pDepthImage         = &depthImage;
-		renderPassCI.pColorAttachments   = {&lineColorImg, &linePosImg};
-		renderPassCI.colorClear          = {true, true};
-		renderPassCI.colorClearValues    = {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}};
-		renderPassCI.colorInitialLayout  = {VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-		renderPassCI.colorTargetLayout   = {VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-		renderPassCI.renderArea          = {0, 0, gState.io.extent.width, gState.io.extent.height};
-		renderPasses[RENDER_PASS_LINE]   = new ConfigurableRenderPass(renderPassCI);*/
-		//renderPasses[RENDER_PASS_SPHERE] = new ConfigurableRenderPass(renderPassCI);
+		renderPassCI.pDepthImage            = &depthImage;
+		renderPassCI.pColorAttachments      = {&offscreenImage};
+		renderPassCI.colorClear             = {true};
+		renderPassCI.colorClearValues       = {{0.9, 0.9, 0.9, 0.0}};
+		renderPassCI.colorInitialLayout     = {VK_IMAGE_LAYOUT_UNDEFINED};
+		renderPassCI.colorTargetLayout      = {VK_IMAGE_LAYOUT_PRESENT_SRC_KHR};
+		renderPassCI.relRenderArea          = secondaryViewport;
+		//renderPassCI.relRenderArea          = {0.0, 0.0, 1.0, 1.0};
+		renderPasses[RENDER_PASS_MATERIAL] = new ConfigurableRenderPass(renderPassCI);
 	}
 	for (auto &rp : renderPasses)
 	{
@@ -162,11 +163,11 @@ int main()
 	std::vector<uint32_t>    instanceCounts;
 	// Add gaussian cube
 
-	Gaussian_M             gaussianMat           = Gaussian_M(renderPasses[RENDER_PASS_VOLUME], &viewBuf, &gaussianBuf, &wireFrameSampler, &lineColorImg, &linePosImg);
-	DefaulModel<PosVertex> gaussianCube          = DefaulModel<PosVertex>(&cubeGeom, &gaussianMat, RENDER_PASS_VOLUME);
-	Transform              gaussianCubeTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(-0.5, -0.5, -0.5)));
-	models.push_back(&gaussianCube);
-	transforms.push_back(&gaussianCubeTransform);
+	GaussianFog_M             gaussianFogMat           = GaussianFog_M(renderPasses[RENDER_PASS_VOLUME], &viewBuf, &gaussianBuf, &wireFrameSampler, &lineColorImg, &linePosImg);
+	DefaulModel<PosVertex> gaussianFogCube       = DefaulModel<PosVertex>(&cubeGeom, &gaussianFogMat, RENDER_PASS_VOLUME);
+	Transform                 gaussianFogCubeTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(-0.5, -0.5, -0.5)));
+	models.push_back(&gaussianFogCube);
+	transforms.push_back(&gaussianFogCubeTransform);
 	instanceCounts.push_back(1);
 
 
@@ -178,7 +179,30 @@ int main()
 	instanceCounts.push_back(1);
 
 
+
+
+	Gaussian_M           gaussianMat             = Gaussian_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &gaussianBuf);
+	DefaulModel<PosVertex> gaussianSphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianMat, RENDER_PASS_MATERIAL);
+	Transform              gaussianSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, -1.5, 0.0)));
+	models.push_back(&gaussianSphere);
+	transforms.push_back(&gaussianSphereTransform);
+	instanceCounts.push_back(1);
+
 	
+	GaussianNNGrid_M       gaussianNNGridMat           = GaussianNNGrid_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &pinTransmittanceBuf, &pinGridBuf);
+	DefaulModel<PosVertex> gaussianNNGridSphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianNNGridMat, RENDER_PASS_MATERIAL);
+	Transform              gaussianNNGridSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 0.0)));
+	models.push_back(&gaussianNNGridSphere);
+	transforms.push_back(&gaussianNNGridSphereTransform);
+	instanceCounts.push_back(1);
+
+
+	GaussianNN_M           gaussianNNMat           = GaussianNN_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &pinBuf, &pinTransmittanceBuf, &pinDirectionsBuffer, &pinUsedBuffer);
+	DefaulModel<PosVertex> gaussianNNSphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianNNMat, RENDER_PASS_MATERIAL);
+	Transform              gaussianNNSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 1.5, 0.0)));
+	models.push_back(&gaussianNNSphere);
+	transforms.push_back(&gaussianNNSphereTransform);
+	instanceCounts.push_back(PIN_COUNT_SQRT);
 
 
 
@@ -246,7 +270,7 @@ int main()
 			{
 				camera.mouseControl(0.016);
 			}
-			view.update(cnt, camera);
+			view.update(cnt, camera, secondaryViewport);
 		}
 		sphereTransform = Transform( glm::translate( glm::mat4(1.0), camera.getFixpoint() ) * glm::scale( glm::mat4(1.0), glm::vec3(0.1) ));
 

@@ -194,18 +194,17 @@ class GaussianNN_M : public Material
 {
   public:
 	GaussianNN_M(
-	    const DefaultRenderPass *defaultRenderPass,
-	    const Buffer            *viewBuf,
-	    const PinBuffer         *pinBuf,
-	    const Buffer            *pinTransmittanceBuf,
-	    const Buffer            *pinDirectionsBuffer,
-	    const Buffer            *pinUsedBuffer) :
-	    pinBuf(pinBuf), pinTransmittanceBuf(pinTransmittanceBuf), viewBuf(viewBuf),
-		defaultRenderPass(defaultRenderPass), pinDirectionsBuffer(pinDirectionsBuffer), pinUsedBuffer(pinUsedBuffer){};
+	    const RenderPass *renderPass,
+	    const Buffer     *viewBuf,
+	    const PinBuffer  *pinBuf,
+	    const Buffer     *pinTransmittanceBuf,
+	    const Buffer     *pinDirectionsBuffer,
+	    const Buffer     *pinUsedBuffer) :
+	    pinBuf(pinBuf), pinTransmittanceBuf(pinTransmittanceBuf), viewBuf(viewBuf), renderPass(renderPass), pinDirectionsBuffer(pinDirectionsBuffer), pinUsedBuffer(pinUsedBuffer){};
 	~GaussianNN_M(){};
 	const PinBuffer         *pinBuf;
 	const Buffer            *pinTransmittanceBuf;
-	const DefaultRenderPass *defaultRenderPass;
+	const RenderPass        *renderPass;
 	const Buffer            *viewBuf;
 	const Buffer            *pinDirectionsBuffer;
 	const Buffer            *pinUsedBuffer;
@@ -226,7 +225,7 @@ class GaussianNN_M : public Material
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-		ShaderDefinition vertShaderDef{"pins_render.vert"};
+		ShaderDefinition vertShaderDef{"secondary_pins_render.vert"};
 		ShaderDefinition fragShaderDef{"pins_render_gaussian_nn.frag"};
 		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
 		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT_SQRT)});
@@ -243,15 +242,15 @@ class GaussianNN_M : public Material
 		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
 		    .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
 		    .setBlendMode(1, BLEND_MODE_OVERWRITE);
-		RasterizationPipeline pipeline = defaultRenderPass->createPipeline(pipelineState, 0);
+		RasterizationPipeline pipeline = renderPass->createPipeline(pipelineState, 0);
 		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
 };
 
-class Gaussian_M : public Material
+class GaussianFog_M : public Material
 {
   public:
-	Gaussian_M(
+	GaussianFog_M(
 	    const RenderPass     *renderPass,
 	    const Buffer         *viewBuf,
 	    const GaussianBuffer *gaussianBuf,
@@ -260,7 +259,7 @@ class Gaussian_M : public Material
 	    const Image          *posImg) :
 	    gaussianBuf(gaussianBuf), renderPass(renderPass), viewBuf(viewBuf), sampler(sampler), colorImg(colorImg), posImg(posImg)
 	{};
-	~Gaussian_M(){};
+	~GaussianFog_M(){};
 
 	const GaussianBuffer    *gaussianBuf;
 	const RenderPass        *renderPass;
@@ -285,6 +284,53 @@ class Gaussian_M : public Material
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 		ShaderDefinition vertShaderDef{"pins_render.vert"};
+		ShaderDefinition fragShaderDef{"pins_render_gaussian_fog.frag"};
+		fragShaderDef.args.push_back({"GAUSSIAN_COUNT", std::to_string(GAUSSIAN_COUNT)});
+		vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
+		RasterizationPipelineState pipelineState = RasterizationPipelineState();
+		pipelineState
+		    .addVertexAttribute(PosVertex::getAttributeDescriptions(0))
+		    .addVertexAttribute(Transform::getAttributeDescriptions(1))
+		    .setExtent(gState.io.extent.width, gState.io.extent.height)
+		    .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
+		    .setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+		    .setVertexBinding(PosVertex::getBindingDescription(0), Transform::getBindingDescription(1))
+		    .setDescriptorLayout(layoutDefinition)
+		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
+		    .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
+		    .setBlendMode(1, BLEND_MODE_OVERWRITE);
+		RasterizationPipeline pipeline = renderPass->createPipeline(pipelineState, 0);
+		cmdBuf.bindRasterizationPipeline(pipeline);
+	}
+};
+
+class Gaussian_M : public Material
+{
+  public:
+	Gaussian_M(
+	    const RenderPass     *renderPass,
+	    const Buffer         *viewBuf,
+	    const GaussianBuffer *gaussianBuf) :
+	    gaussianBuf(gaussianBuf), renderPass(renderPass), viewBuf(viewBuf){};
+	~Gaussian_M(){};
+
+	const GaussianBuffer *gaussianBuf;
+	const RenderPass     *renderPass;
+	const Buffer         *viewBuf;
+	virtual void          bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
+	{
+		bindPipeline(cmdBuf);
+		cmdBuf.pushDescriptors(0, *viewBuf, *gaussianBuf);
+	}
+
+  private:
+	virtual void bindPipeline(UniversalCmdBuffer &cmdBuf) const
+	{
+		DescriptorSetLayoutDefinition layoutDefinition{};
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+		ShaderDefinition vertShaderDef{"secondary_pins_render.vert"};
 		ShaderDefinition fragShaderDef{"pins_render_gaussian.frag"};
 		fragShaderDef.args.push_back({"GAUSSIAN_COUNT", std::to_string(GAUSSIAN_COUNT)});
 		vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
@@ -334,7 +380,7 @@ class GaussianNNGrid_M : public Material
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-		ShaderDefinition vertShaderDef{"pins_render.vert"};
+		ShaderDefinition vertShaderDef{"secondary_pins_render.vert"};
 		ShaderDefinition fragShaderDef{"pins_render_gaussian_nn_grid.frag"};
 		fragShaderDef.args.push_back({"PIN_GRID_SIZE", std::to_string(PIN_GRID_SIZE)});
 		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});

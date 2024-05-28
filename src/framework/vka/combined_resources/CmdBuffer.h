@@ -435,18 +435,19 @@ class UniversalCmdBuffer : public ComputeCmdBuffer
 		renderPassBeginInfo.pClearValues      = clearValues.data();
 
 		//Civ
+		//renderArea        = {{0, 0}, gState.io.extent};
 		VkExtent2D extent = renderArea.extent;
 		vkCmdBeginRenderPass(handle, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		VkViewport viewport;
-		viewport.x        = 0.0f;
-		viewport.y        = 0.0f;
+		viewport.x        = renderArea.offset.x;
+		viewport.y        = renderArea.offset.y;
 		viewport.width    = extent.width;
 		viewport.height   = extent.height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		vkCmdSetViewport(handle, 0, 1, &viewport);
 		VkRect2D scissor;
-		scissor.offset = {0, 0};
+		scissor.offset = renderArea.offset;
 		scissor.extent = {extent.width, extent.height};
 		vkCmdSetScissor(handle, 0, 1, &scissor);
 	}

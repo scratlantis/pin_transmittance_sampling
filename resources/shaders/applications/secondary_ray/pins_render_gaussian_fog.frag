@@ -11,6 +11,9 @@ layout(location = 0) out vec4 outColor;
 
 layout(binding = 0) uniform VIEW {View view;};
 layout(binding = 1) buffer GAUSSIANS {Gaussian gaussians[GAUSSIAN_COUNT];};
+layout(binding = 2) uniform sampler wireFrameSampler;
+layout(binding = 3) uniform texture2D wireFrameColorImg;
+layout(binding = 4) uniform texture2D wireFramePosImg;
 
 void main()
 {
@@ -18,6 +21,10 @@ void main()
 	vec3 dirWorldSpace = normalize(worldPos-view.camPos.xyz);
 	vec3 dir = (fragment_invModelMat * vec4(dirWorldSpace,0.0)).xyz;
 	dir = normalize(dir);
+
+	ivec2 p = ivec2(gl_FragCoord.xy);
+	vec4 wireFrameColor = texelFetch(sampler2D(wireFrameColorImg, wireFrameSampler), p, 0);
+	vec4 wireFramePos = texelFetch(sampler2D(wireFramePosImg, wireFrameSampler), p, 0);
 
 	assureNotZero(dir);
 	vec3 invDir = 1.0 / dir;
@@ -28,6 +35,17 @@ void main()
 	vec3 entryPoint = fragment_position + tMin*dir;
 	vec3 exitPoint = fragment_position + tMax*dir;
 
+	vec3 entryPointWorld = (fragment_modelMat * vec4(entryPoint,1.0)).xyz;
+	vec3 exitPointWorld = (fragment_modelMat * vec4(exitPoint,1.0)).xyz;
+	vec3 wireFramePosLocal = ( fragment_invModelMat * vec4(wireFramePos.xyz,1.0)).xyz;
+	if(wireFrameColor != vec4(0) &&
+	(distance(entryPointWorld, view.camPos.xyz) < distance(wireFramePos.xyz, view.camPos.xyz))
+	&& (distance(exitPointWorld, view.camPos.xyz) > distance(wireFramePos.xyz, view.camPos.xyz)))
+	{
+		exitPoint = wireFramePosLocal;
+		outColor = mix(outColor,wireFrameColor,0.5);
+	}
+
 	float transmittance = 1.0;
 	float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
 	for(int i = 0; i < GAUSSIAN_COUNT; i++)
@@ -37,4 +55,10 @@ void main()
 		transmittance *= coef;
 	}
 	outColor = vec4(transmittance, transmittance, transmittance, 1.0);
+
+	if(wireFrameColor != vec4(0))
+	{
+		vec3 wireFramePosLocal = ( fragment_invModelMat * vec4(wireFramePos.xyz,1.0)).xyz;
+		outColor.xyz = transmittance*wireFrameColor.xyz;
+	}
 }

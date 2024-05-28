@@ -166,7 +166,7 @@ void ConfigurableRenderPass::updatFramebuffers()
 ConfigurableRenderPass::ConfigurableRenderPass(ConfigurableRenderPassCI ci):
     pDepthImage(ci.pDepthImage), pColorAttachments(ci.pColorAttachments),
 	colorClearValues(ci.colorClearValues), colorClear(ci.colorClear), colorInitialLayout(ci.colorInitialLayout),
-	colorTargetLayout(ci.colorTargetLayout), renderArea(ci.renderArea)
+	colorTargetLayout(ci.colorTargetLayout), relRenderArea(ci.relRenderArea)
 {
 }
 ConfigurableRenderPass::~ConfigurableRenderPass()
@@ -187,6 +187,10 @@ void ConfigurableRenderPass::beginRender(UniversalCmdBuffer &cmdBuf)
 	{
 		clearValues.push_back({1.0f, 0});
 	}
+
+	VkRect2D renderArea{};
+	renderArea.offset = {static_cast<int32_t>(relRenderArea.x * gState.io.extent.width), static_cast<int>(relRenderArea.y * gState.io.extent.height)};
+	renderArea.extent = {static_cast<uint32_t>(relRenderArea.width * gState.io.extent.width), static_cast<uint32_t>(relRenderArea.height * gState.io.extent.height)};
 	cmdBuf.startRenderPass(renderPass, framebuffers[gState.frame->frameIndex], clearValues, renderArea);
 }
 

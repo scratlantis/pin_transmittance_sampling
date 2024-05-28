@@ -61,10 +61,14 @@ struct View
 
 	float    pinSelectionCoef;
 	float    expMovingAverageCoef;
-	uint32_t padding[2];
+	uint32_t secondaryWidth;
+	uint32_t secondaryHeight;
+
+	glm::mat4 secondaryProjectionMat;
+	glm::mat4 secondaryInverseProjectionMat;
 
 	Cube cube;
-	void update(uint32_t &cnt, Camera &camera)
+	void update(uint32_t &cnt, Camera &camera, Rect2D<float> secondaryViewport)
 	{
 		width        = gState.io.extent.width;
 		height       = gState.io.extent.height;
@@ -81,6 +85,9 @@ struct View
 		showPins              = gvar_use_pins.val.v_int;
 		pinSelectionCoef     = gvar_pin_selection_coef.val.v_float;
 		expMovingAverageCoef = gvar_exp_moving_average_coef.val.v_float;
+		secondaryWidth        = secondaryViewport.width * gState.io.extent.width;
+		secondaryHeight       = secondaryViewport.height * gState.io.extent.height;
+		secondaryProjectionMat = glm::perspective(glm::radians(60.0f), (float) secondaryWidth / (float) secondaryHeight, 0.1f, 500.0f);
 	}
 };
 

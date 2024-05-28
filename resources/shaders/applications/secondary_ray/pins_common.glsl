@@ -78,7 +78,11 @@ struct View
 
 	float pinSelectionCoef;
 	float    expMovingAverageCoef;
-	uint padding[2];
+	uint secondaryWidth;
+	uint secondaryHeight;
+
+	mat4 secondaryProjectionMat;
+	mat4 secondaryInverseProjectionMat;
 
 	Cube cube;
 };
