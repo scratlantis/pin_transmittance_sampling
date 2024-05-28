@@ -66,9 +66,13 @@ struct View
 
 	glm::mat4 secondaryProjectionMat;
 	glm::mat4 secondaryInverseProjectionMat;
+	glm::vec4 probe;
+
+	glm::mat4 fogModelMatrix;
+	glm::mat4 fogInvModelMatrix;
 
 	Cube cube;
-	void update(uint32_t &cnt, Camera &camera, Rect2D<float> secondaryViewport)
+	void update(uint32_t &cnt, FixedCamera &camera, Rect2D<float> secondaryViewport, Transform* fogTransform)
 	{
 		width        = gState.io.extent.width;
 		height       = gState.io.extent.height;
@@ -88,6 +92,9 @@ struct View
 		secondaryWidth        = secondaryViewport.width * gState.io.extent.width;
 		secondaryHeight       = secondaryViewport.height * gState.io.extent.height;
 		secondaryProjectionMat = glm::perspective(glm::radians(60.0f), (float) secondaryWidth / (float) secondaryHeight, 0.1f, 500.0f);
+		probe                  = glm::vec4(camera.getFixpoint(), 1.0);
+		fogModelMatrix         = fogTransform->mat;
+		fogInvModelMatrix      = fogTransform->invMat;
 	}
 };
 

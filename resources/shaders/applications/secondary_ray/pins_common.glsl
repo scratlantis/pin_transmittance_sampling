@@ -77,12 +77,15 @@ struct View
 	uint showPins;
 
 	float pinSelectionCoef;
-	float    expMovingAverageCoef;
+	float expMovingAverageCoef;
 	uint secondaryWidth;
 	uint secondaryHeight;
 
 	mat4 secondaryProjectionMat;
 	mat4 secondaryInverseProjectionMat;
+	vec4 probe;
+	mat4 fogModelMatrix;
+	mat4 fogInvModelMatrix;
 
 	Cube cube;
 };

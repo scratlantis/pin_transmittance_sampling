@@ -270,7 +270,7 @@ int main()
 			{
 				camera.mouseControl(0.016);
 			}
-			view.update(cnt, camera, secondaryViewport);
+			view.update(cnt, camera, secondaryViewport, &gaussianFogCubeTransform);
 		}
 		sphereTransform = Transform( glm::translate( glm::mat4(1.0), camera.getFixpoint() ) * glm::scale( glm::mat4(1.0), glm::vec3(0.1) ));
 

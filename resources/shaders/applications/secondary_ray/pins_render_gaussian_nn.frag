@@ -17,10 +17,16 @@ layout(binding = 3) buffer PIN_DIRECTION {vec4 pin_dir[PIN_COUNT];};
 layout(binding = 4) buffer PINS_USED {uint pinsUsed[PIN_COUNT];};
 void main()
 {
-	vec3 worldPos = (fragment_modelMat*vec4(fragment_position,1.0)).xyz;
-	vec3 dirWorldSpace = normalize(worldPos-view.camPos.xyz);
-	vec3 dir = (fragment_invModelMat * vec4(dirWorldSpace,0.0)).xyz;
-	dir = normalize(dir);
+	//vec3 worldPos = (fragment_modelMat*vec4(fragment_position,1.0)).xyz;
+	//vec3 dirWorldSpace = normalize(worldPos-view.camPos.xyz);
+	//vec3 dir = (fragment_invModelMat * vec4(dirWorldSpace,0.0)).xyz;
+	//dir = normalize(dir);
+
+	vec3 dir = normalize(-fragment_position);
+	dir = (view.inverseViewMat * vec4(dir, 0.0)).xyz;
+	vec3 startPos = view.probe.xyz;
+	startPos = (view.fogInvModelMatrix*vec4(startPos,1.0)).xyz;
+	startPos = clamp(startPos, vec3(0.0), vec3(1.0));
 
 	float maxDot = 0.0;
 	uint maxDotIdx = 0;
@@ -39,7 +45,7 @@ void main()
 		getRay(p, origin, direction);
 		//float dotProd = abs(dot(dir, pin_dir[i+offset].xyz));
 		float dotProd = abs(dot(dir, direction));
-		float dist = 1.0-distance(origin,fragment_position);
+		float dist = 1.0-distance(origin,startPos);
 		dotProd = mix(dotProd, dist, view.pinSelectionCoef);
 		//deltaPhi = min(abs(deltaPhi), abs(deltaPhi+PI));
 		//deltaTheta = min(abs(deltaTheta), abs(deltaTheta+2*PI));

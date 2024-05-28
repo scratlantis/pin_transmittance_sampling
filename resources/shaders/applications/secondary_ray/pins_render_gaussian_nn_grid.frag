@@ -16,12 +16,18 @@ layout(binding = 2) buffer PIN_GRID {PinGridEntry grid[PIN_GRID_SIZE*PIN_GRID_SI
 
 void main()
 {
-	vec3 worldPos = (fragment_modelMat*vec4(fragment_position,1.0)).xyz;
-	vec3 dirWorldSpace = normalize(worldPos-view.camPos.xyz);
-	vec3 dir = (fragment_invModelMat * vec4(dirWorldSpace,0.0)).xyz;
-	dir = normalize(dir);
+	//vec3 worldPos = (fragment_modelMat*vec4(fragment_position,1.0)).xyz;
+	//vec3 dirWorldSpace = normalize(worldPos-view.camPos.xyz);
+	//vec3 dir = (fragment_invModelMat * vec4(dirWorldSpace,0.0)).xyz;
+	//dir = normalize(dir);
 
-	vec3 p1 = max(vec3(0.0,0.0,0.0),(fragment_position + EPSILON * dir));
+	vec3 dir = normalize(-fragment_position);
+	dir = (view.inverseViewMat * vec4(dir, 0.0)).xyz;
+	vec3 startPos = view.probe.xyz;
+	startPos = (view.fogInvModelMatrix*vec4(startPos,1.0)).xyz;
+	startPos = clamp(startPos, vec3(0.0), vec3(1.0));
+	vec3 p1 = startPos;
+	//vec3 p1 = max(vec3(0.0,0.0,0.0),(fragment_position + EPSILON * dir));
 	uvec3 p1ID = uvec3(floor(p1*PIN_GRID_SIZE));
 	uint gridIdx = getCellIndex(p1ID);
 	float maxDot = 0.0;
