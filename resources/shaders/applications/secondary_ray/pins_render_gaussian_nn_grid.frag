@@ -12,7 +12,7 @@ layout(location = 0) out vec4 outColor;
 layout(binding = 0) uniform VIEW {View view;};
 layout(binding = 1) buffer PIN_TRANSMITTANCE {float pin_transmittance[PIN_COUNT];};
 layout(binding = 2) buffer PIN_GRID {PinGridEntry grid[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
-
+layout(binding = 3) buffer GAUSSIANS {Gaussian gaussians[GAUSSIAN_COUNT];};
 
 void main()
 {
@@ -46,5 +46,34 @@ void main()
 	}
 	uint pinIdx = grid[maxDotIdx].data.pinIndex;
 	float transmittance = pin_transmittance[pinIdx];
+
+
+
+	if(true)
+	{
+		vec3 origin,direction;
+		Pin p = grid[maxDotIdx].pin;
+		getRay(p, origin, direction);
+		dir = direction * sign(dot(dir, direction));
+		startPos = origin + dir*dot(startPos-origin,dir);
+		assureNotZero(dir);
+		vec3 invDir = 1.0 / dir;
+		vec3 c1 = -startPos*invDir;
+		vec3 c2 = c1 + invDir; // (vec(1.0)-raySeg.origin)*invDir;
+		float tMin = max(max(min(c1.x, c2.x), min(c1.y, c2.y)), min(c1.z, c2.z));
+		float tMax = min(min(max(c1.x, c2.x), max(c1.y, c2.y)), max(c1.z, c2.z));
+		vec3 entryPoint = startPos;//fragment_position + tMin*dir;
+		vec3 exitPoint = startPos + tMax*dir;
+		transmittance = 1.0;
+		float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
+		for(int i = 0; i < GAUSSIAN_COUNT; i++)
+		{
+			float coef = clamp(1.0-weight*evalTransmittanceGaussianSegment(entryPoint, exitPoint, gaussians[i]), 0.0, 1.0);
+			transmittance *= coef;
+		}
+	}
+
+
+
 	outColor = vec4(transmittance, transmittance, transmittance, 1.0);
 }

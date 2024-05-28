@@ -17,7 +17,7 @@ layout(binding = 1) buffer PINS_USED {uint pinsUsed[PIN_COUNT];};
 void main()
 {
 	vec3 woldPos = (fragment_modelMat * vec4(fragment_position, 1.0)).xyz;
-	//outColor = vec4(0.0, 1.0, 0.0, 1.0);
-	outColor = vec4(normalize(fragment_position), 1.0);
+	outColor = vec4(0.0, 1.0, 0.0, 1.0);
+	//outColor = vec4(normalize(fragment_position), 1.0);
 	outPosition = vec4(woldPos, 1.0);
 }

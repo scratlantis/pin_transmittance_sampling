@@ -33,16 +33,14 @@ void main()
 	float tMax = min(min(max(c1.x, c2.x), max(c1.y, c2.y)), max(c1.z, c2.z));
 	vec3 entryPoint = startPos;//fragment_position + tMin*dir;
 	vec3 exitPoint = startPos + tMax*dir;
-
 	float transmittance = 1.0;
 	float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
 	for(int i = 0; i < GAUSSIAN_COUNT; i++)
 	{
 		float coef = clamp(1.0-weight*evalTransmittanceGaussianSegment(entryPoint, exitPoint, gaussians[i]), 0.0, 1.0);
-		//float coef = clamp(1.0-weight*evalTransmittanceGaussian(fragment_position, dir, gaussians[i]), 0.0, 1.0);
 		transmittance *= coef;
 	}
-	outColor = vec4(transmittance, transmittance, transmittance, 1.0);
+	
 
-	//outColor=vec4(startPos,1.0);
+	outColor = vec4(transmittance, transmittance, transmittance, 1.0);
 }

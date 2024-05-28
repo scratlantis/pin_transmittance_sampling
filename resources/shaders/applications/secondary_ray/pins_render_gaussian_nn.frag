@@ -15,6 +15,7 @@ layout(binding = 1) buffer PINS {Pin pins[PIN_COUNT];};
 layout(binding = 2) buffer PIN_TRANSMITTANCE {float pin_transmittance[PIN_COUNT];};
 layout(binding = 3) buffer PIN_DIRECTION {vec4 pin_dir[PIN_COUNT];};
 layout(binding = 4) buffer PINS_USED {uint pinsUsed[PIN_COUNT];};
+layout(binding = 5) buffer GAUSSIANS {Gaussian gaussians[GAUSSIAN_COUNT];};
 void main()
 {
 	//vec3 worldPos = (fragment_modelMat*vec4(fragment_position,1.0)).xyz;
@@ -66,8 +67,39 @@ void main()
 	//float deltaTheta = min(abs(theta), abs(theta));
 	gl_FragDepth = 1.0-maxDot;
 	float invTransmittance = 1.0-pin_transmittance[maxDotIdx];
-	//invTransmittance/=float(PIN_COUNT_SQRT);
 	float transmittance = 1.0-invTransmittance;
+
+
+
+	if(true)
+	{
+		vec3 origin,direction;
+		Pin p = pins[maxDotIdx];
+		getRay(p, origin, direction);
+		dir = direction * sign(dot(dir, direction));
+		startPos = origin + dir*dot(startPos-origin,dir);
+		assureNotZero(dir);
+		vec3 invDir = 1.0 / dir;
+		vec3 c1 = -startPos*invDir;
+		vec3 c2 = c1 + invDir; // (vec(1.0)-raySeg.origin)*invDir;
+		float tMin = max(max(min(c1.x, c2.x), min(c1.y, c2.y)), min(c1.z, c2.z));
+		float tMax = min(min(max(c1.x, c2.x), max(c1.y, c2.y)), max(c1.z, c2.z));
+		vec3 entryPoint = startPos;//fragment_position + tMin*dir;
+		vec3 exitPoint = startPos + tMax*dir;
+		transmittance = 1.0;
+		float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
+		for(int i = 0; i < GAUSSIAN_COUNT; i++)
+		{
+			float coef = clamp(1.0-weight*evalTransmittanceGaussianSegment(entryPoint, exitPoint, gaussians[i]), 0.0, 1.0);
+			transmittance *= coef;
+		}
+	}
+
+
+
+
+
+
 	//transmittance*=0.1;
 	//transmittance=0.0;
 	outColor = vec4(transmittance, transmittance, transmittance, 1.0);

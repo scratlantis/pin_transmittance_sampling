@@ -149,12 +149,14 @@ int main()
 	}
 
 	// Geometry
-	std::vector<PosVertex> objCubeVertices, objSphereVertices;
-	std::vector<Index> objCubeIndices, objSphereIndices;
+	std::vector<PosVertex> objCubeVertices, objSphereVertices, objLowPolySphereVertices;
+	std::vector<Index>     objCubeIndices, objSphereIndices, objLowPolySphereIndices;
 	loadObj("cube", objCubeVertices, objCubeIndices);
-	loadObj("lowpoly_sphere", objSphereVertices, objSphereIndices);
+	loadObj("lowpoly_sphere", objLowPolySphereVertices, objLowPolySphereIndices);
+	loadObj("sphere", objSphereVertices, objSphereIndices);
 	Geometry_T<PosVertex> cubeGeom = Geometry_T<PosVertex>(&gState.heap, objCubeVertices, objCubeIndices);
 	Geometry_T<PosVertex> sphereGeom = Geometry_T<PosVertex>(&gState.heap, objSphereVertices, objSphereIndices);
+	Geometry_T<PosVertex> lowpolySphereGeom = Geometry_T<PosVertex>(&gState.heap, objLowPolySphereVertices, objLowPolySphereIndices);
 	Geometry_T<PosVertex> pinGeom  = Geometry_T<PosVertex>(&gState.heap, pinVertexBuffer, PIN_COUNT * 2, pinIndexBuffer, PIN_COUNT * 2);
 
 	// Build scene
@@ -172,7 +174,7 @@ int main()
 
 
 	WireframeSphere_M      sphereMat             = WireframeSphere_M(renderPasses[RENDER_PASS_WIREFRAME], &viewBuf);
-	DefaulModel<PosVertex> wireFrameSphere = DefaulModel<PosVertex>(&sphereGeom, &sphereMat, RENDER_PASS_WIREFRAME);
+	DefaulModel<PosVertex> wireFrameSphere = DefaulModel<PosVertex>(&lowpolySphereGeom, &sphereMat, RENDER_PASS_WIREFRAME);
 	Transform              sphereTransform       = Transform(glm::scale(glm::mat4(1.0), glm::vec3(0.1, 0.1, 0.1)));
 	models.push_back(&wireFrameSphere);
 	transforms.push_back(&sphereTransform);
@@ -183,13 +185,13 @@ int main()
 
 	Gaussian_M           gaussianMat             = Gaussian_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &gaussianBuf);
 	DefaulModel<PosVertex> gaussianSphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianMat, RENDER_PASS_MATERIAL);
-	Transform              gaussianSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, -1.5, 0.0)));
+	Transform              gaussianSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, -3.0, 0.0)));
 	models.push_back(&gaussianSphere);
 	transforms.push_back(&gaussianSphereTransform);
 	instanceCounts.push_back(1);
 
 	
-	GaussianNNGrid_M       gaussianNNGridMat           = GaussianNNGrid_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &pinTransmittanceBuf, &pinGridBuf);
+	GaussianNNGrid_M       gaussianNNGridMat           = GaussianNNGrid_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &pinTransmittanceBuf, &pinGridBuf, &gaussianBuf);
 	DefaulModel<PosVertex> gaussianNNGridSphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianNNGridMat, RENDER_PASS_MATERIAL);
 	Transform              gaussianNNGridSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 0.0)));
 	models.push_back(&gaussianNNGridSphere);
@@ -197,9 +199,9 @@ int main()
 	instanceCounts.push_back(1);
 
 
-	GaussianNN_M           gaussianNNMat           = GaussianNN_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &pinBuf, &pinTransmittanceBuf, &pinDirectionsBuffer, &pinUsedBuffer);
+	GaussianNN_M           gaussianNNMat             = GaussianNN_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &pinBuf, &pinTransmittanceBuf, &pinDirectionsBuffer, &pinUsedBuffer, &gaussianBuf);
 	DefaulModel<PosVertex> gaussianNNSphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianNNMat, RENDER_PASS_MATERIAL);
-	Transform              gaussianNNSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 1.5, 0.0)));
+	Transform              gaussianNNSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 3.0, 0.0)));
 	models.push_back(&gaussianNNSphere);
 	transforms.push_back(&gaussianNNSphereTransform);
 	instanceCounts.push_back(PIN_COUNT_SQRT);
@@ -218,6 +220,7 @@ int main()
 	{
 		cubeGeom.upload(cmdBuf);
 		sphereGeom.upload(cmdBuf);
+		lowpolySphereGeom.upload(cmdBuf);
 		gaussianBuf.upload(cmdBuf);
 		pinBuf.upload(cmdBuf);
 		cmdBuf.fillBuffer(pinUsedBuffer, 0);
