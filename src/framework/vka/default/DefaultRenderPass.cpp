@@ -5,14 +5,19 @@ namespace vka
 
 void DefaultRenderPass::destroy()
 {
-	// clean up of GUI stuff
-	for (size_t i = 0; i < gState.io.imageCount; i++)
+	if (!framebuffers.empty())
 	{
-		vkDestroyFramebuffer(gState.device.logical, framebuffers[i], nullptr);
+		for (size_t i = 0; i < gState.io.imageCount; i++)
+		{
+			vkDestroyFramebuffer(gState.device.logical, framebuffers[i], nullptr);
+		}
+		framebuffers.clear();
 	}
-	framebuffers.clear();
-	vkDestroyRenderPass(gState.device.logical, renderPass, nullptr);
-	renderPass = VK_NULL_HANDLE;
+	if (renderPass != VK_NULL_HANDLE)
+	{
+		vkDestroyRenderPass(gState.device.logical, renderPass, nullptr);
+		renderPass = VK_NULL_HANDLE;
+	}
 }
 
 void DefaultRenderPass::createRenderPass()

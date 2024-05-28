@@ -182,6 +182,7 @@ class DrawSurface
 	Buffer      indexBuffer;
 	uint32_t    indexCount;
 	uint32_t    indexOffset;
+	uint32_t    sortKey;
 
   private:
 };
@@ -248,6 +249,13 @@ class DrawCall
 		cmdBuf.bindIndexBuffer(drawSurf.indexBuffer);
 		cmdBuf.drawIndexed(drawSurf.indexCount, instanceCount);
 	}
+
+	bool operator<(const DrawCall &rhs) const
+	{
+		return drawSurf.sortKey < rhs.drawSurf.sortKey;
+	}
+
+  private:
 	// void submit(UniversalCmdBuffer &cmdBuf)
 	//{
 	//	cmdBuf.bindVertexBuffers({drawSurf.vertexBuffer.buf});

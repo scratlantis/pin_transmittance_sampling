@@ -401,6 +401,7 @@ void AppState::nextFrame()
 	ASSERT_VULKAN(vkWaitForFences(device.logical, 1, &frame->inFlightFence, VK_TRUE, UINT64_MAX));
 	frame->stack.clear();
 	io.readInputs();
+	gState.io.images[frame->frameIndex].layout = VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
 AppState::AppState()

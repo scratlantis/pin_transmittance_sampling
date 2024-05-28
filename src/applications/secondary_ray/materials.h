@@ -1,6 +1,7 @@
 #pragma once
 #include "DataStructs.h"
 #include <framework/vka/render_model/common.h>
+#include <framework/vka/resources/Sampler.h>
 #include <random>
 
 BlendMode BLEND_MODE_NONE      = {VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
@@ -251,19 +252,26 @@ class Gaussian_M : public Material
 {
   public:
 	Gaussian_M(
-	    const DefaultRenderPass *defaultRenderPass,
-	    const Buffer            *viewBuf,
-	    const GaussianBuffer    *gaussianBuf) :
-	    gaussianBuf(gaussianBuf), defaultRenderPass(defaultRenderPass), viewBuf(viewBuf){};
+	    const RenderPass     *renderPass,
+	    const Buffer         *viewBuf,
+	    const GaussianBuffer *gaussianBuf,
+	    const Sampler        *sampler,
+	    const Image          *colorImg,
+	    const Image          *posImg) :
+	    gaussianBuf(gaussianBuf), renderPass(renderPass), viewBuf(viewBuf), sampler(sampler), colorImg(colorImg), posImg(posImg)
+	{};
 	~Gaussian_M(){};
 
 	const GaussianBuffer    *gaussianBuf;
-	const DefaultRenderPass *defaultRenderPass;
+	const RenderPass        *renderPass;
 	const Buffer            *viewBuf;
+	const Sampler           *sampler;
+	const Image             *colorImg;
+	const Image             *posImg;
 	virtual void             bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
 	{
 		bindPipeline(cmdBuf);
-		cmdBuf.pushDescriptors(0, *viewBuf, *gaussianBuf);
+		cmdBuf.pushDescriptors(0, *viewBuf, *gaussianBuf, (Sampler) *sampler, (Image) *colorImg, (Image) *posImg);
 	}
 
   private:
@@ -272,6 +280,9 @@ class Gaussian_M : public Material
 		DescriptorSetLayoutDefinition layoutDefinition{};
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_SAMPLER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 		ShaderDefinition vertShaderDef{"pins_render.vert"};
 		ShaderDefinition fragShaderDef{"pins_render_gaussian.frag"};
@@ -289,7 +300,7 @@ class Gaussian_M : public Material
 		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
 		    .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
 		    .setBlendMode(1, BLEND_MODE_OVERWRITE);
-		RasterizationPipeline pipeline = defaultRenderPass->createPipeline(pipelineState, 0);
+		RasterizationPipeline pipeline = renderPass->createPipeline(pipelineState, 0);
 		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
 };
@@ -298,15 +309,15 @@ class GaussianNNGrid_M : public Material
 {
   public:
 	GaussianNNGrid_M(
-	    const DefaultRenderPass *defaultRenderPass,
+	    const RenderPass *renderPass,
 	    const Buffer            *viewBuf,
 	    const Buffer            *pinTransmittanceBuf,
 	    const GridBuffer        *gridBuf) :
-	    defaultRenderPass(defaultRenderPass), viewBuf(viewBuf), pinTransmittanceBuf(pinTransmittanceBuf), gridBuf(gridBuf){};
+	    renderPass(renderPass), viewBuf(viewBuf), pinTransmittanceBuf(pinTransmittanceBuf), gridBuf(gridBuf){};
 	~GaussianNNGrid_M(){};
 	const Buffer            *pinTransmittanceBuf;
 	const GridBuffer        *gridBuf;
-	const DefaultRenderPass *defaultRenderPass;
+	const RenderPass        *renderPass;
 	const Buffer            *viewBuf;
 
 	virtual void bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
@@ -341,7 +352,7 @@ class GaussianNNGrid_M : public Material
 		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
 		    .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
 		    .setBlendMode(1, BLEND_MODE_OVERWRITE);
-		RasterizationPipeline pipeline = defaultRenderPass->createPipeline(pipelineState, 0);
+		RasterizationPipeline pipeline = renderPass->createPipeline(pipelineState, 0);
 		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
 };
@@ -350,12 +361,12 @@ class Pins_M : public Material
 {
    public:
 	Pins_M(
-	    const DefaultRenderPass *defaultRenderPass,
+	     const RenderPass *renderPass,
 	    const Buffer            *viewBuf,
 	    const Buffer            *pinUsedBuffer) :
-	     viewBuf(viewBuf), defaultRenderPass(defaultRenderPass), pinUsedBuffer(pinUsedBuffer){};
+	     viewBuf(viewBuf), renderPass(renderPass), pinUsedBuffer(pinUsedBuffer){};
 	~Pins_M(){};
-	const DefaultRenderPass *defaultRenderPass;
+	const RenderPass        *renderPass;
 	const Buffer            *viewBuf;
 	const Buffer            *pinUsedBuffer;
 	virtual void             bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
@@ -387,10 +398,55 @@ class Pins_M : public Material
 		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
 		    .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
 		    .setBlendMode(1, BLEND_MODE_OVERWRITE);
-		RasterizationPipeline pipeline = defaultRenderPass->createPipeline(pipelineState, 0);
+		RasterizationPipeline pipeline = renderPass->createPipeline(pipelineState, 0);
 		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
  };
+
+class WireframeSphere_M : public Material
+ {
+   public:
+	 WireframeSphere_M(
+	     const RenderPass *renderPass,
+	     const Buffer     *viewBuf) :
+	     viewBuf(viewBuf), renderPass(renderPass){};
+	 ~WireframeSphere_M(){};
+	 const RenderPass *renderPass;
+	 const Buffer     *viewBuf;
+	 virtual void      bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
+	 {
+		 bindPipeline(cmdBuf);
+		 cmdBuf.pushDescriptors(0, (Buffer) *viewBuf);
+	 }
+
+   private:
+	 virtual void bindPipeline(UniversalCmdBuffer &cmdBuf) const
+	 {
+		 DescriptorSetLayoutDefinition layoutDefinition{};
+		 layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		 layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+		 ShaderDefinition vertShaderDef{"pins_render.vert"};
+		 ShaderDefinition fragShaderDef{"sphere_visualize.frag"};
+		 vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
+		 RasterizationPipelineState pipelineState = RasterizationPipelineState();
+		 pipelineState
+		     .addVertexAttribute(PosVertex::getAttributeDescriptions(0))
+		     .addVertexAttribute(Transform::getAttributeDescriptions(1))
+		     .setExtent(gState.io.extent.width, gState.io.extent.height)
+		     .setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_CLOCKWISE)
+		     .setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+		     .setVertexBinding(PosVertex::getBindingDescription(0), Transform::getBindingDescription(1))
+		     .setDescriptorLayout(layoutDefinition)
+		     .setShaderDefinitions(vertShaderDef, fragShaderDef)
+		     .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
+		     .setBlendMode(2, BLEND_MODE_OVERWRITE);
+		 pipelineState.rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
+		 RasterizationPipeline pipeline = renderPass->createPipeline(pipelineState, 0);
+		 cmdBuf.bindRasterizationPipeline(pipeline);
+	 }
+ };
+
+
 
  class WriteDepthBuffer_M : public Material
 {

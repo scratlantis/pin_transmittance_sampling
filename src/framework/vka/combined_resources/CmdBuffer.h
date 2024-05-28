@@ -423,18 +423,19 @@ class UniversalCmdBuffer : public ComputeCmdBuffer
 		// State: layout, bindpoint
 	}
 
-	void startRenderPass(VkRenderPass renderpass, VkFramebuffer framebuffer, std::vector<VkClearValue> clearValues, VkExtent2D extent = gState.io.extent)
+	void startRenderPass(VkRenderPass renderpass, VkFramebuffer framebuffer, std::vector<VkClearValue> clearValues, VkRect2D renderArea = {{0, 0}, gState.io.extent})
 	{
 		VkRenderPassBeginInfo renderPassBeginInfo;
 		renderPassBeginInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.pNext             = nullptr;
 		renderPassBeginInfo.renderPass        = renderpass;
 		renderPassBeginInfo.framebuffer       = framebuffer;
-		renderPassBeginInfo.renderArea.offset = {0, 0};
-		renderPassBeginInfo.renderArea.extent = extent;
+		renderPassBeginInfo.renderArea        = renderArea;
 		renderPassBeginInfo.clearValueCount   = clearValues.size();
 		renderPassBeginInfo.pClearValues      = clearValues.data();
 
+		//Civ
+		VkExtent2D extent = renderArea.extent;
 		vkCmdBeginRenderPass(handle, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 		VkViewport viewport;
 		viewport.x        = 0.0f;

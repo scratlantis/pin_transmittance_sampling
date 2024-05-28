@@ -15,10 +15,12 @@ class DefaulModel : public Model_T<VertexType>
   public:
 	DefaulModel(){};
 	Material *pMaterial;
-	DefaulModel(Geometry_T<VertexType> *pGeometry, Material *pMaterial)
+	uint32_t  sortKey;
+	DefaulModel(Geometry_T<VertexType> *pGeometry, Material *pMaterial, uint32_t sortKey = 0)
         :
         Model_T<VertexType>(pGeometry),
-        pMaterial(pMaterial)
+        pMaterial(pMaterial),
+		sortKey(sortKey)
     {
     };
 	virtual std::vector<DrawSurface> getDrawSurf() const override
@@ -36,6 +38,7 @@ class DefaulModel : public Model_T<VertexType>
 			drawSurf.indexBuffer  = pGeometry->indexBuffer;
 			drawSurf.indexCount   = pGeometry->indexCounts[i];
 			drawSurf.indexOffset  = pGeometry->indexOffsets[i];
+			drawSurf.sortKey      = sortKey;
 			drawSurfs.push_back(drawSurf);
 		}
 		return drawSurfs;

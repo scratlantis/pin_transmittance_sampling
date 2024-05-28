@@ -8,11 +8,12 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <vulkan/vulkan.h>
+#include "RenderPass.h"
 
 namespace vka
 {
 
-class DefaultRenderPass
+class DefaultRenderPass : public RenderPass
 {
   public:
 	DefaultRenderPass(Image* depthImage ,Image *pOffscreenImage = nullptr);

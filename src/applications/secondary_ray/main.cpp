@@ -26,6 +26,8 @@
 #include "materials.h"
 #include <framework/vka/compatibility.h>
 #include <framework/vka/loaders/load_obj.h>
+#include <framework/vka/default/ConfigurableRenderPass.h>
+#include <framework/vka/resources/Sampler.h>
 // clang-format on
 using namespace vka;
 #ifndef SHADER_DIR
@@ -53,6 +55,15 @@ AppState gState;
 const std::string gShaderPath = SHADER_DIR;
 const std::string gModelPath  = MODEL_DIR;
 
+//#define POST_PROCESSING
+
+enum RenderPassID
+{
+	RENDER_PASS_WIREFRAME,
+	RENDER_PASS_VOLUME,
+	RENDER_PASS_MATERIAL
+};
+
 int main()
 {
 	// Global State Initialization
@@ -70,16 +81,24 @@ int main()
 	// Images
 	FramebufferImage offscreenImage = FramebufferImage(&gState.heap,
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, gState.io.format, gState.io.extent);
+	FramebufferImage depthImage     = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_FORMAT_D32_SFLOAT, gState.io.extent);
+	FramebufferImage lineColorImg   = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
+	FramebufferImage linePosImg     = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, gState.io.extent);
+	VkSamplerCreateInfo samplerCI      = SamplerCreateInfo_Default(0.0);
+	Sampler             wireFrameSampler        = Sampler(&gState.cache, samplerCI);
+
+#ifdef POST_PROCESSING
 	FramebufferImage lastFrameImage = FramebufferImage(&gState.heap,
 		VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, gState.io.format, gState.io.extent);
-
 	FramebufferImage pingPongImages[2] =
 	    {
 	        FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, gState.io.format, gState.io.extent),
 	        FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, gState.io.format, gState.io.extent)
 	};
-	FramebufferImage depthImage     = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_FORMAT_D32_SFLOAT, gState.io.extent);
-	depthImage.createImageView(&gState.heap);
+#endif
+
+
+	//depthImage.createImageView(&gState.heap);
 
 	// Buffers
 	Buffer         viewBuf     = BufferVma(&gState.heap, sizeof(View), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
@@ -92,15 +111,49 @@ int main()
 	Buffer            pinIndexBuffer  = BufferVma(&gState.heap, sizeof(Index) * 2 * PIN_COUNT, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	Buffer            pinUsedBuffer   = BufferVma(&gState.heap, sizeof(uint32_t) * PIN_COUNT, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 
-	// Render pass
-	DefaultRenderPass renderPass = DefaultRenderPass(&depthImage, &offscreenImage);
-	renderPass.init();
+
+	// Render passes
+	std::vector<RenderPass *> renderPasses(3);
+	ConfigurableRenderPassCI renderPassCI{};
+	if (1)
+	{
+		renderPassCI.pDepthImage        = &depthImage;
+		renderPassCI.pColorAttachments  = {&lineColorImg, &linePosImg};
+		renderPassCI.colorClear         = {true, true};
+		renderPassCI.colorClearValues   = {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}};
+		renderPassCI.colorInitialLayout = {VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+		renderPassCI.colorTargetLayout  = {VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+		renderPassCI.renderArea         = {0, 0, gState.io.extent.width, gState.io.extent.height};
+		renderPasses[RENDER_PASS_WIREFRAME] = new ConfigurableRenderPass(renderPassCI);
+	}
+	renderPasses[RENDER_PASS_VOLUME] = new DefaultRenderPass(&depthImage, &offscreenImage);
+	if (0)
+	{
+		/*renderPassCI.pDepthImage         = &depthImage;
+		renderPassCI.pColorAttachments   = {&lineColorImg, &linePosImg};
+		renderPassCI.colorClear          = {true, true};
+		renderPassCI.colorClearValues    = {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}};
+		renderPassCI.colorInitialLayout  = {VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+		renderPassCI.colorTargetLayout   = {VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+		renderPassCI.renderArea          = {0, 0, gState.io.extent.width, gState.io.extent.height};
+		renderPasses[RENDER_PASS_LINE]   = new ConfigurableRenderPass(renderPassCI);*/
+		//renderPasses[RENDER_PASS_SPHERE] = new ConfigurableRenderPass(renderPassCI);
+	}
+	for (auto &rp : renderPasses)
+	{
+		if (rp != nullptr)
+		{
+			rp->init();
+		}
+	}
 
 	// Geometry
-	std::vector<PosVertex> objCubeVertices;
-	std::vector<Index> objCubeIndices;
+	std::vector<PosVertex> objCubeVertices, objSphereVertices;
+	std::vector<Index> objCubeIndices, objSphereIndices;
 	loadObj("cube", objCubeVertices, objCubeIndices);
+	loadObj("lowpoly_sphere", objSphereVertices, objSphereIndices);
 	Geometry_T<PosVertex> cubeGeom = Geometry_T<PosVertex>(&gState.heap, objCubeVertices, objCubeIndices);
+	Geometry_T<PosVertex> sphereGeom = Geometry_T<PosVertex>(&gState.heap, objSphereVertices, objSphereIndices);
 	Geometry_T<PosVertex> pinGeom  = Geometry_T<PosVertex>(&gState.heap, pinVertexBuffer, PIN_COUNT * 2, pinIndexBuffer, PIN_COUNT * 2);
 
 	// Build scene
@@ -109,39 +162,23 @@ int main()
 	std::vector<uint32_t>    instanceCounts;
 	// Add gaussian cube
 
-	Gaussian_M             gaussianMat           = Gaussian_M(&renderPass, &viewBuf, &gaussianBuf);
-	DefaulModel<PosVertex> gaussianCube          = DefaulModel<PosVertex>(&cubeGeom, &gaussianMat);
-	Transform              gaussianCubeTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 0.0)));
+	Gaussian_M             gaussianMat           = Gaussian_M(renderPasses[RENDER_PASS_VOLUME], &viewBuf, &gaussianBuf, &wireFrameSampler, &lineColorImg, &linePosImg);
+	DefaulModel<PosVertex> gaussianCube          = DefaulModel<PosVertex>(&cubeGeom, &gaussianMat, RENDER_PASS_VOLUME);
+	Transform              gaussianCubeTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(-0.5, -0.5, -0.5)));
 	models.push_back(&gaussianCube);
 	transforms.push_back(&gaussianCubeTransform);
 	instanceCounts.push_back(1);
 
 
+	WireframeSphere_M      sphereMat             = WireframeSphere_M(renderPasses[RENDER_PASS_WIREFRAME], &viewBuf);
+	DefaulModel<PosVertex> wireFrameSphere = DefaulModel<PosVertex>(&sphereGeom, &sphereMat, RENDER_PASS_WIREFRAME);
+	Transform              sphereTransform       = Transform(glm::scale(glm::mat4(1.0), glm::vec3(0.1, 0.1, 0.1)));
+	models.push_back(&wireFrameSphere);
+	transforms.push_back(&sphereTransform);
+	instanceCounts.push_back(1);
 
-	// Create draw calls
-	std::vector<Transform> finalTransforms(transforms.size());
-	for (size_t i = 0; i < transforms.size(); i++)
-	{
-		glm::mat4 centerMat   = glm::translate(glm::mat4(1.0), glm::vec3(-0.5, -0.5, -0.5));
-		glm::mat4 rotationMat = glm::mat4(1.0);
-		glm::mat4 scaleMat        = glm::scale(glm::mat4(1.0), glm::vec3(0.4, 0.4, 0.4));
-		finalTransforms[i].mat    = transforms[i]->mat * rotationMat * scaleMat * centerMat;
-		finalTransforms[i].invMat = glm::inverse(finalTransforms[i].mat);
-	}
-	std::vector<DrawCall> drawCalls;
-	for (size_t i = 0; i < models.size(); i++)
-	{
-		std::vector<DrawSurface>         drawSurf = models[i]->getDrawSurf();
-		std::vector<DrawSurfaceInstance> drawSurfInst;
-		for (size_t j = 0; j < drawSurf.size(); j++)
-		{
-			for (size_t k = 0; k < instanceCounts[i]; k++)
-			{
-				drawSurfInst.push_back(DrawSurfaceInstance(drawSurf[j], &finalTransforms[i], sizeof(Transform)));
-			}
-		}
-		drawCalls.push_back(DrawCall(drawSurfInst));
-	}
+
+	
 
 
 
@@ -156,6 +193,7 @@ int main()
 	// Upload buffers
 	{
 		cubeGeom.upload(cmdBuf);
+		sphereGeom.upload(cmdBuf);
 		gaussianBuf.upload(cmdBuf);
 		pinBuf.upload(cmdBuf);
 		cmdBuf.fillBuffer(pinUsedBuffer, 0);
@@ -165,10 +203,15 @@ int main()
 
 	// Transition images
 	{
+#ifdef POST_PROCESSING
 		cmdBuf.transitionLayout(pingPongImages[0], VK_IMAGE_LAYOUT_GENERAL);
 		cmdBuf.transitionLayout(pingPongImages[1], VK_IMAGE_LAYOUT_GENERAL);
 		cmdBuf.transitionLayout(lastFrameImage, VK_IMAGE_LAYOUT_GENERAL);
+#endif
 		cmdBuf.transitionLayout(offscreenImage, VK_IMAGE_LAYOUT_GENERAL);
+		cmdBuf.transitionLayout(depthImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+		cmdBuf.transitionLayout(lineColorImg, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		cmdBuf.transitionLayout(linePosImg, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 	cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	// Build buffers
@@ -205,8 +248,24 @@ int main()
 			}
 			view.update(cnt, camera);
 		}
+		sphereTransform = Transform( glm::translate( glm::mat4(1.0), camera.getFixpoint() ) * glm::scale( glm::mat4(1.0), glm::vec3(0.1) ));
 
 
+		// Create draw calls
+		std::vector<DrawCall> drawCalls;
+		for (size_t i = 0; i < models.size(); i++)
+		{
+			std::vector<DrawSurface>         drawSurf = models[i]->getDrawSurf();
+			std::vector<DrawSurfaceInstance> drawSurfInst;
+			for (size_t j = 0; j < drawSurf.size(); j++)
+			{
+				for (size_t k = 0; k < instanceCounts[i]; k++)
+				{
+					drawSurfInst.push_back(DrawSurfaceInstance(drawSurf[j], transforms[i], sizeof(Transform)));
+				}
+			}
+			drawCalls.push_back(DrawCall(drawSurfInst));
+		}
 		UniversalCmdBuffer cmdBuf = UniversalCmdBuffer(&gState.frame->stack, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 		// Upload data
 		cmdBuf.uploadData(&view, sizeof(View), viewBuf);
@@ -218,20 +277,36 @@ int main()
 			{
 				drawCalls[i].buildInstanceBuffer(cmdBuf, &gState.frame->stack);
 			}
-
+			std::sort(drawCalls.begin(), drawCalls.end());
 			cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_INDEX_READ_BIT);
+
+
 			depthImage.update(&gState.heap, &gState.frame->stack, gState.io.extent);
 			offscreenImage.update(&gState.heap, &gState.frame->stack, gState.io.extent);
-			cmdBuf.transitionLayout(depthImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-			renderPass.beginRender(cmdBuf);
-			for (size_t i = 0; i < drawCalls.size(); i++)
+			lineColorImg.update(&gState.heap, &gState.frame->stack, gState.io.extent);
+			linePosImg.update(&gState.heap, &gState.frame->stack, gState.io.extent);
+			
+			if (!drawCalls.empty())
 			{
-				drawCalls[i].drawSurf.pMaterial->bind(cmdBuf);
-				drawCalls[i].submit(cmdBuf);
+				int renderPassID = drawCalls[0].drawSurf.sortKey;
+				renderPasses[renderPassID]->beginRender(cmdBuf);
+				for (size_t i = 0; i < drawCalls.size(); i++)
+				{
+					if (drawCalls[i].drawSurf.sortKey != renderPassID)
+					{
+						renderPasses[renderPassID]->endRender(cmdBuf);
+						renderPassID = drawCalls[i].drawSurf.sortKey;
+						renderPasses[renderPassID]->beginRender(cmdBuf);
+					}
+
+					drawCalls[i].drawSurf.pMaterial->bind(cmdBuf);
+					drawCalls[i].submit(cmdBuf);
+				}
+				renderPasses[renderPassID]->endRender(cmdBuf);
 			}
-			renderPass.endRender(cmdBuf);
 		}
 
+#ifdef POST_PROCESSING
 		// Post processing
 		{
 			pingPongImages[0].update(&gState.heap, &gState.frame->stack, gState.io.extent);
@@ -315,14 +390,23 @@ int main()
 				}
 			}
 		}
+#endif        // POST_PROCESSING
 
 		cmdBuf.copyToSwapchain(offscreenImage);
+		//cmdBuf.copyToSwapchain(lineColorImg);
 		imguiWrapper.renderGui(cmdBuf);
 		gState.swapBuffers(&cmdBuf);
 	}
 	// Cleanup
 	vkDeviceWaitIdle(gState.device.logical);
-	renderPass.destroy();
+	for (size_t i = 0; i < renderPasses.size(); i++)
+	{
+		if (renderPasses[i] != nullptr)
+		{
+			renderPasses[i]->destroy();
+			delete renderPasses[i];
+		}
+	}
 	imguiWrapper.destroy();
 	gState.destroy();
 	delete window;
