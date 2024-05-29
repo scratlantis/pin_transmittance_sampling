@@ -26,12 +26,9 @@ void main()
 	vec4 worldPos = modelMat * pos;
 
 	mat4 secondaryViewMat = mat4(-1.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0, 0.0,0.0,-1.0,0.0, 0.0,0.0,-8.0,1.0);
-	vec4 viewPos = secondaryViewMat*worldPos;//view.viewMat * worldPos;
+	vec4 viewPos = secondaryViewMat*worldPos;
 	vec4 clipPos = (view.secondaryProjectionMat * viewPos);
-	//vec3 dir = normalize(view.camPos.xyz - worldPos.xyz);
-	//fragment_direction = normalize(viewPos.xyz);
 	fragment_position = pos.xyz;
-	//fragment_direction = (invModelMat * vec4(dir,0.0)).xyz;
 	fragment_instanceId = gl_InstanceIndex;
 	fragment_modelMat = modelMat;
 	fragment_invModelMat = invModelMat;
