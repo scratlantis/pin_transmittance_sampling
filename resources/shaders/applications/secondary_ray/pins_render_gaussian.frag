@@ -20,6 +20,8 @@ void main()
 	vec3 pos = vec3(-fragment_position.x, fragment_position.y, -fragment_position.z);
 	vec3 dir = (view.inverseViewMat * vec4(normalize(pos), 0.0)).xyz;
 	vec3 startPos = clamp( (view.fogInvModelMatrix*vec4(view.probe.xyz,1.0)).xyz ,vec3(0.0), vec3(1.0) );
+
+	applyJitter(view.positionalJitter, view.angularJitter, startPos, dir);
 	vec3 exitPoint = cubeExitPoint(startPos, dir);
 	vec3 endPos = exitPoint;
 	if(distance(startPos,exitPoint) > view.secRayLength)

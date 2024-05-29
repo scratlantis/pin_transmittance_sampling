@@ -1,3 +1,6 @@
+
+#include "../../framework/random.glsl"
+
 #define MAX_RAY_DISTANCE 10000.0
 #define MIN_RAY_DISTANCE 0.1
 
@@ -29,6 +32,13 @@
 
 #define GAUS_COEF 0.2
 #define PI 3.14159265359
+
+void applyJitter(float coefPos, float coefAngle, inout vec3 pos, inout vec3 dir)
+{
+	pos += (random3D(pos)-vec3(0.5)) * coefPos*1.0;
+	dir += (random3D(dir)-vec3(0.5)) * coefAngle;
+	dir = normalize(dir);
+}
 
 struct Gaussian
 {
@@ -88,7 +98,9 @@ struct View
 	mat4 fogInvModelMatrix;
 
 	float secRayLength;
-	uint padding[3];
+	float positionalJitter;
+	float angularJitter;
+	uint padding[1];
 
 	Cube cube;
 };
@@ -285,12 +297,12 @@ vec3 cubeExitPoint(vec3 startPos, vec3 dir)
 	return startPos + tMax*dir;
 }
 
-uint hash( uint x ) {
-    x += ( x << 10u );
-    x ^= ( x >>  6u );
-    x += ( x <<  3u );
-    x ^= ( x >> 11u );
-    x += ( x << 15u );
-    return x;
-}
+//uint hash( uint x ) {
+//    x += ( x << 10u );
+//    x ^= ( x >>  6u );
+//    x += ( x <<  3u );
+//    x ^= ( x >> 11u );
+//    x += ( x << 15u );
+//    return x;
+//}
 

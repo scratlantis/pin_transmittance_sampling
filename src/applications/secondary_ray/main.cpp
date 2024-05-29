@@ -47,7 +47,9 @@ using namespace vka;
 std::vector<GVar *> gVars{
     &gvar_use_pins,
     &gvar_pin_selection_coef,
-    &gvar_ray_lenght
+    &gvar_ray_lenght,
+	&gvar_positional_jitter,
+	&gvar_angular_jitter
 #ifdef POST_PROCESSING
 	,
 	&gvar_use_gaus_blur,

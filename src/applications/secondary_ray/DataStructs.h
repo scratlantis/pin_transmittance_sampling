@@ -18,6 +18,8 @@
 GVar gvar_use_pins{"show pins", 0, GVAR_ENUM, GVAR_APPLICATION, {"None", "Activ", "All"}};
 GVar gvar_pin_selection_coef{"pin selection coef", 1.0f, GVAR_UNORM, GVAR_APPLICATION};
 GVar gvar_ray_lenght{"secondary ray length", 1.0f, GVAR_UNORM, GVAR_APPLICATION};
+GVar gvar_positional_jitter{"positional_jitter", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
+GVar gvar_angular_jitter{"angular", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
 
 
 
@@ -77,7 +79,9 @@ struct View
 	glm::mat4 fogInvModelMatrix;
 
 	float secRayLength;
-	uint32_t padding[3];
+	float positionalJitter;
+	float angularJitter;
+	uint32_t padding[1];
 
 	Cube cube;
 	void update(uint32_t &cnt, FixedCamera &camera, Rect2D<float> secondaryViewport, Transform* fogTransform)
@@ -104,6 +108,8 @@ struct View
 		fogModelMatrix         = fogTransform->mat;
 		fogInvModelMatrix      = fogTransform->invMat;
 		secRayLength = gvar_ray_lenght.val.v_float;
+		positionalJitter = gvar_positional_jitter.val.v_float;
+		angularJitter = gvar_angular_jitter.val.v_float;
 	}
 };
 
