@@ -66,7 +66,7 @@ void main()
 			maxMetric = metric;
 			maxMetricIdx = i+offset;
 		}
-		pinsUsed[i+offset] = 0;
+		//pinsUsed[i+offset] = 0;
 	}
 	//pinsUsed[maxMetricIdx] = 1;
 
@@ -91,6 +91,21 @@ void main()
 	for(int i = 0; i < GAUSSIAN_COUNT; i++)
 	{
 		transmittance *= clamp(1.0-weight*evalTransmittanceGaussianSegment(startPos, endPos, gaussians[i]), 0.0, 1.0);
+	}
+
+	#ifdef METRIC_ANGLE_DISTANCE
+	int materialId = 3;
+	#endif
+	#ifdef METRIC_DISTANCE_DISTANCE
+	int materialId = 4;
+	#endif
+	if(view.showPins == materialId)
+	{
+		outPinId = maxMetricIdx + 1;
+	}
+	else
+	{
+		outPinId = 0;
 	}
 
 	outColor = vec4(vec3(transmittance), 1.0);

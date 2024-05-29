@@ -63,7 +63,14 @@ void main()
 		transmittance *= clamp(1.0-weight*evalTransmittanceGaussianSegment(startPos, endPos, gaussians[i]), 0.0, 1.0);
 	}
 
+	if(view.showPins == 2)
+	{
+		outPinId = pinIdx + 1;
+	}
+	else
+	{
+		outPinId = 0;
+	}
 
-	outPinId=0;
 	outColor = vec4(vec3(transmittance), 1.0);
 }

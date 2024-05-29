@@ -23,7 +23,7 @@ void main()
 	}
 	if(pinsUsed[fragment_pin_ID] == 0)
 	{
-		if(view.showPins == 1)
+		if(view.showPins != 1)
 		{
 			discard;
 		}
@@ -35,8 +35,4 @@ void main()
 	}
 
 	outPosition = vec4(woldPos, 1.0);
-	//if(pinsUsed[fragment_pin_ID] == 1)
-	//{
-	//	outColor = vec4(0.0, 1.0, 0.0, 1.0);
-	//}
 }

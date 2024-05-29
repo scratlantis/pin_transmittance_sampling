@@ -349,6 +349,7 @@ int main()
 						if (renderPassID == RENDER_PASS_WIREFRAME)
 						{
 							cmdBuf.copyImage(lineColorImg, offscreenImage);
+							cmdBuf.fillBuffer(pinUsedBuffer, 0);
 						}
 						renderPassID = drawCalls[i].drawSurf.sortKey;
 						renderPasses[renderPassID]->beginRender(cmdBuf);
