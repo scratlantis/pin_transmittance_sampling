@@ -47,7 +47,12 @@ void main()
 	getRay(p, origin, direction);
 	dir = direction * sign(dot(dir, direction));
 	startPos = origin + dir*dot(startPos-origin,dir);
-	vec3 endPos = cubeExitPoint(startPos, dir);
+	vec3 exitPoint = cubeExitPoint(startPos, dir);
+	vec3 endPos = exitPoint;
+	if(distance(startPos,exitPoint) > view.secRayLength)
+	{
+		endPos = startPos + dir*view.secRayLength;
+	}
 
 	transmittance = 1.0;
 	float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);

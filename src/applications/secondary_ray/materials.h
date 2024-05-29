@@ -200,9 +200,10 @@ class GaussianNN_M : public Material
 	    const Buffer     *pinTransmittanceBuf,
 	    const Buffer     *pinDirectionsBuffer,
 	    const Buffer     *pinUsedBuffer,
-	    const GaussianBuffer *gaussianBuf) :
-	    pinBuf(pinBuf), pinTransmittanceBuf(pinTransmittanceBuf), viewBuf(viewBuf),
-		renderPass(renderPass), pinDirectionsBuffer(pinDirectionsBuffer), pinUsedBuffer(pinUsedBuffer), gaussianBuf(gaussianBuf){};
+	    const GaussianBuffer *gaussianBuf,
+	    const std::vector<ShaderArgs> additionalShaderArgs = {}) :
+	    pinBuf(pinBuf), pinTransmittanceBuf(pinTransmittanceBuf), viewBuf(viewBuf), renderPass(renderPass), pinDirectionsBuffer(pinDirectionsBuffer),
+		pinUsedBuffer(pinUsedBuffer), gaussianBuf(gaussianBuf), additionalShaderArgs(additionalShaderArgs){};
 	~GaussianNN_M(){};
 	const PinBuffer         *pinBuf;
 	const Buffer            *pinTransmittanceBuf;
@@ -211,6 +212,7 @@ class GaussianNN_M : public Material
 	const Buffer            *pinDirectionsBuffer;
 	const Buffer            *pinUsedBuffer;
 	const GaussianBuffer    *gaussianBuf;
+	const std::vector<ShaderArgs> additionalShaderArgs;
 	virtual void bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
 	{
 		bindPipeline(cmdBuf);
@@ -233,6 +235,10 @@ class GaussianNN_M : public Material
 		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
 		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT_SQRT)});
 		fragShaderDef.args.push_back({"GAUSSIAN_COUNT", std::to_string(GAUSSIAN_COUNT)});
+		for (auto& arg : additionalShaderArgs)
+		{
+			fragShaderDef.args.push_back(arg);
+		}
 		vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
 		RasterizationPipelineState pipelineState = RasterizationPipelineState();
 		pipelineState

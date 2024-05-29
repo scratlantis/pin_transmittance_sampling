@@ -191,7 +191,7 @@ int main()
 
 	Gaussian_M           gaussianMat             = Gaussian_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &gaussianBuf);
 	DefaulModel<PosVertex> gaussianSphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianMat, RENDER_PASS_MATERIAL);
-	Transform              gaussianSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, -3.0, 0.0)));
+	Transform              gaussianSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, -4.0, 0.0)));
 	models.push_back(&gaussianSphere);
 	transforms.push_back(&gaussianSphereTransform);
 	instanceCounts.push_back(1);
@@ -199,19 +199,28 @@ int main()
 	
 	GaussianNNGrid_M       gaussianNNGridMat           = GaussianNNGrid_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &pinTransmittanceBuf, &pinGridBuf, &gaussianBuf);
 	DefaulModel<PosVertex> gaussianNNGridSphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianNNGridMat, RENDER_PASS_MATERIAL);
-	Transform              gaussianNNGridSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 0.0, 0.0)));
+	Transform              gaussianNNGridSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, -1.5, 0.0)));
 	models.push_back(&gaussianNNGridSphere);
 	transforms.push_back(&gaussianNNGridSphereTransform);
 	instanceCounts.push_back(1);
 
 
-	GaussianNN_M           gaussianNNMat             = GaussianNN_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &pinBuf, &pinTransmittanceBuf, &pinDirectionsBuffer, &pinUsedBuffer, &gaussianBuf);
+	GaussianNN_M           gaussianNNMat             = GaussianNN_M(renderPasses[RENDER_PASS_MATERIAL],
+		&viewBuf, &pinBuf, &pinTransmittanceBuf, &pinDirectionsBuffer, &pinUsedBuffer, &gaussianBuf, {{"METRIC_ANGLE_DISTANCE", ""}});
 	DefaulModel<PosVertex> gaussianNNSphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianNNMat, RENDER_PASS_MATERIAL);
-	Transform              gaussianNNSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 3.0, 0.0)));
+	Transform              gaussianNNSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 1.5, 0.0)));
 	models.push_back(&gaussianNNSphere);
 	transforms.push_back(&gaussianNNSphereTransform);
 	instanceCounts.push_back(PIN_COUNT_SQRT);
 
+
+	GaussianNN_M           gaussianNN2Mat             = GaussianNN_M(renderPasses[RENDER_PASS_MATERIAL],
+		&viewBuf, &pinBuf, &pinTransmittanceBuf, &pinDirectionsBuffer, &pinUsedBuffer, &gaussianBuf, {{"METRIC_DISTANCE_DISTANCE", ""}});
+	DefaulModel<PosVertex> gaussianNN2Sphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianNN2Mat, RENDER_PASS_MATERIAL);
+	Transform              gaussianNN2SphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 4.0, 0.0)));
+	models.push_back(&gaussianNN2Sphere);
+	transforms.push_back(&gaussianNN2SphereTransform);
+	instanceCounts.push_back(PIN_COUNT_SQRT);
 
 
 	// Upload data

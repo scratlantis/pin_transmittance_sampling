@@ -17,12 +17,19 @@ layout(binding = 2) buffer PIN_TRANSMITTANCE {float pin_transmittance[PIN_COUNT]
 layout(binding = 3) buffer PIN_DIRECTION {vec4 pin_dir[PIN_COUNT];};
 layout(binding = 4) buffer PINS_USED {uint pinsUsed[PIN_COUNT];};
 layout(binding = 5) buffer GAUSSIANS {Gaussian gaussians[GAUSSIAN_COUNT];};
+
+#ifndef METRIC_DISTANCE_DISTANCE
+	#ifndef METRIC_ANGLE_DISTANCE
+		#define METRIC_ANGLE_DISTANCE
+	#endif
+#endif
+
 void main()
 {
 	vec3 pos = vec3(-fragment_position.x, fragment_position.y, -fragment_position.z);
 	vec3 dir = (view.inverseViewMat * vec4(normalize(pos), 0.0)).xyz;
 	vec3 startPos = clamp( (view.fogInvModelMatrix*vec4(view.probe.xyz,1.0)).xyz ,vec3(0.0), vec3(1.0) );
-	
+	vec3 endPos = startPos+dir*view.secRayLength;
 
 	float maxMetric = 0.0;
 	uint maxMetricIdx = 0;
@@ -38,13 +45,19 @@ void main()
 
 
 		vec3 closestPoint = origin + direction*dot(startPos-origin,direction);
-		float dotProd = abs(dot(dir, direction));
 		float dist = distance(closestPoint, startPos);
 		float invDist = 1.0/(dist+1.0);
 
-
+		#ifdef METRIC_ANGLE_DISTANCE
+		float dotProd = abs(dot(dir, direction));
 		float metric = mix(dotProd, invDist, view.pinSelectionCoef);
-
+		#endif
+		#ifdef METRIC_DISTANCE_DISTANCE
+		vec3 closestPointEnd = origin + direction*dot(endPos-origin,direction);
+		float distEnd = distance(closestPointEnd, endPos);
+		float invDistEnd = 1.0/(distEnd+1.0);
+		float metric = mix(invDistEnd, invDist, view.pinSelectionCoef);
+		#endif
 
 		if(metric > maxMetric)
 		{
@@ -64,7 +77,13 @@ void main()
 	dir = direction * sign(dot(dir, direction));
 	startPos = origin + dir*dot(startPos-origin,dir);
 
-	vec3 endPos = cubeExitPoint(startPos, dir);
+	vec3 exitPoint = cubeExitPoint(startPos, dir);
+	endPos = exitPoint;
+	if(distance(startPos, exitPoint) > view.secRayLength)
+	{
+		endPos = startPos + dir*view.secRayLength;
+	}
+
 	float transmittance = 1.0;
 	float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
 	for(int i = 0; i < GAUSSIAN_COUNT; i++)

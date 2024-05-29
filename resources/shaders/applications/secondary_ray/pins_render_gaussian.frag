@@ -20,7 +20,12 @@ void main()
 	vec3 pos = vec3(-fragment_position.x, fragment_position.y, -fragment_position.z);
 	vec3 dir = (view.inverseViewMat * vec4(normalize(pos), 0.0)).xyz;
 	vec3 startPos = clamp( (view.fogInvModelMatrix*vec4(view.probe.xyz,1.0)).xyz ,vec3(0.0), vec3(1.0) );
-	vec3 endPos = cubeExitPoint(startPos, dir);
+	vec3 exitPoint = cubeExitPoint(startPos, dir);
+	vec3 endPos = exitPoint;
+	if(distance(startPos,exitPoint) > view.secRayLength)
+	{
+		endPos = startPos + dir*view.secRayLength;
+	}
 
 	float transmittance = 1.0;
 	float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
