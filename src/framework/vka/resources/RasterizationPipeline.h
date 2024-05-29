@@ -88,6 +88,7 @@ struct RasterizationPipelineState
 	VkPipelineColorBlendAttachmentState getBlendAttachment(BlendMode blendMode);
 
 	void addBlendMode(uint32_t attachmentCnt, BlendMode blendMode);
+	void addBlendMode(BlendMode blendMode);
 
 	void addShaderDefinitions(ShaderDefinition shaderDef);
 
@@ -148,13 +149,20 @@ struct RasterizationPipelineState
 		addVertexAttributes(args...);
 		return *this;
 	}*/
+
 	template <typename... Args>
-	void addBlendMode(uint32_t attachmentCnt, BlendMode blendMode, Args... args)
+	void addBlendMode(BlendMode blendMode, Args... args)
 	{
-		assert(attachmentCnt > 1);
 		blendAttachments.push_back(getBlendAttachment(blendMode));
-		addBlendMode(attachmentCnt - 1, args...)
+		addBlendMode(args...);
 	}
+	//template <typename... Args>
+	//void addBlendMode(uint32_t attachmentCnt, BlendMode blendMode, Args... args)
+	//{
+	//	assert(attachmentCnt > 1);
+	//	blendAttachments.push_back(getBlendAttachment(blendMode));
+	//	addBlendMode(attachmentCnt - 1, args...)
+	//}
 	template <typename... Args>
 	RasterizationPipelineState &setBlendMode(Args... args)
 	{

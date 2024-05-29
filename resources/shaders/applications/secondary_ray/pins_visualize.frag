@@ -8,6 +8,7 @@ layout(location = 2) in mat4 fragment_modelMat;
 layout(location = 6) in mat4 fragment_invModelMat;
 
 layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outPosition;
 
 layout(binding = 0) uniform VIEW {View view;};
 layout(binding = 1) buffer PINS_USED {uint pinsUsed[PIN_COUNT];};
@@ -15,7 +16,7 @@ layout(binding = 1) buffer PINS_USED {uint pinsUsed[PIN_COUNT];};
 
 void main()
 {
-
+	vec3 woldPos = (fragment_modelMat * vec4(fragment_position, 1.0)).xyz;
 	if(view.showPins == 0)
 	{
 		discard;
@@ -33,7 +34,7 @@ void main()
 		outColor = vec4(0.0, 1.0, 0.0, 1.0);
 	}
 
-
+	outPosition = vec4(woldPos, 1.0);
 	//if(pinsUsed[fragment_pin_ID] == 1)
 	//{
 	//	outColor = vec4(0.0, 1.0, 0.0, 1.0);

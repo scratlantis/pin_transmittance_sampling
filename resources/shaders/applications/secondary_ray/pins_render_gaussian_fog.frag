@@ -8,6 +8,7 @@ layout(location = 2) in mat4 fragment_modelMat;
 layout(location = 6) in mat4 fragment_invModelMat;
 
 layout(location = 0) out vec4 outColor;
+layout(location = 1) out uint outPinId;
 
 layout(binding = 0) uniform VIEW {View view;};
 layout(binding = 1) buffer GAUSSIANS {Gaussian gaussians[GAUSSIAN_COUNT];};
@@ -38,12 +39,19 @@ void main()
 	vec3 entryPointWorld = (fragment_modelMat * vec4(entryPoint,1.0)).xyz;
 	vec3 exitPointWorld = (fragment_modelMat * vec4(exitPoint,1.0)).xyz;
 	vec3 wireFramePosLocal = ( fragment_invModelMat * vec4(wireFramePos.xyz,1.0)).xyz;
-	if(wireFrameColor != vec4(0) &&
-	(distance(entryPointWorld, view.camPos.xyz) < distance(wireFramePos.xyz, view.camPos.xyz))
-	&& (distance(exitPointWorld, view.camPos.xyz) > distance(wireFramePos.xyz, view.camPos.xyz)))
+
+	bool isBefore = false;
+
+	if(wireFramePos != vec4(0))
 	{
-		exitPoint = wireFramePosLocal;
-		outColor = mix(outColor,wireFrameColor,0.5);
+		if(distance(entryPointWorld, view.camPos.xyz) > distance(wireFramePos.xyz, view.camPos.xyz))
+		{
+			isBefore = true;
+		}
+		else if(distance(exitPointWorld, view.camPos.xyz) > distance(wireFramePos.xyz, view.camPos.xyz))
+		{
+			exitPoint = wireFramePosLocal;
+		}
 	}
 
 	float transmittance = 1.0;
@@ -52,11 +60,15 @@ void main()
 	{
 		transmittance *= clamp(1.0-weight*evalTransmittanceGaussianSegment(entryPoint, exitPoint, gaussians[i]), 0.0, 1.0);
 	}
-	outColor = vec4(transmittance, transmittance, transmittance, 1.0);
+	outColor = vec4(vec3(transmittance), 1.0);
+	if(isBefore)
+	{
+		transmittance = 1.0;
+	}
 
-	if(wireFrameColor != vec4(0))
+	if(wireFramePos != vec4(0))
 	{
 		vec3 wireFramePosLocal = ( fragment_invModelMat * vec4(wireFramePos.xyz,1.0)).xyz;
-		outColor.xyz = transmittance*wireFrameColor.xyz;
+		outColor.xyz = transmittance*wireFrameColor.xyz*4.0;
 	}
 }

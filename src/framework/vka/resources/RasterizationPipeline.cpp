@@ -396,7 +396,6 @@ VkPipelineColorBlendAttachmentState RasterizationPipelineState::getBlendAttachme
 {
 	VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
 	colorBlendAttachment.colorWriteMask                      = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	colorBlendAttachment.blendEnable                         = VK_TRUE;
 	colorBlendAttachment.srcAlphaBlendFactor                 = blendMode.alphaSrcFactor;
 	colorBlendAttachment.dstAlphaBlendFactor                 = blendMode.alphaDstFactor;
 	colorBlendAttachment.alphaBlendOp                        = blendMode.alphaBlendOp;
@@ -404,6 +403,22 @@ VkPipelineColorBlendAttachmentState RasterizationPipelineState::getBlendAttachme
 	colorBlendAttachment.srcColorBlendFactor = blendMode.srcFactor;
 	colorBlendAttachment.dstColorBlendFactor = blendMode.dstFactor;
 	colorBlendAttachment.colorBlendOp        = blendMode.blendOp;
+
+	// clang-format off
+	if (colorBlendAttachment.srcAlphaBlendFactor == VK_BLEND_FACTOR_ONE
+		&& colorBlendAttachment.dstAlphaBlendFactor == VK_BLEND_FACTOR_ZERO
+		&& colorBlendAttachment.alphaBlendOp == VK_BLEND_OP_ADD
+		&& colorBlendAttachment.srcColorBlendFactor == VK_BLEND_FACTOR_ONE
+		&& colorBlendAttachment.dstColorBlendFactor == VK_BLEND_FACTOR_ZERO
+		&& colorBlendAttachment.colorBlendOp == VK_BLEND_OP_ADD)
+	{
+		colorBlendAttachment.blendEnable                         = VK_FALSE;
+	}
+	else
+	{
+		colorBlendAttachment.blendEnable                         = VK_TRUE;
+	}
+		// clang-format on
 	return colorBlendAttachment;
 }
 
@@ -415,6 +430,11 @@ void RasterizationPipelineState::addBlendMode(uint32_t attachmentCnt, BlendMode 
 	}
 }
 
+void RasterizationPipelineState::addBlendMode(BlendMode blendMode)
+{
+
+	blendAttachments.push_back(getBlendAttachment(blendMode));
+}
 
 RasterizationPipeline::RasterizationPipeline(ResourceTracker* pTracker, const RasterizationPipelineState pipelineState, VkRenderPass renderPass, uint32_t subpassIndex) :
     UniqueResource(pTracker), pipelineState(pipelineState), renderPass(renderPass), subpassIndex(subpassIndex)

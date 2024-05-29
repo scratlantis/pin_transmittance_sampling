@@ -8,6 +8,7 @@ layout(location = 2) in mat4 fragment_modelMat;
 layout(location = 6) in mat4 fragment_invModelMat;
 
 layout(location = 0) out vec4 outColor;
+layout(location = 1) out uint outPinId;
 
 layout(binding = 0) uniform VIEW {View view;};
 layout(binding = 1) buffer PIN_TRANSMITTANCE {float pin_transmittance[PIN_COUNT];};
@@ -56,6 +57,6 @@ void main()
 	}
 
 
-
+	outPinId=0;
 	outColor = vec4(vec3(transmittance), 1.0);
 }

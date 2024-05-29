@@ -25,11 +25,11 @@ void DefaultRenderPass::createRenderPass()
 	ASSERT_TRUE(renderPass == VK_NULL_HANDLE);
 	VkAttachmentDescription colorAttachmentDescription{};
 	colorAttachmentDescription.samples        = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachmentDescription.loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachmentDescription.loadOp         = VK_ATTACHMENT_LOAD_OP_LOAD;
 	colorAttachmentDescription.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
 	colorAttachmentDescription.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachmentDescription.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachmentDescription.initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	if (pOffscreenImage == nullptr)
 	{

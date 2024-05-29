@@ -8,6 +8,7 @@ layout(location = 2) in mat4 fragment_modelMat;
 layout(location = 6) in mat4 fragment_invModelMat;
 
 layout(location = 0) out vec4 outColor;
+layout(location = 1) out uint outPinId;
 
 layout(binding = 0) uniform VIEW {View view;};
 layout(binding = 1) buffer GAUSSIANS {Gaussian gaussians[GAUSSIAN_COUNT];};
@@ -27,5 +28,6 @@ void main()
 	{
 		transmittance *= clamp(1.0-weight*evalTransmittanceGaussianSegment(startPos, endPos, gaussians[i]), 0.0, 1.0);
 	}
+	outPinId=0;
 	outColor = vec4(vec3(transmittance), 1.0);
 }

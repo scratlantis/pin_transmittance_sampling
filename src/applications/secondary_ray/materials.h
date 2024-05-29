@@ -5,7 +5,7 @@
 #include <random>
 
 BlendMode BLEND_MODE_NONE      = {VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
-BlendMode BLEND_MODE_OVERWRITE = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD};
+BlendMode BLEND_MODE_OVERWRITE = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD};
 BlendMode BLEND_MODE_ADD       = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
 BlendMode BLEND_MODE_SUBTRACT  = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_REVERSE_SUBTRACT};
 BlendMode BLEND_MODE_ALPHA     = {VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD};
@@ -128,7 +128,8 @@ class PinBuffer : public BufferVma
 			glm::vec2 x      = sin(pins[i].phi) * cos(pins[i].theta);
 			glm::vec2 y      = sin(pins[i].phi) * sin(pins[i].theta);
 			glm::vec2 z      = cos(pins[i].phi);
-			glm::vec3 origin = glm::vec3(x.x, y.x, z.x) + glm::vec3(0.5);
+			//glm::vec3 origin = glm::vec3(x.x, y.x, z.x) + glm::vec3(0.5);
+			glm::vec3 origin = glm::vec3(x.x, y.x, z.x);
 			origin *= 0.866025403784;        // sqrt(3)/2
 			glm::vec3 direction = glm::normalize(glm::vec3(x.y - x.x, y.y - y.x, z.y - z.x));
 			vertices[i * 2]     = PosVertex(origin + direction*0.1f);
@@ -172,7 +173,6 @@ class GridBuffer : public BufferVma
 		DescriptorSetLayoutDefinition layoutDefinition{};
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-		// layoutDefinition.addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags                          = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 		computeState.pipelineLayoutDef.descSetLayoutDef = {layoutDefinition};
 		computeState.specialisationEntrySizes           = glm3VectorSizes();
@@ -245,7 +245,7 @@ class GaussianNN_M : public Material
 		    .setDescriptorLayout(layoutDefinition)
 		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
 		    .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
-		    .setBlendMode(1, BLEND_MODE_OVERWRITE);
+		    .setBlendMode(2, BLEND_MODE_OVERWRITE);
 		RasterizationPipeline pipeline = renderPass->createPipeline(pipelineState, 0);
 		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
@@ -349,7 +349,7 @@ class Gaussian_M : public Material
 		    .setDescriptorLayout(layoutDefinition)
 		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
 		    .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
-		    .setBlendMode(1, BLEND_MODE_OVERWRITE);
+		    .setBlendMode(2, BLEND_MODE_OVERWRITE);
 		RasterizationPipeline pipeline = renderPass->createPipeline(pipelineState, 0);
 		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
@@ -404,7 +404,7 @@ class GaussianNNGrid_M : public Material
 		    .setDescriptorLayout(layoutDefinition)
 		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
 		    .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
-		    .setBlendMode(1, BLEND_MODE_OVERWRITE);
+		    .setBlendMode(2, BLEND_MODE_OVERWRITE);
 		RasterizationPipeline pipeline = renderPass->createPipeline(pipelineState, 0);
 		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
@@ -450,7 +450,7 @@ class Pins_M : public Material
 		    .setDescriptorLayout(layoutDefinition)
 		    .setShaderDefinitions(vertShaderDef, fragShaderDef)
 		    .enableDepthTest(VK_COMPARE_OP_LESS_OR_EQUAL, true)
-		    .setBlendMode(1, BLEND_MODE_OVERWRITE);
+		    .setBlendMode(2, BLEND_MODE_OVERWRITE);
 		RasterizationPipeline pipeline = renderPass->createPipeline(pipelineState, 0);
 		cmdBuf.bindRasterizationPipeline(pipeline);
 	}
@@ -478,7 +478,7 @@ class WireframeSphere_M : public Material
 		 DescriptorSetLayoutDefinition layoutDefinition{};
 		 layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 		 layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-		 ShaderDefinition vertShaderDef{"pins_render.vert"};
+		 ShaderDefinition vertShaderDef{"render_wireframe_sphere.vert"};
 		 ShaderDefinition fragShaderDef{"sphere_visualize.frag"};
 		 vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
 		 RasterizationPipelineState pipelineState = RasterizationPipelineState();

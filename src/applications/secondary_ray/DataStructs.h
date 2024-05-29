@@ -17,6 +17,11 @@
 
 GVar gvar_use_pins{"show pins", 0, GVAR_ENUM, GVAR_APPLICATION, {"None", "Activ", "All"}};
 GVar gvar_pin_selection_coef{"pin selection coef", 1.0f, GVAR_UNORM, GVAR_APPLICATION};
+GVar gvar_ray_lenght{"secondary ray length", 1.0f, GVAR_UNORM, GVAR_APPLICATION};
+
+
+
+// POST PROCESSING
 GVar gvar_use_exp_moving_average{"use exponential moving average", false, GVAR_BOOL, GVAR_APPLICATION};
 GVar gvar_use_gaus_blur{"use gauss blur", false, GVAR_BOOL, GVAR_APPLICATION};
 GVar gvar_exp_moving_average_coef{"exp moving average coef", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
@@ -71,6 +76,9 @@ struct View
 	glm::mat4 fogModelMatrix;
 	glm::mat4 fogInvModelMatrix;
 
+	float secRayLength;
+	uint32_t padding[3];
+
 	Cube cube;
 	void update(uint32_t &cnt, FixedCamera &camera, Rect2D<float> secondaryViewport, Transform* fogTransform)
 	{
@@ -95,6 +103,7 @@ struct View
 		probe                  = glm::vec4(camera.getFixpoint(), 1.0);
 		fogModelMatrix         = fogTransform->mat;
 		fogInvModelMatrix      = fogTransform->invMat;
+		secRayLength = gvar_ray_lenght.val.v_float;
 	}
 };
 

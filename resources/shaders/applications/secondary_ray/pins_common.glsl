@@ -87,6 +87,9 @@ struct View
 	mat4 fogModelMatrix;
 	mat4 fogInvModelMatrix;
 
+	float secRayLength;
+	uint padding[3];
+
 	Cube cube;
 };
 
@@ -256,11 +259,16 @@ float evalTransmittanceGaussian(vec3 origin, vec3 direction, Gaussian g)
 
 void getRay(Pin pin, inout vec3 origin, inout vec3 direction)
 {
-	vec2 x = sin(pin.theta) * cos(pin.phi);
-    vec2 y = sin(pin.theta) * sin(pin.phi);
-    vec2 z = cos(pin.theta);
-	origin = vec3(x.x, y.x, z.x)+vec3(0.5);
+	//vec2 x = sin(pin.theta) * cos(pin.phi);
+    //vec2 y = sin(pin.theta) * sin(pin.phi);
+    //vec2 z = cos(pin.theta);
+
+	vec2 x = sin(pin.phi) * cos(pin.theta);
+    vec2 y = sin(pin.phi) * sin(pin.theta);
+    vec2 z = cos(pin.phi);
+	origin = vec3(x.x, y.x, z.x);
 	origin*=0.866025403784; // sqrt(3)/2
+	origin += vec3(0.5);
 	direction = normalize(vec3(x.y - x.x, y.y - y.x, z.y - z.x));
 }
 

@@ -9,6 +9,7 @@ layout(location = 2) in mat4 fragment_modelMat;
 layout(location = 6) in mat4 fragment_invModelMat;
 
 layout(location = 0) out vec4 outColor;
+layout(location = 1) out uint outPinId;
 
 layout(binding = 0) uniform VIEW {View view;};
 layout(binding = 1) buffer PINS {Pin pins[PIN_COUNT];};
@@ -23,8 +24,8 @@ void main()
 	vec3 startPos = clamp( (view.fogInvModelMatrix*vec4(view.probe.xyz,1.0)).xyz ,vec3(0.0), vec3(1.0) );
 	
 
-	float maxDot = 0.0;
-	uint maxDotIdx = 0;
+	float maxMetric = 0.0;
+	uint maxMetricIdx = 0;
 
 	uint offset = fragment_instanceId * PIN_COUNT_SQRT;
 
@@ -34,21 +35,31 @@ void main()
 		vec3 origin,direction;
 		Pin p = pins[i+offset];
 		getRay(p, origin, direction);
+
+
+		vec3 closestPoint = origin + direction*dot(startPos-origin,direction);
 		float dotProd = abs(dot(dir, direction));
-		float dist = 1.0-distance(origin,startPos);
-		dotProd = mix(dotProd, dist, view.pinSelectionCoef);
-		if(dotProd > maxDot)
+		float dist = distance(closestPoint, startPos);
+		float invDist = 1.0/(dist+1.0);
+
+
+		float metric = mix(dotProd, invDist, view.pinSelectionCoef);
+
+
+		if(metric > maxMetric)
 		{
-			maxDot = dotProd;
-			maxDotIdx = i+offset;
+			maxMetric = metric;
+			maxMetricIdx = i+offset;
 		}
 		pinsUsed[i+offset] = 0;
 	}
-	pinsUsed[maxDotIdx] = 1;
+	//pinsUsed[maxMetricIdx] = 1;
 
-	gl_FragDepth = 1.0-maxDot;
+	outPinId = maxMetricIdx+1;
+
+	gl_FragDepth = 1.0-maxMetric;
 	vec3 origin,direction;
-	Pin p = pins[maxDotIdx];
+	Pin p = pins[maxMetricIdx];
 	getRay(p, origin, direction);
 	dir = direction * sign(dot(dir, direction));
 	startPos = origin + dir*dot(startPos-origin,dir);
