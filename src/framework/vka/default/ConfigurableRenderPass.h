@@ -28,6 +28,7 @@ struct ConfigurableRenderPassCI
 class ConfigurableRenderPass : public RenderPass
 {
   public:
+	ConfigurableRenderPass(){};
 	ConfigurableRenderPass(ConfigurableRenderPassCI ci);
 	~ConfigurableRenderPass();
 

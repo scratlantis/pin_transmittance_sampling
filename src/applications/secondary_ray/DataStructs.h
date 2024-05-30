@@ -21,7 +21,7 @@ GVar gvar_ray_lenght{"secondary ray length", 1.0f, GVAR_UNORM, GVAR_APPLICATION}
 GVar gvar_positional_jitter{"positional_jitter", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
 GVar gvar_angular_jitter{"angular", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
 
-
+GVar gvar_use_env_map{"use env map", 1.0f, GVAR_BOOL, GVAR_APPLICATION};
 
 // POST PROCESSING
 GVar gvar_use_exp_moving_average{"use exponential moving average", false, GVAR_BOOL, GVAR_APPLICATION};
@@ -81,7 +81,7 @@ struct View
 	float secRayLength;
 	float positionalJitter;
 	float angularJitter;
-	uint32_t padding[1];
+	uint32_t useEnvMap;
 
 	Cube cube;
 	void update(uint32_t &cnt, FixedCamera &camera, Rect2D<float> secondaryViewport, Transform* fogTransform)
@@ -110,6 +110,7 @@ struct View
 		secRayLength = gvar_ray_lenght.val.v_float;
 		positionalJitter = gvar_positional_jitter.val.v_float;
 		angularJitter = gvar_angular_jitter.val.v_float;
+		useEnvMap = gvar_use_env_map.val.v_bool;
 	}
 };
 

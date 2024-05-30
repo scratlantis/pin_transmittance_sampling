@@ -100,7 +100,7 @@ struct View
 	float secRayLength;
 	float positionalJitter;
 	float angularJitter;
-	uint padding[1];
+	uint useEnvMap;
 
 	Cube cube;
 };

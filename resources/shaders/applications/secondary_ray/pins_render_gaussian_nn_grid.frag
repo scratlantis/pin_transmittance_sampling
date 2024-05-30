@@ -14,6 +14,9 @@ layout(binding = 0) uniform VIEW {View view;};
 layout(binding = 1) buffer PIN_TRANSMITTANCE {float pin_transmittance[PIN_COUNT];};
 layout(binding = 2) buffer PIN_GRID {PinGridEntry grid[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
 layout(binding = 3) buffer GAUSSIANS {Gaussian gaussians[GAUSSIAN_COUNT];};
+layout(binding = 4) uniform sampler envMapSampler;
+layout(binding = 5) uniform texture2D envMap;
+
 
 void main()
 {

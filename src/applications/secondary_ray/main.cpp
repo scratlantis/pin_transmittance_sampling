@@ -1,4 +1,5 @@
 #define VMA_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
 // clang-format off
@@ -28,6 +29,8 @@
 #include <framework/vka/loaders/load_obj.h>
 #include <framework/vka/default/ConfigurableRenderPass.h>
 #include <framework/vka/resources/Sampler.h>
+#include <framework/vka/loaders/ImageLoader.h>
+#include <framework/vka/experimental/EnvironmentMap.h>
 // clang-format on
 using namespace vka;
 #ifndef SHADER_DIR
@@ -49,7 +52,8 @@ std::vector<GVar *> gVars{
     &gvar_pin_selection_coef,
     &gvar_ray_lenght,
 	&gvar_positional_jitter,
-	&gvar_angular_jitter
+	&gvar_angular_jitter,
+    &gvar_use_env_map
 #ifdef POST_PROCESSING
 	,
 	&gvar_use_gaus_blur,
@@ -85,15 +89,30 @@ int main()
 	ImGuiWrapper imguiWrapper = ImGuiWrapper();
 	imguiWrapper.init();
 
+	ImageLoader imageLoader = ImageLoader(TEXTURE_DIR);
+
 	// Images
 	FramebufferImage offscreenImage = FramebufferImage(&gState.heap,
 		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, gState.io.format, gState.io.extent);
 	FramebufferImage depthImage     = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_FORMAT_D32_SFLOAT, gState.io.extent);
-	FramebufferImage lineColorImg   = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
+	FramebufferImage    lineColorImg          = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, gState.io.format, gState.io.extent);
 	FramebufferImage linePosImg     = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, gState.io.extent);
 	FramebufferImage pinIdImage     = FramebufferImage(&gState.heap, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R32_UINT, gState.io.extent);
 	VkSamplerCreateInfo samplerCI      = SamplerCreateInfo_Default(0.0);
 	Sampler             defaultSampler        = Sampler(&gState.cache, samplerCI);
+
+	//VkImageCreateInfo     envMapImageCreateInfo     = ImageCreateInfo_Default(VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, cResolution2k, VK_FORMAT_R32G32B32A32_SFLOAT);
+	//Image                 envMap                    = ImageVma(&gState.heap, envMapImageCreateInfo);
+	//VkImageViewCreateInfo envMapImageViewCreateInfo = ImageViewCreateInfo_Default(envMap.img, VK_FORMAT_R32G32B32A32_SFLOAT);
+
+	EnvironmentMap envMap = EnvironmentMap(&gState.heap,
+	                                       ImageCreateInfo_Default(VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, cResolution2k, VK_FORMAT_R32G32B32A32_SFLOAT),
+	                                       ImageViewCreateInfo_Default(envMap.img, VK_FORMAT_R32G32B32A32_SFLOAT),
+	                                       SamplerCreateInfo_Default(0.0));
+	Sampler envMapSampler = envMap.getSampler();
+	std::string         envMapName      = std::string("autumn_field_2k.hdr");
+
+
 
 #ifdef POST_PROCESSING
 	FramebufferImage lastFrameImage = FramebufferImage(&gState.heap,
@@ -124,10 +143,10 @@ int main()
 	{
 		renderPassCI.pDepthImage        = &depthImage;
 		renderPassCI.pColorAttachments  = {&lineColorImg, &linePosImg};
-		renderPassCI.colorClear         = {true, true};
+		renderPassCI.colorClear         = {false, true};
 		renderPassCI.colorClearValues   = {{1.0, 1.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 0.0}};
-		renderPassCI.colorInitialLayout = {VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
-		renderPassCI.colorTargetLayout  = {VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+		renderPassCI.colorInitialLayout     = {VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+		renderPassCI.colorTargetLayout      = {VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 		renderPassCI.relRenderArea         = {0.0, 0.0, 1.0, 1.0};
 		renderPasses[RENDER_PASS_WIREFRAME] = new ConfigurableRenderPass(renderPassCI);
 	}
@@ -191,7 +210,7 @@ int main()
 	transforms.push_back(&pinMatTransform);
 	instanceCounts.push_back(1);
 
-	Gaussian_M           gaussianMat             = Gaussian_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &gaussianBuf);
+	Gaussian_M             gaussianMat             = Gaussian_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &gaussianBuf, &envMapSampler, &envMap);
 	DefaulModel<PosVertex> gaussianSphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianMat, RENDER_PASS_MATERIAL);
 	Transform              gaussianSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, -4.0, 0.0)));
 	models.push_back(&gaussianSphere);
@@ -199,7 +218,7 @@ int main()
 	instanceCounts.push_back(1);
 
 	
-	GaussianNNGrid_M       gaussianNNGridMat           = GaussianNNGrid_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &pinTransmittanceBuf, &pinGridBuf, &gaussianBuf);
+	GaussianNNGrid_M       gaussianNNGridMat             = GaussianNNGrid_M(renderPasses[RENDER_PASS_MATERIAL], &viewBuf, &pinTransmittanceBuf, &pinGridBuf, &gaussianBuf, &envMapSampler, &envMap);
 	DefaulModel<PosVertex> gaussianNNGridSphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianNNGridMat, RENDER_PASS_MATERIAL);
 	Transform              gaussianNNGridSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, -1.5, 0.0)));
 	models.push_back(&gaussianNNGridSphere);
@@ -208,7 +227,7 @@ int main()
 
 
 	GaussianNN_M           gaussianNNMat             = GaussianNN_M(renderPasses[RENDER_PASS_MATERIAL],
-		&viewBuf, &pinBuf, &pinTransmittanceBuf, &pinDirectionsBuffer, &pinUsedBuffer, &gaussianBuf, {{"METRIC_ANGLE_DISTANCE", ""}});
+	                                                                &viewBuf, &pinBuf, &pinTransmittanceBuf, &pinDirectionsBuffer, &pinUsedBuffer, &gaussianBuf, &envMapSampler, &envMap,{{"METRIC_ANGLE_DISTANCE", ""}});
 	DefaulModel<PosVertex> gaussianNNSphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianNNMat, RENDER_PASS_MATERIAL);
 	Transform              gaussianNNSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 1.5, 0.0)));
 	models.push_back(&gaussianNNSphere);
@@ -217,7 +236,7 @@ int main()
 
 
 	GaussianNN_M           gaussianNN2Mat             = GaussianNN_M(renderPasses[RENDER_PASS_MATERIAL],
-		&viewBuf, &pinBuf, &pinTransmittanceBuf, &pinDirectionsBuffer, &pinUsedBuffer, &gaussianBuf, {{"METRIC_DISTANCE_DISTANCE", ""}});
+	                                                                 &viewBuf, &pinBuf, &pinTransmittanceBuf, &pinDirectionsBuffer, &pinUsedBuffer, &gaussianBuf, &envMapSampler, &envMap, {{"METRIC_DISTANCE_DISTANCE", ""}});
 	DefaulModel<PosVertex> gaussianNN2Sphere          = DefaulModel<PosVertex>(&sphereGeom, &gaussianNN2Mat, RENDER_PASS_MATERIAL);
 	Transform              gaussianNN2SphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 4.0, 0.0)));
 	models.push_back(&gaussianNN2Sphere);
@@ -243,6 +262,14 @@ int main()
 		cmdBuf.fillBuffer(pinUsedBuffer, 0);
 		pinDirectionsBuffer = pinBuf.buildDirectionBuffer(cmdBuf);
 		pinBuf.writeLineBuffers(cmdBuf, pinVertexBuffer, pinIndexBuffer);
+	}
+
+	// Upload image
+	{
+		imageLoader.mapImage(envMapName, true);
+		cmdBuf.uploadImage(imageLoader.getData(), imageLoader.getDataSize(), envMap, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		cmdBuf.imageMemoryBarrier(envMap);
+		imageLoader.unmapImage();
 	}
 
 	// Transition images
@@ -316,7 +343,9 @@ int main()
 		// Upload data
 		cmdBuf.uploadData(&view, sizeof(View), viewBuf);
 		cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-
+		lineColorImg.update(&gState.heap, &gState.frame->stack, gState.io.extent);
+		cmdBuf.transitionLayout(lineColorImg, VK_IMAGE_LAYOUT_GENERAL);
+		envMap.render(cmdBuf, lineColorImg, viewBuf);
 		// Render
 		{
 			for (size_t i = 0; i < drawCalls.size(); i++)
@@ -329,11 +358,10 @@ int main()
 
 			depthImage.update(&gState.heap, &gState.frame->stack, gState.io.extent);
 			offscreenImage.update(&gState.heap, &gState.frame->stack, gState.io.extent);
-			lineColorImg.update(&gState.heap, &gState.frame->stack, gState.io.extent);
 			linePosImg.update(&gState.heap, &gState.frame->stack, gState.io.extent);
 			pinIdImage.update(&gState.heap, &gState.frame->stack, gState.io.extent);
 			cmdBuf.transitionLayout(depthImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-			cmdBuf.transitionLayout(lineColorImg, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			//cmdBuf.transitionLayout(lineColorImg, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 			cmdBuf.transitionLayout(linePosImg, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 			cmdBuf.transitionLayout(offscreenImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 			

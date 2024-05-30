@@ -1,0 +1,14 @@
+next refactor:
+
+multiple instance attributes
+cache renderpass
+framebuffer image library
+adaptiv resources
+multiview rendering
+scene graph
+cleanup pipeline state configuration
+feature extension
+combined image sampler support
+rename Create info -> Configuration for cachables
+improve: reference objects and state tracking
+multiple shader paths

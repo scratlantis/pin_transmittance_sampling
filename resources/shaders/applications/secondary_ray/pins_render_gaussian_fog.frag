@@ -60,7 +60,10 @@ void main()
 	{
 		transmittance *= clamp(1.0-weight*evalTransmittanceGaussianSegment(entryPoint, exitPoint, gaussians[i]), 0.0, 1.0);
 	}
+
 	outColor = vec4(vec3(transmittance), 1.0);
+	outColor.xyz = transmittance*wireFrameColor.xyz;
+
 	if(isBefore)
 	{
 		transmittance = 1.0;

@@ -12,7 +12,8 @@ layout(location = 1) out uint outPinId;
 
 layout(binding = 0) uniform VIEW {View view;};
 layout(binding = 1) buffer GAUSSIANS {Gaussian gaussians[GAUSSIAN_COUNT];};
-
+layout(binding = 2) uniform sampler envMapSampler;
+layout(binding = 3) uniform texture2D envMap;
 
 
 void main()

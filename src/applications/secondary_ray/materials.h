@@ -201,22 +201,28 @@ class GaussianNN_M : public Material
 	    const Buffer     *pinDirectionsBuffer,
 	    const Buffer     *pinUsedBuffer,
 	    const GaussianBuffer *gaussianBuf,
+	    const Sampler                *envMapSampler,
+		const Image *envMap,
 	    const std::vector<ShaderArgs> additionalShaderArgs = {}) :
 	    pinBuf(pinBuf), pinTransmittanceBuf(pinTransmittanceBuf), viewBuf(viewBuf), renderPass(renderPass), pinDirectionsBuffer(pinDirectionsBuffer),
-		pinUsedBuffer(pinUsedBuffer), gaussianBuf(gaussianBuf), additionalShaderArgs(additionalShaderArgs){};
+		pinUsedBuffer(pinUsedBuffer), gaussianBuf(gaussianBuf), additionalShaderArgs(additionalShaderArgs),envMapSampler(envMapSampler),envMap(envMap)
+	{};
 	~GaussianNN_M(){};
-	const PinBuffer         *pinBuf;
-	const Buffer            *pinTransmittanceBuf;
-	const RenderPass        *renderPass;
-	const Buffer            *viewBuf;
-	const Buffer            *pinDirectionsBuffer;
-	const Buffer            *pinUsedBuffer;
-	const GaussianBuffer    *gaussianBuf;
+	const PinBuffer              *pinBuf;
+	const Buffer                 *pinTransmittanceBuf;
+	const RenderPass             *renderPass;
+	const Buffer                 *viewBuf;
+	const Buffer                 *pinDirectionsBuffer;
+	const Buffer                 *pinUsedBuffer;
+	const GaussianBuffer         *gaussianBuf;
+	const Sampler                *envMapSampler;
+	const Image                  *envMap;
 	const std::vector<ShaderArgs> additionalShaderArgs;
 	virtual void bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
 	{
 		bindPipeline(cmdBuf);
-		cmdBuf.pushDescriptors(0, (Buffer) *viewBuf, (Buffer) *pinBuf, (Buffer) *pinTransmittanceBuf, (Buffer) *pinDirectionsBuffer, (Buffer) *pinUsedBuffer, (Buffer) *gaussianBuf);
+		cmdBuf.pushDescriptors(0, (Buffer) *viewBuf, (Buffer) *pinBuf, (Buffer) *pinTransmittanceBuf,
+		                       (Buffer) *pinDirectionsBuffer, (Buffer) *pinUsedBuffer, (Buffer) *gaussianBuf, *envMapSampler, *envMap);
 	}
 
   private:
@@ -229,6 +235,8 @@ class GaussianNN_M : public Material
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_SAMPLER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 		ShaderDefinition vertShaderDef{"secondary_pins_render.vert"};
 		ShaderDefinition fragShaderDef{"pins_render_gaussian_nn.frag"};
@@ -320,17 +328,21 @@ class Gaussian_M : public Material
 	Gaussian_M(
 	    const RenderPass     *renderPass,
 	    const Buffer         *viewBuf,
-	    const GaussianBuffer *gaussianBuf) :
-	    gaussianBuf(gaussianBuf), renderPass(renderPass), viewBuf(viewBuf){};
+	    const GaussianBuffer *gaussianBuf,
+	    const Sampler        *envMapSampler,
+	    const Image          *envMap) :
+	    gaussianBuf(gaussianBuf), renderPass(renderPass), viewBuf(viewBuf), envMapSampler(envMapSampler), envMap(envMap){};
 	~Gaussian_M(){};
 
 	const GaussianBuffer *gaussianBuf;
 	const RenderPass     *renderPass;
 	const Buffer         *viewBuf;
+	const Sampler        *envMapSampler;
+	const Image          *envMap;
 	virtual void          bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
 	{
 		bindPipeline(cmdBuf);
-		cmdBuf.pushDescriptors(0, *viewBuf, *gaussianBuf);
+		cmdBuf.pushDescriptors(0, *viewBuf, *gaussianBuf, *envMapSampler, *envMap);
 	}
 
   private:
@@ -339,6 +351,8 @@ class Gaussian_M : public Material
 		DescriptorSetLayoutDefinition layoutDefinition{};
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_SAMPLER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 		ShaderDefinition vertShaderDef{"secondary_pins_render.vert"};
 		ShaderDefinition fragShaderDef{"pins_render_gaussian.frag"};
@@ -369,18 +383,23 @@ class GaussianNNGrid_M : public Material
 	    const Buffer            *viewBuf,
 	    const Buffer            *pinTransmittanceBuf,
 	    const GridBuffer        *gridBuf,
-	    const GaussianBuffer *gaussianBuf) :
-	    renderPass(renderPass), viewBuf(viewBuf), pinTransmittanceBuf(pinTransmittanceBuf), gridBuf(gridBuf), gaussianBuf(gaussianBuf){};
+	    const GaussianBuffer *gaussianBuf,
+	    const Sampler        *envMapSampler,
+	    const Image          *envMap) :
+	    renderPass(renderPass), viewBuf(viewBuf), pinTransmittanceBuf(pinTransmittanceBuf), gridBuf(gridBuf), gaussianBuf(gaussianBuf),
+		envMapSampler(envMapSampler), envMap(envMap){};
 	~GaussianNNGrid_M(){};
 	const Buffer            *pinTransmittanceBuf;
 	const GridBuffer        *gridBuf;
 	const RenderPass        *renderPass;
 	const Buffer            *viewBuf;
 	const GaussianBuffer    *gaussianBuf;
+	const Sampler           *envMapSampler;
+	const Image             *envMap;
 	virtual void bind(UniversalCmdBuffer &cmdBuf, const MemoryBlock &params) const
 	{
 		bindPipeline(cmdBuf);
-		cmdBuf.pushDescriptors(0, (Buffer) *viewBuf, (Buffer) *pinTransmittanceBuf, (Buffer) *gridBuf, (Buffer) *gaussianBuf);
+		cmdBuf.pushDescriptors(0, (Buffer) *viewBuf, (Buffer) *pinTransmittanceBuf, (Buffer) *gridBuf, (Buffer) *gaussianBuf, *envMapSampler, *envMap);
 	}
 
   private:
@@ -391,6 +410,8 @@ class GaussianNNGrid_M : public Material
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_SAMPLER);
+		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 		ShaderDefinition vertShaderDef{"secondary_pins_render.vert"};
 		ShaderDefinition fragShaderDef{"pins_render_gaussian_nn_grid.frag"};

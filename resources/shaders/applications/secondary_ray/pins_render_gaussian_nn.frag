@@ -17,6 +17,9 @@ layout(binding = 2) buffer PIN_TRANSMITTANCE {float pin_transmittance[PIN_COUNT]
 layout(binding = 3) buffer PIN_DIRECTION {vec4 pin_dir[PIN_COUNT];};
 layout(binding = 4) buffer PINS_USED {uint pinsUsed[PIN_COUNT];};
 layout(binding = 5) buffer GAUSSIANS {Gaussian gaussians[GAUSSIAN_COUNT];};
+layout(binding = 6) uniform sampler envMapSampler;
+layout(binding = 7) uniform texture2D envMap;
+
 
 #ifndef METRIC_DISTANCE_DISTANCE
 	#ifndef METRIC_ANGLE_DISTANCE
