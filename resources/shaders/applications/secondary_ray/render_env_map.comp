@@ -29,6 +29,20 @@ RaySegment getPrimaryRay(ivec2 pixel)
 	return seg;
 }
 
+vec3 readEnvMap(vec3 dir)
+{
+	vec3 viewDir = dir;
+	viewDir = vec3(viewDir.y,-viewDir.x,viewDir.z);
+	viewDir = vec3(viewDir.z, viewDir.y, -viewDir.x);
+	float theta = atan(viewDir.y/viewDir.x);
+	float phi = atan(length(viewDir.xy), viewDir.z);
+	vec2 texCoords;
+	texCoords.x = theta/(PI);
+	texCoords.y = phi/PI;
+	vec4 texColor = texture(sampler2D(envMap, envMapSampler), texCoords);
+	return texColor.rgb;
+}
+
 void main()
 {
 	uvec2 gID = gl_GlobalInvocationID.xy;
@@ -42,21 +56,18 @@ void main()
 	}
 
 	RaySegment primaryRay = getPrimaryRay(p);
-	vec2 texCoords = vec2(gID)/vec2(view.height, view.width);
-	vec3 viewDir = primaryRay.direction;
-	//viewDir = viewDir.zyx;
-	viewDir = vec3(viewDir.y,-viewDir.x,viewDir.z);
-	viewDir = vec3(viewDir.z, viewDir.y, -viewDir.x);
-	float theta = atan(viewDir.y/viewDir.x);
-	float phi = atan(length(viewDir.xy), viewDir.z);
-	//float theta = atan(viewDir.x/viewDir.y);
-	//float phi = atan(length(viewDir.yx), viewDir.z);
-	//float theta = atan(viewDir.y/viewDir.z);
-	//float phi = atan(length(viewDir.zy), viewDir.x);
-	texCoords.x = theta/(PI);
-	texCoords.y = phi/PI;
-	vec4 texColor = texture(sampler2D(envMap, envMapSampler),	texCoords);
-	vec3 outColor = texColor.rgb;
+
+	vec3 outColor = readEnvMap(primaryRay.direction);
+	//vec2 texCoords = vec2(gID)/vec2(view.height, view.width);
+	//vec3 viewDir = primaryRay.direction;
+	//viewDir = vec3(viewDir.y,-viewDir.x,viewDir.z);
+	//viewDir = vec3(viewDir.z, viewDir.y, -viewDir.x);
+	//float theta = atan(viewDir.y/viewDir.x);
+	//float phi = atan(length(viewDir.xy), viewDir.z);
+	//texCoords.x = theta/(PI);
+	//texCoords.y = phi/PI;
+	//vec4 texColor = texture(sampler2D(envMap, envMapSampler),	texCoords);
+	//vec3 outColor = texColor.rgb;
 	imageStore(imageOut, p, vec4(outColor,1.0));
 
 

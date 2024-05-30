@@ -21,6 +21,41 @@ layout(binding = 6) uniform sampler envMapSampler;
 layout(binding = 7) uniform texture2D envMap;
 
 
+vec3 getRayDir(ivec2 pixel)
+{
+	vec2 pixel_center   =   vec2(pixel) + vec2(0.5);
+    vec2 uv           = (pixel_center)/vec2(view.width, view.height);
+    vec2 device_coord     = uv * 2.0 - 1.0;
+	vec4 clipCoords = vec4(device_coord.x, device_coord.y, 1.0, 1.0);
+    vec4 target         = view.inverseProjectionMat * clipCoords;
+    vec4 direction      = view.inverseViewMat * target;
+	return normalize(direction.xyz);
+}
+
+RaySegment getPrimaryRay(ivec2 pixel)
+{
+	RaySegment seg;
+	seg.origin = view.camPos.xyz;
+	seg.direction = getRayDir(pixel);
+	seg.tMin = MIN_RAY_DISTANCE;
+	seg.tMax = MAX_RAY_DISTANCE;
+	return seg;
+}
+
+vec3 readEnvMap(vec3 dir)
+{
+	vec3 viewDir = dir;
+	viewDir = vec3(viewDir.y,-viewDir.x,viewDir.z);
+	viewDir = vec3(viewDir.z, viewDir.y, -viewDir.x);
+	float theta = atan(viewDir.y/viewDir.x);
+	float phi = atan(length(viewDir.xy), viewDir.z);
+	vec2 texCoords;
+	texCoords.x = theta/(PI);
+	texCoords.y = phi/PI;
+	vec4 texColor = texture(sampler2D(envMap, envMapSampler), texCoords);
+	return texColor.rgb;
+}
+
 #ifndef METRIC_DISTANCE_DISTANCE
 	#ifndef METRIC_ANGLE_DISTANCE
 		#define METRIC_ANGLE_DISTANCE
@@ -32,9 +67,9 @@ void main()
 	vec3 pos = vec3(-fragment_position.x, fragment_position.y, -fragment_position.z);
 	vec3 dir = (view.inverseViewMat * vec4(normalize(pos), 0.0)).xyz;
 	vec3 startPos = clamp( (view.fogInvModelMatrix*vec4(view.probe.xyz,1.0)).xyz ,vec3(0.0), vec3(1.0) );
+	vec3 originalDir = dir;
 	applyJitter(view.positionalJitter, view.angularJitter, startPos, dir);
 	vec3 endPos = startPos+dir*view.secRayLength;
-
 
 	float maxMetric = 0.0;
 	uint maxMetricIdx = 0;
@@ -110,7 +145,10 @@ void main()
 	{
 		outPinId = 0;
 	}
-
 	outColor = vec4(vec3(transmittance), 1.0);
-
+	if(view.useEnvMap == 1)
+	{
+		vec3 envMapColor = readEnvMap( originalDir);
+		outColor = vec4(vec3(transmittance)*envMapColor, 1.0);
+	}
 }
