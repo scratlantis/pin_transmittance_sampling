@@ -1,4 +1,6 @@
+#CMAKE
 cmake_minimum_required(VERSION 3.14)
+include(CMakePrintHelpers)
 
 ############################################################
 
@@ -35,17 +37,17 @@ endif()
 
 # create source groups
 FILE(GLOB_RECURSE ALL_SOURCES
-"src/.cpp"
-"src/.h"
-"src/.vert"
-"src/.frag"
-"src/.glsl"
-"src/.comp"
-"src/.geom"
-"src/.rgen"
-"src/.rchit"
-"src/.rahit"
-"src/.rmiss"
+"src/*.cpp"
+"src/*.h"
+"src/*.vert"
+"src/*.frag"
+"src/*.glsl"
+"src/*.comp"
+"src/*.geom"
+"src/*.rgen"
+"src/*.rchit"
+"src/*.rahit"
+"src/*.rmiss"
 )
 
 foreach(FILE ${ALL_SOURCES}) 
@@ -80,6 +82,14 @@ add_subdirectory(external/GLFW/glfw-3.3.4)
 # threads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+# boost
+#FIND_PACKAGE(Boost)
+#IF (Boost_FOUND)
+#    INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
+#    ADD_DEFINITIONS( "-DHAS_BOOST" )
+#ENDIF()
+#find_package(Boost 1.56 REQUIRED)
+#find_package(Boost COMPONENTS system filesystem REQUIRED)
 
 ############################################################
 
@@ -116,17 +126,26 @@ FOREACH(vka_version ${VKA_VERSIONS})
   "src/${vka_version}/framework/*.rchit"
   "src/${vka_version}/framework/*.rahit"
   "src/${vka_version}/framework/*.rmiss")
-  add_library("${vka_version}" STATIC ${current_sources})
-  LIST(APPEND library_targets "${vka_version}")
-  LIST(APPEND all_targets "${vka_version}")
 
-  target_compile_definitions(${vka_version} PUBLIC FRAMEWORK_SRC_DIR="{CMAKE_CURRENT_SOURCE_DIR}/src/${vka_version}/framework")
-  target_compile_definitions(${vka_version} PUBLIC RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources")
+  string(REPLACE "." "_" current_lib "vka_${vka_version}")
+  cmake_print_variables(current_lib)
+  #cmake_print_variables(${current_sources})
+  add_library(${current_lib} STATIC ${current_sources})
+  LIST(APPEND library_targets ${current_lib})
+  LIST(APPEND all_targets ${current_lib})
+
+  target_compile_definitions(${current_lib} PUBLIC FRAMEWORK_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/${vka_version}/framework")
+  target_compile_definitions(${current_lib} PUBLIC RESOURCE_BASE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources")
 
   # link
-  target_include_directories(${vka_version} PUBLIC   ./src/ )
-  target_include_directories(${vka_version} PRIVATE ${Vulkan_INCLUDE_DIRS})
-  target_link_libraries(${vka_version} Vulkan::Vulkan glfw imgui stb glm tinyobjloader vma ktx csvwriter nlohmann_json ${CMAKE_DL_LIBS} Threads::Threads)
+  target_include_directories(${current_lib} PUBLIC   ./src/${vka_version}/framework/ )
+  target_include_directories(${current_lib} PRIVATE ${Vulkan_INCLUDE_DIRS})
+  target_link_libraries(
+      ${current_lib} Vulkan::Vulkan glfw imgui stb glm tinyobjloader vma
+      ktx csvwriter nlohmann_json ${CMAKE_DL_LIBS} Threads::Threads)
+  
+  # folder
+  set_target_properties (${current_lib} PROPERTIES FOLDER ${vka_version}/framework )
 
   SUBDIRLIST(APPLICATIONS "${CMAKE_CURRENT_SOURCE_DIR}/src/${vka_version}/applications")
   FOREACH(application ${APPLICATIONS})
@@ -142,20 +161,27 @@ FOREACH(vka_version ${VKA_VERSIONS})
     "src/${vka_version}/applications/${application}/*.rchit"
     "src/${vka_version}/applications/${application}/*.rahit"
     "src/${vka_version}/applications/${application}/*.rmiss")
-    add_executable(${application} ${current_sources})
-    LIST(APPEND executable_targets "${application}")
-    LIST(APPEND all_targets "${application}")
 
-    target_compile_definitions(${application} PUBLIC SPV_DIR="${CMAKE_CURRENT_SOURCE_DIR}/build/spv/${application}")
-    target_compile_definitions(${application} PUBLIC APP_NAME="${application}")
-    target_compile_definitions(${application} PUBLIC APP_SRC_DIR="{CMAKE_CURRENT_SOURCE_DIR}/src/${vka_version}/applications/${application}")
-    target_compile_definitions(${application} PUBLIC RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources")
+    string(REPLACE "." "_" current_app "${application}_${vka_version}")
+    add_executable(${current_app} ${current_sources})
+    LIST(APPEND executable_targets ${current_app})
+    LIST(APPEND all_targets ${current_app})
+
+    target_compile_definitions(${current_app} PUBLIC SHADER_OUTPUT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/build/shader/${application}")
+    target_compile_definitions(${current_app} PUBLIC APP_NAME="${application}")
+    target_compile_definitions(${current_app} PUBLIC APP_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/${vka_version}/applications/${application}")
+    target_compile_definitions(${current_app} PUBLIC RESOURCE_BASE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources")
 
     # link
-    target_include_directories(${application} PUBLIC   ./src/ )
-    target_include_directories(${application} PRIVATE ${Vulkan_INCLUDE_DIRS})
-    target_link_libraries(${application} Vulkan::Vulkan glfw imgui stb glm tinyobjloader vma ktx csvwriter nlohmann_json ${CMAKE_DL_LIBS} Threads::Threads)
-    target_link_libraries(${application} ${vka_version})
+    target_include_directories(${current_app} PUBLIC   ./src/${vka_version}/applications/${application}/ )
+    target_include_directories(${current_app} PUBLIC   ./src/${vka_version}/framework/ )
+    target_include_directories(${current_app} PRIVATE ${Vulkan_INCLUDE_DIRS})
+    target_link_libraries(${current_app} Vulkan::Vulkan glfw imgui stb glm tinyobjloader vma
+      ktx csvwriter nlohmann_json ${CMAKE_DL_LIBS} Threads::Threads)
+    target_link_libraries(${current_app} ${current_lib})
+
+    # folder
+    set_target_properties (${current_app} PROPERTIES FOLDER ${vka_version}/applications )
 
   ENDFOREACH()
 ENDFOREACH()
@@ -165,7 +191,8 @@ ENDFOREACH()
 # target properties
 set_target_properties( ${library_targets} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 set_target_properties( ${executable_targets} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-set_target_properties (${all_targets} PROPERTIES FOLDER C++/static )
+#set_target_properties (${library_targets} PROPERTIES FOLDER framework )
+#set_target_properties (${executable_targets} PROPERTIES FOLDER applications)
 
 ############################################################
 
