@@ -1,33 +1,52 @@
+#pragma once
 #include <vka/core/common.h>
 #include <unordered_set>
+#include <vka/state_objects/ResourcePool.h>
 namespace vka
 {
-class ResourceTracker
-{
-  public:
-	ResourceTracker(){};
-	~ResourceTracker(){};
 
-	Resource *find(Resource *resource) const;
-	void      clear();
-	bool      move(Resource *resource, ResourceTracker *next);
-	bool      add(Resource *resource);
-	bool      remove(Resource *resource);
-
-  private:
-	std::unordered_set<Resource *, PointerObjHash<Resource>, PointerObjEq<Resource>> resources;
-};
 
 class Resource
 {
   protected:
-	ResourceTracker *pTracker;
-	virtual void     free()                               = 0;
-	virtual bool     _equals(Resource const &other) const = 0;
+	ResourcePool  *pPool                                = nullptr;
+	virtual bool   _equals(Resource const &other) const = 0;
 
   public:
-	virtual hash_t _hash() const = 0;
-	friend class ResourceTracker;
+	Resource():pPool(nullptr){};
+	~Resource(){};
+	virtual void free() = 0;
+	virtual void  track(ResourcePool *pPool)
+	{
+		if (this->pPool)
+		{
+			if (this->pPool == pPool)
+			{
+				return;
+			}
+
+			if (this->pPool->remove(this))
+			{
+				this->pPool = pPool;
+				this->pPool->add(this);
+			}
+			else
+			{
+				printVka("Resource not found in assigned pool\n");
+				DEBUG_BREAK;
+			}
+		}
+		else
+		{
+			this->pPool = pPool;
+			this->pPool->add(this);
+		}
+	}
+	virtual void garbageCollect()
+	{
+		track(&gState.frame->stack);
+	}
+	virtual hash_t hash() const                        = 0;
 
 	bool operator==(Resource const &other) const
 	{
@@ -42,18 +61,9 @@ class Resource
 			return this->_equals(other);
 		}
 	}
-
-	void move(ResourceTracker *pNewTracker)
-	{
-		Resource *result = pTracker->find(this);
-		if (result)
-		{
-			pTracker->move(result, pNewTracker);
-		}
-	}
 };
+}
 
-}        // namespace vka
 namespace std
 {
 template <>
@@ -61,7 +71,7 @@ struct hash<vka::Resource>
 {
 	size_t operator()(vka::Resource const &r) const
 	{
-		return static_cast<size_t>(r._hash());
+		return static_cast<size_t>(r.hash());
 	}
 };
 }        // namespace std

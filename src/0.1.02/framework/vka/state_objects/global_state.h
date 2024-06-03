@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include <unordered_map>
 #include <vka/resource_objects/Resource.h>
+#include <vka/state_objects/ResourcePool.h>
 
 
 #define KEY_COUNT 1024
@@ -123,7 +124,7 @@ struct Frame
 	VkSemaphore     imageAvailableSemaphore;
 	VkFence         inFlightFence;
 	uint32_t        frameIndex;
-	ResourceTracker stack;
+	ResourcePool    stack;
 	Frame          *next;
 	Frame          *previous;
 };
@@ -156,8 +157,7 @@ class AppState
 	uint32_t            initBits;
 	Device              device;
 	IOController        io;
-	ResourceTracker     heap;
-	ResourceTracker     cache;
+	ResourcePool        cache;
 	Frame              *frame;
 	MemAllocator        memAlloc;
 	CmdAllocator        cmdAlloc;
