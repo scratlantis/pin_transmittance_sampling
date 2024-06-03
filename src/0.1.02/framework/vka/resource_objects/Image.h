@@ -1,112 +1,264 @@
 #pragma once
-#include "../resources/Resource.h"
+#include "Resource.h"
+#include <vka/state_objects/global_state.h>
 namespace vka
 {
-class Image
+
+class ImageVMA_R : public Resource
+{
+  public:
+	ImageVMA_R(VkImage handle, VmaAllocation allocation)
+	{
+		this->handle     = handle;
+		this->allocation = allocation;
+	}
+	hash_t hash() const
+	{
+		return (hash_t) this->handle;
+	}
+	bool _equals(Resource const &other) const
+	{
+		if (typeid(*this) != typeid(other))
+			return false;
+		else
+		{
+			auto &other_ = static_cast<ImageVMA_R const &>(other);
+			return this->handle == other_.handle;
+		}
+	};
+
+  protected:
+	void free()
+	{
+		gState.memAlloc.destroyImage(handle, allocation);
+	}
+
+  private:
+	VkImage      handle;
+	VmaAllocation allocation;
+};
+
+class ImageView_R : public Resource
+{
+  public:
+	ImageView_R(VkImageView handle)
+	{
+		this->handle     = handle;
+	}
+	hash_t hash() const
+	{
+		return (hash_t) this->handle;
+	}
+	bool _equals(Resource const &other) const
+	{
+		if (typeid(*this) != typeid(other))
+			return false;
+		else
+		{
+			auto &other_ = static_cast<ImageView_R const &>(other);
+			return this->handle == other_.handle;
+		}
+	};
+
+  protected:
+	void free()
+	{
+		vkDestroyImageView(gState.device.logical, handle, nullptr);
+	}
+
+  private:
+	VkImageView       handle;
+};
+
+// Maybe Support later
+
+//class ImageVK_R : public Resource
+//{
+//  public:
+//	ImageVK_R(VkImage handle, VkDeviceMemory deviceMemory)
+//	{
+//		this->handle     = handle;
+//		this->deviceMemory = deviceMemory;
+//	}
+//	hash_t hash() const
+//	{
+//		return (hash_t) this->handle;
+//	}
+//	bool _equals(Resource const &other) const
+//	{
+//		if (typeid(*this) != typeid(other))
+//			return false;
+//		else
+//		{
+//			auto &other_ = static_cast<ImageVK_R const &>(other);
+//			return this->handle == other_.handle;
+//		}
+//	};
+//
+//  protected:
+//	void free()
+//	{
+//		gState.memAlloc.destroyImage(handle, deviceMemory);
+//	}
+//
+//  private:
+//	VkImage       handle;
+//	VkDeviceMemory deviceMemory;
+//};
+
+class Image_I : Resource
 {
   protected:
-	NonUniqueResource *res     = nullptr;
-	ImageView_R      *viewRes = nullptr;
+	Resource *res     = nullptr;
+	Resource *viewRes = nullptr;
 
   public:
-	VkImage     img;
-	VkImageView view;
+	VkImage     img  = VK_NULL_HANDLE;
+	VkImageView view = VK_NULL_HANDLE;
 
-	// Set on creation
-	VkFormat   format;
-	VkExtent3D extent;
-	uint32_t   mipLevels;
+	// State
+	VkFormat          format;
+	VkExtent3D        extent;
+	uint32_t          mipLevels;
 	VkImageUsageFlags usage;
+	VkImageLayout     layout;
 
-	// Set on creation & updated on layout transform or renderpass (for framebuffer images)
-	VkImageLayout layout;
-	Image() = default;
+	bool hasMemoryOwnership = false;
 
-	VkDeviceSize getSize()
+	Image_I(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY)
 	{
-		VkDeviceSize size = extent.width * extent.height * extent.depth;
-		size *= mipLevels;
-		size *= cVkFormatTable.at(format).size;
-		return size;
-	}
-	void move(ResourceTracker *pNewTracker)
-	{
-		CHECK_TRUE(res != nullptr);
-		res->move(pNewTracker);
-		if (viewRes != nullptr)
+		VmaAllocationCreateInfo vmaAllocationCreateInfo = {};
+		vmaAllocationCreateInfo.usage                   = memUsage;
+		VmaAllocation alloc;
+		gState.memAlloc.createImage(&imgCI, &vmaAllocationCreateInfo, &img, &alloc);
+
+		layout    = VK_IMAGE_LAYOUT_UNDEFINED;
+		format    = imgCI.format;
+		extent    = imgCI.extent;
+		mipLevels = imgCI.mipLevels;
+		usage     = imgCI.usage;
+		res       = new ImageVMA_R(img, alloc);
+		if (createView)
 		{
-			viewRes->move(pNewTracker);
+			VkImageViewCreateInfo viewCI = ImageViewCreateInfo_Default(img, format);
+			VK_CHECK(vkCreateImageView(gState.device.logical, &viewCI, nullptr, &view));
+			viewRes = new ImageView_R(view);
 		}
+		hasMemoryOwnership = true;
+	}
+	~Image_I()
+	{
+		free();
 	}
 
-	void moveView(ResourceTracker *pNewTracker)
+	Image_I& operator=(const Image_I& rhs)
 	{
-		if (viewRes != nullptr)
+		if (this == &rhs)
 		{
-			viewRes->move(pNewTracker);
+			return *this;
 		}
-	}
+		// No ownership, no tracking
+		res                = nullptr;
+		viewRes            = nullptr;
+		hasMemoryOwnership = false;
+		pPool              = nullptr;
 
-	void createImageView(ResourceTracker *pTracker, const VkImageViewCreateInfo &viewCI)
+		img = rhs.img;
+		view = rhs.view;
+
+		format = rhs.format;
+		extent = rhs.extent;
+		mipLevels = rhs.mipLevels;
+		usage = rhs.usage;
+		layout = rhs.layout;
+		return *this;
+	}
+	void track(ResourcePool *pPool) override
 	{
-		if (viewRes != nullptr)
+		if (!pPool)
 		{
+			vka::printVka("Null resource pool\n");
+			DEBUG_BREAK;
 			return;
 		}
-		VK_CHECK(vkCreateImageView(gState.device.logical, &viewCI, nullptr, &view));
-		viewRes = new ImageView_R(view);
-		pTracker->add(viewRes);
+		if (viewRes)
+		{
+			viewRes->track(pPool);
+		}
+		if (res)
+		{
+			res->track(pPool);
+		}
+		Resource::track(pPool);
+		hasMemoryOwnership = false;
+	}
+	void garbageCollect() override
+	{
+		if (viewRes)
+		{
+			viewRes->garbageCollect();
+		}
+		if (res)
+		{
+			res->garbageCollect();
+			track(&gState.frame->stack);
+		}
+	}
+	void free() override
+	{
+		if (!hasMemoryOwnership)
+		{
+			res     = nullptr;
+			viewRes = nullptr;
+			pPool   = nullptr;
+			img  = VK_NULL_HANDLE;
+			view = VK_NULL_HANDLE;
+		}
+		else
+		{
+			vka::printVka("Cant free buffer with memory ownership\n");
+			DEBUG_BREAK;
+		}
+	}
+	hash_t hash() const
+	{
+		return res->hash() + VKA_RESOURCE_META_DATA_HASH_OFFSET;
+	}
+	bool _equals(Resource const &other) const
+	{
+		if (typeid(*this) != typeid(other))
+			return false;
+		else
+		{
+			auto &other_ = static_cast<Image_I const &>(other);
+			return *res == *other_.res;
+		}
+	};
+
+	void recreate(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY)
+	{
+		free();
+		VmaAllocationCreateInfo vmaAllocationCreateInfo = {};
+		vmaAllocationCreateInfo.usage                   = memUsage;
+		VmaAllocation alloc;
+		gState.memAlloc.createImage(&imgCI, &vmaAllocationCreateInfo, &img, &alloc);
+
+		layout    = VK_IMAGE_LAYOUT_UNDEFINED;
+		format    = imgCI.format;
+		extent    = imgCI.extent;
+		mipLevels = imgCI.mipLevels;
+		usage     = imgCI.usage;
+		res       = new ImageVMA_R(img, alloc);
+		if (createView)
+		{
+			VkImageViewCreateInfo viewCI = ImageViewCreateInfo_Default(img, format);
+			VK_CHECK(vkCreateImageView(gState.device.logical, &viewCI, nullptr, &view));
+			viewRes = new ImageView_R(view);
+		}
+		hasMemoryOwnership = true;
 	}
 
-	void createImageView(ResourceTracker *pTracker);
-
 };
 
-// Memory allocated by VMA
-class ImageVma : public Image
-{
-  public:
-	ImageVma();
-	ImageVma(ResourceTracker *pTracker, const VkImageCreateInfo &imgCI, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY)
-	  {
-		  VmaAllocationCreateInfo vmaAllocationCreateInfo = {};
-		  vmaAllocationCreateInfo.usage                   = memUsage;
-		  VmaAllocation alloc;
-		  gState.memAlloc.createImage(&imgCI, &vmaAllocationCreateInfo, &img, &alloc);
 
-		  layout      = VK_IMAGE_LAYOUT_UNDEFINED;
-		  format      = imgCI.format;
-		  extent      = imgCI.extent;
-		  mipLevels   = imgCI.mipLevels;
-		  usage		  = imgCI.usage;
-		  res = new ImageVMA_R(img, alloc);
-		  pTracker->add(res);
-	}
-};
-
-class SwapchainImage : public ImageVma
-{
-  public:
-	SwapchainImage();
-	~SwapchainImage();
-	SwapchainImage(ResourceTracker *pTracker, VkImage swapchainImage, VkFormat swapchainFormat, VkExtent2D swapchainExtent);
-};
-
-// provide special functionality for framebuffer images
-class FramebufferImage : public ImageVma
-{
-	
-  protected:
-	void create(ResourceTracker *pTracker, const VkImageCreateInfo &imgCI);
-	void recreate(ResourceTracker *pTracker, ResourceTracker *pGarbageTracker);
-	void destroy(ResourceTracker *pGarbageTracker);
-  public:
-	FramebufferImage(ResourceTracker *pTracker, VkImageUsageFlags usage, VkFormat format, VkExtent2D extent);
-	void update(ResourceTracker *pTracker, ResourceTracker *pGarbageTracker, VkExtent2D newExtent);
-	void update(ResourceTracker *pTracker, ResourceTracker *pGarbageTracker, VkImageUsageFlags newUsage);
-	void update(ResourceTracker *pTracker, ResourceTracker *pGarbageTracker, VkFormat newFormat);
-	~FramebufferImage();
-	FramebufferImage();
-};
-
-}        // namespace vka
+} // namespace vka

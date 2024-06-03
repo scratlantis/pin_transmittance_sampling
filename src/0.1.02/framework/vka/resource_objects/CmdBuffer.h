@@ -110,18 +110,22 @@ class CmdBuffer_I : public Resource
 		CHECK_TRUE(vkBeginCommandBuffer(handle, &beginInfo));
 		stateBits |= CMD_BUF_STATE_BITS_RECORDING;
 	}
+	~CmdBuffer_I()
+	{
+		free();
+	}
 	hash_t hash() const override
 	{
-		return (hash_t) this->handle;
+		return (hash_t) this->handle + VKA_RESOURCE_META_DATA_HASH_OFFSET;
 	}
-
-	void destroy()
+	void free() override
 	{
 		if (!hasMemoryOwnership)
 		{
-			res = nullptr;
-			handle = VK_NULL_HANDLE;
-			capability = CMD_BUF_CAPABILITY_MASK_NONE;
+			res                = nullptr;
+			pPool              = nullptr;
+			handle             = VK_NULL_HANDLE;
+			capability         = CMD_BUF_CAPABILITY_MASK_NONE;
 			uint32_t stateBits = 0;
 			// PipelineLayoutDefinition pipelineLayoutDef;
 		}
@@ -144,29 +148,7 @@ class CmdBuffer_I : public Resource
 		{
 			res->track(pPool);
 		}
-		if (this->pPool)
-		{
-			if (this->pPool == pPool)
-			{
-				return;
-			}
-
-			if (this->pPool->remove(this))
-			{
-				this->pPool = pPool;
-				this->pPool->add(this);
-			}
-			else
-			{
-				printVka("Resource not found in assigned pool\n");
-				DEBUG_BREAK;
-			}
-		}
-		else
-		{
-			this->pPool = pPool;
-			this->pPool->add(this);
-		}
+		Resource::track(pPool);
 		hasMemoryOwnership = false;
 	}
 	void garbageCollect() override

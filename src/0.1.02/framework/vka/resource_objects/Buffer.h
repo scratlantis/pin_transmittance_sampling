@@ -229,7 +229,7 @@ class Buffer_I : Resource
   public:
 	~Buffer_I()
 	{
-		destroy();
+		free();
 	}
 	Buffer_I(BufferType type, VkDeviceSize size, VkBufferUsageFlags usage, MemoryProperty memProperty) :
 	    Buffer_I()
@@ -274,33 +274,15 @@ class Buffer_I : Resource
 			DEBUG_BREAK;
 		}
 	}
-	void destroy()
-	{
-		if (!hasMemoryOwnership)
-		{
-			type           = BufferType::NONE;
-			usage          = 0;
-			memProperty.vk = 0;
-			handle.vk      = VK_NULL_HANDLE;
-			viewHandle     = VK_NULL_HANDLE;
-			pPool          = nullptr;
-			size           = 0;
-			res = nullptr;
-			viewRes = nullptr;
-		}
-		else
-		{
-			vka::printVka("Cant free buffer with memory ownership\n");
-			DEBUG_BREAK;
-		}
-	}
-	void recreate(BufferType type, VkDeviceSize size, VkBufferUsageFlags usage, MemoryProperty memProperty, bool maintainData = false)
+
+	
+	void recreate(BufferType type, VkDeviceSize size, VkBufferUsageFlags usage, MemoryProperty memProperty, bool maintainData)
 	{
 		if (maintainData)
 		{
 			Buffer_R* oldRes = res;
 			VkDeviceSize minDataSize = std::min(this->size, size);
-			destroy();
+			free();
 			create(type, size, usage, memProperty);
 			void *oldData = oldRes->map(0, minDataSize);
 			void *newData = map(0, minDataSize);
@@ -309,9 +291,10 @@ class Buffer_I : Resource
 			oldRes->unmap();
 
 		}
-		destroy();
+		free();
 		create(type, size, usage, memProperty);
 	}
+
 	void track(ResourcePool *pPool) override
 	{
 		if (!pPool)
@@ -328,29 +311,7 @@ class Buffer_I : Resource
 		{
 			res->track(pPool);
 		}
-		if (this->pPool)
-		{
-			if (this->pPool == pPool)
-			{
-				return;
-			}
-
-			if (this->pPool->remove(this))
-			{
-				this->pPool = pPool;
-				this->pPool->add(this);
-			}
-			else
-			{
-				printVka("Resource not found in assigned pool\n");
-				DEBUG_BREAK;
-			}
-		}
-		else
-		{
-			this->pPool = pPool;
-			this->pPool->add(this);
-		}
+		Resource::track(pPool);
 		hasMemoryOwnership = false;
 	}
 	void garbageCollect() override
@@ -368,11 +329,29 @@ class Buffer_I : Resource
 			track(&gState.frame->stack);
 		}
 	}
-	// For resource interface
-	void free(){}
+	void free() override
+	{
+		if (!hasMemoryOwnership)
+		{
+			type           = BufferType::NONE;
+			usage          = 0;
+			memProperty.vk = 0;
+			handle.vk      = VK_NULL_HANDLE;
+			viewHandle     = VK_NULL_HANDLE;
+			pPool          = nullptr;
+			size           = 0;
+			res            = nullptr;
+			viewRes        = nullptr;
+		}
+		else
+		{
+			vka::printVka("Cant free buffer with memory ownership\n");
+			DEBUG_BREAK;
+		}
+	}
 	hash_t hash() const
 	{
-		return res->hash();
+		return res->hash() + VKA_RESOURCE_META_DATA_HASH_OFFSET;
 	}
 	bool _equals(Resource const &other) const
 	{

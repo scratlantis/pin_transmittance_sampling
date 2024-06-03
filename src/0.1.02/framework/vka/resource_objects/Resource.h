@@ -2,6 +2,9 @@
 #include <vka/core/common.h>
 #include <unordered_set>
 #include <vka/state_objects/ResourcePool.h>
+
+#define VKA_RESOURCE_META_DATA_HASH_OFFSET 0x1
+
 namespace vka
 {
 
@@ -42,10 +45,7 @@ class Resource
 			this->pPool->add(this);
 		}
 	}
-	virtual void garbageCollect()
-	{
-		track(&gState.frame->stack);
-	}
+	virtual void   garbageCollect();
 	virtual hash_t hash() const                        = 0;
 
 	bool operator==(Resource const &other) const
