@@ -1,3 +1,4 @@
+#pragma
 #include "Resource.h"
 #include <vka/state_objects/global_state.h>
 
@@ -39,7 +40,7 @@ class BufferLocal_R : public Buffer_R
 	}
 	void unmap(){}
   protected:
-	bool _equals(Resource const &other) const
+	bool _equals(Resource const &other) const override
 	{
 		if (typeid(*this) != typeid(other))
 			return false;
@@ -284,6 +285,8 @@ class Buffer_I : Resource
 			viewHandle     = VK_NULL_HANDLE;
 			pPool          = nullptr;
 			size           = 0;
+			res = nullptr;
+			viewRes = nullptr;
 		}
 		else
 		{
