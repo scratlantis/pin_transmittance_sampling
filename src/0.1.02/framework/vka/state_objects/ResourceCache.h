@@ -18,6 +18,8 @@ class RenderpassDefinition;
 class Renderpass;
 class SamplerDefinition;
 class Sampler;
+class ShaderDefinition;
+class Shader;
 
 class ResourceCache
 {
@@ -28,9 +30,12 @@ class ResourceCache
 	std::map<ComputePipelineDefinition, ComputePipeline>             computePipelines;
 	std::map<RenderpassDefinition, Renderpass>                       renderpasses;
 	std::map<SamplerDefinition, Sampler>                             samplers;
+	std::map<ShaderDefinition, Shader>                             shaders;
 
   public:
 	DescriptorSetLayout*    fetch(DescriptorSetLayoutDefinition const &rID);
+	PipelineLayout      *fetch(PipelineLayoutDefinition const &rID);
+	Shader              *fetch(ShaderDefinition const &rID);
 	//PipelineLayout        fetch(PipelineLayoutDefinition const &rID);
 	//RasterizationPipeline fetch(RasterizationPipelineDefinition const &rID);
 	//ComputePipeline       fetch(ComputePipelineDefinition const &rID);

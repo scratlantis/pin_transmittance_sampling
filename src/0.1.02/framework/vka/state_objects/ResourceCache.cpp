@@ -1,6 +1,8 @@
 #include "ResourceCache.h"
 
 #include <vka/resource_objects/DescriptorSetLayout.h>
+#include <vka/resource_objects/PipelineLayout.h>
+#include <vka/resource_objects/Shader.h>
 namespace vka
 {
 DescriptorSetLayout* ResourceCache::fetch(const DescriptorSetLayoutDefinition &rID)
@@ -15,6 +17,33 @@ DescriptorSetLayout* ResourceCache::fetch(const DescriptorSetLayoutDefinition &r
 	}
 	return res;
 }
+
+PipelineLayout *ResourceCache::fetch(const PipelineLayoutDefinition &rID)
+{
+	PipelineLayout *res = nullptr;
+	auto                 it  = pipelineLayouts.find(rID);
+	if (it != pipelineLayouts.end())
+		res = &it->second;
+	else
+	{
+		res = new PipelineLayout(rID);
+	}
+	return res;
+}
+
+Shader *ResourceCache::fetch(const ShaderDefinition &rID)
+{
+	Shader *res = nullptr;
+	auto                 it  = shaders.find(rID);
+	if (it != shaders.end())
+		res = &it->second;
+	else
+	{
+		res = new Shader(rID);
+	}
+	return res;
+}
+
 }        // namespace vka
 
 

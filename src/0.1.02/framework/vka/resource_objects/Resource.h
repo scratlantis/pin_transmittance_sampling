@@ -30,8 +30,6 @@ class Resource
 
 	bool operator==(Resource const &other) const
 	{
-		std::string a = typeid(*this).name();
-		std::string b = typeid(other).name();
 		if (typeid(*this) != typeid(other))
 		{
 			return false;
@@ -40,6 +38,10 @@ class Resource
 		{
 			return this->_equals(other);
 		}
+	}
+	bool operator!=(Resource const &other) const
+	{
+		return !(*this == other);
 	}
 };
 
@@ -59,11 +61,18 @@ class CachableResource : public Resource
 	CachableResource() :
 	    Resource(), pCache(nullptr){};
 	~CachableResource(){};
+};
 
-	bool operator==(Resource const &other) const
+class ResourceIdentifier
+{
+  public:
+	ResourceIdentifier(){};
+	~ResourceIdentifier(){};
+	virtual bool _equals(ResourceIdentifier const &other) const = 0;
+	virtual hash_t hash() const = 0;
+
+	bool operator==(ResourceIdentifier const &other) const
 	{
-		std::string a = typeid(*this).name();
-		std::string b = typeid(other).name();
 		if (typeid(*this) != typeid(other))
 		{
 			return false;
@@ -73,33 +82,9 @@ class CachableResource : public Resource
 			return this->_equals(other);
 		}
 	}
-};
-
-class ResourceIdentifier
-{
-  protected:
-	virtual bool _equals(ResourceIdentifier const &other) const = 0;
-
-  public:
-	ResourceIdentifier(){};
-	~ResourceIdentifier(){};
-
-
-	virtual hash_t hash() const = 0;
-
-
-	bool operator==(ResourceIdentifier const &other) const
+	bool operator!=(ResourceIdentifier const &other) const
 	{
-		std::string a = typeid(*this).name();
-		std::string b = typeid(other).name();
-		if (typeid(*this) != typeid(other))
-		{
-			return false;
-		}
-		else
-		{
-			return this->_equals(other);
-		}
+		return !(*this == other);
 	}
 };
 
@@ -124,4 +109,13 @@ struct hash<vka::Resource>
 		return static_cast<size_t>(r.hash());
 	}
 };
+
+template <>
+struct hash<vka::ResourceIdentifier>
+{
+	size_t operator()(vka::ResourceIdentifier const &r) const
+	{
+		return static_cast<size_t>(r.hash());
+	}
+};   // namespace std
 }        // namespace std

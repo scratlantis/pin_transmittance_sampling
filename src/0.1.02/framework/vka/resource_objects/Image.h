@@ -16,7 +16,7 @@ class ImageVMA_R : public Resource
 	{
 		return (hash_t) this->handle;
 	}
-	bool _equals(Resource const &other) const
+	bool equals(Resource const &other) const
 	{
 		if (typeid(*this) != typeid(other))
 			return false;

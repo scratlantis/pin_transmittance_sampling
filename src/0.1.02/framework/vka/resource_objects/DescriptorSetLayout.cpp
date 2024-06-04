@@ -1,6 +1,7 @@
 #include "DescriptorSetLayout.h"
 namespace vka
 {
+// Overrides start
 hash_t DescriptorSetLayoutDefinition::hash() const
 {
 	hash_t hash = static_cast<hash_t>(flags);
@@ -8,17 +9,26 @@ hash_t DescriptorSetLayoutDefinition::hash() const
 	return hash;
 }
 
-void DescriptorSetLayoutDefinition::addDescriptor(VkShaderStageFlags shaderStage, VkDescriptorType type)
+bool DescriptorSetLayoutDefinition::_equals(const ResourceIdentifier &other) const
 {
-	VkDescriptorSetLayoutBinding binding{};
-	binding.binding            = VKA_COUNT(bindings);
-	binding.descriptorType     = type;
-	binding.descriptorCount    = 1;
-	binding.stageFlags         = shaderStage;
-	binding.pImmutableSamplers = nullptr;
-	bindings.push_back(binding);
+	if (typeid(*this) != typeid(other))
+		return false;
+	else
+	{
+		auto &other_ = static_cast<DescriptorSetLayoutDefinition const &>(other);
+		return equals(other_);
+	}
 }
 
+bool DescriptorSetLayoutDefinition::equals(const DescriptorSetLayoutDefinition &other) const
+{
+	return flags == other.flags && shallowCmpArray(bindings, other.bindings);
+}
+
+hash_t DescriptorSetLayout::hash() const
+{
+	return (hash_t) (handle);
+}
 
 bool DescriptorSetLayout::_equals(Resource const &other) const
 {
@@ -30,8 +40,28 @@ bool DescriptorSetLayout::_equals(Resource const &other) const
 		return this->handle == other_.handle;
 	}
 }
+void DescriptorSetLayout::free()
+{
+	vkDestroyDescriptorSetLayout(gState.device.logical, handle, nullptr);
+}
+// Overrides end
+
+VkDescriptorSetLayout DescriptorSetLayout::getHandle() const
+{
+	return handle;
+}
 
 
+void DescriptorSetLayoutDefinition::addDescriptor(VkShaderStageFlags shaderStage, VkDescriptorType type)
+{
+	VkDescriptorSetLayoutBinding binding{};
+	binding.binding            = VKA_COUNT(bindings);
+	binding.descriptorType     = type;
+	binding.descriptorCount    = 1;
+	binding.stageFlags         = shaderStage;
+	binding.pImmutableSamplers = nullptr;
+	bindings.push_back(binding);
+}
 DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayoutDefinition const &definition)
 {
 	VkDescriptorSetLayoutCreateInfo ci{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
@@ -39,21 +69,6 @@ DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayoutDefinition const &de
 	ci.bindingCount = definition.bindings.size();
 	ci.pBindings    = definition.bindings.data();
 	VK_CHECK(vkCreateDescriptorSetLayout(gState.device.logical, &ci, nullptr, &handle));
-}
-
-void DescriptorSetLayout::free()
-{
-	vkDestroyDescriptorSetLayout(gState.device.logical, handle, nullptr);
-}
-
-hash_t DescriptorSetLayout::hash() const
-{
-	return (hash_t) (handle);
-}
-
-VkDescriptorSetLayout DescriptorSetLayout::getHandle() const
-{
-	return handle;
 }
 
 
