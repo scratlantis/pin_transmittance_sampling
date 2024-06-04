@@ -4,7 +4,7 @@
 
 namespace vka
 {
-class DescriptorSetLayoutDefinition : ResourceIdentifier
+class DescriptorSetLayoutDefinition : public ResourceIdentifier
 {
   public:
 	VkDescriptorSetLayoutCreateFlags          flags;

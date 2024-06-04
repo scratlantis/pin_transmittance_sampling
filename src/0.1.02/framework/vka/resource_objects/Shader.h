@@ -19,7 +19,7 @@ struct ShaderArgs
 
 
 
-class ShaderDefinition : ResourceIdentifier
+class ShaderDefinition : public ResourceIdentifier
 {
   public:
 	std::string             path;

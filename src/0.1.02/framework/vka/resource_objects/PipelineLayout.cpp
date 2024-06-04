@@ -19,7 +19,7 @@ bool PipelineLayoutDefinition::_equals(ResourceIdentifier const &other) const
 		return this->equals(other_);
 	}
 }
-bool vka::PipelineLayoutDefinition::equals(PipelineLayoutDefinition const &other) const
+bool PipelineLayoutDefinition::equals(PipelineLayoutDefinition const &other) const
 {
 	return shallowCmpArray(pcRanges, other.pcRanges) && cmpArray(descSetLayoutDef, other.descSetLayoutDef);
 }
@@ -46,7 +46,7 @@ bool PipelineLayout::_equals(Resource const &other) const
 
 VkPipelineLayout PipelineLayout::getHandle() const
 {
-	return VkPipelineLayout();
+	return handle;
 }
 
 PipelineLayout::PipelineLayout(PipelineLayoutDefinition const &definition)

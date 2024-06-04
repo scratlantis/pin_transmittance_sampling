@@ -1,55 +1,30 @@
 #pragma once
-#pragma once
-#include "DescriptorSetLayout.h"
 #include "Resource.h"
-
+#include <vka/state_objects/global_state.h>
 
 namespace vka
 {
-class Sampler : public UniqueResource<VkSampler>
+class SamplerDefinition : public ResourceIdentifier, public SamplerCreateInfo_Default
 {
-  protected:
-	void free()
-	{
-		vkDestroySampler(gState.device.logical, handle, nullptr);
-	}
-	void buildHandle()
-	{
-		VK_CHECK(vkCreateSampler(gState.device.logical, &ci, nullptr, &handle));
-	}
-
-
-	virtual bool _equals(Resource const &other) const
-	{
-		if (typeid(*this) != typeid(other))
-			return false;
-		auto that = static_cast<Sampler const &>(other);
-		return *this == that;
-	}
-
-	//virtual bool _equals(Sampler const &other) const
-	//{
-	//	return shallowCmpStructure(&this->ci, &other.ci);
-	//}
-	Sampler *copyToHeap() const
-	{
-		return new Sampler(pTracker, ci);
-	}
-
   public:
-	bool operator==(const Sampler &other) const
-	{
-		return shallowCmpStructure(&this->ci, &other.ci);
-	}
-	hash_t _hash() const
-	{
-		return shallowHashStructure(&ci);
-	};
-	Sampler(ResourceTracker *pTracker, const VkSamplerCreateInfo &ci);
-	~Sampler();
+	hash_t hash() const;
+	bool   _equals(ResourceIdentifier const &other) const override;
+	bool   equals(SamplerDefinition const &other) const;
 
-	const VkSamplerCreateInfo ci;
+  protected:
+};
 
+class Sampler : public CachableResource
+{
   private:
+	VkSampler handle;
+
+  protected:
+  public:
+	virtual bool     _equals(Resource const &other) const override;
+	virtual hash_t   hash() const override;
+	virtual void     free() override;
+	VkSampler getHandle() const;
+	Sampler(SamplerDefinition const &definition);
 };
 }        // namespace vka

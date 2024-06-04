@@ -5,7 +5,7 @@
 
 namespace vka
 {
-class PipelineLayoutDefinition : ResourceIdentifier
+class PipelineLayoutDefinition : public ResourceIdentifier
 {
   public:
 	std::vector<VkPushConstantRange>           pcRanges;
