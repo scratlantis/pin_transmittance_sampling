@@ -1,50 +1,56 @@
 #include "DescriptorSetLayout.h"
-#include "../combined_resources/Image.h"
 namespace vka
 {
-DescriptorSetLayout::DescriptorSetLayout(ResourceTracker *pTracker, const DescriptorSetLayoutDefinition &definition) :
-    UniqueResource(pTracker), definition(definition)
+hash_t DescriptorSetLayoutDefinition::hash() const
 {
-	VkDescriptorSetLayout handle = VK_NULL_HANDLE;
-}
-
-DescriptorSetLayout::~DescriptorSetLayout()
-{
-}
-
-
-
-void DescriptorSetLayoutDefinition::addStorageImage(VkShaderStageFlags shaderStage)
-{
-	VkDescriptorSetLayoutBinding imgBinding{};
-	imgBinding.binding            = VKA_COUNT(bindings);
-	imgBinding.descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	imgBinding.descriptorCount    = 1;
-	imgBinding.stageFlags         = shaderStage;
-	imgBinding.pImmutableSamplers = nullptr;
-	bindings.push_back(imgBinding);
-}
-
-void DescriptorSetLayoutDefinition::addUniformBuffer(VkShaderStageFlags shaderStage)
-{
-	VkDescriptorSetLayoutBinding uboBinding{};
-	uboBinding.binding            = VKA_COUNT(bindings);
-	uboBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboBinding.descriptorCount    = 1;
-	uboBinding.stageFlags         = shaderStage;
-	uboBinding.pImmutableSamplers = nullptr;
-	bindings.push_back(uboBinding);
+	hash_t hash = static_cast<hash_t>(flags);
+	hashCombine(hash, shallowHashArray(bindings));
+	return hash;
 }
 
 void DescriptorSetLayoutDefinition::addDescriptor(VkShaderStageFlags shaderStage, VkDescriptorType type)
 {
-	VkDescriptorSetLayoutBinding uboBinding{};
-	uboBinding.binding            = VKA_COUNT(bindings);
-	uboBinding.descriptorType     = type;
-	uboBinding.descriptorCount    = 1;
-	uboBinding.stageFlags         = shaderStage;
-	uboBinding.pImmutableSamplers = nullptr;
-	bindings.push_back(uboBinding);
+	VkDescriptorSetLayoutBinding binding{};
+	binding.binding            = VKA_COUNT(bindings);
+	binding.descriptorType     = type;
+	binding.descriptorCount    = 1;
+	binding.stageFlags         = shaderStage;
+	binding.pImmutableSamplers = nullptr;
+	bindings.push_back(binding);
 }
+
+
+
+bool DescriptorSetLayout::_equals(Resource const &other) const
+{
+	if (typeid(*this) != typeid(other))
+		return false;
+	else
+	{
+		auto &other_ = static_cast<DescriptorSetLayout const &>(other);
+		return this->handle == other_.handle;
+	}
+}
+
+
+DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayoutDefinition const &definition)
+{
+	VkDescriptorSetLayoutCreateInfo ci{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
+	ci.flags        = definition.flags;
+	ci.bindingCount = definition.bindings.size();
+	ci.pBindings    = definition.bindings.data();
+	VK_CHECK(vkCreateDescriptorSetLayout(gState.device.logical, &ci, nullptr, &handle));
+}
+
+void DescriptorSetLayout::free()
+{
+	vkDestroyDescriptorSetLayout(gState.device.logical, handle, nullptr);
+}
+
+hash_t DescriptorSetLayout::hash() const
+{
+	return (hash_t) (handle);
+}
+
 
 }        // namespace vka

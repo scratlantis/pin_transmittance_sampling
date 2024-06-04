@@ -204,6 +204,7 @@ class Image_I : Resource
 			track(&gState.frame->stack);
 		}
 	}
+	
 	void free() override
 	{
 		if (!hasMemoryOwnership)
