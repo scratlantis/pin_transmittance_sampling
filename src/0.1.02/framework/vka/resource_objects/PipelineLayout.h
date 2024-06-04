@@ -1,22 +1,16 @@
 #pragma once
 #include "Resource.h"
+#include <vka/state_objects/global_state.h>
 #include "DescriptorSetLayout.h"
 
 namespace vka
 {
-
-struct PipelineLayoutDefinition
+struct PipelineLayoutDefinition : ResourceIdentifier
 {
 	std::vector<VkPushConstantRange>           pcRanges;
 	std::vector<DescriptorSetLayoutDefinition> descSetLayoutDef;
 
-	hash_t hash() const
-	{
-		hash_t hash = shallowHashArray(pcRanges);
-		hashCombine(hash, hashArray(descSetLayoutDef));
-		return hash;
-	}
-
+	hash_t hash() const;
 	bool operator==(const PipelineLayoutDefinition &other) const
 	{
 		bool isEqual = shallowCmpArray(pcRanges, other.pcRanges) && cmpArray(descSetLayoutDef, other.descSetLayoutDef);
@@ -38,60 +32,17 @@ struct hash<vka::PipelineLayoutDefinition>
 
 namespace vka
 {
-class PipelineLayout : public UniqueResource<VkPipelineLayout>
+class PipelineLayout : public CachableResource
 {
+  private:
+	VkPipelineLayout handle;
+
   protected:
-	void free()
-	{
-		vkDestroyPipelineLayout(gState.device.logical, handle, nullptr);
-	}
-	void buildHandle()
-	{
-		VkPipelineLayoutCreateInfo ci{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-		std::vector<VkDescriptorSetLayout> descSetLayouts;
-		for (size_t i = 0; i < definition.descSetLayoutDef.size(); i++)
-		{
-			descSetLayouts.push_back(DescriptorSetLayout(pTracker, definition.descSetLayoutDef[i]).getHandle());
-		}
-		ci.setLayoutCount         = descSetLayouts.size();
-		ci.pSetLayouts            = descSetLayouts.data();
-		ci.pushConstantRangeCount = definition.pcRanges.size();
-		ci.pPushConstantRanges = definition.pcRanges.data();
-		VK_CHECK(vkCreatePipelineLayout(gState.device.logical, &ci, nullptr, &handle));
-		
-	}
-	//virtual bool _equals(PipelineLayout const &other) const
-	//{
-	//	return this->definition == other.definition;
-	//}
-
-
-	virtual bool _equals(Resource const &other) const
-	{
-		if (typeid(*this) != typeid(other))
-			return false;
-		auto that = static_cast<PipelineLayout const &>(other);
-		return *this == that;
-	}
-	PipelineLayout *copyToHeap() const
-	{
-		return new PipelineLayout(*this);
-	}
+	virtual bool _equals(Resource const &other) const;
 
   public:
-	bool operator==(const PipelineLayout &other) const
-	{
-		return this->definition == other.definition;
-	}
-	hash_t _hash() const
-	{
-		return definition.hash();
-	};
-	PipelineLayout(ResourceTracker *pTracker, const PipelineLayoutDefinition &definition);
-	~PipelineLayout();
-
-	const PipelineLayoutDefinition definition;
-
-  private:
+	PipelineLayout(PipelineLayoutDefinition const &definition);
+	virtual void   free();
+	virtual hash_t hash() const;
 };
 }        // namespace vka

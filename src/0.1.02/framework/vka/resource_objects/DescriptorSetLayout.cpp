@@ -20,7 +20,6 @@ void DescriptorSetLayoutDefinition::addDescriptor(VkShaderStageFlags shaderStage
 }
 
 
-
 bool DescriptorSetLayout::_equals(Resource const &other) const
 {
 	if (typeid(*this) != typeid(other))
@@ -50,6 +49,11 @@ void DescriptorSetLayout::free()
 hash_t DescriptorSetLayout::hash() const
 {
 	return (hash_t) (handle);
+}
+
+VkDescriptorSetLayout DescriptorSetLayout::getHandle() const
+{
+	return handle;
 }
 
 

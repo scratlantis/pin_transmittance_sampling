@@ -10,8 +10,8 @@ class ResourcePool
 	std::unordered_set<Resource *, PointerObjHash<Resource>, PointerObjEq<Resource>> resources;
 
   public:
-	bool                                                                             add(Resource *resource);
-	bool                                                                             remove(Resource *resource);
+	bool add(Resource *resource);
+	bool remove(Resource *resource);
 	ResourcePool(){};
 	~ResourcePool(){};
 	void clear();

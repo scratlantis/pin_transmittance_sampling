@@ -45,5 +45,6 @@ class DescriptorSetLayout : public Resource
 	DescriptorSetLayout(DescriptorSetLayoutDefinition const &definition);
 	virtual void   free();
 	virtual hash_t hash() const;
+	VkDescriptorSetLayout getHandle() const;
 };
 }        // namespace vka

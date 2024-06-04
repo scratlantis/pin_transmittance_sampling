@@ -35,4 +35,17 @@ void Resource::track(ResourcePool *pPool)
 	}
 }
 
-} // namespace vka
+void CachableResource::track(ResourcePool *pPool)
+{
+	if (pCache == nullptr)
+	{
+		Resource::track(pPool);
+	}
+	else
+	{
+		printVka("CachableResource::track() called on a resource that is already cached\n");
+		DEBUG_BREAK;
+	}
+}
+
+}        // namespace vka
