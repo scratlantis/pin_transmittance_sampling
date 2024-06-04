@@ -51,6 +51,11 @@ VkPipeline ComputePipeline::getHandle() const
 	return handle;
 }
 
+void ComputePipeline::free()
+{
+	vkDestroyPipeline(gState.device.logical, handle, nullptr);
+}
+
 ComputePipeline::ComputePipeline(ComputePipelineDefinition const &definition)
 {
 	VkComputePipelineCreateInfo     ci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};

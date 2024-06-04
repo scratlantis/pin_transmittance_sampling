@@ -37,6 +37,10 @@ bool Sampler::_equals(Resource const &other) const
 		return this->handle == other_.handle;
 	}
 }
+void Sampler::free()
+{
+	vkDestroySampler(gState.device.logical, handle, nullptr);
+}
 // Overrides end
 
 VkSampler Sampler::getHandle() const

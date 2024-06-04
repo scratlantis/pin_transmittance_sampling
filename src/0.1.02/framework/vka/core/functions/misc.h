@@ -29,10 +29,21 @@ inline void MapToVec(const M &m, V &v)
 }
 
 template <class T>
-inline void hashCombine(hash_t &s, const T &v)
+inline void hashCombineLocal(hash_t &s, const T &v)
 {
 	std::hash<T> h;
 	s ^= h(v) + 0x9e3779b9 + (s << 6) + (s >> 2);
+}
+
+template <class A, class B>
+inline hash_t hashCombine(const A &a, const B &b)
+{
+	std::hash<A> h_a;
+	std::hash<B> h_b;
+	hash_t out = 0;
+	out ^= h_a(a) + 0x9e3779b9 + (a << 6) + (a >> 2);
+	out ^= h_b(b) + 0x9e3779b9 + (b << 6) + (b >> 2);
+	return out;
 }
 
 
@@ -42,7 +53,18 @@ inline hash_t hashArray(const T arr[], std::size_t count)
 	hash_t       value = 0;
 	for (std::size_t i = 0; i < count; ++i)
 	{
-		hashCombine(value, &arr[i]);
+		hashCombineLocal(value, &arr[i]);
+	}
+	return value;
+}
+
+template <class T>
+inline hash_t hashArray(const T* p, uint32_t count)
+{
+	hash_t value = 0;
+	for (std::size_t i = 0; i < count; ++i)
+	{
+		hashCombineLocal(value, &(p[i]));
 	}
 	return value;
 }
@@ -63,7 +85,7 @@ inline hash_t hashArray(const std::vector<T> &arr)
 	hash_t value = 0;
 	for (std::size_t i = 0; i < arr.size(); ++i)
 	{
-		hashCombine(value, arr[i]);
+		hashCombineLocal(value, arr[i]);
 	}
 	return value;
 }
@@ -74,7 +96,7 @@ inline hash_t shallowHashArray(const std::vector<T> &arr)
 	hash_t       value = 0;
 	for (std::size_t i = 0; i < arr.size(); ++i)
 	{
-		hashCombine(value, shallowHashStructure(&arr[i]));
+		hashCombineLocal(value, shallowHashStructure(&arr[i]));
 	}
 	return value;
 }
@@ -107,6 +129,15 @@ inline bool shallowCmpArray(const std::vector<T> &a, const std::vector<T> &b)
 	}
 	bool isEqual = memcmp(a.data(), b.data(), a.size() * sizeof(T)) == 0;
 	return isEqual;
+}
+template <class T>
+inline bool shallowCmpStructures(const T *a, const T *b, uint32_t count)
+{
+	if (count == 0)
+	{
+		return true;
+	}
+	return memcmp(a, b, count * sizeof(T)) == 0;
 }
 
 

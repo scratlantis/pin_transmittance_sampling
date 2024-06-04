@@ -51,6 +51,11 @@ VkDescriptorSetLayout DescriptorSetLayout::getHandle() const
 	return handle;
 }
 
+void DescriptorSetLayout::free()
+{
+	vkDestroyDescriptorSetLayout(gState.device.logical, handle, nullptr);
+}
+
 
 void DescriptorSetLayoutDefinition::addDescriptor(VkShaderStageFlags shaderStage, VkDescriptorType type)
 {

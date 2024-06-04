@@ -63,6 +63,10 @@ bool Shader::_equals(Resource const &other) const
 		return this->handle == other_.handle;
 	}
 }
+void Shader::free()
+{
+	vkDestroyShaderModule(gState.device.logical, handle, nullptr);
+}
 // Overrides end
 
 VkShaderModule Shader::getHandle() const

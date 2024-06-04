@@ -42,6 +42,10 @@ bool PipelineLayout::_equals(Resource const &other) const
 		return this->handle == other_.handle;
 	}
 }
+void PipelineLayout::free()
+{
+	vkDestroyPipelineLayout(gState.device.logical, handle, nullptr);
+}
 // Overrides end
 
 VkPipelineLayout PipelineLayout::getHandle() const
