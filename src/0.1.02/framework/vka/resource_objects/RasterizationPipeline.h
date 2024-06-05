@@ -10,6 +10,10 @@ namespace vka
 {
 struct GlobalColorBlendState
 {
+	GlobalColorBlendState()
+	{
+		memset(this, 0, sizeof(GlobalColorBlendState));
+	}
 	VkPipelineColorBlendStateCreateFlags flags;
 	VkBool32                             logicOpEnable;
 	VkLogicOp                            logicOp;
@@ -19,23 +23,28 @@ class RestarizationPipelineDefinition : public ResourceIdentifier
 {
   public:
 	VkPipelineCreateFlags                            flags;
-	std::vector<ShaderDefinition>                    shaderDefinitions;
-	std::vector<VkVertexInputBindingDescription>     vertexBindingDescriptions;
-	std::vector<VkVertexInputAttributeDescription>   vertexAttributeDescriptions;
-	VkPipelineInputAssemblyStateCreateInfo           inputAssemblyState;
-	VkPipelineTessellationStateCreateInfo            tessellationState;
-	std::vector<VkViewport>                          viewport;
-	std::vector<VkRect2D>                            scissor;
-	VkPipelineRasterizationStateCreateInfo           rasterizationState;
-	std::vector<VkSampleMask>                        sampleMasks;
-	VkPipelineMultisampleStateCreateInfo             multisampleState;
-	VkPipelineDepthStencilStateCreateInfo            depthStencilState;
+	uint32_t                                         subpass;
+	PipelineMultisampleStateCreateInfo_OP            multisampleState;
+
+	ZERO_PAD(VkPipelineInputAssemblyStateCreateInfo)          inputAssemblyState;
+	ZERO_PAD(VkPipelineTessellationStateCreateInfo)          tessellationState;
+	ZERO_PAD(VkPipelineRasterizationStateCreateInfo)           rasterizationState;
+	ZERO_PAD(VkPipelineDepthStencilStateCreateInfo)            depthStencilState;
 	GlobalColorBlendState                            globalColorBlendState;
-	std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachmentStates;
-	std::vector<VkDynamicState>                      dynamicStates;
+
 	PipelineLayoutDefinition                         pipelineLayoutDefinition;
 	RenderPassDefinition                             renderPassDefinition;
-	uint32_t                                         subpass;
+
+	std::vector<ShaderDefinition>                    shaderDefinitions;
+
+	std::vector<VkDynamicState>                      dynamicStates;
+	std::vector<VkSampleMask>                        sampleMasks;
+
+	std::vector<ZERO_PAD(VkPipelineColorBlendAttachmentState)> colorBlendAttachmentStates;
+	std::vector<ZERO_PAD(VkVertexInputBindingDescription)>     vertexBindingDescriptions;
+	std::vector<ZERO_PAD(VkVertexInputAttributeDescription)>   vertexAttributeDescriptions;
+	std::vector<ZERO_PAD(VkViewport)>                          viewports;
+	std::vector<ZERO_PAD(VkRect2D)>                            scissors;
 
 
 
@@ -57,6 +66,6 @@ class RasterizationPipeline : public CachableResource
 	virtual hash_t   hash() const override;
 	virtual void     free() override;
 	VkPipeline       getHandle() const;
-	RasterizationPipeline(RestarizationPipelineDefinition const &definition);
+	RasterizationPipeline(RestarizationPipelineDefinition const &def);
 };
 }        // namespace vka

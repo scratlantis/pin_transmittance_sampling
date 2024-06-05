@@ -1,6 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.h>
-#include "../global_state.h"
+#include <vka/state_objects/global_state.h>
 
 namespace vka
 {
@@ -9,6 +9,7 @@ struct RayTracingShaderGroupCreateInfo_Empty : VkRayTracingShaderGroupCreateInfo
 {
 	RayTracingShaderGroupCreateInfo_Empty()
 	{
+		memset(this, 0, sizeof(SamplerCreateInfo_Default));
 		sType              = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
 		anyHitShader       = VK_SHADER_UNUSED_KHR;
 		closestHitShader   = VK_SHADER_UNUSED_KHR;
@@ -22,6 +23,7 @@ struct ImageCreateInfo_Default : public VkImageCreateInfo
 {
 	ImageCreateInfo_Default(VkImageUsageFlags usageFlags, VkExtent2D extent, VkFormat format)
 	{
+		memset(this, 0, sizeof(SamplerCreateInfo_Default));
 		this->sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		this->pNext                 = nullptr;
 		this->flags                 = 0;
@@ -44,6 +46,7 @@ struct SamplerCreateInfo_Default : public VkSamplerCreateInfo
 {
 	SamplerCreateInfo_Default(float maxLodValue)
 	{
+		memset(this, 0, sizeof(SamplerCreateInfo_Default));
 		sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		pNext                   = nullptr;
 		flags                   = 0;

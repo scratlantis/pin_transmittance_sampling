@@ -8,7 +8,7 @@ namespace vka
 class PipelineLayoutDefinition : public ResourceIdentifier
 {
   public:
-	std::vector<VkPushConstantRange>           pcRanges;
+	std::vector<ZERO_PAD(VkPushConstantRange)>           pcRanges;
 	std::vector<DescriptorSetLayoutDefinition> descSetLayoutDef;
 
 	hash_t hash() const;

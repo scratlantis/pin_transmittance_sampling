@@ -3,6 +3,7 @@
 #include <vka/resource_objects/DescriptorSetLayout.h>
 #include <vka/resource_objects/PipelineLayout.h>
 #include <vka/resource_objects/Shader.h>
+#include <vka/resource_objects/RenderPass.h>
 namespace vka
 {
 DescriptorSetLayout* ResourceCache::fetch(const DescriptorSetLayoutDefinition &rID)
@@ -40,6 +41,19 @@ Shader *ResourceCache::fetch(const ShaderDefinition &rID)
 	else
 	{
 		res = new Shader(rID);
+	}
+	return res;
+}
+
+RenderPass *ResourceCache::fetch(const RenderPassDefinition &rID)
+{
+	RenderPass *res = nullptr;
+	auto    it  = renderpasses.find(rID);
+	if (it != renderpasses.end())
+		res = &it->second;
+	else
+	{
+		res = new RenderPass(rID);
 	}
 	return res;
 }

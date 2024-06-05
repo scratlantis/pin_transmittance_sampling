@@ -9,11 +9,11 @@ namespace vka
 class RenderPassDefinition : public ResourceIdentifier
 {
   public:
-	std::vector<VkAttachmentDescription> attachmentDescriptions;
-	std::vector<SubpassDescription_OP> subpassDescriptions;
-	std::vector<VkSubpassDependency> subpassDependencies;
+	std::vector<ZERO_PAD(VkAttachmentDescription)> attachmentDescriptions;
+	std::vector<SubpassDescription_OP>             subpassDescriptions;
+	std::vector<ZERO_PAD(VkSubpassDependency)> subpassDependencies;
 
-	std::vector<VkAttachmentReference> attachmentReferences;
+	std::vector<ZERO_PAD(VkAttachmentReference)> attachmentReferences;
 	std::vector<uint32_t>              preserveAttachments;
 	hash_t hash() const;
 	bool   _equals(ResourceIdentifier const &other) const override;

@@ -5,7 +5,7 @@ namespace vka
 hash_t DescriptorSetLayoutDefinition::hash() const
 {
 	hash_t hash = static_cast<hash_t>(flags);
-	hashCombine(hash, shallowHashArray(bindings));
+	hashCombineLocal(hash, byteHashVector(bindings));
 	return hash;
 }
 
@@ -22,7 +22,7 @@ bool DescriptorSetLayoutDefinition::_equals(const ResourceIdentifier &other) con
 
 bool DescriptorSetLayoutDefinition::equals(const DescriptorSetLayoutDefinition &other) const
 {
-	return flags == other.flags && shallowCmpArray(bindings, other.bindings);
+	return flags == other.flags && memcmpVector(bindings, other.bindings);
 }
 
 hash_t DescriptorSetLayout::hash() const

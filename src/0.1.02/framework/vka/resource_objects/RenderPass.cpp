@@ -5,9 +5,9 @@ namespace vka
 hash_t RenderPassDefinition::hash() const
 {
 	// clang-format off
-	return shallowHashArray(attachmentDescriptions)
-	    HASHC hashArray(subpassDescriptions)
-	    HASHC shallowHashArray(subpassDependencies);
+	return byteHashVector(attachmentDescriptions)
+	    HASHC hashVector(subpassDescriptions)
+	    HASHC byteHashVector(subpassDependencies);
 	// clang-format on
 }
 
@@ -24,9 +24,9 @@ bool RenderPassDefinition::_equals(ResourceIdentifier const &other) const
 bool RenderPassDefinition::equals(RenderPassDefinition const &other) const
 {
 	// clang-format off
-	return shallowCmpArray(attachmentDescriptions, other.attachmentDescriptions)
-		&& cmpArray(subpassDescriptions, other.subpassDescriptions)
-	    && shallowCmpArray(subpassDependencies, other.subpassDependencies);
+	return memcmpVector(attachmentDescriptions, other.attachmentDescriptions)
+		&& cmpVector(subpassDescriptions, other.subpassDescriptions)
+	    && memcmpVector(subpassDependencies, other.subpassDependencies);
 	// clang-format on
 }
 

@@ -4,7 +4,7 @@ namespace vka
 // Overrides start
 hash_t SamplerDefinition::hash() const
 {
-	return shallowHashStructure(this);
+	return byteHashPtr(this);
 }
 
 bool SamplerDefinition::_equals(ResourceIdentifier const &other) const
@@ -19,7 +19,7 @@ bool SamplerDefinition::_equals(ResourceIdentifier const &other) const
 }
 bool SamplerDefinition::equals(SamplerDefinition const &other) const
 {
-	return shallowCmpStructure(this, &other);
+	return memcmpPtr(this, &other);
 }
 
 hash_t Sampler::hash() const

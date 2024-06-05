@@ -6,8 +6,8 @@ namespace vka
 hash_t ComputePipelineDefinition::hash() const
 {
 	hash_t hash = 0;
-	hashCombine(hash, shaderDef.hash());
-	hashCombine(hash, pipelineLayoutDef.hash());
+	hashCombineLocal(hash, shaderDef.hash());
+	hashCombineLocal(hash, pipelineLayoutDef.hash());
 	return hash;
 }
 

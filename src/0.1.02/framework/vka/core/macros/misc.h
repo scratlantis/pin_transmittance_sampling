@@ -144,3 +144,13 @@ static std::string errorString(VkResult errorCode)
 
 #define NEXT_INDEX(x, y) ((x + 1) % (y))
 #define PREVIOUS_INDEX(x, y) (((x + y - 1) % y))
+
+#define DEFINE_ZERO_PAD(TYPE) \
+	struct TYPE##_ZERO_PAD : public TYPE \
+	{                         \
+		TYPE##_ZERO_PAD()           \
+		{                     \
+			memset(this, 0, sizeof(TYPE)); \
+		}                     \
+	};
+#define ZERO_PAD(TYPE) TYPE##_ZERO_PAD

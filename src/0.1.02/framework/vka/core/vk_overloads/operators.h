@@ -14,13 +14,13 @@ struct SubpassDescription_OP : public VkSubpassDescription
 		return flags == other.flags
 			&& pipelineBindPoint == other.pipelineBindPoint
 			&& inputAttachmentCount == other.inputAttachmentCount
-			&& shallowCmpStructures(pInputAttachments, other.pInputAttachments, inputAttachmentCount)
+			&& memcmpArray(pInputAttachments, other.pInputAttachments, inputAttachmentCount)
 			&& colorAttachmentCount == other.colorAttachmentCount
-			&& shallowCmpStructures(pColorAttachments, other.pColorAttachments, colorAttachmentCount)
-			&& shallowCmpStructures(pResolveAttachments, other.pResolveAttachments, colorAttachmentCount)
-			&& shallowCmpStructure(pDepthStencilAttachment, other.pDepthStencilAttachment)
+			&& memcmpArray(pColorAttachments, other.pColorAttachments, colorAttachmentCount)
+			&& memcmpArray(pResolveAttachments, other.pResolveAttachments, colorAttachmentCount)
+			&& memcmpPtr(pDepthStencilAttachment, other.pDepthStencilAttachment)
 			&& preserveAttachmentCount == other.preserveAttachmentCount
-			&& shallowCmpStructures(pPreserveAttachments, other.pPreserveAttachments, preserveAttachmentCount);
+			&& memcmpArray(pPreserveAttachments, other.pPreserveAttachments, preserveAttachmentCount);
 		// clang-format on
 	}
 	bool operator!=(SubpassDescription_OP const &other) const
@@ -33,20 +33,61 @@ struct SubpassDescription_OP : public VkSubpassDescription
 		return flags
 			HASHC pipelineBindPoint
 			HASHC inputAttachmentCount
-			HASHC hashArray(pInputAttachments, inputAttachmentCount)
+			HASHC hashVector(pInputAttachments, inputAttachmentCount)
 			HASHC colorAttachmentCount
-			HASHC hashArray(pColorAttachments, colorAttachmentCount)
-			HASHC hashArray(pResolveAttachments, colorAttachmentCount)
-			HASHC shallowHashStructure(pDepthStencilAttachment)
+			HASHC hashVector(pColorAttachments, colorAttachmentCount)
+			HASHC hashVector(pResolveAttachments, colorAttachmentCount)
+			HASHC byteHashPtr(pDepthStencilAttachment)
 			HASHC preserveAttachmentCount
-			HASHC hashArray(pPreserveAttachments,preserveAttachmentCount);
+			HASHC hashVector(pPreserveAttachments,preserveAttachmentCount);
 		// clang-format on
 	}
 };
 
+struct PipelineMultisampleStateCreateInfo_OP : public VkPipelineMultisampleStateCreateInfo
+{
+	bool operator==(PipelineMultisampleStateCreateInfo_OP const &other) const
+	{
+		// clang-format off
+		return flags == other.flags
+			&& rasterizationSamples == other.rasterizationSamples
+			&& sampleShadingEnable == other.sampleShadingEnable
+			&& minSampleShading == other.minSampleShading
+			&& alphaToCoverageEnable == other.alphaToCoverageEnable
+			&& alphaToOneEnable == other.alphaToOneEnable;
+		// clang-format on
+	}
+	bool operator!=(PipelineMultisampleStateCreateInfo_OP const &other) const
+	{
+		return !(*this == other);
+	}
+	bool hash() const
+	{
+		// clang-format off
+		return flags
+			HASHC rasterizationSamples
+			HASHC sampleShadingEnable
+			HASHC minSampleShading
+			HASHC alphaToCoverageEnable
+			HASHC alphaToOneEnable;
+		// clang-format on
+	}
+};
 
+DEFINE_ZERO_PAD(VkAttachmentDescription)
+DEFINE_ZERO_PAD(VkAttachmentReference)
+DEFINE_ZERO_PAD(VkSubpassDependency)
+DEFINE_ZERO_PAD(VkDescriptorSetLayoutBinding)
+DEFINE_ZERO_PAD(VkPushConstantRange)
 
-
-
+DEFINE_ZERO_PAD(VkPipelineInputAssemblyStateCreateInfo)
+DEFINE_ZERO_PAD(VkPipelineTessellationStateCreateInfo)
+DEFINE_ZERO_PAD(VkPipelineRasterizationStateCreateInfo)
+DEFINE_ZERO_PAD(VkPipelineDepthStencilStateCreateInfo)
+DEFINE_ZERO_PAD(VkPipelineColorBlendAttachmentState)
+DEFINE_ZERO_PAD(VkVertexInputBindingDescription)
+DEFINE_ZERO_PAD(VkVertexInputAttributeDescription)
+DEFINE_ZERO_PAD(VkViewport)
+DEFINE_ZERO_PAD(VkRect2D)
 
 } // namespace vka

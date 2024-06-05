@@ -119,16 +119,17 @@ inline VkBaseOutStructure *StructureChain::chainNodes()
 	return head->getNode();
 }
 
+// unsafe
 inline hash_t StructureChain::getHash()
 {
 	if (chain.empty())
 		return 0;
 	auto   node = chain.cbegin();
-	hash_t hash = shallowHashStructure(node->getNode());
+	hash_t hash = byteHashPtr(node->getNode());
 	while (++node != chain.cend())
 	{
-		hash_t nodeHash = shallowHashStructure(node->getNode());
-		hashCombine(hash, nodeHash);
+		hash_t nodeHash = byteHashPtr(node->getNode());
+		hashCombineLocal(hash, nodeHash);
 	}
 	return hash;
 }

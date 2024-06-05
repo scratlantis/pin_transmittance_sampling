@@ -20,7 +20,7 @@ bool ShaderDefinition::_equals(ResourceIdentifier const &other) const
 }
 bool ShaderDefinition::equals(ShaderDefinition const &other) const
 {
-	return path == other.path && cmpArray(args, other.args);
+	return path == other.path && cmpVector(args, other.args);
 }
 
 std::string ShaderDefinition::fileID() const

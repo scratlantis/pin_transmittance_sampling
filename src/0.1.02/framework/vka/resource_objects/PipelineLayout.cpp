@@ -4,8 +4,8 @@ namespace vka
 // Overrides start
 hash_t PipelineLayoutDefinition::hash() const
 {
-	hash_t hash = shallowHashArray(pcRanges);
-	hashCombine(hash, hashArray(descSetLayoutDef));
+	hash_t hash = byteHashVector(pcRanges);
+	hashCombineLocal(hash, hashVector(descSetLayoutDef));
 	return hash;
 }
 
@@ -21,7 +21,7 @@ bool PipelineLayoutDefinition::_equals(ResourceIdentifier const &other) const
 }
 bool PipelineLayoutDefinition::equals(PipelineLayoutDefinition const &other) const
 {
-	return shallowCmpArray(pcRanges, other.pcRanges) && cmpArray(descSetLayoutDef, other.descSetLayoutDef);
+	return memcmpVector(pcRanges, other.pcRanges) && cmpVector(descSetLayoutDef, other.descSetLayoutDef);
 }
 
 

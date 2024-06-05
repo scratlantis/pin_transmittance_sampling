@@ -48,7 +48,7 @@ inline hash_t hashCombine(const A &a, const B &b)
 
 
 template <class T>
-inline hash_t hashArray(const T arr[], std::size_t count)
+inline hash_t hashVector(const T arr[], std::size_t count)
 {
 	hash_t       value = 0;
 	for (std::size_t i = 0; i < count; ++i)
@@ -59,7 +59,7 @@ inline hash_t hashArray(const T arr[], std::size_t count)
 }
 
 template <class T>
-inline hash_t hashArray(const T* p, uint32_t count)
+inline hash_t hashVector(const T* p, uint32_t count)
 {
 	hash_t value = 0;
 	for (std::size_t i = 0; i < count; ++i)
@@ -69,18 +69,58 @@ inline hash_t hashArray(const T* p, uint32_t count)
 	return value;
 }
 
+
+
+//template <class T>
+//inline hash_t shallowHashStructure(const T *v)
+//{
+//	if (v == nullptr)
+//	{
+//		return 0;
+//	}
+//	return hashArray((const uint8_t *) v, sizeof(T));
+//}
+
 template <class T>
-inline hash_t shallowHashStructure(const T *v)
+inline hash_t byteHashPtr(const T *v)
 {
 	if (v == nullptr)
 	{
 		return 0;
 	}
-	return hashArray((const uint8_t *) v, sizeof(T));
+	hash_t   value     = 0;
+	uint32_t byteCount = sizeof(T);
+	for (std::size_t i = 0; i < byteCount; ++i)
+	{
+		hashCombineLocal(value, ((uint8_t *) p)[byteCount]);
+	}
+	return value;
+}
+
+//template <class T>
+//inline hash_t shallowHashArray(const std::vector<T> &arr)
+//{
+//	hash_t       value = 0;
+//	for (std::size_t i = 0; i < arr.size(); ++i)
+//	{
+//		hashCombineLocal(value, shallowHashStructure(&arr[i]));
+//	}
+//	return value;
+//}
+
+template <class T>
+inline hash_t byteHashVector(const std::vector<T> &arr)
+{
+	hash_t value = 0;
+	for (std::size_t i = 0; i < arr.size(); ++i)
+	{
+		hashCombineLocal(value, byteHashPtr(&arr[i]));
+	}
+	return value;
 }
 
 template <class T>
-inline hash_t hashArray(const std::vector<T> &arr)
+inline hash_t hashVector(const std::vector<T> &arr)
 {
 	hash_t value = 0;
 	for (std::size_t i = 0; i < arr.size(); ++i)
@@ -90,19 +130,9 @@ inline hash_t hashArray(const std::vector<T> &arr)
 	return value;
 }
 
-template <class T>
-inline hash_t shallowHashArray(const std::vector<T> &arr)
-{
-	hash_t       value = 0;
-	for (std::size_t i = 0; i < arr.size(); ++i)
-	{
-		hashCombineLocal(value, shallowHashStructure(&arr[i]));
-	}
-	return value;
-}
 
 template <class T>
-inline bool shallowCmpStructure(const T *a, const T *b)
+inline bool memcmpPtr(const T *a, const T *b)
 {
 	if (a == nullptr && b == nullptr)
 	{
@@ -117,7 +147,7 @@ inline bool shallowCmpStructure(const T *a, const T *b)
 
 
 template <class T>
-inline bool shallowCmpArray(const std::vector<T> &a, const std::vector<T> &b)
+inline bool memcmpVector(const std::vector<T> &a, const std::vector<T> &b)
 {
 	if (a.size() != b.size())
 	{
@@ -131,7 +161,7 @@ inline bool shallowCmpArray(const std::vector<T> &a, const std::vector<T> &b)
 	return isEqual;
 }
 template <class T>
-inline bool shallowCmpStructures(const T *a, const T *b, uint32_t count)
+inline bool memcmpArray(const T *a, const T *b, uint32_t count)
 {
 	if (count == 0)
 	{
@@ -142,7 +172,7 @@ inline bool shallowCmpStructures(const T *a, const T *b, uint32_t count)
 
 
 template <class T>
-inline bool cmpArray(const std::vector<T> &a, const std::vector<T> &b)
+inline bool cmpVector(const std::vector<T> &a, const std::vector<T> &b)
 {
 	if (a.size() != b.size())
 	{
@@ -212,6 +242,7 @@ inline std::vector<std::string> split(const std::string &s, char delimiter)
 	return tokens;
 }
 
+// T must have zero padding
 template <class T>
 inline bool selectByPreference(const std::vector<T> &options, const std::vector<T> &preferences, T &selection)
 {
