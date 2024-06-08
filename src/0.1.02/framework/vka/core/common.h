@@ -9,4 +9,4 @@
 #include "functions/setup.h"
 #include "vk_overloads/default_values.h"
 #include "vk_overloads/operators.h"
-#include "funtions/operators.h"
+#include "functions/operators.h"

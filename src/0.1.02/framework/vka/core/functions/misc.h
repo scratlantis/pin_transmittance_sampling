@@ -41,8 +41,8 @@ inline hash_t hashCombine(const A &a, const B &b)
 	std::hash<A> h_a;
 	std::hash<B> h_b;
 	hash_t out = 0;
-	out ^= h_a(a) + 0x9e3779b9 + (a << 6) + (a >> 2);
-	out ^= h_b(b) + 0x9e3779b9 + (b << 6) + (b >> 2);
+	out ^= h_a(a);
+	out ^= h_b(b) + 0x9e3779b9 + (out << 6) + (out >> 2);
 	return out;
 }
 
@@ -82,9 +82,9 @@ inline hash_t hashVector(const T* p, uint32_t count)
 //}
 
 template <class T>
-inline hash_t byteHashPtr(const T *v)
+inline hash_t byteHashPtr(const T *p)
 {
-	if (v == nullptr)
+	if (p == nullptr)
 	{
 		return 0;
 	}

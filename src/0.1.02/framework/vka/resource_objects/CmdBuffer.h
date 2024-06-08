@@ -1,40 +1,15 @@
 #pragma once
 #include "Resource.h"
-#include <vka/state_objects/global_state.h>
+#include "PipelineLayout.h"
 namespace vka
 {
-class CmdBuffer_R : public Resource
+class CmdBuffer_R : public Resource_T<VkCommandBuffer>
 {
   public:
 	CmdBuffer_R(VkCommandBuffer handle, VkCommandPool cmdPool) :
-	    handle(handle), cmdPool(cmdPool)
-	{
-	}
-	hash_t hash() const override
-	{
-		return (hash_t) this->handle;
-	}
-
-	void free() override
-	{
-		vkFreeCommandBuffers(gState.device.logical, cmdPool, 1, &handle);
-	}
-
-  protected:
-	bool _equals(Resource const &other) const override
-	{
-		if (typeid(*this) != typeid(other))
-			return false;
-		else
-		{
-			auto &other_ = static_cast<CmdBuffer_R const &>(other);
-			return this->handle == other_.handle;
-		}
-	};
-
-
+	    Resource_T<VkCommandBuffer>(handle), cmdPool(cmdPool) {}
+	void free() override;
   private:
-	VkCommandBuffer handle;
 	VkCommandPool   cmdPool;
 };
 
@@ -67,115 +42,39 @@ enum CmdBufferStateBits
 	CMD_BUF_STATE_BITS_BOUND_PIPELINE = 1 << 1
 };
 
-class CmdBuffer_I : public Resource
+class CmdBuffer_I : public Resource_T<VkCommandBuffer>
 {
+  protected:
 	CmdBuffer_R             *res;
-	VkCommandBuffer          handle;
-	CmdBufferCapabitlityMask capability;
-
-	// State
-	uint32_t stateBits = 0;
-	//PipelineLayoutDefinition pipelineLayoutDef;
-	VkPipelineBindPoint      bindPoint;
 	bool        hasMemoryOwnership = false;
 
   public:
-	CmdBuffer_I(CmdBufferCapabitlityMask capability, VkCommandBufferUsageFlags usage, VkCommandBufferLevel level, uint32_t poolIdx)
+	// State
+	uint32_t                 stateBits;
+	CmdBufferCapabitlityMask capability;
+	PipelineLayoutDefinition pipelineLayoutDef;
+	VkPipelineBindPoint      bindPoint;
+	CmdBuffer_I() :
+		Resource_T<VkCommandBuffer>(VK_NULL_HANDLE)
 	{
-		VkCommandPool pool;
-		switch (capability)
-		{
-			case CMD_BUF_CAPABILITY_MASK_TRANSFER:
-				if (gState.cmdAlloc.createCmdBuffersCompute(poolIdx, level, 1, handle, pool))
-				{
-					break;
-				}
-			case CMD_BUF_CAPABILITY_MASK_COMPUTE:
-				if (gState.cmdAlloc.createCmdBuffersCompute(poolIdx, level, 1, handle, pool))
-				{
-					break;
-				}
-			case CMD_BUF_CAPABILITY_MASK_UNIVERSAL:
-				if (gState.cmdAlloc.createCmdBuffersUniversal(poolIdx, level, 1, handle, pool))
-				{
-					break;
-				}
-			default:
-				printVka("Unable to allocate command buffer with capability %d, from pool index %d\n", capability, poolIdx);
-				DEBUG_BREAK;
-				break;
-		}
-		VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-		beginInfo.flags = usage;
-		CHECK_TRUE(vkBeginCommandBuffer(handle, &beginInfo));
-		stateBits |= CMD_BUF_STATE_BITS_RECORDING;
+		pipelineLayoutDef = {};
+		bindPoint         = VK_PIPELINE_BIND_POINT_MAX_ENUM;
+		capability = CMD_BUF_CAPABILITY_MASK_NONE;
+		stateBits         = 0;
+	}
+	CmdBuffer_I(CmdBufferCapabitlityMask capability, VkCommandBufferUsageFlags usage, VkCommandBufferLevel level, uint32_t poolIdx) :
+	    CmdBuffer_I()
+	{
+		create(capability, usage, level, poolIdx);
 	}
 	~CmdBuffer_I()
 	{
 		free();
 	}
-	hash_t hash() const override
-	{
-		return (hash_t) this->handle + VKA_RESOURCE_META_DATA_HASH_OFFSET;
-	}
-	void free() override
-	{
-		if (!hasMemoryOwnership)
-		{
-			res                = nullptr;
-			pPool              = nullptr;
-			handle             = VK_NULL_HANDLE;
-			capability         = CMD_BUF_CAPABILITY_MASK_NONE;
-			uint32_t stateBits = 0;
-			// PipelineLayoutDefinition pipelineLayoutDef;
-		}
-		else
-		{
-			vka::printVka("Cant free CmdBuffer with memory ownership\n");
-			DEBUG_BREAK;
-		}
-	}
 
-	void track(ResourcePool *pPool) override
-	{
-		if (!pPool)
-		{
-			vka::printVka("Null resource pool\n");
-			DEBUG_BREAK;
-			return;
-		}
-		if (res)
-		{
-			res->track(pPool);
-		}
-		Resource::track(pPool);
-		hasMemoryOwnership = false;
-	}
-	void garbageCollect() override
-	{
-		if (res)
-		{
-			res->garbageCollect();
-			track(&gState.frame->stack);
-		}
-	}
-
-
-  protected:
-	bool _equals(Resource const &other) const override
-	{
-		if (typeid(*this) != typeid(other))
-			return false;
-		else
-		{
-			auto &other_ = static_cast<CmdBuffer_I const &>(other);
-			return this->handle == other_.handle;
-		}
-	};
+	void   create(CmdBufferCapabitlityMask capability, VkCommandBufferUsageFlags usage, VkCommandBufferLevel level, uint32_t poolIdx);
+	hash_t hash() const override;
+	void free() override;
+	void track(IResourcePool *pPool) override;
 };
-typedef CmdBuffer_I *VkaCommandBuffer;
-
-
-
-
 }        // namespace vka

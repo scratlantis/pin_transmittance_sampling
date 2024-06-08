@@ -1,6 +1,5 @@
 #pragma once
 #include "Resource.h"
-#include <vka/state_objects/global_state.h>
 
 
 
@@ -15,23 +14,17 @@ class RenderPassDefinition : public ResourceIdentifier
 
 	std::vector<ZERO_PAD(VkAttachmentReference)> attachmentReferences;
 	std::vector<uint32_t>              preserveAttachments;
-	hash_t hash() const;
-	bool   _equals(ResourceIdentifier const &other) const override;
-	bool   equals(RenderPassDefinition const &other) const;
+	bool                                         operator==(const ResourceIdentifier &other) const override;
+	bool                                         operator==(const RenderPassDefinition &other) const;
+	hash_t                                       hash() const override;
   protected:
 };
 
-class RenderPass : public CachableResource
+class RenderPass : public Cachable_T<VkRenderPass>
 {
-  private:
-	VkRenderPass handle;
-
-  protected:
   public:
-	virtual bool     _equals(Resource const &other) const override;
-	virtual hash_t   hash() const override;
 	virtual void     free() override;
-	VkRenderPass       getHandle() const;
 	RenderPass(RenderPassDefinition const &def);
 };
 }        // namespace vka
+DECLARE_HASH(vka::RenderPassDefinition, hash)

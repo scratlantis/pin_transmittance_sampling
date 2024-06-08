@@ -4,7 +4,6 @@
 #include "Shader.h"
 #include "RenderPass.h"
 #include "Resource.h"
-#include <vka/state_objects/global_state.h>
 
 namespace vka
 {
@@ -19,7 +18,7 @@ struct GlobalColorBlendState
 	VkLogicOp                            logicOp;
 	float                                blendConstants[4];
 };
-class RestarizationPipelineDefinition : public ResourceIdentifier
+class RasterizationPipelineDefinition : public ResourceIdentifier
 {
   public:
 	VkPipelineCreateFlags                            flags;
@@ -46,26 +45,16 @@ class RestarizationPipelineDefinition : public ResourceIdentifier
 	std::vector<ZERO_PAD(VkViewport)>                          viewports;
 	std::vector<ZERO_PAD(VkRect2D)>                            scissors;
 
-
-
-	hash_t hash() const;
-	bool   _equals(ResourceIdentifier const &other) const override;
-	bool   equals(RestarizationPipelineDefinition const &other) const;
-
-  protected:
+	bool   operator==(const ResourceIdentifier &other) const override;
+	bool   operator==(const RasterizationPipelineDefinition &other) const;
+	hash_t hash() const override;
 };
 
-class RasterizationPipeline : public CachableResource
+class RasterizationPipeline : public Cachable_T<VkPipeline>
 {
-  private:
-	VkPipeline handle;
-
-  protected:
   public:
-	virtual bool     _equals(Resource const &other) const override;
-	virtual hash_t   hash() const override;
 	virtual void     free() override;
-	VkPipeline       getHandle() const;
-	RasterizationPipeline(RestarizationPipelineDefinition const &def);
+	RasterizationPipeline(RasterizationPipelineDefinition const &def);
 };
 }        // namespace vka
+DECLARE_HASH(vka::RasterizationPipelineDefinition, hash)

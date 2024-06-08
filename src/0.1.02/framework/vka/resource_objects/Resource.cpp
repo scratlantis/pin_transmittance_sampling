@@ -1,14 +1,14 @@
 #include "Resource.h"
+#include "ResourcePool.h"
 #include <vka/state_objects/global_state.h>
 namespace vka
 {
-
 void Resource::garbageCollect()
 {
-	track(&gState.frame->stack);
+	track(gState.frame->stack);
 }
 
-void Resource::track(ResourcePool *pPool)
+void Resource::track(IResourcePool *pPool)
 {
 	if (this->pPool)
 	{
@@ -35,17 +35,6 @@ void Resource::track(ResourcePool *pPool)
 	}
 }
 
-void CachableResource::track(ResourcePool *pPool)
-{
-	if (pCache == nullptr)
-	{
-		Resource::track(pPool);
-	}
-	else
-	{
-		printVka("CachableResource::track() called on a resource that is already cached\n");
-		DEBUG_BREAK;
-	}
-}
+
 
 }        // namespace vka

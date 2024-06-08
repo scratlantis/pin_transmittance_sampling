@@ -1,6 +1,5 @@
 #pragma once
 #include "Resource.h"
-#include <vka/state_objects/global_state.h>
 #include "DescriptorSetLayout.h"
 
 namespace vka
@@ -11,22 +10,18 @@ class PipelineLayoutDefinition : public ResourceIdentifier
 	std::vector<ZERO_PAD(VkPushConstantRange)>           pcRanges;
 	std::vector<DescriptorSetLayoutDefinition> descSetLayoutDef;
 
-	hash_t hash() const;
-	bool _equals(ResourceIdentifier const &other) const override;
-	bool   equals(PipelineLayoutDefinition const &other) const;
+	bool   operator==(const ResourceIdentifier &other) const override;
+	bool   operator==(const PipelineLayoutDefinition &other) const;
+	hash_t hash() const override;
   protected:
 };
 
-class PipelineLayout : public CachableResource
+class PipelineLayout : public Cachable_T <VkPipelineLayout>
 {
-  private:
-	VkPipelineLayout handle;
-  protected:
   public:
-	virtual bool     _equals(Resource const &other) const override;
-	virtual hash_t   hash() const override;
 	virtual void     free() override;
-	VkPipelineLayout getHandle() const;
 	PipelineLayout(PipelineLayoutDefinition const &definition);
 };
 }        // namespace vka
+
+DECLARE_HASH(vka::PipelineLayoutDefinition, hash)

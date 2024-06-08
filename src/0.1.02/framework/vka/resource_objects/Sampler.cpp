@@ -1,51 +1,22 @@
 #include "Sampler.h"
+#include <vka/state_objects/global_state.h>
 namespace vka
 {
-// Overrides start
 hash_t SamplerDefinition::hash() const
 {
 	return byteHashPtr(this);
 }
 
-bool SamplerDefinition::_equals(ResourceIdentifier const &other) const
-{
-	if (typeid(*this) != typeid(other))
-		return false;
-	else
-	{
-		auto &other_ = static_cast<SamplerDefinition const &>(other);
-		return this->equals(other_);
-	}
-}
-bool SamplerDefinition::equals(SamplerDefinition const &other) const
+DEFINE_EQUALS_OVERLOAD(SamplerDefinition, ResourceIdentifier)
+
+bool SamplerDefinition::operator==(const SamplerDefinition &other) const
 {
 	return memcmpPtr(this, &other);
 }
 
-hash_t Sampler::hash() const
-{
-	return (hash_t) handle;
-}
-
-bool Sampler::_equals(Resource const &other) const
-{
-	if (typeid(*this) != typeid(other))
-		return false;
-	else
-	{
-		auto &other_ = static_cast<Sampler const &>(other);
-		return this->handle == other_.handle;
-	}
-}
 void Sampler::free()
 {
 	vkDestroySampler(gState.device.logical, handle, nullptr);
-}
-// Overrides end
-
-VkSampler Sampler::getHandle() const
-{
-	return handle;
 }
 
 Sampler::Sampler(SamplerDefinition const &definition)

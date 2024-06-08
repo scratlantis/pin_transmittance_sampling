@@ -24,11 +24,10 @@ LHSlt<LHS, decltype(hashCombine_OP)> operator<(const LHS &lhs, decltype(hashComb
 	return {lhs};
 }
 
-// declare (int <myop> int) -> int
 template <class A, class B>
 int operator>(LHSlt<A, decltype(hashCombine_OP)> lhsof, B rhs)
 {
-	int &lhs = lhsof.lhs_;
+	A &lhs = lhsof.lhs_;
 	// actual implementation
 	return hashCombine(lhs, rhs);
 }

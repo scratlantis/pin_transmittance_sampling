@@ -1,5 +1,4 @@
 #include "GlfwWindow.h"
-#include "setup.h"
 #include <imgui_impl_glfw.h>
 #include "global_state.h"
 

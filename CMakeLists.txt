@@ -114,7 +114,7 @@ SET(executable_targets "")
 SET(all_targets "")
 SUBDIRLIST(VKA_VERSIONS "${CMAKE_CURRENT_SOURCE_DIR}/src")
 FOREACH(vka_version ${VKA_VERSIONS})
-  FILE(GLOB_RECURSE current_sources 
+  FILE(GLOB_RECURSE current_lib_sources 
   "src/${vka_version}/framework/*.cpp"
   "src/${vka_version}/framework/*.h"
   "src/${vka_version}/framework/*.vert"
@@ -130,7 +130,7 @@ FOREACH(vka_version ${VKA_VERSIONS})
   string(REPLACE "." "_" current_lib "vka_${vka_version}")
   cmake_print_variables(current_lib)
   #cmake_print_variables(${current_sources})
-  add_library(${current_lib} STATIC ${current_sources})
+  add_library(${current_lib} STATIC ${current_lib_sources})
   LIST(APPEND library_targets ${current_lib})
   LIST(APPEND all_targets ${current_lib})
 
@@ -149,7 +149,7 @@ FOREACH(vka_version ${VKA_VERSIONS})
 
   SUBDIRLIST(APPLICATIONS "${CMAKE_CURRENT_SOURCE_DIR}/src/${vka_version}/applications")
   FOREACH(application ${APPLICATIONS})
-    FILE(GLOB_RECURSE current_sources 
+    FILE(GLOB_RECURSE current_app_sources 
     "src/${vka_version}/applications/${application}/*.cpp"
     "src/${vka_version}/applications/${application}/*.h"
     "src/${vka_version}/applications/${application}/*.vert"
@@ -163,7 +163,7 @@ FOREACH(vka_version ${VKA_VERSIONS})
     "src/${vka_version}/applications/${application}/*.rmiss")
 
     string(REPLACE "." "_" current_app "${application}_${vka_version}")
-    add_executable(${current_app} ${current_sources})
+    add_executable(${current_app} ${current_app_sources})
     LIST(APPEND executable_targets ${current_app})
     LIST(APPEND all_targets ${current_app})
 

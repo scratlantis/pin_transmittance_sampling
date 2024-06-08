@@ -1,120 +1,38 @@
 #pragma once
 #include "Resource.h"
-#include <vka/state_objects/global_state.h>
+#include <vma/vk_mem_alloc.h>
 namespace vka
 {
 
-class ImageVMA_R : public Resource
+class ImageVMA_R : public Resource_T<VkImage>
 {
   public:
-	ImageVMA_R(VkImage handle, VmaAllocation allocation)
+	ImageVMA_R(VkImage handle, VmaAllocation allocation) :
+		Resource_T<VkImage>(handle)
 	{
-		this->handle     = handle;
 		this->allocation = allocation;
 	}
-	hash_t hash() const
-	{
-		return (hash_t) this->handle;
-	}
-	bool equals(Resource const &other) const
-	{
-		if (typeid(*this) != typeid(other))
-			return false;
-		else
-		{
-			auto &other_ = static_cast<ImageVMA_R const &>(other);
-			return this->handle == other_.handle;
-		}
-	};
-
-  protected:
-	void free()
-	{
-		gState.memAlloc.destroyImage(handle, allocation);
-	}
-
+	void free() override;
   private:
-	VkImage      handle;
 	VmaAllocation allocation;
 };
 
-class ImageView_R : public Resource
+class ImageView_R : public Resource_T<VkImageView>
 {
   public:
-	ImageView_R(VkImageView handle)
-	{
-		this->handle     = handle;
-	}
-	hash_t hash() const
-	{
-		return (hash_t) this->handle;
-	}
-	bool _equals(Resource const &other) const
-	{
-		if (typeid(*this) != typeid(other))
-			return false;
-		else
-		{
-			auto &other_ = static_cast<ImageView_R const &>(other);
-			return this->handle == other_.handle;
-		}
-	};
-
-  protected:
-	void free()
-	{
-		vkDestroyImageView(gState.device.logical, handle, nullptr);
-	}
-
-  private:
-	VkImageView       handle;
+	ImageView_R(VkImageView handle) :
+	    Resource_T<VkImageView>(handle){}
+	void free() override;
 };
 
-// Maybe Support later
-
-//class ImageVK_R : public Resource
-//{
-//  public:
-//	ImageVK_R(VkImage handle, VkDeviceMemory deviceMemory)
-//	{
-//		this->handle     = handle;
-//		this->deviceMemory = deviceMemory;
-//	}
-//	hash_t hash() const
-//	{
-//		return (hash_t) this->handle;
-//	}
-//	bool _equals(Resource const &other) const
-//	{
-//		if (typeid(*this) != typeid(other))
-//			return false;
-//		else
-//		{
-//			auto &other_ = static_cast<ImageVK_R const &>(other);
-//			return this->handle == other_.handle;
-//		}
-//	};
-//
-//  protected:
-//	void free()
-//	{
-//		gState.memAlloc.destroyImage(handle, deviceMemory);
-//	}
-//
-//  private:
-//	VkImage       handle;
-//	VkDeviceMemory deviceMemory;
-//};
-
-class Image_I : Resource
+class Image_I : Resource_T<VkImage>
 {
   protected:
 	Resource *res     = nullptr;
 	Resource *viewRes = nullptr;
-
+	bool hasMemoryOwnership = false;
   public:
-	VkImage     img  = VK_NULL_HANDLE;
-	VkImageView view = VK_NULL_HANDLE;
+	VkImageView viewHandle = VK_NULL_HANDLE;
 
 	// State
 	VkFormat          format;
@@ -123,35 +41,25 @@ class Image_I : Resource
 	VkImageUsageFlags usage;
 	VkImageLayout     layout;
 
-	bool hasMemoryOwnership = false;
-
-	Image_I(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY)
+	Image_I() : Resource_T<VkImage>(VK_NULL_HANDLE)
 	{
-		VmaAllocationCreateInfo vmaAllocationCreateInfo = {};
-		vmaAllocationCreateInfo.usage                   = memUsage;
-		VmaAllocation alloc;
-		gState.memAlloc.createImage(&imgCI, &vmaAllocationCreateInfo, &img, &alloc);
-
+		format    = VK_FORMAT_UNDEFINED;
+		extent    = {0, 0, 0};
+		mipLevels = 0;
+		usage     = 0;
 		layout    = VK_IMAGE_LAYOUT_UNDEFINED;
-		format    = imgCI.format;
-		extent    = imgCI.extent;
-		mipLevels = imgCI.mipLevels;
-		usage     = imgCI.usage;
-		res       = new ImageVMA_R(img, alloc);
-		if (createView)
-		{
-			VkImageViewCreateInfo viewCI = ImageViewCreateInfo_Default(img, format);
-			VK_CHECK(vkCreateImageView(gState.device.logical, &viewCI, nullptr, &view));
-			viewRes = new ImageView_R(view);
-		}
-		hasMemoryOwnership = true;
+	}
+	Image_I(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY):
+		Resource_T<VkImage>(VK_NULL_HANDLE)
+	{
+		create(imgCI, createView, memUsage);
 	}
 	~Image_I()
 	{
 		free();
 	}
-
-	Image_I& operator=(const Image_I& rhs)
+  private:
+	Image_I &operator=(const Image_I &rhs)
 	{
 		if (this == &rhs)
 		{
@@ -163,102 +71,22 @@ class Image_I : Resource
 		hasMemoryOwnership = false;
 		pPool              = nullptr;
 
-		img = rhs.img;
-		view = rhs.view;
+		handle     = rhs.handle;
+		viewHandle = rhs.viewHandle;
 
-		format = rhs.format;
-		extent = rhs.extent;
+		format    = rhs.format;
+		extent    = rhs.extent;
 		mipLevels = rhs.mipLevels;
-		usage = rhs.usage;
-		layout = rhs.layout;
+		usage     = rhs.usage;
+		layout    = rhs.layout;
 		return *this;
 	}
-	void track(ResourcePool *pPool) override
-	{
-		if (!pPool)
-		{
-			vka::printVka("Null resource pool\n");
-			DEBUG_BREAK;
-			return;
-		}
-		if (viewRes)
-		{
-			viewRes->track(pPool);
-		}
-		if (res)
-		{
-			res->track(pPool);
-		}
-		Resource::track(pPool);
-		hasMemoryOwnership = false;
-	}
-	void garbageCollect() override
-	{
-		if (viewRes)
-		{
-			viewRes->garbageCollect();
-		}
-		if (res)
-		{
-			res->garbageCollect();
-			track(&gState.frame->stack);
-		}
-	}
-	
-	void free() override
-	{
-		if (!hasMemoryOwnership)
-		{
-			res     = nullptr;
-			viewRes = nullptr;
-			pPool   = nullptr;
-			img  = VK_NULL_HANDLE;
-			view = VK_NULL_HANDLE;
-		}
-		else
-		{
-			vka::printVka("Cant free buffer with memory ownership\n");
-			DEBUG_BREAK;
-		}
-	}
-	hash_t hash() const
-	{
-		return res->hash() + VKA_RESOURCE_META_DATA_HASH_OFFSET;
-	}
-	bool _equals(Resource const &other) const
-	{
-		if (typeid(*this) != typeid(other))
-			return false;
-		else
-		{
-			auto &other_ = static_cast<Image_I const &>(other);
-			return *res == *other_.res;
-		}
-	};
-
-	void recreate(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY)
-	{
-		free();
-		VmaAllocationCreateInfo vmaAllocationCreateInfo = {};
-		vmaAllocationCreateInfo.usage                   = memUsage;
-		VmaAllocation alloc;
-		gState.memAlloc.createImage(&imgCI, &vmaAllocationCreateInfo, &img, &alloc);
-
-		layout    = VK_IMAGE_LAYOUT_UNDEFINED;
-		format    = imgCI.format;
-		extent    = imgCI.extent;
-		mipLevels = imgCI.mipLevels;
-		usage     = imgCI.usage;
-		res       = new ImageVMA_R(img, alloc);
-		if (createView)
-		{
-			VkImageViewCreateInfo viewCI = ImageViewCreateInfo_Default(img, format);
-			VK_CHECK(vkCreateImageView(gState.device.logical, &viewCI, nullptr, &view));
-			viewRes = new ImageView_R(view);
-		}
-		hasMemoryOwnership = true;
-	}
-
+  public:
+	void create(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY);
+	Image_I recreate(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY);
+	void track(IResourcePool *pPool) override;
+	void   free() override;
+	hash_t hash() const override;
 };
 
 

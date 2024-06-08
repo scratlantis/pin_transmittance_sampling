@@ -1,7 +1,7 @@
 #include "RenderPass.h"
+#include <vka/state_objects/global_state.h>
 namespace vka
 {
-// Overrides start
 hash_t RenderPassDefinition::hash() const
 {
 	// clang-format off
@@ -11,17 +11,9 @@ hash_t RenderPassDefinition::hash() const
 	// clang-format on
 }
 
-bool RenderPassDefinition::_equals(ResourceIdentifier const &other) const
-{
-	if (typeid(*this) != typeid(other))
-		return false;
-	else
-	{
-		auto &other_ = static_cast<RenderPassDefinition const &>(other);
-		return this->equals(other_);
-	}
-}
-bool RenderPassDefinition::equals(RenderPassDefinition const &other) const
+DEFINE_EQUALS_OVERLOAD(RenderPassDefinition, ResourceIdentifier)
+
+bool RenderPassDefinition::operator==(const RenderPassDefinition &other) const
 {
 	// clang-format off
 	return memcmpVector(attachmentDescriptions, other.attachmentDescriptions)
@@ -30,30 +22,9 @@ bool RenderPassDefinition::equals(RenderPassDefinition const &other) const
 	// clang-format on
 }
 
-hash_t RenderPass::hash() const
-{
-	return (hash_t) handle;
-}
-
-bool RenderPass::_equals(Resource const &other) const
-{
-	if (typeid(*this) != typeid(other))
-		return false;
-	else
-	{
-		auto &other_ = static_cast<RenderPass const &>(other);
-		return this->handle == other_.handle;
-	}
-}
 void RenderPass::free()
 {
 	vkDestroyRenderPass(gState.device.logical, handle, nullptr);
-}
-// Overrides end
-
-VkRenderPass RenderPass::getHandle() const
-{
-	return handle;
 }
 
 RenderPass::RenderPass(RenderPassDefinition const &def)

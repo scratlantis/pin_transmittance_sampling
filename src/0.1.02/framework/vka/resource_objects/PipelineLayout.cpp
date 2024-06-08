@@ -1,58 +1,23 @@
 #include "PipelineLayout.h"
+#include <vka/state_objects/global_state.h>
 namespace vka
 {
-// Overrides start
 hash_t PipelineLayoutDefinition::hash() const
 {
 	hash_t hash = byteHashVector(pcRanges);
 	hashCombineLocal(hash, hashVector(descSetLayoutDef));
 	return hash;
 }
-
-bool PipelineLayoutDefinition::_equals(ResourceIdentifier const &other) const
-{
-	if (typeid(*this) != typeid(other))
-		return false;
-	else
-	{
-		auto &other_ = static_cast<PipelineLayoutDefinition const &>(other);
-		return this->equals(other_);
-	}
-}
-bool PipelineLayoutDefinition::equals(PipelineLayoutDefinition const &other) const
+DEFINE_EQUALS_OVERLOAD(PipelineLayoutDefinition, ResourceIdentifier)
+bool PipelineLayoutDefinition::operator==(const PipelineLayoutDefinition &other) const
 {
 	return memcmpVector(pcRanges, other.pcRanges) && cmpVector(descSetLayoutDef, other.descSetLayoutDef);
 }
 
-
-
-hash_t PipelineLayout::hash() const
-{
-	return (hash_t) handle;
-}
-
-
-bool PipelineLayout::_equals(Resource const &other) const
-{
-	if (typeid(*this) != typeid(other))
-		return false;
-	else
-	{
-		auto &other_ = static_cast<PipelineLayout const &>(other);
-		return this->handle == other_.handle;
-	}
-}
 void PipelineLayout::free()
 {
 	vkDestroyPipelineLayout(gState.device.logical, handle, nullptr);
 }
-// Overrides end
-
-VkPipelineLayout PipelineLayout::getHandle() const
-{
-	return handle;
-}
-
 PipelineLayout::PipelineLayout(PipelineLayoutDefinition const &definition)
 {
 	VkPipelineLayoutCreateInfo         ci{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};

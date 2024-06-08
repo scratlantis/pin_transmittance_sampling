@@ -6,7 +6,7 @@ namespace vka
 
 SwapChainDetails   getSwapchainDetails(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 QueueFamilyIndices getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
-void               selectQueues(int universalQueueCount, int computeQueueCount, int &universalQueueFamily, int &computeQueueFamily);
+void               selectQueues(int universalQueueCount, int computeQueueCount, int &universalQueueFamily, int &computeQueueFamily, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
 bool               checkInstanceExtensionSupport(std::vector<const char *> *checkExtensions);
 bool               checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice, const std::vector<const char *> deviceExtensions);
 int                checkDeviceSuitable(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, const std::vector<const char *> deviceExtensions);

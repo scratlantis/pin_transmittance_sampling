@@ -154,3 +154,39 @@ static std::string errorString(VkResult errorCode)
 		}                     \
 	};
 #define ZERO_PAD(TYPE) TYPE##_ZERO_PAD
+
+#define DECLARE_HASH(TYPE, FUNC)                  \
+	namespace std                                 \
+	{                                             \
+	template <>                                   \
+	struct hash<TYPE>                             \
+	{                                             \
+		size_t operator()(TYPE const &type) const \
+		{                                         \
+			return type.FUNC();                   \
+		}                                         \
+	};                                            \
+	}
+
+#define DEFINE_EQUALS_OVERLOAD(CHILD_TYPE, PARENT_TYPE)             \
+	bool CHILD_TYPE## ::operator==(const PARENT_TYPE & other) const \
+	{                                                               \
+		if (typeid(*this) == typeid(other))                         \
+		{                                                           \
+			return *this == static_cast<const CHILD_TYPE &>(other); \
+		}                                                           \
+		return false;                                               \
+	}
+
+#define DECLARE_HASH(TYPE, FUNC)                  \
+	namespace std                                 \
+	{                                             \
+	template <>                                   \
+	struct hash<TYPE>                             \
+	{                                             \
+		size_t operator()(TYPE const &type) const \
+		{                                         \
+			return type.##FUNC##();               \
+		}                                         \
+	};                                            \
+	}

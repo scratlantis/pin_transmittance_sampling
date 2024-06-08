@@ -1,5 +1,6 @@
 #include "ComputePipeline.h"
 #include "Shader.h"
+#include <vka/state_objects/global_state.h>
 namespace vka
 {
 // Overrides start
@@ -12,43 +13,12 @@ hash_t ComputePipelineDefinition::hash() const
 }
 
 
-bool ComputePipelineDefinition::_equals(ResourceIdentifier const &other) const
-{
-	if (typeid(*this) != typeid(other))
-		return false;
-	else
-	{
-		auto &other_ = static_cast<ComputePipelineDefinition const &>(other);
-		return equals(other_);
-	}
-}
+DEFINE_EQUALS_OVERLOAD(ComputePipelineDefinition, ResourceIdentifier)
 
-bool ComputePipelineDefinition::equals(ComputePipelineDefinition const &other) const
+bool ComputePipelineDefinition::operator==(const ComputePipelineDefinition &other) const
 {
-	return shaderDef.equals(other.shaderDef) &&
-	       pipelineLayoutDef.equals(other.pipelineLayoutDef);
-}
-
-hash_t ComputePipeline::hash() const
-{
-	return (hash_t) handle;
-}
-
-bool ComputePipeline::_equals(Resource const &other) const
-{
-	if (typeid(*this) != typeid(other))
-		return false;
-	else
-	{
-		auto &other_ = static_cast<ComputePipeline const &>(other);
-		return this->handle == other_.handle;
-	}
-}
-// Overrides end
-
-VkPipeline ComputePipeline::getHandle() const
-{
-	return handle;
+	return shaderDef ==  other.shaderDef
+		&& pipelineLayoutDef == other.pipelineLayoutDef;
 }
 
 void ComputePipeline::free()

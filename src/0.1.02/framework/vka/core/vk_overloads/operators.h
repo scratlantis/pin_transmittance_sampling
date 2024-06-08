@@ -91,3 +91,7 @@ DEFINE_ZERO_PAD(VkViewport)
 DEFINE_ZERO_PAD(VkRect2D)
 
 } // namespace vka
+
+
+DECLARE_HASH(vka::PipelineMultisampleStateCreateInfo_OP,hash)
+DECLARE_HASH(vka::SubpassDescription_OP, hash)

@@ -1,4 +1,5 @@
 #include "Shader.h"
+#include <vka/state_objects/global_state.h>
 #include <filesystem>
 namespace vka
 {
@@ -8,20 +9,13 @@ hash_t ShaderDefinition::hash() const
 	return std::hash<std::string>()(fileID());
 }
 
-bool ShaderDefinition::_equals(ResourceIdentifier const &other) const
-{
-	if (typeid(*this) != typeid(other))
-		return false;
-	else
-	{
-		auto &other_ = static_cast<ShaderDefinition const &>(other);
-		return this->equals(other_);
-	}
-}
-bool ShaderDefinition::equals(ShaderDefinition const &other) const
+DEFINE_EQUALS_OVERLOAD(ShaderDefinition, ResourceIdentifier)
+
+bool ShaderDefinition::operator==(const ShaderDefinition &other) const
 {
 	return path == other.path && cmpVector(args, other.args);
 }
+
 
 std::string ShaderDefinition::fileID() const
 {
@@ -48,30 +42,9 @@ std::string ShaderDefinition::fileIDShort() const
 	return id;
 }
 
-hash_t Shader::hash() const
-{
-	return (hash_t) handle;
-}
-
-bool Shader::_equals(Resource const &other) const
-{
-	if (typeid(*this) != typeid(other))
-		return false;
-	else
-	{
-		auto &other_ = static_cast<Shader const &>(other);
-		return this->handle == other_.handle;
-	}
-}
 void Shader::free()
 {
 	vkDestroyShaderModule(gState.device.logical, handle, nullptr);
-}
-// Overrides end
-
-VkShaderModule Shader::getHandle() const
-{
-	return handle;
 }
 
 Shader::Shader(ShaderDefinition const &definition)

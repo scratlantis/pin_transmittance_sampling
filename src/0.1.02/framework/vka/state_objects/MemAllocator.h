@@ -2,6 +2,18 @@
 #include <vka/core/common.h>
 #include <vk_mem_alloc.h>
 
+//#include <vka/core/container/misc.h>
+//#include <vka/core/container/StructureChain.h>
+//#include <vka/core/macros/misc.h>
+//#include <vka/core/functions/misc.h>
+//#include <vka/core/constants/misc.h>
+//#include <vka/core/types/misc.h>
+//#include <vka/core/types/setup.h>
+//#include <vka/core/functions/setup.h>
+//#include <vka/core/vk_overloads/default_values.h>
+//#include <vka/core/vk_overloads/operators.h>
+//#include <vka/core/functions/operators.h>
+
 namespace vka
 {
 class MemAllocator

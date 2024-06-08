@@ -114,7 +114,7 @@ void Device::createLogicalDevice()
 	}
 	queueCI.pQueuePriorities = piority.data();
 	int universalFamily, computeFamily;
-	selectQueues(deviceCI.universalQueueCount, deviceCI.computeQueueCount, universalFamily, computeFamily);
+	selectQueues(deviceCI.universalQueueCount, deviceCI.computeQueueCount, universalFamily, computeFamily, physical, gState.io.surface);
 
 	if (deviceCI.universalQueueCount > 0)
 	{
@@ -353,7 +353,7 @@ void vka::AppState::destroyFrames()
 		vkDestroySemaphore(device.logical, frame.imageAvailableSemaphore, nullptr);
 		vkDestroySemaphore(device.logical, frame.renderFinishedSemaphore, nullptr);
 		vkDestroyFence(device.logical, frame.inFlightFence, nullptr);
-		frame.stack.clear();
+		frame.stack->clear();
 	}
 }
 
@@ -361,7 +361,7 @@ void AppState::nextFrame()
 {
 	frame = frame->next;
 	VK_CHECK(vkWaitForFences(device.logical, 1, &frame->inFlightFence, VK_TRUE, UINT64_MAX));
-	frame->stack.clear();
+	frame->stack->clear();
 	io.readInputs();
 	io.imageLayouts[frame->frameIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
 }
@@ -391,8 +391,7 @@ void AppState::destroy()
 	vkDeviceWaitIdle(device.logical);
 	io.destroy();
 	destroyFrames();
-	heap.clear();
-	cache.clear();
+	cache->clear();
 	cmdAlloc.destroy();
 	memAlloc.destroy();
 	device.destroy();

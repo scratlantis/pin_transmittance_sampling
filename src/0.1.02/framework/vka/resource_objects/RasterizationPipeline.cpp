@@ -1,8 +1,8 @@
 #include "RasterizationPipeline.h"
+#include <vka/state_objects/global_state.h>
 namespace vka
 {
-// Overrides start
-hash_t RestarizationPipelineDefinition::hash() const
+hash_t RasterizationPipelineDefinition::hash() const
 {
 	// clang-format off
 	// may remove parts for performance
@@ -33,17 +33,9 @@ hash_t RestarizationPipelineDefinition::hash() const
 	// clang-format on
 }
 
-bool RestarizationPipelineDefinition::_equals(ResourceIdentifier const &other) const
-{
-	if (typeid(*this) != typeid(other))
-		return false;
-	else
-	{
-		auto &other_ = static_cast<RestarizationPipelineDefinition const &>(other);
-		return this->equals(other_);
-	}
-}
-bool RestarizationPipelineDefinition::equals(RestarizationPipelineDefinition const &other) const
+DEFINE_EQUALS_OVERLOAD(RasterizationPipelineDefinition, ResourceIdentifier)
+
+bool RasterizationPipelineDefinition::operator==(const RasterizationPipelineDefinition &other) const
 {
 	// clang-format off
 	return
@@ -57,8 +49,8 @@ bool RestarizationPipelineDefinition::equals(RestarizationPipelineDefinition con
 	&& memcmpPtr(&depthStencilState, &other.depthStencilState)
 	&& memcmpPtr(&globalColorBlendState, &other.globalColorBlendState)
 	
-	&& pipelineLayoutDefinition.equals(other.pipelineLayoutDefinition)
-	&& renderPassDefinition.equals(other.renderPassDefinition)
+	&& pipelineLayoutDefinition == other.pipelineLayoutDefinition
+	&& renderPassDefinition == other.renderPassDefinition
 	&& cmpVector(shaderDefinitions, other.shaderDefinitions)
 
 	&& memcmpArray(dynamicStates.data(), other.dynamicStates.data(), dynamicStates.size())
@@ -73,30 +65,9 @@ bool RestarizationPipelineDefinition::equals(RestarizationPipelineDefinition con
 	// clang-format on
 }
 
-hash_t RasterizationPipeline::hash() const
-{
-	return (hash_t) handle;
-}
-
-bool RasterizationPipeline::_equals(Resource const &other) const
-{
-	if (typeid(*this) != typeid(other))
-		return false;
-	else
-	{
-		auto &other_ = static_cast<RasterizationPipeline const &>(other);
-		return this->handle == other_.handle;
-	}
-}
 void RasterizationPipeline::free()
 {
 	vkDestroyPipeline(gState.device.logical, handle, nullptr);
-}
-// Overrides end
-
-VkPipeline RasterizationPipeline::getHandle() const
-{
-	return handle;
 }
 
 static VkPipelineVertexInputStateCreateInfo makeVertexInputStateCI(
@@ -144,7 +115,7 @@ static VkPipelineDynamicStateCreateInfo makeDynamicStateCI(std::vector<VkDynamic
 	return ci;
 }
 
-RasterizationPipeline::RasterizationPipeline(RestarizationPipelineDefinition const &def)
+RasterizationPipeline::RasterizationPipeline(RasterizationPipelineDefinition const &def)
 {
 	VkGraphicsPipelineCreateInfo ci{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
 	ci.flags = def.flags;

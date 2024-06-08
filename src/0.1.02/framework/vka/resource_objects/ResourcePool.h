@@ -1,13 +1,14 @@
 #pragma once
 #include <unordered_set>
-#include <vka/core/common.h>
+#include <vka/core/macros/misc.h>
+#include <vka/core/functions/misc.h>
+#include "Resource.h"
 namespace vka
 {
-class Resource;
 class ResourcePool
 {
   private:
-	std::unordered_set<Resource *, PointerObjHash<Resource>, PointerObjEq<Resource>> resources;
+	std::unordered_set<Resource*> resources;
 
   public:
 	bool add(Resource *resource);

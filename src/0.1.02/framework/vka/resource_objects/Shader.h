@@ -1,6 +1,5 @@
 #pragma once
 #include "Resource.h"
-#include <vka/state_objects/global_state.h>
 
 namespace vka
 {
@@ -25,26 +24,22 @@ class ShaderDefinition : public ResourceIdentifier
 	std::string             path;
 	std::vector<ShaderArgs> args;
 
-	hash_t hash() const;
-	bool   _equals(ResourceIdentifier const &other) const override;
-	bool   equals(ShaderDefinition const &other) const;
+	bool   operator==(const ResourceIdentifier &other) const override;
+	bool   operator==(const ShaderDefinition &other) const;
+	hash_t hash() const override;
 
 	std::string fileID() const;
 	std::string fileIDShort() const;
   protected:
 };
 
-class Shader : public CachableResource
+class Shader : public Cachable_T<VkShaderModule>
 {
   private:
-	VkShaderModule handle;
 	void           compile(ShaderDefinition const &def);
 	void           createModule(ShaderDefinition const &def);
   public:
-	virtual bool     _equals(Resource const &other) const override;
-	virtual hash_t   hash() const override;
 	virtual void     free() override;
-	VkShaderModule getHandle() const;
 	Shader(ShaderDefinition const &definition);
 };
 
@@ -96,3 +91,5 @@ static VkPipelineShaderStageCreateInfo makeShaderStageCI(const ShaderDefinition 
 	}
 }
 }        // namespace vka
+
+DECLARE_HASH(vka::ShaderDefinition, hash)
