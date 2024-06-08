@@ -24,7 +24,7 @@ PipelineLayout::PipelineLayout(PipelineLayoutDefinition const &definition)
 	std::vector<VkDescriptorSetLayout> descSetLayouts;
 	for (size_t i = 0; i < definition.descSetLayoutDef.size(); i++)
 	{
-		descSetLayouts.push_back(pCache->fetch(definition.descSetLayoutDef[i])->getHandle());
+		descSetLayouts.push_back(pCache->fetch(definition.descSetLayoutDef[i]));
 	}
 	ci.setLayoutCount         = descSetLayouts.size();
 	ci.pSetLayouts            = descSetLayouts.data();

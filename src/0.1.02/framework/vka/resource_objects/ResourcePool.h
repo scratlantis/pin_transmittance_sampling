@@ -5,17 +5,17 @@
 #include "Resource.h"
 namespace vka
 {
-class ResourcePool
+class ResourcePool : public IResourcePool
 {
   private:
 	std::unordered_set<Resource*> resources;
 
   public:
-	bool add(Resource *resource);
-	bool remove(Resource *resource);
+	bool add(Resource *resource) override;
+	bool remove(Resource *resource) override;
 	ResourcePool(){};
 	~ResourcePool(){};
-	void clear();
+	void clear() override;
 	DELETE_COPY_CONSTRUCTORS(ResourcePool);
 };
 }

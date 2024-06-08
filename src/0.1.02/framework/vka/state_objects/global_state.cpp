@@ -391,7 +391,7 @@ void AppState::destroy()
 	vkDeviceWaitIdle(device.logical);
 	io.destroy();
 	destroyFrames();
-	cache->clear();
+	cache->clearAll();
 	cmdAlloc.destroy();
 	memAlloc.destroy();
 	device.destroy();

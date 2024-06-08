@@ -30,7 +30,6 @@ ComputePipeline::ComputePipeline(ComputePipelineDefinition const &definition)
 {
 	VkComputePipelineCreateInfo     ci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
 	VkPipelineShaderStageCreateInfo shaderStageCreateInfo = makeShaderStageCI(definition.shaderDef, pCache->fetch(definition.shaderDef));
-
 	// Not pretty start
 	ComputePipelineDefinition defCopy = definition;
 	writeSpecializationInfo(
@@ -44,12 +43,10 @@ ComputePipeline::ComputePipeline(ComputePipelineDefinition const &definition)
 		shaderStageCreateInfo.pSpecializationInfo = &defCopy.specInfo;
 	}
 	// Not pretty end
-
 	ci.stage              = shaderStageCreateInfo;
-	ci.layout             = pCache->fetch(definition.pipelineLayoutDef)->getHandle();
+	ci.layout             = pCache->fetch(definition.pipelineLayoutDef);
 	ci.basePipelineHandle = VK_NULL_HANDLE;
 	ci.basePipelineIndex  = -1;
-
 	VK_CHECK(vkCreateComputePipelines(gState.device.logical, VK_NULL_HANDLE, 1, &ci, nullptr, &handle));
 }
 

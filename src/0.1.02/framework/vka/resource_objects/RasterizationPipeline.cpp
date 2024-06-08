@@ -139,8 +139,8 @@ RasterizationPipeline::RasterizationPipeline(RasterizationPipelineDefinition con
 	ci.pColorBlendState                                     = &colorBlendStateCI;
 	VkPipelineDynamicStateCreateInfo dynamicStateCI         = makeDynamicStateCI(def.dynamicStates);
 	ci.pDynamicState                                        = &dynamicStateCI;
-	ci.layout                                               = pCache->fetch(def.pipelineLayoutDefinition)->getHandle();
-	ci.renderPass                                           = pCache->fetch(def.renderPassDefinition)->getHandle();
+	ci.layout                                               = pCache->fetch(def.pipelineLayoutDefinition);
+	ci.renderPass                                           = pCache->fetch(def.renderPassDefinition);
 	ci.subpass                                              = def.subpass;
 	ci.basePipelineHandle                                   = nullptr;        // Dont support pipeline derivatives yet
 	ci.basePipelineIndex                                    = -1;

@@ -44,11 +44,11 @@ class Shader : public Cachable_T<VkShaderModule>
 };
 
 
-static VkPipelineShaderStageCreateInfo makeShaderStageCI(const ShaderDefinition const &def, const Shader *shader)
+static VkPipelineShaderStageCreateInfo makeShaderStageCI(const ShaderDefinition const &def, VkShaderModule shaderModule)
 {
 	{
 		VkPipelineShaderStageCreateInfo ci{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};
-		ci.module          = shader->getHandle();
+		ci.module          = shaderModule;
 		ci.pName           = "main";
 		std::string suffix = def.path.substr(def.path.find_last_of(".") + 1);
 		if (suffix == "vert")
