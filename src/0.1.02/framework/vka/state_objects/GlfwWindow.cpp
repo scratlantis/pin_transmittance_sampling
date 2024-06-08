@@ -38,13 +38,13 @@ void GlfwWindow::init(const WindowCI &windowCI, VkInstance &instance)
 	int cursorMode;
 	switch (windowCI.cursorMode)
 	{
-		case VISIBLE:
+		case WINDOW_CURSOR_MODE_VISIBLE:
 			cursorMode = GLFW_CURSOR_NORMAL;
 			break;
-		case HIDDEN:
+		case WINDOW_CURSOR_MODE_HIDDEN:
 			cursorMode = GLFW_CURSOR_HIDDEN;
 			break;
-		case DISABLED:
+		case WINDOW_CURSOR_MODE_DISABLED:
 			cursorMode = GLFW_CURSOR_DISABLED;
 			break;
 		default:
@@ -113,9 +113,14 @@ void GlfwWindow::addInstanceExtensions(std::vector<const char *> &extensions)
 	}
 }
 
-void GlfwWindow::initGui()
+void GlfwWindow::initImGui()
 {
-		ImGui_ImplGlfw_InitForVulkan(window, true);
+	ImGui_ImplGlfw_InitForVulkan(window, true);
+}
+
+void GlfwWindow::newFrameImGui()
+{
+	ImGui_ImplGlfw_NewFrame();
 }
 
 void GlfwWindow::destroy()

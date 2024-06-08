@@ -3,7 +3,6 @@
 #include "CmdAllocator.h"
 #include "MemAllocator.h"
 #include "Window.h"
-#include "global_var.h"
 #include <glm/glm.hpp>
 #include <unordered_map>
 #include <vka/state_objects/IResourcePool.h>
@@ -184,4 +183,3 @@ class AppState
 extern vka::AppState            gState;
 extern const std::string        gShaderOutputDir;
 extern const std::string        gResourceBaseDir;
-extern std::vector<vka::GVar *> gVars;

@@ -24,7 +24,8 @@ class GlfwWindow : public Window
 	void         requestClose();
 	void         changeSize(VkExtent2D newSize);
 	void		 addInstanceExtensions(std::vector<const char *> &extensions); 
-	void         initGui();
+	void         initImGui();
+	void         newFrameImGui();
 	void         destroy();
 
 	~GlfwWindow();
