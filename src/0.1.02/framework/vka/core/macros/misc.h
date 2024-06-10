@@ -108,7 +108,7 @@ static std::string errorString(VkResult errorCode)
 				DEBUG_BREAK                                                                                                           \
 			}                                                                                                                         \
 		}
-#	define CHECK_TRUE(val)                                                                             \
+#	define VKA_CHECK(val)                                                                             \
 		{                                                                                                \
 			if (!(val))                                                                                  \
 			{                                                                                            \
@@ -137,10 +137,10 @@ static std::string errorString(VkResult errorCode)
 // Makes function available as p<function name>
 #define LOAD_CMD_VK_DEVICE(FUNCTION_NAME, DEVICE)                                                             \
 	PFN_##FUNCTION_NAME p##FUNCTION_NAME = (PFN_##FUNCTION_NAME) vkGetDeviceProcAddr(DEVICE, #FUNCTION_NAME); \
-	CHECK_TRUE(p##FUNCTION_NAME != nullptr)
+	VKA_CHECK(p##FUNCTION_NAME != nullptr)
 #define LOAD_CMD_VK_INSTANCE(FUNCTION_NAME, INSTANCE)                                                             \
 	PFN_##FUNCTION_NAME p##FUNCTION_NAME = (PFN_##FUNCTION_NAME) vkGetInstanceProcAddr(INSTANCE, #FUNCTION_NAME); \
-	CHECK_TRUE(p##FUNCTION_NAME != nullptr)
+	VKA_CHECK(p##FUNCTION_NAME != nullptr)
 
 #define NEXT_INDEX(x, y) ((x + 1) % (y))
 #define PREVIOUS_INDEX(x, y) (((x + y - 1) % y))

@@ -25,13 +25,13 @@ class ImageView_R : public Resource_T<VkImageView>
 	void free() override;
 };
 
-class Image_I : Resource_T<VkImage>
+class Image_I : public Resource_T<VkImage>
 {
   protected:
 	Resource *res     = nullptr;
 	Resource *viewRes = nullptr;
 	bool hasMemoryOwnership = false;
-  public:
+  private:
 	VkImageView viewHandle = VK_NULL_HANDLE;
 
 	// State
@@ -41,6 +41,35 @@ class Image_I : Resource_T<VkImage>
 	VkImageUsageFlags usage;
 	VkImageLayout     layout;
 
+  public:
+	  virtual VkImageView getViewHandle() const
+	  {
+		  return viewHandle;
+	  }
+	  virtual VkFormat getFormat() const
+	  {
+		  return format;
+	  }
+	  virtual VkExtent3D getExtent() const
+	  {
+		  return extent;
+	  }
+	  virtual uint32_t getMipLevels() const
+	  {
+		  return mipLevels;
+	  }
+	  virtual VkImageUsageFlags getUsage() const
+	  {
+		  return usage;
+	  }
+	  virtual VkImageLayout getLayout() const
+	  {
+		  return layout;
+	  }
+	  virtual void setLayout(VkImageLayout layout)
+	  {
+		  this->layout = layout;
+	  }
 	Image_I() : Resource_T<VkImage>(VK_NULL_HANDLE)
 	{
 		format    = VK_FORMAT_UNDEFINED;
@@ -82,10 +111,49 @@ class Image_I : Resource_T<VkImage>
 		return *this;
 	}
   public:
-	void create(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY);
-	Image_I recreate(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY);
-	void track(IResourcePool *pPool) override;
-	void   free() override;
+	virtual void create(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY);
+	virtual Image_I recreate(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY);
+	virtual void     track(IResourcePool *pPool) override;
+	virtual void     free() override;
+	virtual hash_t    hash() const override;
+};
+
+class SwapchainImage_I : public Image_I
+{
+  public:
+	VkImage getHandle() const override;
+	VkImageView getViewHandle() const override;
+	VkFormat    getFormat() const override;
+	VkExtent3D  getExtent() const override;
+	uint32_t    getMipLevels() const override
+	{
+		return 1;
+	}
+	VkImageUsageFlags getUsage() const override;
+	VkImageLayout     getLayout() const override;
+	void              setLayout(VkImageLayout layout) override;
+  public:
+	void create(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY) override
+	{
+		printVka("Attempted to create swapchain image");
+		DEBUG_BREAK;
+	};
+	Image_I recreate(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY) override
+	{
+		printVka("Attempted to recreate swapchain image");
+		DEBUG_BREAK;
+		return *this;
+	};
+	void track(IResourcePool *pPool) override
+	{
+		printVka("Attempted to track swapchain image");
+		DEBUG_BREAK;
+	};
+	void free() override
+	{
+		printVka("Attempted to free swapchain image");
+		DEBUG_BREAK;
+	};
 	hash_t hash() const override;
 };
 

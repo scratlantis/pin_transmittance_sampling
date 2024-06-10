@@ -78,6 +78,38 @@ void Image_I::free()
 }
 hash_t Image_I::hash() const
 {
-	return res->hash() + VKA_RESOURCE_META_DATA_HASH_SHIFT;
+	return res->hash() << VKA_RESOURCE_META_DATA_HASH_SHIFT;
 }
+VkImage SwapchainImage_I::getHandle() const
+{
+	return gState.io.images[gState.frame->frameIndex];
 }
+VkImageView SwapchainImage_I::getViewHandle() const
+{
+	return gState.io.imageViews[gState.frame->frameIndex];
+}
+VkFormat SwapchainImage_I::getFormat() const
+{
+	return gState.io.format;
+}
+VkExtent3D SwapchainImage_I::getExtent() const
+{
+	return {gState.io.extent.width, gState.io.extent.height, 1};
+}
+VkImageUsageFlags SwapchainImage_I::getUsage() const
+{
+	return gState.io.imageUsage;
+}
+VkImageLayout SwapchainImage_I::getLayout() const
+{
+	return gState.io.imageLayouts[gState.frame->frameIndex];
+}
+void SwapchainImage_I::setLayout(VkImageLayout layout)
+{
+	gState.io.imageLayouts[gState.frame->frameIndex] = layout;
+}
+hash_t SwapchainImage_I::hash() const
+{
+	return (hash_t) gState.io.images[gState.frame->frameIndex] << VKA_RESOURCE_META_DATA_HASH_SHIFT;
+}
+}        // namespace vka

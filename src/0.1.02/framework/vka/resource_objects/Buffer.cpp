@@ -70,6 +70,10 @@ void Buffer_I::create(BufferType type, VkDeviceSize size, VkBufferUsageFlags usa
 				break;
 		}
 		hasMemoryOwnership = true;
+		if (pPool)
+		{
+			track(pPool);
+		}
 	}
 	else
 	{
@@ -78,17 +82,26 @@ void Buffer_I::create(BufferType type, VkDeviceSize size, VkBufferUsageFlags usa
 	}
 }
 
+bool Buffer_I::isMappable() const
+{
+    //clang-format off
+	return !(this->type == BufferType::NONE
+		|| (this->type == BufferType::VMA && this->memProperty.vma == VMA_MEMORY_USAGE_GPU_ONLY)
+		|| (this->type == BufferType::VK && !(this->memProperty.vk & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)));
+    //clang-format on
+}
+
 Buffer_I Buffer_I::recreate(BufferType type, VkDeviceSize size, VkBufferUsageFlags usage, MemoryProperty memProperty, bool maintainData)
 {
 	Buffer_I bufferCopy = *this;
-	if (maintainData)
+	if (maintainData && this->type != BufferType::NONE)
 	{
-		//clang-format on
+		//clang-format off
 		if ((this->type == BufferType::VMA && this->memProperty.vma == VMA_MEMORY_USAGE_GPU_ONLY)
 			|| (type == BufferType::VMA && memProperty.vma == VMA_MEMORY_USAGE_GPU_ONLY)
 			|| (this->type == BufferType::VK && !(this->memProperty.vk & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
 			|| (type == BufferType::VK && !(memProperty.vk & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)))
-		//clang-format off
+		//clang-format on
 		{
 			vka::printVka("Cant maintain data for GPU only buffer\n");
 			DEBUG_BREAK;
@@ -155,7 +168,6 @@ void Buffer_I::free()
 		memProperty.vk = 0;
 		handle         = VK_NULL_HANDLE;
 		viewHandle     = VK_NULL_HANDLE;
-		pPool          = nullptr;
 		size           = 0;
 		res            = nullptr;
 		viewRes        = nullptr;

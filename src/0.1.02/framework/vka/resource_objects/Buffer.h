@@ -58,6 +58,7 @@ class BufferView_R : public Resource_T<VkBufferView>
 
 enum class BufferType
 {
+	NONE,
 	VMA,
 	VK
 };
@@ -87,10 +88,15 @@ class Buffer_I : public Resource_T<VkBuffer>
 
 	Buffer_I() : Resource_T<VkBuffer>(VK_NULL_HANDLE)
 	{
-		type               = BufferType::VMA;
+		type               = BufferType::NONE;
 		usage              = 0;
 		memProperty.vk     = 0;
 		size               = 0;
+	};
+	Buffer_I(VkBufferUsageFlagBits usage) :
+	    Buffer_I()
+	{
+		this->usage = usage;
 	};
 	Buffer_I(BufferType type, VkDeviceSize size, VkBufferUsageFlags usage, MemoryProperty memProperty) :
 	    Buffer_I()
@@ -125,7 +131,8 @@ class Buffer_I : public Resource_T<VkBuffer>
 		return *this;
 	}
   public:
-	void   create(BufferType type, VkDeviceSize size, VkBufferUsageFlags usage, MemoryProperty memProperty);
+	void     create(BufferType type, VkDeviceSize size, VkBufferUsageFlags usage, MemoryProperty memProperty);
+	bool     isMappable() const;
 	Buffer_I recreate(BufferType type, VkDeviceSize size, VkBufferUsageFlags usage, MemoryProperty memProperty, bool maintainData);
 	void   track(IResourcePool *pPool) override;
 	void   free() override;

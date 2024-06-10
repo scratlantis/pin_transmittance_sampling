@@ -34,12 +34,12 @@ void CmdBuffer_I::create(CmdBufferCapabitlityMask capability, VkCommandBufferUsa
 	}
 	VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 	beginInfo.flags = usage;
-	CHECK_TRUE(vkBeginCommandBuffer(handle, &beginInfo));
+	VKA_CHECK(vkBeginCommandBuffer(handle, &beginInfo));
 	stateBits |= CMD_BUF_STATE_BITS_RECORDING;
 }
 hash_t CmdBuffer_I::hash() const
 {
-	return (hash_t) this->handle + VKA_RESOURCE_META_DATA_HASH_SHIFT;
+	return (hash_t) this->handle << VKA_RESOURCE_META_DATA_HASH_SHIFT;
 }
 void CmdBuffer_I::free()
 {

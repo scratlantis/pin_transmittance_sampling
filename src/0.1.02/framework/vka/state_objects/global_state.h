@@ -92,6 +92,8 @@ class IOController
 	std::vector<VkImage> images;
 	std::vector<VkImageView> imageViews;
 	std::vector<VkImageLayout> imageLayouts;
+	VkImageUsageFlags  imageUsage;
+	SwapchainImage_I *swapchainImage = nullptr;
 	Mouse mouse;
 	bool  keyPressed[KEY_COUNT];
 	bool  keyEvent[KEY_COUNT];
@@ -149,7 +151,7 @@ enum StateInitialisationBits
 	STATE_INIT_CMDALLOC_BIT        = 0x10000,
 	STATE_INIT_ALL_BIT             = 0x20000
 };
-
+class Image_I;
 class AppState
 {
   public:
@@ -160,7 +162,6 @@ class AppState
 	Frame         *frame;
 	MemAllocator    memAlloc;
 	CmdAllocator   cmdAlloc;
-
 	AppState();
 	void init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *window);
 	void nextFrame();
@@ -182,4 +183,3 @@ class AppState
 }        // namespace vka
 extern vka::AppState            gState;
 extern const std::string        gShaderOutputDir;
-extern const std::string        gResourceBaseDir;

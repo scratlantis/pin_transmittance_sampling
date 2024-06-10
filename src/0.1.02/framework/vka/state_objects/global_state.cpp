@@ -75,7 +75,7 @@ void Device::createInstance()
 }
 void Device::selectPhysicalDevice()
 {
-	CHECK_TRUE(gState.initBits & (STATE_INIT_DEVICE_INSTANCE_BIT | STATE_INIT_IO_WINDOW_BIT));
+	VKA_CHECK(gState.initBits & (STATE_INIT_DEVICE_INSTANCE_BIT | STATE_INIT_IO_WINDOW_BIT));
 	uint32_t deviceCount = 0;
 	vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 	if (deviceCount == 0)
@@ -179,7 +179,7 @@ IOController::IOController()
 
 void vka::IOController::configure(IOControlerCI &controllerCI, Window *window)
 {
-	CHECK_TRUE(gState.initBits & STATE_INIT_DEVICE_INSTANCE_BIT);
+	VKA_CHECK(gState.initBits & STATE_INIT_DEVICE_INSTANCE_BIT);
 	this->controllerCI = controllerCI;
 	this->window       = window;
 	window->init(controllerCI.getWindowCI(), gState.device.instance);
@@ -189,7 +189,7 @@ void vka::IOController::configure(IOControlerCI &controllerCI, Window *window)
 
 void vka::IOController::init()
 {
-	CHECK_TRUE(gState.initBits & STATE_INIT_DEVICE_BIT);
+	VKA_CHECK(gState.initBits & STATE_INIT_DEVICE_BIT);
 	swapChainDetails = getSwapchainDetails(gState.device.physical, window->getSurface());
 	surfaceFormat    = swapChainDetails.formats[0];        // Must exist after vulkan specifications
 	selectByPreference(swapChainDetails.formats, controllerCI.preferedFormats, surfaceFormat);
@@ -221,7 +221,7 @@ bool vka::IOController::updateSwapchain()
 		window->waitEvents();
 	}
 	swapChainDetails = getSwapchainDetails(gState.device.physical, window->getSurface());
-	CHECK_TRUE(gState.initBits & STATE_INIT_DEVICE_BIT);
+	VKA_CHECK(gState.initBits & STATE_INIT_DEVICE_BIT);
 
 	extent = window->size();
 	clamp(extent, swapChainDetails.surfaceCapabilities.minImageExtent, swapChainDetails.surfaceCapabilities.maxImageExtent);
@@ -267,7 +267,7 @@ bool vka::IOController::updateSwapchain()
 
 	if ((gState.initBits & (STATE_INIT_IO_SWAPCHAIN_BIT)))
 	{
-		CHECK_TRUE((gState.initBits & (STATE_INIT_FRAME_BIT)))
+		VKA_CHECK((gState.initBits & (STATE_INIT_FRAME_BIT)))
 		for (size_t i = 0; i < imageCount; i++)
 		{
 			vkDestroyImageView(gState.device.logical, imageViews[i], nullptr);
@@ -313,6 +313,10 @@ void vka::IOController::destroy()
 	}
 	vkDestroySurfaceKHR(gState.device.instance, surface, nullptr);
 	window->destroy();
+	if (swapchainImage)
+	{
+		delete swapchainImage;
+	}
 }
 
 void vka::IOController::terminateWindowManager()
@@ -327,7 +331,7 @@ bool IOController::shouldTerminate()
 
 void vka::AppState::initFrames()
 {
-	CHECK_TRUE(initBits & (STATE_INIT_DEVICE_BIT | STATE_INIT_IO_BIT));
+	VKA_CHECK(initBits & (STATE_INIT_DEVICE_BIT | STATE_INIT_IO_BIT));
 	VkSemaphoreCreateInfo semaphoreCI{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 	VkFenceCreateInfo     fenceCI{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
 	fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;

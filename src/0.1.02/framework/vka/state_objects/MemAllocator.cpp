@@ -10,8 +10,8 @@ MemAllocator::MemAllocator()
 
 void MemAllocator::init()
 {
-	CHECK_TRUE(gState.initBits & STATE_INIT_DEVICE_BIT);
-	CHECK_TRUE(!(gState.initBits & STATE_INIT_MEMALLOC_BIT));
+	VKA_CHECK(gState.initBits & STATE_INIT_DEVICE_BIT);
+	VKA_CHECK(!(gState.initBits & STATE_INIT_MEMALLOC_BIT));
 	VmaAllocatorCreateInfo allocatorInfo = {};
 	allocatorInfo.physicalDevice         = gState.device.physical;
 	allocatorInfo.device                 = gState.device.logical;
@@ -23,7 +23,7 @@ void MemAllocator::init()
 
 void MemAllocator::destroy()
 {
-	CHECK_TRUE(gState.initBits & STATE_INIT_MEMALLOC_BIT);
+	VKA_CHECK(gState.initBits & STATE_INIT_MEMALLOC_BIT);
 	vmaDestroyAllocator(vmaAllocator);
 	gState.initBits &= ~STATE_INIT_MEMALLOC_BIT;
 }
@@ -73,7 +73,7 @@ void MemAllocator::createBuffer(
     VmaAllocationInfo       *pAllocationInfo)
 {
 	vmaCreateBuffer(this->vmaAllocator, pBufferCreateInfo, pVmaAllocationCreateInfo, pBuffer, pAllocation, pAllocationInfo);
-	CHECK_TRUE((pAllocation != nullptr));
+	VKA_CHECK((pAllocation != nullptr));
 }
 
 

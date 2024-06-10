@@ -21,7 +21,7 @@ void GlfwWindow::terminateWindowManager()
 
 void GlfwWindow::init(const WindowCI &windowCI, VkInstance &instance)
 {
-	CHECK_TRUE(glfwInit());
+	VKA_CHECK(glfwInit());
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -31,7 +31,7 @@ void GlfwWindow::init(const WindowCI &windowCI, VkInstance &instance)
 	width  = windowCI.width;
 	height = windowCI.height;
 	window = glfwCreateWindow(width, height, windowCI.title.c_str(), NULL, NULL);
-	CHECK_TRUE(window);
+	VKA_CHECK(window);
 	glfwGetFramebufferSize(window, &width, &height);
 	glfwMakeContextCurrent(window);
 

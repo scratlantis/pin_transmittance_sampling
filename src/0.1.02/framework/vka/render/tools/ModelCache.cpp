@@ -1,0 +1,75 @@
+#include "ModelCache.h"
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
+namespace vka
+{
+
+
+bool loadObj(std::string path, VkaBuffer &vertexBuffer, VkaBuffer &indexBuffer, uint32_t bytesPerVertex, void (*parse)(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes) )
+{
+	tinyobj::attrib_t                vertexAttributes;
+	std::vector<tinyobj::shape_t>    shapes;
+	std::vector<tinyobj::material_t> materials;
+	std::string                      errorString;
+	std::string                      warningString;
+
+	bool success = tinyobj::LoadObj(&vertexAttributes, &shapes, &materials, &warningString, &errorString, path.c_str());
+
+	if (!success)
+	{
+		std::cerr << "Failed to load model: " << path << std::endl;
+		return false;
+	}
+
+	uint32_t vertexCount = vertexAttributes.vertices.size() / 3;
+	void    *data        = vkaRemap(vertexBuffer, vertexCount * bytesPerVertex);
+	for (size_t i = 0; i < vertexCount; i++)
+	{
+		parse(data, i, vertexAttributes);
+		data = (void*)((uint8_t*)data + bytesPerVertex);
+	}
+	vertexBuffer->unmap();
+	std::vector<Index> indices;
+	for (auto &shape : shapes)
+	{
+		for (auto &index : shape.mesh.indices)
+		{
+			indices.push_back(index.vertex_index);
+		}
+	}
+	vkaRewrite(indexBuffer, indices.data(), indices.size() * sizeof(Index));
+	return true;
+}
+void ModelCache::clear()
+{
+	for (auto &model : map)
+	{
+		if (model.second.vertexBuffer)
+			model.second.vertexBuffer->garbageCollect();
+		if (model.second.indexBuffer)
+			model.second.indexBuffer->garbageCollect();
+	}
+	map.clear();
+}
+ModelData ModelCache::fetch(VkaCommandBuffer cmdBuf, std::string path, uint32_t bytesPerVertex, void (*parse)(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes))
+{
+	auto it = map.find(path);
+	if (it == map.end())
+	{
+		ModelData modelData;
+		modelData.vertexBuffer = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		modelData.indexBuffer  = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		if (loadObj(path, modelData.vertexBuffer, modelData.indexBuffer, bytesPerVertex, parse))
+		{
+			map.insert({path, modelData});
+		}
+		vkaUpload(cmdBuf, modelData.vertexBuffer);
+		vkaUpload(cmdBuf, modelData.indexBuffer);
+		return modelData;
+	}
+	return it->second;
+}
+
+
+
+}		// namespace vka

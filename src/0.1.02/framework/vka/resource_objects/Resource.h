@@ -54,7 +54,7 @@ class Resource_T : public Resource
 		}
 		return false;
 	}
-	T getHandle() const
+	virtual T getHandle() const
 	{
 		return handle;
 	}

@@ -6,7 +6,7 @@ namespace vka
 {
 void CmdAllocator::init()
 {
-	CHECK_TRUE(gState.initBits & (STATE_INIT_DEVICE_BIT | STATE_INIT_IO_BIT));
+	VKA_CHECK(gState.initBits & (STATE_INIT_DEVICE_BIT | STATE_INIT_IO_BIT));
 
 	VkCommandPoolCreateInfo poolInfo = {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
 	universalPools.resize(gState.device.universalQueues.size());
@@ -60,7 +60,7 @@ bool CmdAllocator::createCmdBuffersCompute(uint32_t queueIdx, VkCommandBufferLev
 
 void CmdAllocator::destroy()
 {
-	CHECK_TRUE(gState.initBits & STATE_INIT_CMDALLOC_BIT);
+	VKA_CHECK(gState.initBits & STATE_INIT_CMDALLOC_BIT);
 
 	for (size_t i = 0; i < universalPools.size(); i++)
 	{
