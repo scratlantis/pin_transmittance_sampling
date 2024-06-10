@@ -11,33 +11,57 @@ void ImageView_R::free()
 {
 	vkDestroyImageView(gState.device.logical, handle, nullptr);
 }
-void Image_I::create(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage)
-{
-	VmaAllocationCreateInfo vmaAllocationCreateInfo = {};
-	vmaAllocationCreateInfo.usage                   = memUsage;
-	VmaAllocation alloc;
-	gState.memAlloc.createImage(&imgCI, &vmaAllocationCreateInfo, &handle, &alloc);
 
+void Image_I::createHandles()
+{
 	layout    = VK_IMAGE_LAYOUT_UNDEFINED;
-	format    = imgCI.format;
-	extent    = imgCI.extent;
-	mipLevels = imgCI.mipLevels;
-	usage     = imgCI.usage;
+	VmaAllocationCreateInfo vmaAllocationCreateInfo{};
+	vmaAllocationCreateInfo.usage                   = VMA_MEMORY_USAGE_GPU_ONLY;
+	VmaAllocation alloc;
+	gState.memAlloc.createImage(&ci, &vmaAllocationCreateInfo, &handle, &alloc);
 	res       = new ImageVMA_R(handle, alloc);
+	res->track(pPool);
 	if (createView)
 	{
 		VkImageViewCreateInfo viewCI = ImageViewCreateInfo_Default(handle, format);
 		VK_CHECK(vkCreateImageView(gState.device.logical, &viewCI, nullptr, &viewHandle));
 		viewRes = new ImageView_R(viewHandle);
+		viewRes->track(pPool);
 	}
-	hasMemoryOwnership = true;
 }
-Image_I Image_I::recreate(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage)
+
+
+Image_I Image_I::recreate()
 {
 	Image_I imgCopy = *this;
-	free();
-	create(imgCI, createView, memUsage);
+	// clang-format off
+	if (ci.format == format &&
+		ci.extent.depth == extent.depth && ci.extent.height == extent.height && ci.extent.width == extent.width
+		&& ci.mipLevels == mipLevels
+		&& ci.usage == usage)
+	// clang-format on
+	{
+		return imgCopy;
+	}
+	ci.format    = format;
+	ci.extent    = extent;
+	ci.mipLevels = mipLevels;
+	ci.usage     = usage;
+	detachChildResources();
+	createHandles();
 	return imgCopy;
+}
+
+void Image_I::detachChildResources()
+{
+	if (res)
+	{
+		res->track(gState.frame->stack);
+	}
+	if (viewRes)
+	{
+		viewRes->track(gState.frame->stack);
+	}
 }
 
 void Image_I::track(IResourcePool *pPool)
@@ -57,28 +81,16 @@ void Image_I::track(IResourcePool *pPool)
 		res->track(pPool);
 	}
 	Resource::track(pPool);
-	hasMemoryOwnership = false;
 }
 
 void Image_I::free()
 {
-	if (!hasMemoryOwnership)
-	{
-		res        = nullptr;
-		viewRes    = nullptr;
-		pPool      = nullptr;
-		handle     = VK_NULL_HANDLE;
-		viewHandle = VK_NULL_HANDLE;
-	}
-	else
-	{
-		vka::printVka("Cant free buffer with memory ownership\n");
-		DEBUG_BREAK;
-	}
 }
 hash_t Image_I::hash() const
 {
-	return res->hash() << VKA_RESOURCE_META_DATA_HASH_SHIFT;
+	if (res)
+		return res->hash() << VKA_RESOURCE_META_DATA_HASH_SHIFT;
+	return 0;
 }
 VkImage SwapchainImage_I::getHandle() const
 {
@@ -111,5 +123,13 @@ void SwapchainImage_I::setLayout(VkImageLayout layout)
 hash_t SwapchainImage_I::hash() const
 {
 	return (hash_t) gState.io.images[gState.frame->frameIndex] << VKA_RESOURCE_META_DATA_HASH_SHIFT;
+}
+
+void Image_I::writeDescriptorInfo(VkWriteDescriptorSet &write, VkDescriptorBufferInfo *&pBufferInfo, VkDescriptorImageInfo *&pImageInfos) const
+{
+	pImageInfos->imageView   = viewHandle;
+	pImageInfos->imageLayout = layout;
+	write.pImageInfo    = pImageInfos;
+	pImageInfos++;
 }
 }        // namespace vka

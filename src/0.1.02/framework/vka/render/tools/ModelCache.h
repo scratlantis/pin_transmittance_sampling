@@ -1,7 +1,7 @@
 #pragma once
 #include <unordered_map>
 #include <vka/core/common.h>
-#include <vka/interface/resources.h>
+#include <vka/interface/common.h>
 #include "tiny_obj_loader.h"
 namespace vka
 {

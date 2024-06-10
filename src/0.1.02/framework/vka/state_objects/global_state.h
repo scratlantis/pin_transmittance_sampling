@@ -80,6 +80,7 @@ struct IOControlerCI
 	WindowCI getWindowCI();
 };
 
+class SwapchainImage_I;
 class IOController
 {
   public:
@@ -105,14 +106,16 @@ class IOController
 	void    readInputs();
 	void    destroy();
 	void    terminateWindowManager();
+	void    updateSwapchain();
+	bool    swapchainRecreated();
 	bool    shouldTerminate();
-	bool    updateSwapchain();
 	Window *getWindow();
 
 	DELETE_COPY_CONSTRUCTORS(IOController);
 
   private:
 	bool               shouldRecreateSwapchain;
+	bool               swapchainWasRecreated;
 	Window            *window;
 	IOControlerCI      controllerCI;
 	SwapChainDetails   swapChainDetails;
@@ -151,7 +154,7 @@ enum StateInitialisationBits
 	STATE_INIT_CMDALLOC_BIT        = 0x10000,
 	STATE_INIT_ALL_BIT             = 0x20000
 };
-class Image_I;
+
 class AppState
 {
   public:
@@ -164,6 +167,8 @@ class AppState
 	CmdAllocator   cmdAlloc;
 	AppState();
 	void init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *window);
+	SubmitSynchronizationInfo acquireNextSwapchainImage();
+	void                      presentFrame();
 	void nextFrame();
 	void destroy();
 	bool swapchainRecreated()

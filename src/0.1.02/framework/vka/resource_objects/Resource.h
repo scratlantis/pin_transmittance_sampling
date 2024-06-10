@@ -2,6 +2,7 @@
 #include <vka/core/common.h>
 #include <vka/state_objects/IResourceCache.h>
 #include <vka/state_objects/IResourcePool.h>
+
 //#include <vka/core/types/misc.h>
 
 #include <unordered_set>

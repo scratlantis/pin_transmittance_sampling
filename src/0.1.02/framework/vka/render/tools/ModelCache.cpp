@@ -22,13 +22,13 @@ bool loadObj(std::string path, VkaBuffer &vertexBuffer, VkaBuffer &indexBuffer, 
 	}
 
 	uint32_t vertexCount = vertexAttributes.vertices.size() / 3;
-	void    *data        = vkaRemap(vertexBuffer, vertexCount * bytesPerVertex);
+	void    *data        = vkaMapStageing(vertexBuffer, vertexCount * bytesPerVertex);
 	for (size_t i = 0; i < vertexCount; i++)
 	{
 		parse(data, i, vertexAttributes);
 		data = (void*)((uint8_t*)data + bytesPerVertex);
 	}
-	vertexBuffer->unmap();
+	vkaUnmap(vertexBuffer);
 	std::vector<Index> indices;
 	for (auto &shape : shapes)
 	{
@@ -37,7 +37,7 @@ bool loadObj(std::string path, VkaBuffer &vertexBuffer, VkaBuffer &indexBuffer, 
 			indices.push_back(index.vertex_index);
 		}
 	}
-	vkaRewrite(indexBuffer, indices.data(), indices.size() * sizeof(Index));
+	vkaWriteStageing(indexBuffer, indices.data(), indices.size() * sizeof(Index));
 	return true;
 }
 void ModelCache::clear()
@@ -63,8 +63,8 @@ ModelData ModelCache::fetch(VkaCommandBuffer cmdBuf, std::string path, uint32_t 
 		{
 			map.insert({path, modelData});
 		}
-		vkaUpload(cmdBuf, modelData.vertexBuffer);
-		vkaUpload(cmdBuf, modelData.indexBuffer);
+		vkaCmdUpload(cmdBuf, modelData.vertexBuffer);
+		vkaCmdUpload(cmdBuf, modelData.indexBuffer);
 		return modelData;
 	}
 	return it->second;

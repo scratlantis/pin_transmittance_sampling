@@ -1,2 +1,2 @@
 #pragma once
-#include <vka/interface/resources.h>
+#include <vka/interface/common.h>

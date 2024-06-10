@@ -6,7 +6,7 @@
 #include <imgui_impl_vulkan.h>
 #include <vulkan/vulkan.h>
 #include <vka/state_objects/global_state.h>
-#include <vka/interface/resources.h>
+#include <vka/interface/types.h>
 
 namespace vka
 {

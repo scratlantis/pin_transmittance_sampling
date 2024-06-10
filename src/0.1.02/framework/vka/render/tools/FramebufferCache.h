@@ -1,7 +1,7 @@
 #pragma once
 #include <vka/core/common.h>
 #include <unordered_map>
-#include <vka/interface/resources.h>
+#include <vka/interface/common.h>
 namespace vka
 {
 

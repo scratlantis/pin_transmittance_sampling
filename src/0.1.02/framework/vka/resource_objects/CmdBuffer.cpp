@@ -7,23 +7,23 @@ void CmdBuffer_R::free()
 {
 	vkFreeCommandBuffers(gState.device.logical, cmdPool, 1, &handle);
 }
-void CmdBuffer_I::create(CmdBufferCapabitlityMask capability, VkCommandBufferUsageFlags usage, VkCommandBufferLevel level, uint32_t poolIdx)
+void CmdBuffer_I::createHandles(CmdBufferCapabitlityMask capability, VkCommandBufferUsageFlags usage, VkCommandBufferLevel level, uint32_t poolIdx)
 {
-	VkCommandPool pool;
+	VkCommandPool cmdPool;
 	switch (capability)
 	{
 		case CMD_BUF_CAPABILITY_MASK_TRANSFER:
-			if (gState.cmdAlloc.createCmdBuffersCompute(poolIdx, level, 1, handle, pool))
+			if (gState.cmdAlloc.createCmdBuffersCompute(poolIdx, level, 1, handle, cmdPool))
 			{
 				break;
 			}
 		case CMD_BUF_CAPABILITY_MASK_COMPUTE:
-			if (gState.cmdAlloc.createCmdBuffersCompute(poolIdx, level, 1, handle, pool))
+			if (gState.cmdAlloc.createCmdBuffersCompute(poolIdx, level, 1, handle, cmdPool))
 			{
 				break;
 			}
 		case CMD_BUF_CAPABILITY_MASK_UNIVERSAL:
-			if (gState.cmdAlloc.createCmdBuffersUniversal(poolIdx, level, 1, handle, pool))
+			if (gState.cmdAlloc.createCmdBuffersUniversal(poolIdx, level, 1, handle, cmdPool))
 			{
 				break;
 			}
@@ -36,6 +36,8 @@ void CmdBuffer_I::create(CmdBufferCapabitlityMask capability, VkCommandBufferUsa
 	beginInfo.flags = usage;
 	VKA_CHECK(vkBeginCommandBuffer(handle, &beginInfo));
 	stateBits |= CMD_BUF_STATE_BITS_RECORDING;
+	res = new CmdBuffer_R(handle, cmdPool);
+	res->track(pPool);
 }
 hash_t CmdBuffer_I::hash() const
 {

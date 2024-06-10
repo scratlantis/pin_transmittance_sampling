@@ -46,21 +46,21 @@ void MemAllocator::destroyImage(VkImage &image, VmaAllocation &allocation)
 	vmaDestroyImage(this->vmaAllocator, image, allocation);
 }
 
-void MemAllocator::mapMemory(VmaAllocation &allocation, void **ppData)
+void MemAllocator::mapMemory(const VmaAllocation &allocation, void **ppData)
 {
 	vmaMapMemory(this->vmaAllocator, allocation, ppData);
 }
 
-void MemAllocator::mapMemory(VkDeviceMemory &mem, uint32_t offset, uint32_t size, void **ppData)
+void MemAllocator::mapMemory(const VkDeviceMemory &mem, uint32_t offset, uint32_t size, void **ppData)
 {
 	vkMapMemory(gState.device.logical, mem, offset, size, 0, ppData);
 }
 
-void MemAllocator::unmapMemory(VkDeviceMemory &mem)
+void MemAllocator::unmapMemory(const VkDeviceMemory &mem)
 {
 	vkUnmapMemory(gState.device.logical, mem);
 }
-void MemAllocator::unmapMemory(VmaAllocation &allocation)
+void MemAllocator::unmapMemory(const VmaAllocation &allocation)
 {
 	vmaUnmapMemory(this->vmaAllocator, allocation);
 }

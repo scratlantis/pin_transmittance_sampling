@@ -5,6 +5,43 @@
 
 namespace vka
 {
+class Image_I;
+struct RenderPassInstanceDefinition
+{
+	Rect2D<float>           relViewport;
+	std::vector<Image_I *>  attachments;
+	std::vector<ClearValue> clearValues;
+	bool                      operator==(const RenderPassInstanceDefinition& other) const
+	{
+		return relViewport == other.relViewport
+			&& cmpVector(attachments, other.attachments)
+			&& cmpVector(clearValues, other.clearValues);
+	}
+	bool operator!=(const RenderPassInstanceDefinition& other) const
+	{
+		return !(*this == other);
+	}
+	VkRect2D getRenderArea() const
+	{
+		VkRect2D renderArea{};
+		VkExtent3D attachmentSize = attachments[0]->getExtent();
+		renderArea.offset         = {static_cast<int32_t>(relViewport.x * attachmentSize.width), static_cast<int>(relViewport.y *attachmentSize.height)};
+		renderArea.extent         = {static_cast<uint32_t>(relViewport.width * attachmentSize.width), static_cast<uint32_t>(relViewport.height *attachmentSize.height)};
+		return renderArea;
+	}
+
+	std::vector<VkClearValue> getClearValues() const
+	{
+		std::vector<VkClearValue> clearValues;
+		for (size_t i = 0; i < this->clearValues.size(); i++)
+		{
+			clearValues.push_back(this->clearValues[i].value);
+		}
+		return clearValues;
+	}
+};	
+
+
 class RenderPassDefinition : public ResourceIdentifier
 {
   public:

@@ -175,7 +175,7 @@ FOREACH(vka_version ${VKA_VERSIONS})
     # link
     target_include_directories(${current_app} PUBLIC   ./src/${vka_version}/applications/${application}/ )
     target_include_directories(${current_app} PUBLIC   ./src/${vka_version}/framework/ )
-    target_include_directories(${current_app} PUBLIC   ./src/${vka_version}/applications_common/ )
+    #target_include_directories(${current_app} PUBLIC   ./src/${vka_version}/applications_common/ )
     target_include_directories(${current_app} PRIVATE ${Vulkan_INCLUDE_DIRS})
     target_link_libraries(${current_app} Vulkan::Vulkan glfw imgui stb glm tinyobjloader vma
       ktx csvwriter nlohmann_json ${CMAKE_DL_LIBS} Threads::Threads)

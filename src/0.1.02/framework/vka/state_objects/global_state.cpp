@@ -208,11 +208,11 @@ void vka::IOController::init()
 	gState.initBits |= STATE_INIT_IO_BIT;
 }
 
-bool vka::IOController::updateSwapchain()
+void vka::IOController::updateSwapchain()
 {
 	if (!shouldRecreateSwapchain)
 	{
-		return false;
+		swapchainWasRecreated = false;
 	}
 	vkDeviceWaitIdle(gState.device.logical);
 
@@ -286,7 +286,11 @@ bool vka::IOController::updateSwapchain()
 	}
 	gState.initBits |= STATE_INIT_IO_SWAPCHAIN_BIT;
 	shouldRecreateSwapchain = false;
-	return true;
+	swapchainWasRecreated   = true;
+}
+bool IOController::swapchainRecreated()
+{
+	return swapchainWasRecreated;
 }
 Window* IOController::getWindow()
 {
@@ -367,6 +371,7 @@ void AppState::nextFrame()
 	VK_CHECK(vkWaitForFences(device.logical, 1, &frame->inFlightFence, VK_TRUE, UINT64_MAX));
 	frame->stack->clear();
 	io.readInputs();
+	io.updateSwapchain();
 	io.imageLayouts[frame->frameIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
@@ -390,6 +395,29 @@ void AppState::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *wi
 	cmdAlloc.init();
 	initBits |= STATE_INIT_ALL_BIT;
 }
+SubmitSynchronizationInfo AppState::acquireNextSwapchainImage()
+{
+	uint32_t imageIndex;
+	VK_CHECK(vkAcquireNextImageKHR(device.logical, io.swapchain, UINT64_MAX, frame->imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex));
+	VK_CHECK(vkResetFences(device.logical, 1, &frame->inFlightFence));
+	SubmitSynchronizationInfo syncInfo{};
+	syncInfo.waitSemaphores   = {frame->imageAvailableSemaphore};
+	syncInfo.waitDstStageMask = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+	syncInfo.signalSemaphores = {frame->renderFinishedSemaphore};
+	syncInfo.signalFence      = frame->inFlightFence;
+}
+
+void AppState::presentFrame()
+{
+	VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores    = &frame->renderFinishedSemaphore;
+	presentInfo.swapchainCount     = 1;
+	presentInfo.pSwapchains        = &io.swapchain;
+	presentInfo.pImageIndices      = &frame->frameIndex;
+	VK_CHECK(vkQueuePresentKHR(device.universalQueues[0], &presentInfo));
+}
+
 void AppState::destroy()
 {
 	vkDeviceWaitIdle(device.logical);

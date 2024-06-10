@@ -1,6 +1,7 @@
 #pragma once
 #include "Resource.h"
 #include <vma/vk_mem_alloc.h>
+#include "IDescriptor.h"
 namespace vka
 {
 
@@ -25,42 +26,58 @@ class ImageView_R : public Resource_T<VkImageView>
 	void free() override;
 };
 
-class Image_I : public Resource_T<VkImage>
+
+class Image_I : public Resource_T<VkImage>, public IDescriptor
 {
   protected:
 	Resource *res     = nullptr;
 	Resource *viewRes = nullptr;
-	bool hasMemoryOwnership = false;
+	bool createView;
+	Image_I() = default;
   private:
 	VkImageView viewHandle = VK_NULL_HANDLE;
 
-	// State
+	// Current configuration
+	VkImageCreateInfo ci;
+
+	// Overrides
 	VkFormat          format;
 	VkExtent3D        extent;
 	uint32_t          mipLevels;
 	VkImageUsageFlags usage;
+
+
 	VkImageLayout     layout;
 
   public:
+
+	VkDeviceSize getMemorySize() const
+	{
+		VkDeviceSize size = extent.width * extent.height * extent.depth;
+		size *= mipLevels;
+		size *= cVkFormatTable.at(format).size;
+		return size;
+	}
+
 	  virtual VkImageView getViewHandle() const
 	  {
 		  return viewHandle;
 	  }
 	  virtual VkFormat getFormat() const
 	  {
-		  return format;
+		  return ci.format;
 	  }
 	  virtual VkExtent3D getExtent() const
 	  {
-		  return extent;
+		  return ci.extent;
 	  }
 	  virtual uint32_t getMipLevels() const
 	  {
-		  return mipLevels;
+		  return ci.mipLevels;
 	  }
 	  virtual VkImageUsageFlags getUsage() const
 	  {
-		  return usage;
+		  return ci.usage;
 	  }
 	  virtual VkImageLayout getLayout() const
 	  {
@@ -70,18 +87,17 @@ class Image_I : public Resource_T<VkImage>
 	  {
 		  this->layout = layout;
 	  }
-	Image_I() : Resource_T<VkImage>(VK_NULL_HANDLE)
+	  Image_I(IResourcePool *pPool, VkImageCreateInfo imgCI, bool createView) :
+	      Resource_T<VkImage>(VK_NULL_HANDLE)
 	{
-		format    = VK_FORMAT_UNDEFINED;
-		extent    = {0, 0, 0};
-		mipLevels = 0;
-		usage     = 0;
-		layout    = VK_IMAGE_LAYOUT_UNDEFINED;
-	}
-	Image_I(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY):
-		Resource_T<VkImage>(VK_NULL_HANDLE)
-	{
-		create(imgCI, createView, memUsage);
+		ci = imgCI;
+		format    = ci.format;
+		extent    = ci.extent;
+		mipLevels = ci.mipLevels;
+		usage     = ci.usage;
+		layout    = ci.initialLayout;
+		this->createView = createView;
+		track(pPool);
 	}
 	~Image_I()
 	{
@@ -97,7 +113,6 @@ class Image_I : public Resource_T<VkImage>
 		// No ownership, no tracking
 		res                = nullptr;
 		viewRes            = nullptr;
-		hasMemoryOwnership = false;
 		pPool              = nullptr;
 
 		handle     = rhs.handle;
@@ -110,12 +125,34 @@ class Image_I : public Resource_T<VkImage>
 		layout    = rhs.layout;
 		return *this;
 	}
+
   public:
-	virtual void create(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY);
-	virtual Image_I recreate(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY);
+	virtual void changeFormat(VkFormat format)
+	{
+		this->format = format;
+	}
+	virtual void changeExtent(VkExtent3D extent)
+	{
+		this->extent = extent;
+	}
+	virtual void changeMipLevels(uint32_t mipLevels)
+	{
+		this->mipLevels = mipLevels;
+	}
+	virtual void changeUsage(VkImageUsageFlags usage)
+	{
+		this->usage = usage;
+	}
+
+
+	virtual void createHandles();
+	virtual Image_I recreate();
+	virtual void       detachChildResources();
 	virtual void     track(IResourcePool *pPool) override;
 	virtual void     free() override;
 	virtual hash_t    hash() const override;
+
+	void writeDescriptorInfo(VkWriteDescriptorSet &write, VkDescriptorBufferInfo *&pBufferInfo, VkDescriptorImageInfo *&pImageInfos) const override;
 };
 
 class SwapchainImage_I : public Image_I
@@ -132,18 +169,42 @@ class SwapchainImage_I : public Image_I
 	VkImageUsageFlags getUsage() const override;
 	VkImageLayout     getLayout() const override;
 	void              setLayout(VkImageLayout layout) override;
-  public:
-	void create(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY) override
+
+
+	void changeFormat(VkFormat format) override
 	{
-		printVka("Attempted to create swapchain image");
+		printVka("Attempted to change swapchain image");
+		DEBUG_BREAK;
+	}
+	void changeExtent(VkExtent3D extent) override
+	{
+		printVka("Attempted to change swapchain image");
+		DEBUG_BREAK;
+	}
+	void changeMipLevels(uint32_t mipLevels) override
+	{
+		printVka("Attempted to change swapchain image");
+		DEBUG_BREAK;
+	}
+	void changeUsage(VkImageUsageFlags usage) override
+	{
+		printVka("Attempted to change swapchain image");
+		DEBUG_BREAK;
+	}
+
+  public:
+	void createHandles() override
+	{
+		printVka("Attempted to create handles for swapchain image");
 		DEBUG_BREAK;
 	};
-	Image_I recreate(const VkImageCreateInfo &imgCI, bool createView, VmaMemoryUsage memUsage = VMA_MEMORY_USAGE_GPU_ONLY) override
+	Image_I recreate() override
 	{
 		printVka("Attempted to recreate swapchain image");
 		DEBUG_BREAK;
 		return *this;
 	};
+	void detachChildResources() override {};
 	void track(IResourcePool *pPool) override
 	{
 		printVka("Attempted to track swapchain image");
