@@ -24,7 +24,7 @@ namespace vka
 	{
 		buffer->unmap();
 	}
-	void vkaWriteStageing(VkaBuffer buffer, void* data, uint32_t size)
+	void vkaWriteStaging(VkaBuffer buffer, void* data, uint32_t size)
 	{
 	    void* mapping = vkaMapStageing(buffer, size);
 		memcpy(mapping, data, size);

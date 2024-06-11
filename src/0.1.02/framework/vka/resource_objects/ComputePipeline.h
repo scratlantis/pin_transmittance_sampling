@@ -13,7 +13,7 @@ struct ComputePipelineDefinition : public ResourceIdentifier
 	VkSpecializationInfo                  specInfo;
 
 	ShaderDefinition         shaderDef;
-	PipelineLayoutDefinition pipelineLayoutDef;
+	PipelineLayoutDefinition pipelineLayoutDefinition;
 	std::vector<uint32_t> specialisationEntrySizes;
 	std::vector<uint8_t>  specializationData;
 

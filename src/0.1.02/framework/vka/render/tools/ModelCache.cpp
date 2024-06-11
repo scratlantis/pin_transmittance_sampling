@@ -1,11 +1,12 @@
 #include "ModelCache.h"
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
+#include <vka/interface/commands/commands.h>
 namespace vka
 {
 
 
-bool loadObj(std::string path, VkaBuffer &vertexBuffer, VkaBuffer &indexBuffer, uint32_t bytesPerVertex, void (*parse)(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes) )
+bool loadObj(std::string path, VkaBuffer vertexBuffer, VkaBuffer indexBuffer, VkaBuffer surfaceBuffer, uint32_t &surfaceCount, uint32_t bytesPerVertex, void (*parse)(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes) )
 {
 	tinyobj::attrib_t                vertexAttributes;
 	std::vector<tinyobj::shape_t>    shapes;
@@ -30,14 +31,23 @@ bool loadObj(std::string path, VkaBuffer &vertexBuffer, VkaBuffer &indexBuffer, 
 	}
 	vkaUnmap(vertexBuffer);
 	std::vector<Index> indices;
+	surfaceCount = 0;
 	for (auto &shape : shapes)
 	{
+		surfaceCount++;
 		for (auto &index : shape.mesh.indices)
 		{
 			indices.push_back(index.vertex_index);
 		}
 	}
-	vkaWriteStageing(indexBuffer, indices.data(), indices.size() * sizeof(Index));
+	vkaWriteStaging(indexBuffer, indices.data(), indices.size() * sizeof(Index));
+	// Fix later
+	SurfaceData surfaceData{};
+	surfaceData.vertexOffset = 0;
+	surfaceData.vertexCount = vertexCount;
+	surfaceData.indexOffset = 0;
+	surfaceData.indexCount = indices.size();
+	vkaWriteStaging(indexBuffer, &surfaceData, sizeof(SurfaceData));
 	return true;
 }
 void ModelCache::clear()
@@ -59,7 +69,9 @@ ModelData ModelCache::fetch(VkaCommandBuffer cmdBuf, std::string path, uint32_t 
 		ModelData modelData;
 		modelData.vertexBuffer = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		modelData.indexBuffer  = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-		if (loadObj(path, modelData.vertexBuffer, modelData.indexBuffer, bytesPerVertex, parse))
+		modelData.surfaceBuffer  = vkaCreateBuffer(pPool); // Only used cpu side
+		modelData.surfaceCount = 0;
+		if (loadObj(path, modelData.vertexBuffer, modelData.indexBuffer, modelData.surfaceBuffer, &modelData.surfaceCount, bytesPerVertex, parse))
 		{
 			map.insert({path, modelData});
 		}

@@ -8,7 +8,7 @@ hash_t ComputePipelineDefinition::hash() const
 {
 	hash_t hash = 0;
 	hashCombineLocal(hash, shaderDef.hash());
-	hashCombineLocal(hash, pipelineLayoutDef.hash());
+	hashCombineLocal(hash, pipelineLayoutDefinition.hash());
 	return hash;
 }
 
@@ -18,7 +18,7 @@ DEFINE_EQUALS_OVERLOAD(ComputePipelineDefinition, ResourceIdentifier)
 bool ComputePipelineDefinition::operator==(const ComputePipelineDefinition &other) const
 {
 	return shaderDef ==  other.shaderDef
-		&& pipelineLayoutDef == other.pipelineLayoutDef;
+		&& pipelineLayoutDefinition == other.pipelineLayoutDefinition;
 }
 
 void ComputePipeline::free()
@@ -44,7 +44,7 @@ ComputePipeline::ComputePipeline(ComputePipelineDefinition const &definition)
 	}
 	// Not pretty end
 	ci.stage              = shaderStageCreateInfo;
-	ci.layout             = pCache->fetch(definition.pipelineLayoutDef);
+	ci.layout             = pCache->fetch(definition.pipelineLayoutDefinition);
 	ci.basePipelineHandle = VK_NULL_HANDLE;
 	ci.basePipelineIndex  = -1;
 	VK_CHECK(vkCreateComputePipelines(gState.device.logical, VK_NULL_HANDLE, 1, &ci, nullptr, &handle));

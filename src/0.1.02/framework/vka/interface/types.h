@@ -9,7 +9,7 @@ class DescriptorObjects; // sampler, image , buffer
 
 namespace vka
 {
-	struct DrawCmd
+	/*struct DrawCmd
 	{
 		VkaBuffer vertexBuffer;
 		VkaBuffer indexBuffer;
@@ -17,7 +17,7 @@ namespace vka
 		std::vector<VkaBuffer> instanceBuffers;
 		RasterizationPipelineDefinition pipelineDef;
 		RenderPassInstanceDefinition renderPassInstanceDef;
-	};
+	};*/
 	struct ImageSubresourceRange
     {
 	    uint32_t mipLevel;

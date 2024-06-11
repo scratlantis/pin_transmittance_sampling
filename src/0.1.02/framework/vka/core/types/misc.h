@@ -21,10 +21,11 @@ struct VulkanFormatInfo
 
 enum ClearValueType
 {
+	CLEAR_VALUE_NONE,
 	CLEAR_VALUE_FLOAT,
 	CLEAR_VALUE_INT,
 	CLEAR_VALUE_UINT,
-	DEPTH_STENCIL
+	CLEAR_VALUE_DEPTH_STENCIL
 };
 struct ClearValue
 {
@@ -57,7 +58,7 @@ struct ClearValue
 	}
 	ClearValue(float depth, uint32_t stencil)
 	{
-		type = DEPTH_STENCIL;
+		type                       = CLEAR_VALUE_DEPTH_STENCIL;
 		value.depthStencil.depth   = depth;
 		value.depthStencil.stencil = stencil;
 	}
@@ -67,6 +68,8 @@ struct ClearValue
 			return false;
 		switch (type)
 		{
+			case CLEAR_VALUE_NONE:
+				return true;
 			case CLEAR_VALUE_FLOAT:
 				return value.color.float32[0] == other.value.color.float32[0] &&
 				       value.color.float32[1] == other.value.color.float32[1] &&
@@ -82,7 +85,7 @@ struct ClearValue
 				       value.color.uint32[1] == other.value.color.uint32[1] &&
 				       value.color.uint32[2] == other.value.color.uint32[2] &&
 				       value.color.uint32[3] == other.value.color.uint32[3];
-			case DEPTH_STENCIL:
+			case CLEAR_VALUE_DEPTH_STENCIL:
 				return value.depthStencil.depth == other.value.depthStencil.depth &&
 				       value.depthStencil.stencil == other.value.depthStencil.stencil;
 		}

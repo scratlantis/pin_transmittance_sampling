@@ -74,6 +74,34 @@ struct PipelineMultisampleStateCreateInfo_OP : public VkPipelineMultisampleState
 	}
 };
 
+struct VkRect2D_OP : public VkRect2D
+{
+	bool operator==(VkRect2D_OP const &other) const
+	{
+		// clang-format off
+		return offset.x == other.offset.x
+			&& offset.y == other.offset.y
+			&& extent.width == other.extent.width
+			&& extent.height == other.extent.height;
+		// clang-format on
+	}
+	bool operator!=(VkRect2D_OP const &other) const
+	{
+		return !(*this == other);
+	}
+	bool hash() const
+	{
+		// clang-format off
+		return offset.x
+			HASHC offset.y
+			HASHC extent.width
+			HASHC extent.height;
+		// clang-format on
+	}
+};
+
+
+
 DEFINE_ZERO_PAD(VkAttachmentDescription)
 DEFINE_ZERO_PAD(VkAttachmentReference)
 DEFINE_ZERO_PAD(VkSubpassDependency)

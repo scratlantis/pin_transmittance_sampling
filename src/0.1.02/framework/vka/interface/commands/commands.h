@@ -1,11 +1,11 @@
 #pragma once
 #include <vka/state_objects/global_state.h>
 #include <vka/resource_objects/resource_common.h>
+#include <vka/render/tools/DrawCall.h>
 #include "../types.h"
 #include "../buffer_functionality.h"
 #include "../image_functionality.h"
 #include "../cmd_buffer_functionality.h"
-
 
 namespace vka
 {
@@ -76,7 +76,7 @@ void vkaCmdCopyBufferToImage(VkaCommandBuffer cmdBuf, VkaBuffer src, VkaImage ds
 void vkaCmdUploadImageData(VkaCommandBuffer cmdBuf, void *data, size_t dataSize, VkaImage dst, VkImageLayout finalLayout, uint32_t layer = 0, uint32_t mipLevel = 0)
 {
 	VkaBuffer stagingBuffer = vkaCreateBuffer(gState.frame->stack);
-	vkaWriteStageing(stagingBuffer, data, dataSize);
+	vkaWriteStaging(stagingBuffer, data, dataSize);
 	vkaCmdTransitionLayout(cmdBuf, dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layer, 1);
 	vkaCmdCopyBufferToImage(cmdBuf, stagingBuffer, dst, layer, mipLevel);
 	vkaCmdTransitionLayout(cmdBuf, dst, finalLayout, layer, 1);
@@ -187,12 +187,18 @@ void vkaCmdBindPipeline(VkaCommandBuffer cmdBuf, ComputePipelineDefinition def)
 	cmdBuf->stateBits |= CMD_BUF_STATE_BITS_BOUND_PIPELINE;
 }
 
-void vkaCmdBindPipeline(VkaCommandBuffer cmdBuf, RasterizationPipelineDefinition def)
+//void vkaCmdBindPipeline(VkaCommandBuffer cmdBuf, RasterizationPipelineDefinition def)
+//{
+//	cmdBuf->renderState.pipeline = gState.cache->fetch(def);
+//	cmdBuf->pipelineLayoutDef    = def.pipelineLayoutDefinition;
+//	cmdBuf->bindPoint            = VK_PIPELINE_BIND_POINT_GRAPHICS;
+//	vkCmdBindPipeline(cmdBuf->getHandle(), cmdBuf->bindPoint, cmdBuf->renderState.pipeline);
+//	cmdBuf->stateBits |= CMD_BUF_STATE_BITS_BOUND_PIPELINE;
+//}
+
+void vkaCmdBindPipeline(VkaCommandBuffer cmdBuf)
 {
-	cmdBuf->renderState.pipeline = gState.cache->fetch(def);
-	cmdBuf->pipelineLayoutDef    = def.pipelineLayoutDefinition;
-	cmdBuf->bindPoint            = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	vkCmdBindPipeline(cmdBuf->getHandle(), cmdBuf->bindPoint, cmdBuf->renderState.pipeline);
+	vkCmdBindPipeline(cmdBuf->getHandle(), cmdBuf->renderState.bindPoint, cmdBuf->renderState.pipeline);
 	cmdBuf->stateBits |= CMD_BUF_STATE_BITS_BOUND_PIPELINE;
 }
 
@@ -200,9 +206,9 @@ void vkaCmdPushDescriptors(VkaCommandBuffer cmdBuf, uint32_t setIdx, std::vector
 {
 	LOAD_CMD_VK_DEVICE(vkCmdPushDescriptorSetKHR, gState.device.logical);
 	VKA_ASSERT(cmdBuf->stateBits & CMD_BUF_STATE_BITS_BOUND_PIPELINE);
-	VKA_ASSERT(cmdBuf->pipelineLayoutDef.descSetLayoutDef.size() > setIdx);
+	VKA_ASSERT(cmdBuf->renderState.pipelineLayoutDef.descSetLayoutDef.size() > setIdx);
 
-	DescriptorSetLayoutDefinition descLayoutDef = cmdBuf->pipelineLayoutDef.descSetLayoutDef[setIdx];
+	DescriptorSetLayoutDefinition        descLayoutDef = cmdBuf->renderState.pipelineLayoutDef.descSetLayoutDef[setIdx];
 	std::vector<VkWriteDescriptorSet>   writes(VKA_COUNT(desc));
 	std::vector<VkDescriptorBufferInfo> bufferInfos(VKA_COUNT(desc));
 	std::vector<VkDescriptorImageInfo>  imageInfos(VKA_COUNT(desc));
@@ -216,13 +222,13 @@ void vkaCmdPushDescriptors(VkaCommandBuffer cmdBuf, uint32_t setIdx, std::vector
 		writes[i].descriptorType   = descLayoutDef.bindings[i].descriptorType;
 		desc[i]->writeDescriptorInfo(writes[i], pBuffInfo, pImageInfo);
 	}
-	pvkCmdPushDescriptorSetKHR(cmdBuf->getHandle(), cmdBuf->bindPoint, gState.cache->fetch(cmdBuf->pipelineLayoutDef), setIdx, writes.size(), writes.data());
+	pvkCmdPushDescriptorSetKHR(cmdBuf->getHandle(), cmdBuf->renderState.bindPoint, gState.cache->fetch(cmdBuf->renderState.pipelineLayoutDef), setIdx, writes.size(), writes.data());
 }
 
 void vkaCmdPushConstants(VkaCommandBuffer cmdBuf, VkShaderStageFlags shaderStage, uint32_t offset, uint32_t size, const void *data)
 {
 	VKA_ASSERT(cmdBuf->stateBits & CMD_BUF_STATE_BITS_BOUND_PIPELINE);
-	vkCmdPushConstants(cmdBuf->getHandle(), gState.cache->fetch(cmdBuf->pipelineLayoutDef), shaderStage, offset, size, data);
+	vkCmdPushConstants(cmdBuf->getHandle(), gState.cache->fetch(cmdBuf->renderState.pipelineLayoutDef), shaderStage, offset, size, data);
 }
 
 void vkaCmdDispatch(VkaCommandBuffer cmdBuf, uint32_t x, uint32_t y, uint32_t z)
@@ -231,8 +237,68 @@ void vkaCmdDispatch(VkaCommandBuffer cmdBuf, uint32_t x, uint32_t y, uint32_t z)
 	vkCmdDispatch(cmdBuf->getHandle(), x, y, z);
 }
 
-
-
-
-
+void vkaCmdBindVertexBuffers(VkaCommandBuffer cmdBuf)
+{
+	std::vector<VkBuffer> handels;
+	for (size_t i = 0; i < cmdBuf->renderState.vertexBuffers.size(); i++)
+	{
+		handels.push_back(cmdBuf->renderState.vertexBuffers[i]->getHandle());
+	}
+	VkDeviceSize offset(handels.size());
+	vkCmdBindVertexBuffers(cmdBuf->getHandle(), 0, 1, handels.data(), &offset);
 }
+
+void vkaCmdBindIndexBuffer(VkaCommandBuffer cmdBuf, VkDeviceSize offset)
+{
+	vkCmdBindIndexBuffer(cmdBuf->getHandle(), cmdBuf->renderState.indexBuffer->getHandle(), offset, VK_INDEX_TYPE_UINT32);
+}
+
+void vkaCmdDrawIndexed(VkaCommandBuffer cmdBuf, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)
+{
+	vkCmdDrawIndexed(cmdBuf->getHandle(), indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+}
+
+void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCall &drawCall)
+{
+	VKA_ASSERT(drawCall.model.surfaceCount == 1);
+	VKA_ASSERT(drawCall.pipelineDef.subpass == 0);
+
+
+	RenderState newRenderState = drawCall.getRenderState();
+	uint32_t    diffBits       = cmdBuf->renderState.calculateDifferenceBits(newRenderState);
+	cmdBuf->renderState = newRenderState;
+	if (diffBits & RENDER_STATE_ACTION_BIT_END_RENDER_PASS)
+	{
+		vkaCmdEndRenderPass(cmdBuf);
+	}
+
+	if (diffBits & RENDER_STATE_ACTION_BIT_START_RENDER_PASS)
+	{
+		vkaCmdStartRenderPass(cmdBuf, cmdBuf->renderState.renderPass, cmdBuf->renderState.framebuffer, cmdBuf->renderState.getClearValues(), newRenderState.renderArea);
+	}
+
+	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_PIPELINE)
+	{
+		vkaCmdBindPipeline(cmdBuf);
+	}
+	// for now, only one descriptor set, always rebind
+	vkaCmdPushDescriptors(cmdBuf, 0, drawCall.descriptors);
+
+	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_VERTEX_BUFFER)
+	{
+		vkaCmdBindVertexBuffers(cmdBuf);
+	}
+
+	// for now only one surface
+	SurfaceData *pSurfaceData = (SurfaceData *) drawCall.model.surfaceBuffer->map(0, sizeof(SurfaceData));
+
+	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_INDEX_BUFFER)
+	{
+		vkaCmdBindIndexBuffer(cmdBuf, pSurfaceData->indexOffset);
+	}
+
+	vkaCmdDrawIndexed(cmdBuf, pSurfaceData->indexCount, drawCall.instanceCount, pSurfaceData->indexOffset, pSurfaceData->vertexOffset, 0);
+}
+
+
+} // namespace vka
