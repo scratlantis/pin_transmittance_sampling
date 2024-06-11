@@ -51,7 +51,7 @@ void vkaCmdImageMemoryBarrier(VkaCommandBuffer cmdBuf, VkaImage image, VkImageLa
 }
 void vkaCmdTransitionLayout(VkaCommandBuffer cmdBuf, VkaImage image, VkImageLayout newLayout, uint32_t baseLayer = 0, uint32_t layerCount = 1)
 {
-	if (image->getLayout() != newLayout)
+	if (image->getLayout() != newLayout && newLayout != VK_IMAGE_LAYOUT_UNDEFINED && newLayout != VK_IMAGE_LAYOUT_PREINITIALIZED)
 	{
 		vkaCmdImageMemoryBarrier(cmdBuf, image, newLayout, baseLayer, layerCount);
 	}
@@ -143,7 +143,7 @@ void vkaCmdFillBuffer(VkaCommandBuffer cmdBuf, VkaBuffer dst, uint32_t data)
 }
 
 // Pipelines, render/dispatch
-void vkaCmdStartRenderPass(VkaCommandBuffer cmdBuf, VkRenderPass renderpass, VkFramebuffer framebuffer, std::vector<VkClearValue> clearValues, VkRect2D renderArea = {{0, 0}, gState.io.extent})
+void vkaCmdStartRenderPass(VkaCommandBuffer cmdBuf, VkRenderPass renderpass, VkFramebuffer framebuffer, std::vector<VkClearValue> clearValues = {}, VkRect2D renderArea = {{0, 0}, gState.io.extent})
 {
 	VkCommandBuffer       handle = cmdBuf->getHandle();
 	VkRenderPassBeginInfo renderPassBeginInfo;
@@ -181,20 +181,11 @@ void vkaCmdEndRenderPass(VkaCommandBuffer cmdBuf)
 void vkaCmdBindPipeline(VkaCommandBuffer cmdBuf, ComputePipelineDefinition def)
 {
 	cmdBuf->renderState.pipeline = gState.cache->fetch(def);
-	cmdBuf->pipelineLayoutDef             = def.pipelineLayoutDefinition;
-	cmdBuf->bindPoint 				 = VK_PIPELINE_BIND_POINT_COMPUTE;
-	vkCmdBindPipeline(cmdBuf->getHandle(), cmdBuf->bindPoint, cmdBuf->renderState.pipeline);
+	cmdBuf->renderState.pipelineLayoutDef             = def.pipelineLayoutDefinition;
+	cmdBuf->renderState.bindPoint          = VK_PIPELINE_BIND_POINT_COMPUTE;
+	vkCmdBindPipeline(cmdBuf->getHandle(), cmdBuf->renderState.bindPoint, cmdBuf->renderState.pipeline);
 	cmdBuf->stateBits |= CMD_BUF_STATE_BITS_BOUND_PIPELINE;
 }
-
-//void vkaCmdBindPipeline(VkaCommandBuffer cmdBuf, RasterizationPipelineDefinition def)
-//{
-//	cmdBuf->renderState.pipeline = gState.cache->fetch(def);
-//	cmdBuf->pipelineLayoutDef    = def.pipelineLayoutDefinition;
-//	cmdBuf->bindPoint            = VK_PIPELINE_BIND_POINT_GRAPHICS;
-//	vkCmdBindPipeline(cmdBuf->getHandle(), cmdBuf->bindPoint, cmdBuf->renderState.pipeline);
-//	cmdBuf->stateBits |= CMD_BUF_STATE_BITS_BOUND_PIPELINE;
-//}
 
 void vkaCmdBindPipeline(VkaCommandBuffer cmdBuf)
 {
@@ -258,7 +249,7 @@ void vkaCmdDrawIndexed(VkaCommandBuffer cmdBuf, uint32_t indexCount, uint32_t in
 	vkCmdDrawIndexed(cmdBuf->getHandle(), indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
-void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCall &drawCall)
+void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCmd &drawCall)
 {
 	VKA_ASSERT(drawCall.model.surfaceCount == 1);
 	VKA_ASSERT(drawCall.pipelineDef.subpass == 0);
@@ -274,6 +265,12 @@ void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCall &drawCall)
 
 	if (diffBits & RENDER_STATE_ACTION_BIT_START_RENDER_PASS)
 	{
+		VKA_ASSERT(drawCall.attachments.size() == drawCall.pipelineDef.renderPassDefinition.attachmentDescriptions.size())
+		for (size_t i = 0; i < drawCall.attachments.size(); i++)
+		{
+			vkaCmdTransitionLayout(cmdBuf, drawCall.attachments[i], drawCall.pipelineDef.renderPassDefinition.attachmentDescriptions[i].initialLayout);
+			drawCall.attachments[i]->setLayout(drawCall.pipelineDef.renderPassDefinition.attachmentDescriptions[i].finalLayout);
+		}
 		vkaCmdStartRenderPass(cmdBuf, cmdBuf->renderState.renderPass, cmdBuf->renderState.framebuffer, cmdBuf->renderState.getClearValues(), newRenderState.renderArea);
 	}
 
@@ -299,6 +296,13 @@ void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCall &drawCall)
 
 	vkaCmdDrawIndexed(cmdBuf, pSurfaceData->indexCount, drawCall.instanceCount, pSurfaceData->indexOffset, pSurfaceData->vertexOffset, 0);
 }
+
+void vkaCmdFinishDraw(VkaCommandBuffer cmdBuf)
+{
+	vkaCmdEndRenderPass(cmdBuf);
+	cmdBuf->renderState = {};
+}
+
 
 
 } // namespace vka

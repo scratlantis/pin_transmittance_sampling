@@ -267,7 +267,7 @@ inline void submit(
 	ASSERT_VULKAN(vkQueueSubmit(queue, 1, &submit, syncInfo.signalFence));
 }
 
-inline void submit(VkCommandBuffer cmdBuf, VkQueue queue, const SubmitSynchronizationInfo syncInfo)
+inline void submit(VkCommandBuffer cmdBuf, VkQueue queue, const SubmitSynchronizationInfo syncInfo = {})
 {
 	VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
 	submit.waitSemaphoreCount   = syncInfo.waitSemaphores.size();

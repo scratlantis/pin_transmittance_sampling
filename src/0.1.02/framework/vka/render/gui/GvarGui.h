@@ -8,6 +8,10 @@ class GvarGui : public ImGuiWrapper
 {
   public:
 	GvarGui(){};
+	void newFrame()
+	{
+		vkaImGuiNewFrame();
+	}
 	void create(VkRenderPass renderPass, uint32_t subpassIdx)
 	{
 		configure();

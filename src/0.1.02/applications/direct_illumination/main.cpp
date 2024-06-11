@@ -6,6 +6,8 @@
 #include <vka/geometry/common.h>
 #include <vka/render/tools/FramebufferCache.h>
 #include "config.h"
+#include "app_data.h"
+#include "shaderStructs.h"
 
 using namespace vka;
 AppState gState;
@@ -21,76 +23,97 @@ int main()
 	gState.init(deviceCI, ioCI, &window);
 	FixedCamera camera = FixedCamera(FixedCameraCI_Default());
 	GvarGui     gui    = GvarGui();
-
 	// Init:
 	VkaImage         swapchainImage   = vkaGetSwapchainImage();
 	FramebufferCache framebufferCache = FramebufferCache();
 	ResourcePool     heap             = ResourcePool();
+	ModelCache       modelCache       = ModelCache(&heap, gResourceBaseDir + "/models");
+	// TextureCache textureCache = TextureCache(&heap, gResourceBaseDir + "/textures");
+	AppData appData = AppData();
 
-	VkaImage offscreenImage = vkaCreateSwapchainAttachment(&heap, gState.io.format,
+	// Create Images
+	VkaImage offscreenImage = vkaCreateSwapchainAttachment(gState.io.format,
 	                                                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-	VkaImage depthImage     = vkaCreateSwapchainAttachment(&heap, VK_FORMAT_D32_SFLOAT,
+	VkaImage depthImage     = vkaCreateSwapchainAttachment(VK_FORMAT_D32_SFLOAT,
 	                                                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-	VkaImage lineColorImg   = vkaCreateSwapchainAttachment(&heap, gState.io.format,
+	VkaImage lineColorImg   = vkaCreateSwapchainAttachment(gState.io.format,
 	                                                       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-	VkaImage linePosImg     = vkaCreateSwapchainAttachment(&heap, VK_FORMAT_R32G32B32A32_SFLOAT,
+	VkaImage linePosImg     = vkaCreateSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT,
 	                                                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-	VkaImage pinIdImage     = vkaCreateSwapchainAttachment(&heap, VK_FORMAT_R32_UINT,
+	VkaImage pinIdImage     = vkaCreateSwapchainAttachment(VK_FORMAT_R32_UINT,
 	                                                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
-	VkaBuffer viewBuf             = vkaCreateBuffer(&heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-	VkaBuffer gaussianBuf         = vkaCreateBuffer(&heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	VkaBuffer pinBuf              = vkaCreateBuffer(&heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	VkaBuffer pinDirectionsBuffer = vkaCreateBuffer(&heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	VkaBuffer pinGridBuf          = vkaCreateBuffer(&heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	VkaBuffer pinTransmittanceBuf = vkaCreateBuffer(&heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	VkaBuffer pinVertexBuffer     = vkaCreateBuffer(&heap, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	VkaBuffer pinIndexBuffer      = vkaCreateBuffer(&heap, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-	VkaBuffer pinUsedBuffer       = vkaCreateBuffer(&heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+
+	RenderPassDefinition guiRenderPassDef = RenderPassDefinition();
+	// Todo: configure gui render pass
 
 
-	// Vertex/Index Data
-	// Geometry(Vertex/Index Data)
-	// Material(Buffers)
-	// Model(Geometry, Material)
-	// Instance(Model, Transform)
-	// DrawCall(Instances)
+
+	VkRenderPass         guiRenderPass    = gState.cache->fetch(guiRenderPassDef);
+	gui.create(guiRenderPass, 0);
 	
 
-
-	// VertexBuffer
-	// IndexBuffer
-	// PipelineConfig
-	// RenderTargetList
-	// InstanceBufferList
-	// DrawCall(DrawCallCI)
-
-
-
-
-	// create buffers
-	// model cache
-	// render model
-
-	// Upload:
-	// upload buffers
-	// upload images
+	
+	AppConfig appConfig = AppConfig();
+	VkaCommandBuffer cmdBuf = vkaCreateCommandBuffer(gState.frame->stack);
+	gState.io.swapchainAttachmentPool->refreshImages(cmdBuf);
+	appData.update(cmdBuf, appConfig);
+	gui.upload(cmdBuf);
+	vkaExecuteImmediat(cmdBuf);
+	gui.freeStaging();
 
 
 	// Main loop:
+	uint32_t cnt = 0;
 	while (!gState.io.shouldTerminate())
 	{
+		gui.newFrame();
 		if (gState.io.keyEvent[GLFW_KEY_R] && gState.io.keyPressed[GLFW_KEY_R])
 		{
 			vkDeviceWaitIdle(gState.device.logical);
 			gState.cache->clearShaders();
 		}
+		VkaCommandBuffer cmdBuf = vkaCreateCommandBuffer(gState.frame->stack);
+		if (0) // Gui button
+		{
+			appData.update(cmdBuf, appConfig);
+		}
 
-		// StartCmdBuf
+		// Update view
+		{
+			// ...
+		}
+
 		// Render
-		// SwapBuffers
+		{
+			DrawCmd drawCmd{};
+			drawCmd.model;
+			drawCmd.pipelineDef;
+			drawCmd.attachments;
+			drawCmd.framebuffer;
+			drawCmd.descriptors;
+			drawCmd.clearValues;
+			drawCmd.renderArea;
+			drawCmd.instanceBuffers;
+			drawCmd.instanceCount;
+
+
+			// ...
+
+			// Render gui
+			{
+				vkaCmdStartRenderPass(cmdBuf, guiRenderPass, framebufferCache.fetch(guiRenderPass, {offscreenImage}));
+				gui.render(cmdBuf);
+				vkaCmdEndRenderPass(cmdBuf);
+			}
+		}
+
+		vkaSwapBuffers({cmdBuf});
 	}
 	// Cleanup
 	vkDeviceWaitIdle(gState.device.logical);
+	framebufferCache.clear();
+	heap.clear();
+	gui.destroy();
 	gState.destroy();
 }

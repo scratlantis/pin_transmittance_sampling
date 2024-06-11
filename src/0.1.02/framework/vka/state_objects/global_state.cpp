@@ -1,4 +1,5 @@
 #include "global_state.h"
+#include <vka/interface/commands/commands.h>
 
 namespace vka
 {
@@ -287,6 +288,10 @@ void vka::IOController::updateSwapchain()
 	gState.initBits |= STATE_INIT_IO_SWAPCHAIN_BIT;
 	shouldRecreateSwapchain = false;
 	swapchainWasRecreated   = true;
+	if (gState.initBits & STATE_INIT_ALL_BIT)
+	{
+		VKA_IMMEDIATE(swapchainAttachmentPool->refreshImages(cmdBuf));
+	}
 }
 bool IOController::swapchainRecreated()
 {

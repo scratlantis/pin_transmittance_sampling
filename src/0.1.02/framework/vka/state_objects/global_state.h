@@ -95,6 +95,7 @@ class IOController
 	std::vector<VkImageLayout> imageLayouts;
 	VkImageUsageFlags  imageUsage;
 	SwapchainImage_I *swapchainImage = nullptr;
+	IResourcePool             *swapchainAttachmentPool;
 	Mouse mouse;
 	bool  keyPressed[KEY_COUNT];
 	bool  keyEvent[KEY_COUNT];
@@ -107,6 +108,7 @@ class IOController
 	void    destroy();
 	void    terminateWindowManager();
 	void    updateSwapchain();
+	void    recreateSwapchainAttachments();
 	bool    swapchainRecreated();
 	bool    shouldTerminate();
 	Window *getWindow();

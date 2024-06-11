@@ -5,10 +5,11 @@
 
 namespace vka
 {
-	VkaImage vkaCreateSwapchainAttachment(IResourcePool *pPool, VkFormat format, VkImageUsageFlags usageFlags)
+	VkaImage vkaCreateSwapchainAttachment(VkFormat format, VkImageUsageFlags usageFlags, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED)
 	{
 		VkImageCreateInfo ci  = ImageCreateInfo_Default(usageFlags, gState.io.extent, format);
-		VkaImage          img = new Image_I(pPool, ci, true);
+	    ci.initialLayout     = initialLayout;
+	    VkaImage          img = new Image_I(gState.io.swapchainAttachmentPool, ci, true);
 	    img->createHandles();
 	    return img;
     }

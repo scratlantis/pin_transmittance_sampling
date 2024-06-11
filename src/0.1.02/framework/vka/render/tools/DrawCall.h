@@ -67,19 +67,29 @@ struct RenderState
 	std::vector<VkClearValue> getClearValues() const;
 };
 
-struct DrawCall
+struct DrawCmd
 {
-	ModelData model;
+	ModelData                       model;
 	RasterizationPipelineDefinition pipelineDef;
-	VkFramebuffer framebuffer;
-	std::vector<IDescriptor *> descriptors;
-	std::vector<ClearValue> clearValues;
-	VkRect2D_OP                 renderArea;
-	std::vector<VkaBuffer> instanceBuffers;
-	uint32_t instanceCount;
+	std::vector<VkaImage>           attachments;
+	VkFramebuffer                   framebuffer;
+	std::vector<IDescriptor *>      descriptors;
+	std::vector<ClearValue>         clearValues;
+	VkRect2D_OP                     renderArea;
+	std::vector<VkaBuffer>          instanceBuffers;
+	uint32_t                        instanceCount;
 
 	RenderState               getRenderState() const;
 	
+};
+
+struct ComputeCmd
+{
+	ComputePipelineDefinition pipelineDef;
+	std::vector<VkaImage>           attachments;
+	std::vector<IDescriptor *>      descriptors;
+
+	RenderState getRenderState() const;
 };
 
 }

@@ -2,7 +2,7 @@
 #include <vka/state_objects/global_state.h>
 namespace vka
 {
-RenderState DrawCall::getRenderState() const
+RenderState DrawCmd::getRenderState() const
 {
 	{
 		RenderState state;

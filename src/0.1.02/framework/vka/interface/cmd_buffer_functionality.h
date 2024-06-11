@@ -11,6 +11,14 @@ VkaCommandBuffer vkaCreateCommandBuffer(IResourcePool *pPool)
 	return cmdBuffer;
 }
 
+VkaCommandBuffer vkaExecuteImmediat(VkaCommandBuffer cmdBuffer, VkQueue queue = gState.device.universalQueues[0])
+{
+	   cmdBuffer->end();
+	   submit(cmdBuffer->getHandle(), queue, {});
+	   vkDeviceWaitIdle(gState.device.logical);
+	   return cmdBuffer;
+}
+
 void vkaSubmit(std::vector<VkaCommandBuffer> cmdBufs, VkQueue queue, const SubmitSynchronizationInfo syncInfo)
 {
 	std::vector<VkCommandBuffer> vkCmdBufs;
@@ -31,4 +39,10 @@ void vkaSubmit(std::vector<VkaCommandBuffer> cmdBufs, VkQueue queue, const Submi
 	VK_CHECK(vkQueueSubmit(queue, 1, &submit, syncInfo.signalFence));
 }
 
+
 }        // namespace vka
+
+#define VKA_IMMEDIATE(CODE)                                                \
+	VkaCommandBuffer cmdBuf = vkaCreateCommandBuffer(gState.frame->stack); \
+	CODE;                                                                  \
+	vkaExecuteImmediate(cmdBuf);

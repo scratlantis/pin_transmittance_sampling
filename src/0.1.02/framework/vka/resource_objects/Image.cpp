@@ -18,7 +18,14 @@ void Image_I::createHandles()
 	VmaAllocationCreateInfo vmaAllocationCreateInfo{};
 	vmaAllocationCreateInfo.usage                   = VMA_MEMORY_USAGE_GPU_ONLY;
 	VmaAllocation alloc;
+
+
+	VkImageLayout targetInitialLayout = ci.initialLayout;
+	ci.initialLayout                  = VK_IMAGE_LAYOUT_PREINITIALIZED;
 	gState.memAlloc.createImage(&ci, &vmaAllocationCreateInfo, &handle, &alloc);
+	ci.initialLayout = targetInitialLayout;
+
+
 	res       = new ImageVMA_R(handle, alloc);
 	res->track(pPool);
 	if (createView)
@@ -51,6 +58,31 @@ Image_I Image_I::recreate()
 	createHandles();
 	return imgCopy;
 }
+
+Image_I Image_I::recreate()
+{
+	Image_I imgCopy = *this;
+	// clang-format off
+	if (ci.format == format &&
+		ci.extent.depth == extent.depth && ci.extent.height == extent.height && ci.extent.width == extent.width
+		&& ci.mipLevels == mipLevels
+		&& ci.usage == usage)
+	// clang-format on
+	{
+		return imgCopy;
+	}
+	ci.format    = format;
+	ci.extent    = extent;
+	ci.mipLevels = mipLevels;
+	ci.usage     = usage;
+	detachChildResources();
+	VkImageLayout targetInitialLayout = ci.initialLayout;
+	ci.initialLayout                  = VK_IMAGE_LAYOUT_UNDEFINED;
+	createHandles();
+	ci.initialLayout = targetInitialLayout;
+	return imgCopy;
+}
+
 
 void Image_I::detachChildResources()
 {

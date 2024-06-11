@@ -83,6 +83,10 @@ class Image_I : public Resource_T<VkImage>, public IDescriptor
 	  {
 		  return layout;
 	  }
+	  virtual VkImageLayout getInitialLayout()
+	  {
+		  return ci.initialLayout;
+	  }
 	  virtual void setLayout(VkImageLayout layout)
 	  {
 		  this->layout = layout;
@@ -95,7 +99,7 @@ class Image_I : public Resource_T<VkImage>, public IDescriptor
 		extent    = ci.extent;
 		mipLevels = ci.mipLevels;
 		usage     = ci.usage;
-		layout    = ci.initialLayout;
+		layout           = VK_IMAGE_LAYOUT_UNDEFINED;
 		this->createView = createView;
 		track(pPool);
 	}
@@ -146,13 +150,16 @@ class Image_I : public Resource_T<VkImage>, public IDescriptor
 
 
 	virtual void createHandles();
-	virtual Image_I recreate();
+	virtual Image_I   recreate();
+	void           attainInitialLayout(CmdBuffer_I *cmdBuf);
 	virtual void       detachChildResources();
 	virtual void     track(IResourcePool *pPool) override;
 	virtual void     free() override;
 	virtual hash_t    hash() const override;
 
 	void writeDescriptorInfo(VkWriteDescriptorSet &write, VkDescriptorBufferInfo *&pBufferInfo, VkDescriptorImageInfo *&pImageInfos) const override;
+	void updateLayout(VkCommandBuffer cmdBuf, VkImageLayout newLayout);
+
 };
 
 class SwapchainImage_I : public Image_I
