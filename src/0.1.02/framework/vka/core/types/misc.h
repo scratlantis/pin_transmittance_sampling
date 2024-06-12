@@ -94,3 +94,6 @@ struct ClearValue
 };
 typedef uint64_t hash_t;
 }        // namespace vka
+#define VK_CLEAR_COLOR_BLACK {0.0f, 0.0f, 0.0f, 1.0f}
+#define VK_CLEAR_COLOR_WHITE {1.0f, 1.0f, 1.0f, 1.0f}
+#define VK_CLEAR_COLOR_MAX_DEPTH {1.0f, 0}

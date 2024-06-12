@@ -69,11 +69,18 @@ int main()
 	while (!gState.io.shouldTerminate())
 	{
 		gui.newFrame();
+		// Reload shaders
 		if (gState.io.keyEvent[GLFW_KEY_R] && gState.io.keyPressed[GLFW_KEY_R])
 		{
 			vkDeviceWaitIdle(gState.device.logical);
 			gState.cache->clearShaders();
 		}
+		// Resize window
+		if (gState.io.swapchainRecreated())
+		{
+			framebufferCache.clear();
+		}
+
 		VkaCommandBuffer cmdBuf = vkaCreateCommandBuffer(gState.frame->stack);
 		if (0) // Gui button
 		{
@@ -101,9 +108,10 @@ int main()
 
 			// ...
 
+
 			// Render gui
 			{
-				vkaCmdStartRenderPass(cmdBuf, guiRenderPass, framebufferCache.fetch(guiRenderPass, {offscreenImage}));
+				vkaCmdStartRenderPass(cmdBuf, guiRenderPass, framebufferCache.fetch(guiRenderPass, {vkaGetSwapchainImage()}), {VK_CLEAR_COLOR_BLACK});
 				gui.render(cmdBuf);
 				vkaCmdEndRenderPass(cmdBuf);
 			}

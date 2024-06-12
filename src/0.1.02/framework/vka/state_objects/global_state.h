@@ -108,7 +108,6 @@ class IOController
 	void    destroy();
 	void    terminateWindowManager();
 	void    updateSwapchain();
-	void    recreateSwapchainAttachments();
 	bool    swapchainRecreated();
 	bool    shouldTerminate();
 	Window *getWindow();
@@ -173,14 +172,9 @@ class AppState
 	void                      presentFrame();
 	void nextFrame();
 	void destroy();
-	bool swapchainRecreated()
-	{
-		return swapchainWasRecreated;
-	}
 
   private:
 	std::vector<Frame> frames;
-	bool               swapchainWasRecreated;
 	void               initFrames();
 	void               destroyFrames();
 

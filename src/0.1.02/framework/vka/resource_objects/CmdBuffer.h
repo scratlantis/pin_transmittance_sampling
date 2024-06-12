@@ -108,7 +108,7 @@ struct RenderState
 class CmdBuffer_I : public Resource_T<VkCommandBuffer>
 {
   protected:
-	CmdBuffer_R             *res;
+	CmdBuffer_R             *res = nullptr;
 	bool        hasMemoryOwnership = false;
 
   public:

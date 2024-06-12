@@ -1,6 +1,8 @@
 #include "global_state.h"
 #include <vka/interface/commands/commands.h> // civ
 #include <vka/interface/cmd_buffer_functionality.h> // civ
+#include <vka/resource_objects/ResourcePool.h>
+#include <vka/resource_objects/ResourceCache.h>
 
 namespace vka
 {
@@ -206,6 +208,7 @@ void vka::IOController::init()
 		imageCount = std::min(imageCount, swapChainDetails.surfaceCapabilities.maxImageCount);
 	}
 	shouldRecreateSwapchain = true;
+	swapchainAttachmentPool = new ResourcePool();
 	updateSwapchain();
 	gState.initBits |= STATE_INIT_IO_BIT;
 }
@@ -215,6 +218,7 @@ void vka::IOController::updateSwapchain()
 	if (!shouldRecreateSwapchain)
 	{
 		swapchainWasRecreated = false;
+		return;
 	}
 	vkDeviceWaitIdle(gState.device.logical);
 
@@ -277,9 +281,13 @@ void vka::IOController::updateSwapchain()
 		vkDestroySwapchainKHR(gState.device.logical, oldSwapchain, nullptr);
 	}
 
-	std::vector<VkImage> images(imageCount);
 	images.resize(imageCount);
 	imageViews.resize(imageCount);
+	imageLayouts.resize(imageCount);
+	for (size_t i = 0; i < imageLayouts.size(); i++)
+	{
+		imageLayouts[i] = VK_IMAGE_LAYOUT_UNDEFINED;
+	}
 	VK_CHECK(vkGetSwapchainImagesKHR(gState.device.logical, swapchain, &imageCount, images.data()));
 	for (size_t i = 0; i < imageCount; i++)
 	{
@@ -316,6 +324,8 @@ void vka::IOController::readInputs()
 
 void vka::IOController::destroy()
 {
+	swapchainAttachmentPool->clear();
+	delete swapchainAttachmentPool;
 	vkDestroySwapchainKHR(gState.device.logical, swapchain, nullptr);
 	for (size_t i = 0; i < imageCount; i++)
 	{
@@ -351,6 +361,7 @@ void vka::AppState::initFrames()
 		frames[i].frameIndex = i;
 		frames[i].next       = &frames[NEXT_INDEX(i, io.imageCount)];
 		frames[i].previous   = &frames[PREVIOUS_INDEX(i, io.imageCount)];
+		frames[i].stack    = new ResourcePool();
 		VK_CHECK(vkCreateSemaphore(device.logical, &semaphoreCI, nullptr, &frames[i].imageAvailableSemaphore));
 		VK_CHECK(vkCreateSemaphore(device.logical, &semaphoreCI, nullptr, &frames[i].renderFinishedSemaphore));
 		VK_CHECK(vkCreateFence(device.logical, &fenceCI, nullptr, &frames[i].inFlightFence));
@@ -368,6 +379,7 @@ void vka::AppState::destroyFrames()
 		vkDestroySemaphore(device.logical, frame.renderFinishedSemaphore, nullptr);
 		vkDestroyFence(device.logical, frame.inFlightFence, nullptr);
 		frame.stack->clear();
+		delete frame.stack;
 	}
 }
 
@@ -378,6 +390,10 @@ void AppState::nextFrame()
 	frame->stack->clear();
 	io.readInputs();
 	io.updateSwapchain();
+	if (io.swapchainRecreated())
+	{
+		frame = &frames[0];
+	}
 	io.imageLayouts[frame->frameIndex] = VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
@@ -399,6 +415,7 @@ void AppState::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *wi
 	initFrames();
 	memAlloc.init();
 	cmdAlloc.init();
+	cache = new ResourceCache();
 	initBits |= STATE_INIT_ALL_BIT;
 }
 SubmitSynchronizationInfo AppState::acquireNextSwapchainImage()
@@ -428,9 +445,11 @@ void AppState::presentFrame()
 void AppState::destroy()
 {
 	vkDeviceWaitIdle(device.logical);
+
 	io.destroy();
 	destroyFrames();
 	cache->clearAll();
+	delete cache;
 	cmdAlloc.destroy();
 	memAlloc.destroy();
 	device.destroy();

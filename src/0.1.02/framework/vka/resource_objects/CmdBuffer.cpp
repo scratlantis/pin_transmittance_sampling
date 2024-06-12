@@ -34,7 +34,7 @@ void CmdBuffer_I::createHandles(CmdBufferCapabitlityMask capability, VkCommandBu
 	}
 	VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 	beginInfo.flags = usage;
-	VKA_CHECK(vkBeginCommandBuffer(handle, &beginInfo));
+	VK_CHECK(vkBeginCommandBuffer(handle, &beginInfo));
 	stateBits |= CMD_BUF_STATE_BITS_RECORDING;
 	res = new CmdBuffer_R(handle, cmdPool);
 	res->track(pPool);

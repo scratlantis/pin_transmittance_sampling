@@ -29,10 +29,13 @@ class ResourceCache : public IResourceCache
 	{
 		auto it = map.find(rID);
 		if (it != map.end())
-			return it->second.getHandle();
-		Obj obj = Obj(rID)
-		map.insert({rID, obj});
-		return obj.getHandle();
+			handle = it->second.getHandle();
+		else
+		{
+			Obj obj = Obj(rID);
+			map.insert({rID, obj});
+			handle = obj.getHandle();
+		}
 	}
 	template <typename Def, typename Obj>
 	static void clear(std::unordered_map<Def, Obj> &map)
@@ -40,7 +43,7 @@ class ResourceCache : public IResourceCache
 	    auto it = map.begin();
 	    for (auto it = map.begin(); it != map.end(); ++it)
 	    {
-	        (*it)->second.free();
+	        it->second.free();
 	    }
 	    map.clear();
 	}
