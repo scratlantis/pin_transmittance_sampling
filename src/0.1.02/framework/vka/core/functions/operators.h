@@ -2,8 +2,7 @@
 #include "misc.h"
 // custom operator
 // https://stackoverflow.com/questions/8425077/can-i-create-a-new-operator-in-c-and-how
-namespace vka
-{
+
 // generic LHSlt holder
 template <typename LHS, typename OP>
 struct LHSlt
@@ -29,8 +28,7 @@ int operator>(LHSlt<A, decltype(hashCombine_OP)> lhsof, B rhs)
 {
 	A &lhs = lhsof.lhs_;
 	// actual implementation
-	return hashCombine(lhs, rhs);
+	return vka::hashCombine(lhs, rhs);
 }
 
 #define HASHC < hashCombine_OP >
-}        // namespace vka

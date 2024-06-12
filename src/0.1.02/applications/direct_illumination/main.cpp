@@ -1,10 +1,4 @@
-#define VMA_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
 #include <vka/vka.h>
-#include <vka/state_objects/GlfwWindow.h>
-#include <vka/render/common.h>
-#include <vka/geometry/common.h>
-#include <vka/render/tools/FramebufferCache.h>
 #include "config.h"
 #include "app_data.h"
 #include "shaderStructs.h"
@@ -12,8 +6,13 @@
 using namespace vka;
 AppState gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
-const std::string gResourceBaseDir = RESOURCE_BASE_DIR;
-std::vector<GVar *> gVars = {};
+const std::string   gResourceBaseDir = RESOURCE_BASE_DIR;
+// clang-format off
+std::vector<GVar *> gVars =
+{
+        &gvar_use_pins
+};
+// clang-format on
 int main()
 {
 	// Global State Initialization
@@ -45,6 +44,8 @@ int main()
 
 
 	RenderPassDefinition guiRenderPassDef = RenderPassDefinition();
+	setDefaults(guiRenderPassDef, 1 , 1);
+	addColorAttachment(guiRenderPassDef, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, gState.io.format, true);
 	// Todo: configure gui render pass
 
 

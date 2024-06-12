@@ -59,30 +59,6 @@ Image_I Image_I::recreate()
 	return imgCopy;
 }
 
-Image_I Image_I::recreate()
-{
-	Image_I imgCopy = *this;
-	// clang-format off
-	if (ci.format == format &&
-		ci.extent.depth == extent.depth && ci.extent.height == extent.height && ci.extent.width == extent.width
-		&& ci.mipLevels == mipLevels
-		&& ci.usage == usage)
-	// clang-format on
-	{
-		return imgCopy;
-	}
-	ci.format    = format;
-	ci.extent    = extent;
-	ci.mipLevels = mipLevels;
-	ci.usage     = usage;
-	detachChildResources();
-	VkImageLayout targetInitialLayout = ci.initialLayout;
-	ci.initialLayout                  = VK_IMAGE_LAYOUT_UNDEFINED;
-	createHandles();
-	ci.initialLayout = targetInitialLayout;
-	return imgCopy;
-}
-
 
 void Image_I::detachChildResources()
 {

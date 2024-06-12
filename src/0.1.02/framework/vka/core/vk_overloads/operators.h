@@ -8,6 +8,21 @@ namespace vka
 // RenderPassStuff
 struct SubpassDescription_OP : public VkSubpassDescription
 {
+	/*SubpassDescription_OP()
+	{
+		flags = 0;
+		pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		inputAttachmentCount = 0;
+		pInputAttachments = nullptr;
+		colorAttachmentCount = 0;
+		pColorAttachments = nullptr;
+		pResolveAttachments;
+		pDepthStencilAttachment;
+		preserveAttachmentCount;
+		pPreserveAttachments;
+	}*/
+
+
 	bool operator==(SubpassDescription_OP const &other) const
 	{
 		// clang-format off

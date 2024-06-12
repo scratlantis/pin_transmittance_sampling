@@ -1,3 +1,4 @@
+#define VMA_IMPLEMENTATION
 #include "MemAllocator.h"
 #include "global_state.h"
 

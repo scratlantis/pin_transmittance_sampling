@@ -76,4 +76,16 @@ void CmdBuffer_I::track(IResourcePool *pPool)
 	Resource::track(pPool);
 	hasMemoryOwnership = false;
 }
+
+
+std::vector<VkClearValue> RenderState::getClearValues() const
+{
+	std::vector<VkClearValue> clearValues;
+	for (size_t i = 0; i < this->clearValues.size(); i++)
+	{
+		clearValues.push_back(this->clearValues[i].value);
+	}
+	return clearValues;
 }
+
+} // namespace vka

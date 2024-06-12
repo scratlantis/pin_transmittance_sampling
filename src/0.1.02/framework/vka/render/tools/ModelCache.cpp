@@ -71,7 +71,7 @@ ModelData ModelCache::fetch(VkaCommandBuffer cmdBuf, std::string path, uint32_t 
 		modelData.indexBuffer  = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		modelData.surfaceBuffer  = vkaCreateBuffer(pPool); // Only used cpu side
 		modelData.surfaceCount = 0;
-		if (loadObj(path, modelData.vertexBuffer, modelData.indexBuffer, modelData.surfaceBuffer, &modelData.surfaceCount, bytesPerVertex, parse))
+		if (loadObj(path, modelData.vertexBuffer, modelData.indexBuffer, modelData.surfaceBuffer, modelData.surfaceCount, bytesPerVertex, parse))
 		{
 			map.insert({path, modelData});
 		}

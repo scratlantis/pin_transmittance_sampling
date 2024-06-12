@@ -5,32 +5,7 @@
 #include "tiny_obj_loader.h"
 namespace vka
 {
-typedef uint32_t Index;
 
-struct SurfaceData
-{
-	uint32_t vertexOffset;
-	uint32_t vertexCount;
-	uint32_t indexOffset;
-	uint32_t indexCount;
-};
-
-struct ModelData
-{
-	VkaBuffer vertexBuffer;
-	VkaBuffer indexBuffer;
-	VkaBuffer surfaceBuffer;
-	uint32_t  surfaceCount;
-
-	bool operator==(const ModelData &other) const
-	{
-		return vertexBuffer == other.vertexBuffer && indexBuffer == other.indexBuffer && surfaceBuffer == other.surfaceBuffer && surfaceCount == other.surfaceCount;
-	};
-	hash_t hash() const
-	{
-		return vertexBuffer HASHC indexBuffer HASHC surfaceBuffer HASHC surfaceCount;
-	}
-};
 
 static void parse_VEC3(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes)
 {
@@ -55,4 +30,4 @@ class ModelCache
 };
 }
 
-DECLARE_HASH(vka::ModelData, hash);
+DECLARE_HASH(ModelData, hash);

@@ -1,6 +1,8 @@
 #pragma once
-#include <glm/glm.hpp>
 #include <vka/vka.h>
+using namespace vka;
+GVar gvar_use_pins{"show pins", 0, GVAR_ENUM, GVAR_APPLICATION, {"None", "All", "Grid", "Nearest Neighbor 1", "Nearest Neighbor 2"}};
+
 struct AppConfig
 {
 	uint32_t gaussianCount = 30;

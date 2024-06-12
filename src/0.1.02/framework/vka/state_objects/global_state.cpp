@@ -1,5 +1,6 @@
 #include "global_state.h"
-#include <vka/interface/commands/commands.h>
+#include <vka/interface/commands/commands.h> // civ
+#include <vka/interface/cmd_buffer_functionality.h> // civ
 
 namespace vka
 {
@@ -410,6 +411,7 @@ SubmitSynchronizationInfo AppState::acquireNextSwapchainImage()
 	syncInfo.waitDstStageMask = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 	syncInfo.signalSemaphores = {frame->renderFinishedSemaphore};
 	syncInfo.signalFence      = frame->inFlightFence;
+	return syncInfo;
 }
 
 void AppState::presentFrame()
