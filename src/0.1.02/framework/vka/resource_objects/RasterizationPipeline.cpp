@@ -117,6 +117,21 @@ static VkPipelineDynamicStateCreateInfo makeDynamicStateCI(std::vector<VkDynamic
 
 RasterizationPipeline::RasterizationPipeline(RasterizationPipelineDefinition const &def)
 {
+	std::vector <ZERO_PAD(VkViewport)> viewports;
+	std::vector <ZERO_PAD(VkRect2D)> scissors;
+	if (def.viewports.size() == 0 && def.scissors.size() == 0)
+	{
+		ZERO_PAD(VkViewport) viewport;
+		viewport.width    = (float)gState.io.extent.width;
+		viewport.height   = (float)gState.io.extent.height;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		viewports.push_back(viewport);
+		ZERO_PAD(VkRect2D) scissor;
+		scissor.extent.width  = gState.io.extent.width;
+		scissor.extent.height = gState.io.extent.height;
+		scissors.push_back(scissor);
+	}
 	VkGraphicsPipelineCreateInfo ci{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
 	ci.flags = def.flags;
 	std::vector<VkPipelineShaderStageCreateInfo> stageCIs(def.shaderDefinitions.size());
@@ -130,7 +145,7 @@ RasterizationPipeline::RasterizationPipeline(RasterizationPipelineDefinition con
 	ci.pVertexInputState                                    = &vertexInputStateCI;
 	ci.pInputAssemblyState                                  = &def.inputAssemblyState;
 	ci.pTessellationState                                   = &def.tessellationState;
-	VkPipelineViewportStateCreateInfo viewportStateCI       = makeViewportStateCI(def.viewports, def.scissors);
+	VkPipelineViewportStateCreateInfo viewportStateCI       = makeViewportStateCI(viewports, scissors);
 	ci.pViewportState                                       = &viewportStateCI;
 	ci.pRasterizationState                                  = &def.rasterizationState;
 	ci.pMultisampleState                                    = &def.multisampleState;

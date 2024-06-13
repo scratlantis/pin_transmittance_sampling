@@ -64,3 +64,64 @@ struct Gaussian
 	glm::vec3 mean;
 	float     variance;
 };
+
+class PosVertex
+{
+  public:
+	PosVertex(){};
+	PosVertex(glm::vec3 pos) :
+	    pos(pos)
+	{}
+	glm::vec3                              pos;
+	static VkVertexInputBindingDescription getBindingDescription(uint32_t bindingIdx)
+	{
+		return vka::getVertexBindingDescription(sizeof(PosVertex), bindingIdx);
+	}
+	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(uint32_t binding)
+	{
+		return vka::getAttributeDescriptions(binding, {VK_FORMAT_R32G32B32_SFLOAT}, {0});
+	}
+
+	static void parse(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes)
+	{
+		glm::vec3 *vertex = (glm::vec3 *) vertexPointer;
+		vertex->x         = vertexAttributes.vertices[idx * 3];
+		vertex->y         = vertexAttributes.vertices[idx * 3 + 1];
+		vertex->z         = vertexAttributes.vertices[idx * 3 + 2];
+	}
+};
+
+class Transform
+{
+  public:
+	glm::mat4 mat;
+	glm::mat4 invMat;
+	Transform(glm::mat4 mat = glm::mat4(1.0)) :
+	    mat(mat), invMat(glm::inverse(mat))
+	{}
+	static VkVertexInputBindingDescription getBindingDescription(uint32_t bindingIdx)
+	{
+		return getInstanceBindingDescription(sizeof(Transform), bindingIdx);
+	}
+	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(uint32_t binding)
+	{
+		return vka::getAttributeDescriptions(
+		    binding,
+		    {VK_FORMAT_R32G32B32A32_SFLOAT,
+		     VK_FORMAT_R32G32B32A32_SFLOAT,
+		     VK_FORMAT_R32G32B32A32_SFLOAT,
+		     VK_FORMAT_R32G32B32A32_SFLOAT,
+		     VK_FORMAT_R32G32B32A32_SFLOAT,
+		     VK_FORMAT_R32G32B32A32_SFLOAT,
+		     VK_FORMAT_R32G32B32A32_SFLOAT,
+		     VK_FORMAT_R32G32B32A32_SFLOAT},
+		    {0,
+		     sizeof(glm::vec4),
+		     2 * sizeof(glm::vec4),
+		     3 * sizeof(glm::vec4),
+		     4 * sizeof(glm::vec4),
+		     5 * sizeof(glm::vec4),
+		     6 * sizeof(glm::vec4),
+		     7 * sizeof(glm::vec4)});
+	}
+};

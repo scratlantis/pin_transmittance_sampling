@@ -282,14 +282,25 @@ void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCmd &drawCall)
 	}
 
 	// for now only one surface
-	SurfaceData *pSurfaceData = (SurfaceData *) drawCall.model.surfaceBuffer->map(0, sizeof(SurfaceData));
+	SurfaceData surfaceData[1];
+	if (drawCall.model.surfaceBuffer)
+	{
+		vkaRead(drawCall.model.surfaceBuffer, &surfaceData[0]);
+	}
+	else
+	{
+		surfaceData[0].indexOffset = 0;
+		surfaceData[0].indexCount  = drawCall.model.indexBuffer->getSize() / sizeof(Index);
+		surfaceData[0].vertexOffset = 0;
+		surfaceData[0].vertexCount = drawCall.model.vertexBuffer->getSize() / drawCall.pipelineDef.vertexBindingDescriptions[0].stride;
+	}
 
 	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_INDEX_BUFFER)
 	{
-		vkaCmdBindIndexBuffer(cmdBuf, pSurfaceData->indexOffset);
+		vkaCmdBindIndexBuffer(cmdBuf, surfaceData[0].indexOffset);
 	}
 
-	vkaCmdDrawIndexed(cmdBuf, pSurfaceData->indexCount, drawCall.instanceCount, pSurfaceData->indexOffset, pSurfaceData->vertexOffset, 0);
+	vkaCmdDrawIndexed(cmdBuf, surfaceData[0].indexCount, drawCall.instanceCount, surfaceData[0].indexOffset, surfaceData[0].vertexOffset, 0);
 }
 
 void vkaCmdFinishDraw(VkaCommandBuffer cmdBuf)

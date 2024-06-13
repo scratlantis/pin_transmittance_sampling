@@ -66,3 +66,35 @@ struct ComputeCmd
 
 	vka::RenderState getRenderState() const;
 };
+
+struct RasterizationPipelineInitValues
+{
+	VkPipelineCreateFlags       flags;
+	VkSampleCountFlagBits       sampleCount;
+	float                       minSampleShading;
+	VkPrimitiveTopology         primitiveTopology;
+	float                       lineWidth;
+	float                       minDepthBounds;
+	float                       maxDepthBounds;
+	VkLogicOp                   blendLogicOp;
+	std::vector<VkDynamicState> dynamicStates;
+};
+
+struct VertexDataLayout
+{
+	std::vector<VkFormat> formats;
+	std::vector<uint32_t> offsets;
+	uint32_t stride;
+};
+
+struct BlendOperation
+{
+	VkBlendFactor srcFactor;
+	VkBlendFactor dstFactor;
+	VkBlendOp     op;
+};
+
+#define VKA_BLEND_OP_WRITE                                         \
+	{                                                              \
+		VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD \
+	}

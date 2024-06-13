@@ -6,6 +6,8 @@ namespace vka
 class SamplerDefinition : public ResourceIdentifier, public SamplerCreateInfo_Default, public IDescriptor
 {
   public:
+	SamplerDefinition() :
+	    SamplerCreateInfo_Default(){};
 	bool   operator==(const ResourceIdentifier &other) const override;
 	bool   operator==(const SamplerDefinition &other) const;
 	hash_t hash() const override;

@@ -26,3 +26,10 @@ void vkaWriteStaging(VkaBuffer buffer, void *data, uint32_t size)
 	memcpy(mapping, data, size);
 	vkaUnmap(buffer);
 }
+
+void vkaRead(VkaBuffer buffer, void *dst)
+{
+	void *mapping = buffer->map(0, buffer->getSize());
+	memcpy(dst, mapping, buffer->getSize());
+	buffer->unmap();
+}

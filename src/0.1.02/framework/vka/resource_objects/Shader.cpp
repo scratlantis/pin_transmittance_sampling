@@ -23,7 +23,7 @@ std::string ShaderDefinition::fileID() const
 	for (size_t i = 0; i < args.size(); i++)
 	{
 		id.append("_");
-		id.append(args[i].path);
+		id.append(args[i].name);
 		if (args[i].value != "")
 		{
 			id.append("=");
@@ -71,7 +71,7 @@ void Shader::compile(ShaderDefinition const &def)
 	cmdShaderCompile << GLSLC_COMMAND;
 	for (size_t i = 0; i < def.args.size(); i++)
 	{
-		cmdShaderCompile << " -D" << def.args[i].path << "=" << def.args[i].value;
+		cmdShaderCompile << " -D" << def.args[i].name << "=" << def.args[i].value;
 	}
 	std::string suffix = def.path.substr(def.path.find_last_of(".") + 1);
 	std::string name   = def.path.substr(0, def.path.find_last_of("."));

@@ -93,6 +93,11 @@ inline void addColorAttachment(RenderPassDefinition &def, VkImageLayout layoutIn
 	addAttachment(def, {layoutIn, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, layoutOut}, format, clear);
 }
 
+inline void addDepthAttachment(RenderPassDefinition &def, VkImageLayout layoutIn, VkImageLayout layoutOut, VkFormat format, bool clear)
+{
+	addAttachment(def, {layoutIn, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, layoutOut}, format, clear);
+}
+
 inline void nextSubpass(RenderPassDefinition &def)
 {
 	auto &subpassDescription             = def.subpassDescriptions.emplace_back();
@@ -100,6 +105,86 @@ inline void nextSubpass(RenderPassDefinition &def)
 	def.currentSubpass++;
 }
 
+inline void setDefaults(RasterizationPipelineDefinition &def, RasterizationPipelineInitValues &initValues, uint32_t maxSubpassCount, uint32_t maxAttachmentCount)
+{
+	def = {};
+	def.flags = initValues.flags;
+	def.multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	def.multisampleState.rasterizationSamples = initValues.sampleCount;
+	def.multisampleState.minSampleShading = initValues.minSampleShading;
+	def.inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	def.inputAssemblyState.topology = initValues.primitiveTopology;
+	def.tessellationState.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+	def.rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	def.rasterizationState.lineWidth  = initValues.lineWidth;
+	def.depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	def.depthStencilState.minDepthBounds = initValues.minDepthBounds;
+	def.depthStencilState.maxDepthBounds = initValues.maxDepthBounds;
+	def.globalColorBlendState.logicOp = VK_LOGIC_OP_NO_OP;
+	def.dynamicStates = initValues.dynamicStates;
+	setDefaults(def.renderPassDefinition, maxSubpassCount, maxAttachmentCount);
+}
+
+inline void addInput(RasterizationPipelineDefinition &def, VertexDataLayout inputLayout, VkVertexInputRate inputRate)
+{
+	VKA_ASSERT(inputLayout.formats.size() == inputLayout.offsets.size());
+	for (size_t i = 0; i < inputLayout.formats.size(); i++)
+	{
+		ZERO_PAD(VkVertexInputAttributeDescription) attributeDesc{};
+		attributeDesc.location = i;
+		attributeDesc.binding = def.vertexBindingDescriptions.size();
+		attributeDesc.format = inputLayout.formats[i];
+		attributeDesc.offset = inputLayout.offsets[i];
+		def.vertexAttributeDescriptions.push_back(attributeDesc);
+	}
+	ZERO_PAD(VkVertexInputBindingDescription) bindingDesc{};
+	bindingDesc.binding = def.vertexBindingDescriptions.size();
+	bindingDesc.stride = inputLayout.stride;
+	bindingDesc.inputRate = inputRate;
+	def.vertexBindingDescriptions.push_back(bindingDesc);
+}
+
+inline void addShader(RasterizationPipelineDefinition& def, std::string path, std::vector<ShaderArgs> args)
+{
+	def.shaderDefinitions.push_back(ShaderDefinition(path, args));
+}
+
+inline void addAttachment(RasterizationPipelineDefinition& def)
+{
+	def.colorBlendAttachmentStates.push_back({});
+}
+
+inline void addBlendAttachment(RasterizationPipelineDefinition &def, BlendOperation colorBlendOp, BlendOperation alphaBlendOp,
+                               VkColorComponentFlags colorWriteFlags = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT)
+{
+	ZERO_PAD(VkPipelineColorBlendAttachmentState)
+	attachmentBlendState{};
+	attachmentBlendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	attachmentBlendState.blendEnable    = VK_TRUE;
+
+	attachmentBlendState.srcAlphaBlendFactor = colorBlendOp.srcFactor;
+	attachmentBlendState.dstAlphaBlendFactor = colorBlendOp.dstFactor;
+	attachmentBlendState.alphaBlendOp        = colorBlendOp.op;
+
+	attachmentBlendState.srcColorBlendFactor = alphaBlendOp.srcFactor;
+	attachmentBlendState.dstColorBlendFactor = alphaBlendOp.dstFactor;
+	attachmentBlendState.colorBlendOp        = alphaBlendOp.op;
+	def.colorBlendAttachmentStates.push_back(attachmentBlendState);
+}
+
+inline void addDescriptor(RasterizationPipelineDefinition &def, VkShaderStageFlags shaderStage, VkDescriptorType type)
+{
+	if (def.pipelineLayoutDefinition.descSetLayoutDef.empty())
+	{
+		def.pipelineLayoutDefinition.descSetLayoutDef.push_back({});
+	}
+	def.pipelineLayoutDefinition.descSetLayoutDef.back().addDescriptor(shaderStage, type);
+}
+
+inline void nextDescriptorSet(RasterizationPipelineDefinition& def)
+{
+	def.pipelineLayoutDefinition.descSetLayoutDef.push_back({});
+}
 
 
 

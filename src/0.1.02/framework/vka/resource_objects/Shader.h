@@ -7,12 +7,12 @@ namespace vka
 
 struct ShaderArgs
 {
-	std::string path;
+	std::string name;
 	std::string value;
 
 	bool operator==(const ShaderArgs &other) const
 	{
-		return path == other.path && value == other.value;
+		return name == other.name && value == other.value;
 	}
 };
 
@@ -21,6 +21,8 @@ struct ShaderArgs
 class ShaderDefinition : public ResourceIdentifier
 {
   public:
+	ShaderDefinition() = default;
+	ShaderDefinition(std::string path, std::vector<ShaderArgs> args) : path(path), args(args){};
 	std::string             path;
 	std::vector<ShaderArgs> args;
 

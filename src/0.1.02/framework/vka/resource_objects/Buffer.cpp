@@ -57,10 +57,12 @@ void Buffer_I::detachChildResources()
 	if (res)
 	{
 		res->track(gState.frame->stack);
+		res = nullptr;
 	}
 	if (viewRes)
 	{
 		viewRes->track(gState.frame->stack);
+		viewRes = nullptr;
 	}
 }
 

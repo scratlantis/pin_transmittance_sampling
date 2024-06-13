@@ -65,6 +65,8 @@ struct SamplerCreateInfo_Default : public VkSamplerCreateInfo
 		borderColor             = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 		unnormalizedCoordinates = VK_FALSE;
 	}
+	SamplerCreateInfo_Default() :
+	    SamplerCreateInfo_Default(0.0f) {}
 };
 
 

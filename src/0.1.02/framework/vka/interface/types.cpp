@@ -8,7 +8,14 @@ RenderState DrawCmd::getRenderState() const
 		RenderState state;
 		state.framebuffer       = framebuffer;
 		state.clearValues       = clearValues;
-		state.renderArea        = renderArea;
+		if (renderArea == VkRect2D_OP{ 0,0,0,0 })
+		{
+			state.renderArea = {0, 0, gState.io.extent.width, gState.io.extent.height};
+		}
+		else
+		{
+			state.renderArea        = renderArea;
+		}
 		state.renderPass        = gState.cache->fetch(pipelineDef.renderPassDefinition);
 		state.pipeline          = gState.cache->fetch(pipelineDef);
 		state.bindPoint         = VK_PIPELINE_BIND_POINT_GRAPHICS;

@@ -20,7 +20,6 @@ int main()
 	IOControlerCI ioCI     = DefaultIOControlerCI(APP_NAME, 1000, 700);
 	GlfwWindow    window   = GlfwWindow();
 	gState.init(deviceCI, ioCI, &window);
-	FixedCamera camera = FixedCamera(FixedCameraCI_Default());
 	GvarGui     gui    = GvarGui();
 	// Init:
 	VkaImage         swapchainImage   = vkaGetSwapchainImage();
@@ -65,7 +64,6 @@ int main()
 
 
 	// Main loop:
-	uint32_t cnt = 0;
 	while (!gState.io.shouldTerminate())
 	{
 		gui.newFrame();
@@ -95,15 +93,14 @@ int main()
 		// Render
 		{
 			DrawCmd drawCmd{};
-			drawCmd.model;
-			drawCmd.pipelineDef;
-			drawCmd.attachments;
-			drawCmd.framebuffer;
-			drawCmd.descriptors;
-			drawCmd.clearValues;
-			drawCmd.renderArea;
-			drawCmd.instanceBuffers;
-			drawCmd.instanceCount;
+			drawCmd.model = modelCache.fetch(cmdBuf, "cube/cube.obj", sizeof(PosVertex), PosVertex::parse);
+			vka::setDefaults(drawCmd.pipelineDef, RasterizationPipelineDefaultValues(), 1, 2);
+			drawCmd.attachments = {depthImage, offscreenImage};
+			drawCmd.framebuffer = framebufferCache.fetch(gState.cache->fetch(drawCmd.pipelineDef.renderPassDefinition), drawCmd.attachments);
+			drawCmd.descriptors = {appData.viewBuf, appData.gaussianBuf, &appData.envMapSamplerDef, lineColorImg, linePosImg};
+			drawCmd.clearValues = {VK_CLEAR_COLOR_MAX_DEPTH, VK_CLEAR_COLOR_WHITE};
+			drawCmd.instanceBuffers = {appData.gaussianFogCubeTransformBuf};
+			drawCmd.instanceCount = 1;
 
 
 			// ...

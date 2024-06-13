@@ -1,5 +1,6 @@
 #pragma once
 #include <vka/state_objects/global_state.h>
+#include <vka/interface/types.h>
 struct D3VKPTDeviceCI : vka::DeviceCI
 {
 	D3VKPTDeviceCI(std::string appName)
@@ -104,5 +105,22 @@ struct DefaultIOControlerCI : vka::IOControlerCI
 		preferedFormats             = {{VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}, {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}};
 		preferedPresentModes        = {VK_PRESENT_MODE_MAILBOX_KHR};
 		preferedSwapchainImageCount = 3;
+	}
+};
+
+// raster: cull back, front face
+struct RasterizationPipelineDefaultValues : public RasterizationPipelineInitValues
+{
+	RasterizationPipelineDefaultValues()
+	{
+		flags             = 0;
+		sampleCount       = VK_SAMPLE_COUNT_1_BIT;
+		minSampleShading  = 1.0f;
+		primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		lineWidth         = 1.0;
+		minDepthBounds    = 0.0;
+		maxDepthBounds    = 1.0;
+		blendLogicOp      = VK_LOGIC_OP_NO_OP;
+		dynamicStates     = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 	}
 };
