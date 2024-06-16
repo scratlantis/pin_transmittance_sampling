@@ -26,7 +26,8 @@ void ComputePipeline::free()
 	vkDestroyPipeline(gState.device.logical, handle, nullptr);
 }
 
-ComputePipeline::ComputePipeline(ComputePipelineDefinition const &definition)
+ComputePipeline::ComputePipeline(IResourceCache *pCache, ComputePipelineDefinition const &definition) :
+    Cachable_T<VkPipeline>(pCache)
 {
 	VkComputePipelineCreateInfo     ci{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
 	VkPipelineShaderStageCreateInfo shaderStageCreateInfo = makeShaderStageCI(definition.shaderDef, pCache->fetch(definition.shaderDef));

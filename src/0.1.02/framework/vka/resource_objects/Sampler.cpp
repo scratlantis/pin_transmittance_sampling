@@ -26,7 +26,8 @@ void Sampler::free()
 	vkDestroySampler(gState.device.logical, handle, nullptr);
 }
 
-Sampler::Sampler(SamplerDefinition const &definition)
+Sampler::Sampler(IResourceCache *pCache, SamplerDefinition const &definition)
+	: Cachable_T<VkSampler>(pCache)
 {
 	VK_CHECK(vkCreateSampler(gState.device.logical, &definition, nullptr, &handle));
 }

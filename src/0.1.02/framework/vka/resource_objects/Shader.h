@@ -42,7 +42,7 @@ class Shader : public Cachable_T<VkShaderModule>
 	void           createModule(ShaderDefinition const &def);
   public:
 	virtual void     free() override;
-	Shader(ShaderDefinition const &definition);
+	Shader(IResourceCache *pCache, ShaderDefinition const &definition);
 };
 
 

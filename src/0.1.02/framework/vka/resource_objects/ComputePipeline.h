@@ -26,7 +26,7 @@ class ComputePipeline : public Cachable_T<VkPipeline>
 {
   public:
 	virtual void     free();
-	ComputePipeline(ComputePipelineDefinition const &definition);
+	ComputePipeline(IResourceCache* pCache, ComputePipelineDefinition const &definition);
 };
 }		// namespace vka
 DECLARE_HASH(vka::ComputePipelineDefinition, hash)

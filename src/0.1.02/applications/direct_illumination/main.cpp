@@ -10,7 +10,7 @@ const std::string   gResourceBaseDir = RESOURCE_BASE_DIR;
 // clang-format off
 std::vector<GVar *> gVars =
 {
-        &gvar_use_pins
+        //&gvar_use_pins
 };
 // clang-format on
 int main()
@@ -28,6 +28,8 @@ int main()
 	ModelCache       modelCache       = ModelCache(&heap, gResourceBaseDir + "/models");
 	// TextureCache textureCache = TextureCache(&heap, gResourceBaseDir + "/textures");
 	AppData appData = AppData();
+	std::string shaderDir = std::string(APP_SRC_DIR) + "/shaders/";
+	appData.init(&heap);
 
 	// Create Images
 	VkaImage offscreenImage = vkaCreateSwapchainAttachment(gState.io.format,
@@ -41,14 +43,9 @@ int main()
 	VkaImage pinIdImage     = vkaCreateSwapchainAttachment(VK_FORMAT_R32_UINT,
 	                                                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
-
 	RenderPassDefinition guiRenderPassDef = RenderPassDefinition();
-	setDefaults(guiRenderPassDef, 1 , 1);
-	addColorAttachment(guiRenderPassDef, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, gState.io.format, true);
-	// Todo: configure gui render pass
-
-
-
+	setDefaults(guiRenderPassDef);
+	addColorAttachment(guiRenderPassDef, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, gState.io.format, false);
 	VkRenderPass         guiRenderPass    = gState.cache->fetch(guiRenderPassDef);
 	gui.create(guiRenderPass, 0);
 	
@@ -67,6 +64,7 @@ int main()
 	while (!gState.io.shouldTerminate())
 	{
 		gui.newFrame();
+		VkaImage swapchainImage = vkaGetSwapchainImage();
 		// Reload shaders
 		if (gState.io.keyEvent[GLFW_KEY_R] && gState.io.keyPressed[GLFW_KEY_R])
 		{
@@ -80,35 +78,47 @@ int main()
 		}
 
 		VkaCommandBuffer cmdBuf = vkaCreateCommandBuffer(gState.frame->stack);
-		if (0) // Gui button
+		if (1) // Gui button
 		{
 			appData.update(cmdBuf, appConfig);
 		}
-
-		// Update view
-		{
-			// ...
-		}
-
 		// Render
 		{
-			DrawCmd drawCmd{};
-			drawCmd.model = modelCache.fetch(cmdBuf, "cube/cube.obj", sizeof(PosVertex), PosVertex::parse);
-			vka::setDefaults(drawCmd.pipelineDef, RasterizationPipelineDefaultValues(), 1, 2);
-			drawCmd.attachments = {depthImage, offscreenImage};
-			drawCmd.framebuffer = framebufferCache.fetch(gState.cache->fetch(drawCmd.pipelineDef.renderPassDefinition), drawCmd.attachments);
-			drawCmd.descriptors = {appData.viewBuf, appData.gaussianBuf, &appData.envMapSamplerDef, lineColorImg, linePosImg};
-			drawCmd.clearValues = {VK_CLEAR_COLOR_MAX_DEPTH, VK_CLEAR_COLOR_WHITE};
-			drawCmd.instanceBuffers = {appData.gaussianFogCubeTransformBuf};
-			drawCmd.instanceCount = 1;
+			if (1)
+			{
+				DrawCmd drawCmd{};
+				setDefaults(drawCmd.pipelineDef, RasterizationPipelineDefaultValues());
+				drawCmd.model           = modelCache.fetch(cmdBuf, "cube/cube.obj", sizeof(PosVertex), PosVertex::parse);
+				drawCmd.instanceBuffers = {appData.gaussianFogCubeTransformBuf};
+				drawCmd.instanceCount   = 1;
+				addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+				addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				/*addDescriptor(drawCmd, &appData.envMapSamplerDef, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addDescriptor(drawCmd, lineColorImg, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addDescriptor(drawCmd, linePosImg, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);*/
 
+				addInput(drawCmd.pipelineDef, PosVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
+				addInput(drawCmd.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
+				addShader(drawCmd.pipelineDef, shaderDir + "pins_render.vert", {});
+				addShader(drawCmd.pipelineDef, shaderDir + "pins_render_gaussian_fog.frag",
+				          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)}
+					});
+				//addDepthAttachment(drawCmd, depthImage, true, VK_TRUE, VK_COMPARE_OP_ALWAYS);
+				addColorAttachment(drawCmd, offscreenImage, {1.0f,0.0f,0.0f,1.0f},
+								   VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+								   VKA_BLEND_OP_WRITE, VKA_BLEND_OP_WRITE);
+				createFramebuffer(drawCmd, framebufferCache);
+				vkaCmdDraw(cmdBuf, drawCmd);
+			}
 
 			// ...
 
 
 			// Render gui
+			vkaCmdEndRenderPass(cmdBuf);
+			vkaCmdCopyImage(cmdBuf, offscreenImage, offscreenImage->getLayout(), swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 			{
-				vkaCmdStartRenderPass(cmdBuf, guiRenderPass, framebufferCache.fetch(guiRenderPass, {vkaGetSwapchainImage()}), {VK_CLEAR_COLOR_BLACK});
+				vkaCmdStartRenderPass(cmdBuf, guiRenderPass, framebufferCache.fetch(guiRenderPass, {swapchainImage}), {VK_CLEAR_COLOR_BLACK});
 				gui.render(cmdBuf);
 				vkaCmdEndRenderPass(cmdBuf);
 			}

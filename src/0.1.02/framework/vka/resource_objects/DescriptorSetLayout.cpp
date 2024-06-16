@@ -21,10 +21,11 @@ void DescriptorSetLayout::free()
 	vkDestroyDescriptorSetLayout(gState.device.logical, handle, nullptr);
 }
 
-DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayoutDefinition const &definition)
+DescriptorSetLayout::DescriptorSetLayout(IResourceCache *pCache, DescriptorSetLayoutDefinition const &definition) :
+    Cachable_T<VkDescriptorSetLayout>(pCache)
 {
 	VkDescriptorSetLayoutCreateInfo ci{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-	ci.flags        = definition.flags;
+	ci.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 	ci.bindingCount = definition.bindings.size();
 	ci.pBindings    = definition.bindings.data();
 	VK_CHECK(vkCreateDescriptorSetLayout(gState.device.logical, &ci, nullptr, &handle));
@@ -33,7 +34,7 @@ DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayoutDefinition const &de
 
 void DescriptorSetLayoutDefinition::addDescriptor(VkShaderStageFlags shaderStage, VkDescriptorType type)
 {
-	ZERO_PAD(VkDescriptorSetLayoutBinding) binding{};
+	VkDescriptorSetLayoutBinding_OP binding{};
 	binding.binding            = VKA_COUNT(bindings);
 	binding.descriptorType     = type;
 	binding.descriptorCount    = 1;

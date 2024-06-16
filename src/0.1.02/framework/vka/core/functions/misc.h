@@ -145,6 +145,20 @@ inline bool memcmpPtr(const T *a, const T *b)
 	return memcmp(a, b, sizeof(T)) == 0;
 }
 
+template <class T>
+inline bool cmpPtr(const T *a, const T *b)
+{
+	if (a == nullptr && b == nullptr)
+	{
+		return true;
+	}
+	if (a == nullptr || b == nullptr)
+	{
+		return false;
+	}
+	return *a == *b;
+}
+
 
 template <class T>
 inline bool memcmpVector(const std::vector<T> &a, const std::vector<T> &b)
@@ -170,6 +184,21 @@ inline bool memcmpArray(const T *a, const T *b, uint32_t count)
 	return memcmp(a, b, count * sizeof(T)) == 0;
 }
 
+
+template <class T>
+inline bool cmpArray(const T *a, const T *b, uint32_t count)
+{
+	if (count == 0)
+	{
+		return true;
+	}
+	bool isEqual = true;
+	for (size_t i = 0; i < count; i++)
+	{
+		isEqual &= a[i] == b[i];
+	}
+	return isEqual;
+}
 
 template <class T>
 inline bool cmpVector(const std::vector<T> &a, const std::vector<T> &b)

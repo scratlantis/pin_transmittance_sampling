@@ -32,7 +32,7 @@ class ResourceCache : public IResourceCache
 			handle = it->second.getHandle();
 		else
 		{
-			Obj obj = Obj(rID);
+			Obj obj = Obj(gState.cache, rID); // civ
 			map.insert({rID, obj});
 			handle = obj.getHandle();
 		}

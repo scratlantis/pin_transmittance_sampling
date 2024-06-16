@@ -45,15 +45,15 @@ struct ModelData
 
 struct DrawCmd
 {
-	ModelData                       model;
+	ModelData                            model;
 	vka::RasterizationPipelineDefinition pipelineDef;
-	std::vector<VkaImage>           attachments;
-	VkFramebuffer                   framebuffer;
+	std::vector<VkaImage>                attachments;
+	VkFramebuffer                        framebuffer;
 	std::vector<vka::IDescriptor *>      descriptors;
 	std::vector<vka::ClearValue>         clearValues;
 	vka::VkRect2D_OP                     renderArea;
-	std::vector<VkaBuffer>          instanceBuffers;
-	uint32_t                        instanceCount;
+	std::vector<VkaBuffer>               instanceBuffers;
+	uint32_t                             instanceCount;
 
 	vka::RenderState getRenderState() const;
 };

@@ -20,7 +20,7 @@ class Sampler : public Cachable_T<VkSampler>
 {
   public:
 	virtual void     free() override;
-	Sampler(SamplerDefinition const &definition);
+	Sampler(IResourceCache *pCache, SamplerDefinition const &definition);
 
 
 };

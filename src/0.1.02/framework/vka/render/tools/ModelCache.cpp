@@ -19,6 +19,7 @@ bool loadObj(std::string path, VkaBuffer vertexBuffer, VkaBuffer indexBuffer, Vk
 	if (!success)
 	{
 		std::cerr << "Failed to load model: " << path << std::endl;
+		DEBUG_BREAK
 		return false;
 	}
 
@@ -67,16 +68,17 @@ ModelData ModelCache::fetch(VkaCommandBuffer cmdBuf, std::string path, uint32_t 
 	if (it == map.end())
 	{
 		ModelData modelData;
-		modelData.vertexBuffer = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-		modelData.indexBuffer  = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-		modelData.surfaceBuffer  = vkaCreateBuffer(pPool); // Only used cpu side
-		modelData.surfaceCount = 0;
-		if (loadObj(path, modelData.vertexBuffer, modelData.indexBuffer, modelData.surfaceBuffer, modelData.surfaceCount, bytesPerVertex, parse))
+		modelData.vertexBuffer  = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		modelData.indexBuffer   = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		modelData.surfaceBuffer = vkaCreateBuffer(pPool);        // Only used cpu side
+		modelData.surfaceCount  = 0;
+		std::string fullPath    = baseDir + "/" + path;
+		if (loadObj(fullPath, modelData.vertexBuffer, modelData.indexBuffer, modelData.surfaceBuffer, modelData.surfaceCount, bytesPerVertex, parse))
 		{
 			map.insert({path, modelData});
+			vkaCmdUpload(cmdBuf, modelData.vertexBuffer);
+			vkaCmdUpload(cmdBuf, modelData.indexBuffer);
 		}
-		vkaCmdUpload(cmdBuf, modelData.vertexBuffer);
-		vkaCmdUpload(cmdBuf, modelData.indexBuffer);
 		return modelData;
 	}
 	return it->second;

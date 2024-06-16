@@ -1,0 +1,20 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "pins_common.glsl"
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+layout(binding = 0) uniform VIEW {View view;};
+layout(binding = 1) buffer PINS_USED {uint pinsUsed[PIN_COUNT];};
+layout(binding = 2) uniform sampler imgSampler;
+layout(binding = 3) uniform utexture2D pinImage;
+void main()
+{
+	uvec2 gID = gl_GlobalInvocationID.xy;
+	if(gID.x >= view.width || gID.y >= view.height) return;
+	ivec2 p = ivec2(gID);
+	uint id = texelFetch( usampler2D(pinImage, imgSampler) , p, 0).r;
+	if(id != 0)
+	{
+		pinsUsed[id-1] = 1;
+	}
+}

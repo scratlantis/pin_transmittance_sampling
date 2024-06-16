@@ -18,7 +18,8 @@ void PipelineLayout::free()
 {
 	vkDestroyPipelineLayout(gState.device.logical, handle, nullptr);
 }
-PipelineLayout::PipelineLayout(PipelineLayoutDefinition const &definition)
+PipelineLayout::PipelineLayout(IResourceCache *pCache, PipelineLayoutDefinition const &definition) :
+	Cachable_T<VkPipelineLayout>(pCache)
 {
 	VkPipelineLayoutCreateInfo         ci{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
 	std::vector<VkDescriptorSetLayout> descSetLayouts;

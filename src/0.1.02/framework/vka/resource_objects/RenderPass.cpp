@@ -5,9 +5,9 @@ namespace vka
 hash_t RenderPassDefinition::hash() const
 {
 	// clang-format off
-	return byteHashVector(attachmentDescriptions)
+	return hashVector(attachmentDescriptions)
 	    HASHC hashVector(subpassDescriptions)
-	    HASHC byteHashVector(subpassDependencies);
+	    HASHC hashVector(subpassDependencies);
 	// clang-format on
 }
 
@@ -16,9 +16,9 @@ DEFINE_EQUALS_OVERLOAD(RenderPassDefinition, ResourceIdentifier)
 bool RenderPassDefinition::operator==(const RenderPassDefinition &other) const
 {
 	// clang-format off
-	return memcmpVector(attachmentDescriptions, other.attachmentDescriptions)
+	return cmpVector(attachmentDescriptions, other.attachmentDescriptions)
 		&& cmpVector(subpassDescriptions, other.subpassDescriptions)
-	    && memcmpVector(subpassDependencies, other.subpassDependencies);
+	    && cmpVector(subpassDependencies, other.subpassDependencies);
 	// clang-format on
 }
 
@@ -27,14 +27,20 @@ void RenderPass::free()
 	vkDestroyRenderPass(gState.device.logical, handle, nullptr);
 }
 
-RenderPass::RenderPass(RenderPassDefinition const &def)
+RenderPass::RenderPass(IResourceCache *pCache, RenderPassDefinition const &def)
+	: Cachable_T<VkRenderPass>(pCache)
 {
 	VkRenderPassCreateInfo renderPassCreateInfo{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
 	renderPassCreateInfo.attachmentCount = VKA_COUNT(def.attachmentDescriptions);
 	renderPassCreateInfo.pAttachments    = def.attachmentDescriptions.data();
 	renderPassCreateInfo.subpassCount    = VKA_COUNT(def.subpassDescriptions);
-	renderPassCreateInfo.pSubpasses      = def.subpassDescriptions.data();
-	renderPassCreateInfo.dependencyCount = VKA_COUNT(def.subpassDependencies);
+	std::vector<VkSubpassDescription> vkSubpassDescriptions(def.subpassDescriptions.size());
+	for (size_t i = 0; i < vkSubpassDescriptions.size(); i++)
+	{
+		vkSubpassDescriptions[i] = def.subpassDescriptions[i].getVulkanStruct();
+	}
+	renderPassCreateInfo.pSubpasses      = vkSubpassDescriptions.data();
+	renderPassCreateInfo.dependencyCount = VKA_COUNT(vkSubpassDescriptions);
 	renderPassCreateInfo.pDependencies   = def.subpassDependencies.data();
 	VK_CHECK(vkCreateRenderPass(gState.device.logical, &renderPassCreateInfo, nullptr, &handle));
 }

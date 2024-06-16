@@ -8,9 +8,9 @@ RenderState DrawCmd::getRenderState() const
 		RenderState state;
 		state.framebuffer       = framebuffer;
 		state.clearValues       = clearValues;
-		if (renderArea == VkRect2D_OP{ 0,0,0,0 })
+		if (renderArea == VkRect2D_OP{})
 		{
-			state.renderArea = {0, 0, gState.io.extent.width, gState.io.extent.height};
+			state.renderArea = VkRect2D_OP({0, 0, gState.io.extent.width, gState.io.extent.height});
 		}
 		else
 		{

@@ -16,6 +16,7 @@ void vkaCmdCopyBuffer(VkaCommandBuffer cmdBuf, const Buffer_I *src, const Buffer
 void vkaCmdUpload(VkaCommandBuffer cmdBuf, VkaBuffer buf)
 {
 	buf->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
+	buf->addUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	const Buffer_I localBuf = buf->recreate();
 	vkaCmdCopyBuffer(cmdBuf, &localBuf, buf);
 }
@@ -231,8 +232,8 @@ void vkaCmdBindVertexBuffers(VkaCommandBuffer cmdBuf)
 	{
 		handels.push_back(cmdBuf->renderState.vertexBuffers[i]->getHandle());
 	}
-	VkDeviceSize offset(handels.size());
-	vkCmdBindVertexBuffers(cmdBuf->getHandle(), 0, 1, handels.data(), &offset);
+	std::vector<VkDeviceSize> offset(handels.size());
+	vkCmdBindVertexBuffers(cmdBuf->getHandle(), 0, handels.size(), handels.data(), offset.data());
 }
 
 void vkaCmdBindIndexBuffer(VkaCommandBuffer cmdBuf, VkDeviceSize offset)
@@ -283,7 +284,7 @@ void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCmd &drawCall)
 
 	// for now only one surface
 	SurfaceData surfaceData[1];
-	if (drawCall.model.surfaceBuffer)
+	if (drawCall.model.surfaceBuffer->getSize() != 0)
 	{
 		vkaRead(drawCall.model.surfaceBuffer, &surfaceData[0]);
 	}

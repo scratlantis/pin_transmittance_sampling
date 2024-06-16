@@ -45,11 +45,9 @@ namespace vka
 class RenderPassDefinition : public ResourceIdentifier
 {
   public:
-	std::vector<ZERO_PAD(VkAttachmentDescription)> attachmentDescriptions;
-	std::vector<SubpassDescription_OP>             subpassDescriptions;
-	std::vector<ZERO_PAD(VkSubpassDependency)>     subpassDependencies;
-	std::vector<ZERO_PAD(VkAttachmentReference)>   attachmentReferences;
-	std::vector<uint32_t>                          preserveAttachments;
+	std::vector<VkAttachmentDescription_OP> attachmentDescriptions;
+	std::vector<VkaSubpassDescription>             subpassDescriptions;
+	std::vector<VkSubpassDependency_OP>     subpassDependencies;
 	uint32_t									   currentSubpass = 0;
 	bool                                           operator==(const ResourceIdentifier &other) const override;
 	bool                                           operator==(const RenderPassDefinition &other) const;
@@ -62,7 +60,7 @@ class RenderPass : public Cachable_T<VkRenderPass>
 {
   public:
 	virtual void     free() override;
-	RenderPass(RenderPassDefinition const &def);
+	RenderPass(IResourceCache *pCache, RenderPassDefinition const &def);
 };
 }        // namespace vka
 DECLARE_HASH(vka::RenderPassDefinition, hash)

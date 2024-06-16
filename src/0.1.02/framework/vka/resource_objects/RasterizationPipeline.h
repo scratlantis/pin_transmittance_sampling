@@ -9,14 +9,35 @@ namespace vka
 {
 struct GlobalColorBlendState
 {
-	GlobalColorBlendState()
-	{
-		memset(this, 0, sizeof(GlobalColorBlendState));
-	}
+	GlobalColorBlendState(){};
 	VkPipelineColorBlendStateCreateFlags flags;
 	VkBool32                             logicOpEnable;
 	VkLogicOp                            logicOp;
 	float                                blendConstants[4];
+
+	bool operator==(const GlobalColorBlendState& other) const
+	{
+		return flags == other.flags && logicOpEnable == other.logicOpEnable && logicOp == other.logicOp && blendConstants[0] == other.blendConstants[0] &&
+		       blendConstants[1] == other.blendConstants[1] && blendConstants[2] == other.blendConstants[2] && blendConstants[3] == other.blendConstants[3];
+	}
+
+	bool operator!=(const GlobalColorBlendState& other) const
+	{
+		return !(*this == other);
+	}
+
+	hash_t hash() const
+	{
+		// clang-format off
+		return flags
+			HASHC logicOpEnable
+			HASHC logicOp
+			HASHC blendConstants[0]
+			HASHC blendConstants[1]
+			HASHC blendConstants[2]
+			HASHC blendConstants[3];
+		//clang-format on
+	}
 };
 class RasterizationPipelineDefinition : public ResourceIdentifier
 {
@@ -25,10 +46,10 @@ class RasterizationPipelineDefinition : public ResourceIdentifier
 	uint32_t                                         subpass;
 	PipelineMultisampleStateCreateInfo_OP            multisampleState;
 
-	ZERO_PAD(VkPipelineInputAssemblyStateCreateInfo)          inputAssemblyState;
-	ZERO_PAD(VkPipelineTessellationStateCreateInfo)          tessellationState;
-	ZERO_PAD(VkPipelineRasterizationStateCreateInfo)           rasterizationState;
-	ZERO_PAD(VkPipelineDepthStencilStateCreateInfo)            depthStencilState;
+	VkPipelineInputAssemblyStateCreateInfo_OP         inputAssemblyState;
+	VkPipelineTessellationStateCreateInfo_OP  tessellationState;
+	VkPipelineRasterizationStateCreateInfo_OP         rasterizationState;
+	VkPipelineDepthStencilStateCreateInfo_OP          depthStencilState;
 	GlobalColorBlendState                            globalColorBlendState;
 
 	PipelineLayoutDefinition                         pipelineLayoutDefinition;
@@ -39,11 +60,11 @@ class RasterizationPipelineDefinition : public ResourceIdentifier
 	std::vector<VkDynamicState>                      dynamicStates;
 	std::vector<VkSampleMask>                        sampleMasks;
 
-	std::vector<ZERO_PAD(VkPipelineColorBlendAttachmentState)> colorBlendAttachmentStates;
-	std::vector<ZERO_PAD(VkVertexInputBindingDescription)>     vertexBindingDescriptions;
-	std::vector<ZERO_PAD(VkVertexInputAttributeDescription)>   vertexAttributeDescriptions;
-	std::vector<ZERO_PAD(VkViewport)>                          viewports;
-	std::vector<ZERO_PAD(VkRect2D)>                            scissors;
+	std::vector<VkPipelineColorBlendAttachmentState_OP> colorBlendAttachmentStates;
+	std::vector<VkVertexInputBindingDescription_OP>     vertexBindingDescriptions;
+	std::vector<VkVertexInputAttributeDescription_OP>   vertexAttributeDescriptions;
+	std::vector<VkViewport_OP>                          viewports;
+	std::vector<VkRect2D_OP>                            scissors;
 
 	bool   operator==(const ResourceIdentifier &other) const override;
 	bool   operator==(const RasterizationPipelineDefinition &other) const;
@@ -54,7 +75,7 @@ class RasterizationPipeline : public Cachable_T<VkPipeline>
 {
   public:
 	virtual void     free() override;
-	RasterizationPipeline(RasterizationPipelineDefinition const &def);
+	RasterizationPipeline(IResourceCache *pCache, RasterizationPipelineDefinition const &def);
 };
 }        // namespace vka
 DECLARE_HASH(vka::RasterizationPipelineDefinition, hash)

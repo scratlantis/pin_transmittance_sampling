@@ -47,7 +47,8 @@ void Shader::free()
 	vkDestroyShaderModule(gState.device.logical, handle, nullptr);
 }
 
-Shader::Shader(ShaderDefinition const &definition)
+Shader::Shader(IResourceCache *pCache, ShaderDefinition const &definition)
+	: Cachable_T<VkShaderModule>(pCache)
 {
 	createModule(definition);
 }

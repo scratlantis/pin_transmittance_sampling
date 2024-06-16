@@ -1,0 +1,78 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "pins_common.glsl"
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+layout(binding = 0) uniform VIEW {View view;};
+layout(binding = 1, rgba32f) uniform image2D imageOffscreen;
+
+layout(binding = 2) buffer PINS_TRANSMITTANCE_STORAGE_BUFFER {float pinTransmittance[PIN_COUNT];};
+layout(binding = 3) buffer PIN_GRID_STORAGE_BUFFER {PinGridEntry pins[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
+layout(binding = 4) buffer GAUSSIAN_STORAGE_BUFFER {Gaussian gaussians[GAUSSIAN_COUNT];};
+
+
+vec3 getRayDir(ivec2 pixel)
+{
+	vec2 pixel_center   =   vec2(pixel) + vec2(0.5);
+    vec2 uv           = (pixel_center)/vec2(view.width, view.height);
+    vec2 device_coord     = uv * 2.0 - 1.0;
+	vec4 clipCoords = vec4(device_coord.x, device_coord.y, 1.0, 1.0);
+    vec4 target         = view.inverseProjectionMat * clipCoords;
+    vec4 direction      = view.inverseViewMat * target;
+	return normalize(direction.xyz);
+}
+
+RaySegment getPrimaryRay(ivec2 pixel)
+{
+	RaySegment seg;
+	seg.origin = view.camPos.xyz;
+	seg.direction = getRayDir(pixel);
+	seg.tMin = MIN_RAY_DISTANCE;
+	seg.tMax = MAX_RAY_DISTANCE;
+	return seg;
+}
+
+void main()
+{
+	uvec2 gID = gl_GlobalInvocationID.xy;
+	if(gID.x >= view.width || gID.y >= view.height) return;
+	ivec2 p = ivec2(gID);
+
+	RaySegment primaryRay = getPrimaryRay(p);
+	RaySegment cubeRaySeg;
+	vec3 outColor = vec3(1.0);
+	if(intersectCube(cubeRaySeg, primaryRay, view.cube))
+	{
+		vec3 p1 = max(vec3(0.0,0.0,0.0),(cubeRaySeg.origin + (cubeRaySeg.tMin+EPSILON) * cubeRaySeg.direction));
+		uvec3 p1ID = uvec3(floor(p1*PIN_GRID_SIZE));
+		uint gridIdx = getCellIndex(p1ID);
+		float minDot = 1.0;
+		uint minDotIdx = gridIdx;
+		for(uint i = 0; i < PINS_PER_GRID_CELL; i++)
+		{
+			Pin pin = pins[gridIdx + i].pin;
+			vec3 origin,direction;
+			getRay(pin, origin, direction);
+			float dotProd = dot(direction, cubeRaySeg.direction);
+			if(dotProd < minDot)
+			{
+				minDot = dotProd;
+				minDotIdx = i + gridIdx;
+			}
+		}
+		uint pinIdx = pins[minDotIdx].data.pinIndex;
+		float transmittance = pinTransmittance[pinIdx];
+		outColor = vec3(transmittance);
+		if(view.usePins == 0)
+		{
+			transmittance = 1.0;
+			for(int i = 0; i < GAUSSIAN_COUNT; i++)
+			{
+				float coef = clamp(1.0-evalTransmittanceGaussian(cubeRaySeg, gaussians[i]), 0.0, 1.0);
+				transmittance *= coef;
+			}
+			outColor = vec3(transmittance);
+		}
+	}
+	imageStore(imageOffscreen, p, vec4(outColor,1.0));
+}

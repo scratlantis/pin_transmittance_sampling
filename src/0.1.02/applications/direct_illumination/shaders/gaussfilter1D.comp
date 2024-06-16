@@ -1,0 +1,55 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "pins_common.glsl"
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+layout(binding = 0) uniform VIEW {View view;};
+layout(binding = 1, rgba8) uniform image2D imageIn;
+layout(binding = 2, rgba8) uniform image2D imageOut;
+
+#define GAUSS_FILTER_RADIUS 10
+
+void main()
+{
+	uvec2 gID = gl_GlobalInvocationID.xy;
+	if(gID.x >= view.width || gID.y >= view.height) return;
+	ivec2 p = ivec2(gID);
+
+	// pass in
+	//float coefficients[9] = float[9](1.0,8.0,28.0,56.0,70.0,56.0,28.0,8.0,1.0);
+	float coefficients[21] =  float[21](1.0,	20.0,	190.0,	1140.0,	4845.0,	15504.0,	38760.0,	77520.0,	125970.0,	167960.0,	184756.0,	167960.0,	125970.0,	77520.0,	38760.0,	15504.0,	4845.0,	1140.0,	190.0,	20.0,	1.0);
+	//float coefficients[13] = float[9](1.0,8.0,28.0,56.0,70.0,56.0,28.0,8.0,1.0);
+	vec3 sum = vec3(0.0);
+	float normalizationTerm = 0.0;
+
+#ifdef FILTER_X
+	for(int i = -GAUSS_FILTER_RADIUS; i < GAUSS_FILTER_RADIUS; i++)
+	{
+		uint index = p.x + i;
+		if(index >= 0 && index < view.width)
+		{
+			ivec2 pixel = ivec2(index, p.y);
+			float coeff = coefficients[i+GAUSS_FILTER_RADIUS];
+			sum += imageLoad(imageIn, pixel).rgb*coeff;
+			normalizationTerm += coeff;
+		}
+	}
+	//sum = vec3(0.0);
+#else
+	for(int i = -GAUSS_FILTER_RADIUS; i < GAUSS_FILTER_RADIUS; i++)
+	{
+		uint index = p.y + i;
+		if(index >= 0 && index < view.height)
+		{
+			ivec2 pixel = ivec2(p.x, index);
+			float coeff = coefficients[i+GAUSS_FILTER_RADIUS];
+			sum += imageLoad(imageIn, pixel).rgb*coeff;
+			normalizationTerm += coeff;
+		}
+	}
+#endif
+
+
+	vec3 color = sum / normalizationTerm;
+	vec4 outColor = vec4(color, 1.0);
+	imageStore(imageOut, p, outColor);
+}

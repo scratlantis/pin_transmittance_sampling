@@ -70,6 +70,8 @@ class Cachable_T : public Resource
   public:
 	Cachable_T() :
 	    Resource(), pCache(nullptr){};
+	Cachable_T(IResourceCache* pCache) :
+	    Resource(), pCache(pCache){};
 	~Cachable_T(){};
 
 

@@ -1,0 +1,75 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "pins_common.glsl"
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+layout(binding = 0) uniform VIEW {View view;};
+layout(binding = 1) uniform sampler envMapSampler;
+layout(binding = 2) uniform texture2D envMap;
+layout(binding = 3, rgba8) uniform image2D imageOut;
+
+vec3 getRayDir(ivec2 pixel)
+{
+	vec2 pixel_center   =   vec2(pixel) + vec2(0.5);
+    vec2 uv           = (pixel_center)/vec2(view.width, view.height);
+    vec2 device_coord     = uv * 2.0 - 1.0;
+	vec4 clipCoords = vec4(device_coord.x, device_coord.y, 1.0, 1.0);
+    vec4 target         = view.inverseProjectionMat * clipCoords;
+    vec4 direction      = view.inverseViewMat * target;
+	return normalize(direction.xyz);
+}
+
+RaySegment getPrimaryRay(ivec2 pixel)
+{
+	RaySegment seg;
+	seg.origin = view.camPos.xyz;
+	seg.direction = getRayDir(pixel);
+	seg.tMin = MIN_RAY_DISTANCE;
+	seg.tMax = MAX_RAY_DISTANCE;
+	return seg;
+}
+
+vec3 readEnvMap(vec3 dir)
+{
+	vec3 viewDir = dir;
+	viewDir = vec3(viewDir.y,-viewDir.x,viewDir.z);
+	viewDir = vec3(viewDir.z, viewDir.y, -viewDir.x);
+	float theta = atan(viewDir.y/viewDir.x);
+	float phi = atan(length(viewDir.xy), viewDir.z);
+	vec2 texCoords;
+	texCoords.x = theta/(PI);
+	texCoords.y = phi/PI;
+	vec4 texColor = texture(sampler2D(envMap, envMapSampler), texCoords);
+	return texColor.rgb;
+}
+
+void main()
+{
+	uvec2 gID = gl_GlobalInvocationID.xy;
+	if(gID.x >= view.width || gID.y >= view.height) return;
+	ivec2 p = ivec2(gID);
+
+	if(view.useEnvMap == 0)
+	{
+		imageStore(imageOut, p, vec4(1.0,1.0,1.0,0.0));
+		return;
+	}
+
+	RaySegment primaryRay = getPrimaryRay(p);
+
+	vec3 outColor = readEnvMap(primaryRay.direction);
+	//vec2 texCoords = vec2(gID)/vec2(view.height, view.width);
+	//vec3 viewDir = primaryRay.direction;
+	//viewDir = vec3(viewDir.y,-viewDir.x,viewDir.z);
+	//viewDir = vec3(viewDir.z, viewDir.y, -viewDir.x);
+	//float theta = atan(viewDir.y/viewDir.x);
+	//float phi = atan(length(viewDir.xy), viewDir.z);
+	//texCoords.x = theta/(PI);
+	//texCoords.y = phi/PI;
+	//vec4 texColor = texture(sampler2D(envMap, envMapSampler),	texCoords);
+	//vec3 outColor = texColor.rgb;
+	imageStore(imageOut, p, vec4(outColor,1.0));
+
+
+	//imageStore(imageOut, p, outColor);
+}

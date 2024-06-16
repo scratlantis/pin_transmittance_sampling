@@ -98,6 +98,24 @@ static std::string errorString(VkResult errorCode)
 	}
 }
 
+static bool passTrue(uint32_t attribute, bool val)
+{
+	if (!val)
+	{
+		std::cout << "Attribute " << attribute << " non equal\n";
+		DEBUG_BREAK
+	}
+	return val;
+}
+
+#define DEBUG_EQUALS
+#ifdef DEBUG_EQUALS
+#	define PASS_TRUE(attribute, val) passTrue(attribute,val)
+#else
+#	define PASS_TRUE(attribute, val) val
+#endif
+
+
 #if VALIDATION
 #	define VK_CHECK(val)                                                                                                        \
 		{                                                                                                                             \
@@ -145,7 +163,8 @@ static std::string errorString(VkResult errorCode)
 #define NEXT_INDEX(x, y) ((x + 1) % (y))
 #define PREVIOUS_INDEX(x, y) (((x + y - 1) % y))
 
-#define DEFINE_ZERO_PAD(TYPE) \
+#define DEFINE_ZERO_PAD\
+(TYPE) \
 	struct TYPE##_ZERO_PAD : public TYPE \
 	{                         \
 		TYPE##_ZERO_PAD()           \

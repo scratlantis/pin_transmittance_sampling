@@ -73,13 +73,15 @@ class PosVertex
 	    pos(pos)
 	{}
 	glm::vec3                              pos;
-	static VkVertexInputBindingDescription getBindingDescription(uint32_t bindingIdx)
+
+
+	static VertexDataLayout getVertexDataLayout()
 	{
-		return vka::getVertexBindingDescription(sizeof(PosVertex), bindingIdx);
-	}
-	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(uint32_t binding)
-	{
-		return vka::getAttributeDescriptions(binding, {VK_FORMAT_R32G32B32_SFLOAT}, {0});
+		VertexDataLayout layout{};
+		layout.formats = {VK_FORMAT_R32G32B32_SFLOAT};
+		layout.offsets = {offsetof(PosVertex, pos)};
+		layout.stride = sizeof(PosVertex);
+		return layout;
 	}
 
 	static void parse(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes)
@@ -99,29 +101,33 @@ class Transform
 	Transform(glm::mat4 mat = glm::mat4(1.0)) :
 	    mat(mat), invMat(glm::inverse(mat))
 	{}
-	static VkVertexInputBindingDescription getBindingDescription(uint32_t bindingIdx)
+
+	static VertexDataLayout getVertexDataLayout()
 	{
-		return getInstanceBindingDescription(sizeof(Transform), bindingIdx);
-	}
-	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(uint32_t binding)
-	{
-		return vka::getAttributeDescriptions(
-		    binding,
-		    {VK_FORMAT_R32G32B32A32_SFLOAT,
-		     VK_FORMAT_R32G32B32A32_SFLOAT,
-		     VK_FORMAT_R32G32B32A32_SFLOAT,
-		     VK_FORMAT_R32G32B32A32_SFLOAT,
-		     VK_FORMAT_R32G32B32A32_SFLOAT,
-		     VK_FORMAT_R32G32B32A32_SFLOAT,
-		     VK_FORMAT_R32G32B32A32_SFLOAT,
-		     VK_FORMAT_R32G32B32A32_SFLOAT},
-		    {0,
+		VertexDataLayout layout{};
+		layout.formats =
+		{
+		        VK_FORMAT_R32G32B32A32_SFLOAT,
+		        VK_FORMAT_R32G32B32A32_SFLOAT,
+		        VK_FORMAT_R32G32B32A32_SFLOAT,
+		        VK_FORMAT_R32G32B32A32_SFLOAT,
+		        VK_FORMAT_R32G32B32A32_SFLOAT,
+		        VK_FORMAT_R32G32B32A32_SFLOAT,
+		        VK_FORMAT_R32G32B32A32_SFLOAT,
+		        VK_FORMAT_R32G32B32A32_SFLOAT
+		};
+		layout.offsets =
+		{
+			0,
 		     sizeof(glm::vec4),
 		     2 * sizeof(glm::vec4),
 		     3 * sizeof(glm::vec4),
 		     4 * sizeof(glm::vec4),
 		     5 * sizeof(glm::vec4),
 		     6 * sizeof(glm::vec4),
-		     7 * sizeof(glm::vec4)});
+		     7 * sizeof(glm::vec4)
+		};
+		layout.stride  = sizeof(PosVertex);
+		return layout;
 	}
 };

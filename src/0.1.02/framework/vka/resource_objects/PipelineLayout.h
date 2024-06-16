@@ -7,7 +7,7 @@ namespace vka
 class PipelineLayoutDefinition : public ResourceIdentifier
 {
   public:
-	std::vector<ZERO_PAD(VkPushConstantRange)>           pcRanges;
+	std::vector<VkPushConstantRange_OP>           pcRanges;
 	std::vector<DescriptorSetLayoutDefinition> descSetLayoutDef;
 
 	bool   operator==(const ResourceIdentifier &other) const override;
@@ -20,7 +20,7 @@ class PipelineLayout : public Cachable_T <VkPipelineLayout>
 {
   public:
 	virtual void     free() override;
-	PipelineLayout(PipelineLayoutDefinition const &definition);
+	PipelineLayout(IResourceCache *pCache, PipelineLayoutDefinition const &definition);
 };
 }        // namespace vka
 

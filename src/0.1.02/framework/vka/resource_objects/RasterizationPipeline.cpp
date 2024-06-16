@@ -11,11 +11,11 @@ hash_t RasterizationPipelineDefinition::hash() const
 	HASHC subpass
 	HASHC multisampleState
 
-	HASHC byteHashPtr(&inputAssemblyState)
-	HASHC byteHashPtr(&tessellationState)
-	HASHC byteHashPtr(&rasterizationState)
-	HASHC byteHashPtr(&depthStencilState)
-	HASHC byteHashPtr(&globalColorBlendState)
+	HASHC inputAssemblyState.hash()
+	HASHC tessellationState.hash()
+	HASHC rasterizationState.hash()
+	HASHC depthStencilState.hash()
+	HASHC globalColorBlendState.hash()
 	
 	HASHC pipelineLayoutDefinition.hash()
 	HASHC renderPassDefinition.hash()
@@ -43,25 +43,25 @@ bool RasterizationPipelineDefinition::operator==(const RasterizationPipelineDefi
 	&& subpass == other.subpass
 	&& multisampleState == other.multisampleState
 
-	&& memcmpPtr(&inputAssemblyState, &other.inputAssemblyState)
-	&& memcmpPtr(&tessellationState, &other.tessellationState)
-	&& memcmpPtr(&rasterizationState, &other.rasterizationState)
-	&& memcmpPtr(&depthStencilState, &other.depthStencilState)
-	&& memcmpPtr(&globalColorBlendState, &other.globalColorBlendState)
+	&& cmpPtr(&inputAssemblyState, &other.inputAssemblyState)
+	&& cmpPtr(&tessellationState, &other.tessellationState)
+	&& cmpPtr(&rasterizationState, &other.rasterizationState)
+	&& cmpPtr(&depthStencilState, &other.depthStencilState)
+	&& cmpPtr(&globalColorBlendState, &other.globalColorBlendState)
 	
 	&& pipelineLayoutDefinition == other.pipelineLayoutDefinition
 	&& renderPassDefinition == other.renderPassDefinition
 	&& cmpVector(shaderDefinitions, other.shaderDefinitions)
 
-	&& memcmpArray(dynamicStates.data(), other.dynamicStates.data(), dynamicStates.size())
-	&& memcmpArray(sampleMasks.data(), other.sampleMasks.data(), sampleMasks.size())
+	&& cmpArray(dynamicStates.data(), other.dynamicStates.data(), dynamicStates.size())
+	&& cmpArray(sampleMasks.data(), other.sampleMasks.data(), sampleMasks.size())
 
-	&& memcmpVector(colorBlendAttachmentStates, other.colorBlendAttachmentStates)
-	&& memcmpVector(shaderDefinitions, other.shaderDefinitions)
-	&& memcmpVector(vertexBindingDescriptions, other.vertexBindingDescriptions)
-	&& memcmpVector(vertexAttributeDescriptions, other.vertexAttributeDescriptions)
-	&& memcmpVector(viewports, other.viewports)
-	&& memcmpVector(scissors, other.scissors);
+	&& cmpVector(colorBlendAttachmentStates, other.colorBlendAttachmentStates)
+	&& cmpVector(shaderDefinitions, other.shaderDefinitions)
+	&& cmpVector(vertexBindingDescriptions, other.vertexBindingDescriptions)
+	&& cmpVector(vertexAttributeDescriptions, other.vertexAttributeDescriptions)
+	&& cmpVector(viewports, other.viewports)
+	&& cmpVector(scissors, other.scissors);
 	// clang-format on
 }
 
@@ -71,8 +71,8 @@ void RasterizationPipeline::free()
 }
 
 static VkPipelineVertexInputStateCreateInfo makeVertexInputStateCI(
-    std::vector<ZERO_PAD(VkVertexInputBindingDescription)> const   &bindingDescriptions,
-    std::vector<ZERO_PAD(VkVertexInputAttributeDescription)> const &attributeDescriptions)
+    std::vector<VkVertexInputBindingDescription_OP> const   &bindingDescriptions,
+    std::vector<VkVertexInputAttributeDescription_OP> &attributeDescriptions)
 {
 	VkPipelineVertexInputStateCreateInfo ci{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
 	ci.vertexBindingDescriptionCount   = VKA_COUNT(bindingDescriptions);
@@ -83,8 +83,8 @@ static VkPipelineVertexInputStateCreateInfo makeVertexInputStateCI(
 }
 
 static VkPipelineViewportStateCreateInfo makeViewportStateCI(
-    std::vector<ZERO_PAD(VkViewport)> const &viewports,
-    std::vector<ZERO_PAD(VkRect2D)> const   &scissors)
+    std::vector<VkViewport_OP> const &viewports,
+    std::vector<VkRect2D_OP> const   &scissors)
 {
 	VkPipelineViewportStateCreateInfo ci{VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
 	ci.viewportCount = VKA_COUNT(viewports);
@@ -95,7 +95,7 @@ static VkPipelineViewportStateCreateInfo makeViewportStateCI(
 }
 
 static VkPipelineColorBlendStateCreateInfo makeColorBlendStateCI(
-    std::vector<ZERO_PAD(VkPipelineColorBlendAttachmentState)> const &colorBlendAttachmentStates,
+    std::vector<VkPipelineColorBlendAttachmentState_OP> const &colorBlendAttachmentStates,
     GlobalColorBlendState const                                      &globalColorBlendState)
 {
 	VkPipelineColorBlendStateCreateInfo ci{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
@@ -115,19 +115,20 @@ static VkPipelineDynamicStateCreateInfo makeDynamicStateCI(std::vector<VkDynamic
 	return ci;
 }
 
-RasterizationPipeline::RasterizationPipeline(RasterizationPipelineDefinition const &def)
+RasterizationPipeline::RasterizationPipeline(IResourceCache *pCache, RasterizationPipelineDefinition const &def)
+	: Cachable_T<VkPipeline>(pCache)
 {
-	std::vector <ZERO_PAD(VkViewport)> viewports;
-	std::vector <ZERO_PAD(VkRect2D)> scissors;
+	std::vector <VkViewport_OP> viewports;
+	std::vector <VkRect2D_OP> scissors;
 	if (def.viewports.size() == 0 && def.scissors.size() == 0)
 	{
-		ZERO_PAD(VkViewport) viewport;
+		VkViewport_OP viewport;
 		viewport.width    = (float)gState.io.extent.width;
 		viewport.height   = (float)gState.io.extent.height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		viewports.push_back(viewport);
-		ZERO_PAD(VkRect2D) scissor;
+		VkRect2D_OP scissor;
 		scissor.extent.width  = gState.io.extent.width;
 		scissor.extent.height = gState.io.extent.height;
 		scissors.push_back(scissor);
@@ -141,7 +142,15 @@ RasterizationPipeline::RasterizationPipeline(RasterizationPipelineDefinition con
 	}
 	ci.stageCount                                           = VKA_COUNT(stageCIs);
 	ci.pStages                                              = stageCIs.data();
-	VkPipelineVertexInputStateCreateInfo vertexInputStateCI = makeVertexInputStateCI(def.vertexBindingDescriptions, def.vertexAttributeDescriptions);
+
+
+	std::vector<VkVertexInputAttributeDescription_OP> attributeDescriptions = def.vertexAttributeDescriptions;
+	for (size_t i = 0; i < attributeDescriptions.size(); i++)
+	{
+		attributeDescriptions[i].location = i;
+	}
+
+	VkPipelineVertexInputStateCreateInfo vertexInputStateCI = makeVertexInputStateCI(def.vertexBindingDescriptions, attributeDescriptions);
 	ci.pVertexInputState                                    = &vertexInputStateCI;
 	ci.pInputAssemblyState                                  = &def.inputAssemblyState;
 	ci.pTessellationState                                   = &def.tessellationState;

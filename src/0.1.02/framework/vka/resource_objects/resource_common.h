@@ -10,3 +10,4 @@
 #include "Shader.h"
 #include "Image.h"
 #include "CmdBuffer.h"
+#include "IDescriptor.h"

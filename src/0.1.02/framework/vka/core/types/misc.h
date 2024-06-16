@@ -32,6 +32,11 @@ struct ClearValue
 	ClearValueType type;
 	VkClearValue   value;
 
+	ClearValue()
+	{
+		type = CLEAR_VALUE_NONE;
+	}
+
 	ClearValue(float r, float g, float b, float a)
 	{
 		type = CLEAR_VALUE_FLOAT;
@@ -97,3 +102,4 @@ typedef uint64_t hash_t;
 #define VK_CLEAR_COLOR_BLACK {0.0f, 0.0f, 0.0f, 1.0f}
 #define VK_CLEAR_COLOR_WHITE {1.0f, 1.0f, 1.0f, 1.0f}
 #define VK_CLEAR_COLOR_MAX_DEPTH {1.0f, 0}
+#define VK_CLEAR_COLOR_NONE {}
