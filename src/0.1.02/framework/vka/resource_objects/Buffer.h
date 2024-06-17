@@ -92,6 +92,7 @@ class Buffer_I : public Resource_T<VkBuffer>, public IDescriptor
 	BufferState		state;
 	BufferState		newState;
 
+
 	Buffer_I(IResourcePool* pPool) : Resource_T<VkBuffer>(VK_NULL_HANDLE)
 	{
 		track(pPool);
@@ -101,6 +102,10 @@ class Buffer_I : public Resource_T<VkBuffer>, public IDescriptor
 		state.size            = 0;
 		newState = state;
 	};
+
+	Buffer_I() :
+	    Buffer_I(nullptr){};
+
 	Buffer_I(IResourcePool *pPool, VkBufferUsageFlags usage) :
 	    Buffer_I(pPool)
 	{
@@ -145,6 +150,7 @@ class Buffer_I : public Resource_T<VkBuffer>, public IDescriptor
 	VkDeviceSize getSize() const;
 	VkBufferUsageFlags getUsage() const;
 	VmaMemoryUsage        getMemoryType() const;
+	const vka::Buffer_R *getMappable() const;
 
 	void           free(){};
 	void createHandles();

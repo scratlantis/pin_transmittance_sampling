@@ -18,11 +18,11 @@ static void parse_VEC3(void *vertexPointer, uint32_t idx, const tinyobj::attrib_
 class ModelCache
 {
 	std::unordered_map<std::string, ModelData> map;
-	std::string                           baseDir;
+	std::string                                modelPath;
 	IResourcePool                        *pPool;
   public:
-	ModelCache(IResourcePool* pPool, std::string baseDir) :
-	    baseDir(baseDir), pPool(pPool)
+	ModelCache(IResourcePool *pPool, std::string modelPath) :
+	    modelPath(modelPath), pPool(pPool)
 	{}
 	void      clear();
 	ModelData fetch(VkaCommandBuffer cmdBuf, std::string path, uint32_t bytesPerVertex, void (*parse)(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes));

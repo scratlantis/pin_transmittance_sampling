@@ -7,7 +7,7 @@ class DescriptorSetLayoutDefinition : public ResourceIdentifier
 {
   public:
 	VkDescriptorSetLayoutCreateFlags          flags;
-	std::vector<VkDescriptorSetLayoutBinding> bindings;
+	std::vector<VkDescriptorSetLayoutBinding_OP> bindings;
 	void   addDescriptor(VkShaderStageFlags shaderStage, VkDescriptorType type);
 
 	bool   operator==(const ResourceIdentifier &other) const override;

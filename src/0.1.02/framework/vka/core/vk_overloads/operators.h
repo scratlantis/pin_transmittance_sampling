@@ -798,6 +798,7 @@ struct VkViewport_OP : public VkViewport
 	}
 };
 //DEFINE_ZERO_PAD(VkViewport)
+
 } // namespace vka
 
 

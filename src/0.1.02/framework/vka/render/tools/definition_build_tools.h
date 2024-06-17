@@ -3,6 +3,7 @@
 #include <vka/resource_objects/resource_common.h>
 #include <vka/render/tools/FramebufferCache.h>
 
+// Render Pass
 inline VkSubpassDependency_OP initialSubpassDependency()
 {
 	VkSubpassDependency_OP dependency{};
@@ -83,8 +84,6 @@ inline void addDepthAttachment(RenderPassDefinition &def, VkFormat format, bool 
 	addAttachment(def, {VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}, format, clear);
 }
 
-// Rasterization Pipeline
-
 inline void nextSubpass(RenderPassDefinition &def)
 {
 	auto &subpassDescription             = def.subpassDescriptions.emplace_back();
@@ -92,6 +91,12 @@ inline void nextSubpass(RenderPassDefinition &def)
 	def.currentSubpass++;
 }
 
+
+
+
+
+
+// Rasterization Pipeline
 inline void setDefaults(RasterizationPipelineDefinition &def, RasterizationPipelineInitValues &initValues)
 {
 	def                                       = {};
@@ -131,7 +136,7 @@ inline void addInput(RasterizationPipelineDefinition &def, VertexDataLayout inpu
 	def.vertexBindingDescriptions.push_back(bindingDesc);
 }
 
-inline void addShader(RasterizationPipelineDefinition &def, std::string path, std::vector<ShaderArgs> args)
+inline void addShader(RasterizationPipelineDefinition &def, std::string path, std::vector<ShaderArgs> args = {})
 {
 	def.shaderDefinitions.push_back(ShaderDefinition(path, args));
 }
@@ -198,7 +203,75 @@ inline void nextDescriptorSet(RasterizationPipelineDefinition &def)
 	def.pipelineLayoutDefinition.descSetLayoutDef.push_back({});
 }
 
-// Draw State
+
+
+// Compute Pipeline
+inline void setDefaults(ComputeCmd &computeCmd, uint32_t taskSize, const std::string path, std::vector<ShaderArgs> args)
+{
+	computeCmd                   = {};
+	glm::uvec3 workGroupSize     = {128, 1, 1};
+	glm::uvec3 resolution        = {taskSize, 1, 1};
+	computeCmd.workGroupCount     = getWorkGroupCount(workGroupSize, resolution);
+	computeCmd.pipelineDef.specialisationEntrySizes = glm3VectorSizes();
+	computeCmd.pipelineDef.specializationData       = getByteVector(workGroupSize);
+	computeCmd.pipelineDef.shaderDef = ShaderDefinition(path, args);
+}
+
+// Compute Pipeline
+inline void setDefaults(ComputeCmd &computeCmd, glm::uvec2 taskSize, std::string path, std::vector<ShaderArgs> args)
+{
+	computeCmd                   = {};
+	glm::uvec3 workGroupSize     = {32, 32, 1};
+	glm::uvec3 resolution        = {taskSize.x, taskSize.y, 1};
+	computeCmd.workGroupCount                       = getWorkGroupCount(workGroupSize, resolution);
+	computeCmd.pipelineDef.specialisationEntrySizes = glm3VectorSizes();
+	computeCmd.pipelineDef.specializationData       = getByteVector(workGroupSize);
+	computeCmd.pipelineDef.shaderDef                = ShaderDefinition(path, args);
+}
+
+// Compute Pipeline
+inline void setDefaults(ComputeCmd &computeCmd, VkExtent2D taskSize, std::string path, std::vector<ShaderArgs> args = {})
+{
+	computeCmd                                      = {};
+	glm::uvec3 workGroupSize                        = {32, 32, 1};
+	glm::uvec3 resolution                           = {taskSize.width, taskSize.height, 1};
+	computeCmd.workGroupCount                       = getWorkGroupCount(workGroupSize, resolution);
+	computeCmd.pipelineDef.specialisationEntrySizes = glm3VectorSizes();
+	computeCmd.pipelineDef.specializationData       = getByteVector(workGroupSize);
+	computeCmd.pipelineDef.shaderDef                = ShaderDefinition(path, args);
+}
+
+// Compute Pipeline
+inline void setDefaults(ComputeCmd &computeCmd, glm::uvec3 taskSize, std::string path, std::vector<ShaderArgs> args)
+{
+	computeCmd                   = {};
+	glm::uvec3 workGroupSize     = {8, 8, 8};
+	glm::uvec3 resolution        = taskSize;
+	computeCmd.workGroupCount                       = getWorkGroupCount(workGroupSize, resolution);
+	computeCmd.pipelineDef.specialisationEntrySizes = glm3VectorSizes();
+	computeCmd.pipelineDef.specializationData       = getByteVector(workGroupSize);
+	computeCmd.pipelineDef.shaderDef                = ShaderDefinition(path, args);
+}
+
+inline void addDescriptor(ComputePipelineDefinition &def, VkDescriptorType type)
+{
+	if (def.pipelineLayoutDefinition.descSetLayoutDef.empty())
+	{
+		def.pipelineLayoutDefinition.descSetLayoutDef.push_back({});
+	}
+	def.pipelineLayoutDefinition.descSetLayoutDef.back().addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, type);
+}
+
+// ComputeCmd
+inline void addDescriptor(ComputeCmd &drawCmd, IDescriptor *desc, VkDescriptorType type)
+{
+	addDescriptor(drawCmd.pipelineDef, type);
+	drawCmd.descriptors.push_back(desc);
+}
+
+
+
+// Draw Cmd
 inline void addDepthAttachment(DrawCmd &drawCmd, VkaImage depthImage, bool clear, VkBool32 enableWrite, VkCompareOp compareOp)
 {
 	addDepthAttachment(drawCmd.pipelineDef, depthImage, enableWrite, compareOp, clear);

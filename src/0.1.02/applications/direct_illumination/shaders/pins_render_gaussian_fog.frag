@@ -12,9 +12,9 @@ layout(location = 1) out uint outPinId;
 
 layout(binding = 0) uniform VIEW {View view;};
 layout(binding = 1) buffer GAUSSIANS {Gaussian gaussians[GAUSSIAN_COUNT];};
-//layout(binding = 2) uniform sampler wireFrameSampler;
-//layout(binding = 3) uniform texture2D wireFrameColorImg;
-//layout(binding = 4) uniform texture2D wireFramePosImg;
+layout(binding = 2) uniform sampler wireFrameSampler;
+layout(binding = 3) uniform texture2D wireFrameColorImg;
+layout(binding = 4) uniform texture2D wireFramePosImg;
 
 void main()
 {
@@ -24,8 +24,8 @@ void main()
 	dir = normalize(dir);
 
 	ivec2 p = ivec2(gl_FragCoord.xy);
-	vec4 wireFrameColor = vec4(0.0);//texelFetch(sampler2D(wireFrameColorImg, wireFrameSampler), p, 0);
-	vec4 wireFramePos = vec4(0.0); //texelFetch(sampler2D(wireFramePosImg, wireFrameSampler), p, 0);
+	vec4 wireFrameColor = texelFetch(sampler2D(wireFrameColorImg, wireFrameSampler), p, 0);
+	vec4 wireFramePos = texelFetch(sampler2D(wireFramePosImg, wireFrameSampler), p, 0);
 
 	assureNotZero(dir);
 	vec3 invDir = 1.0 / dir;
@@ -74,5 +74,5 @@ void main()
 		vec3 wireFramePosLocal = ( fragment_invModelMat * vec4(wireFramePos.xyz,1.0)).xyz;
 		outColor.xyz = transmittance*wireFrameColor.xyz*4.0;
 	}
-	outColor = vec4(0.0,0.0,1.0,1.0);
+	//outColor = vec4(0.0,0.0,1.0,1.0);
 }

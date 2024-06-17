@@ -1,4 +1,5 @@
 #include "cmd_buffer_functionality.h"
+#include "commands/commands.h"
 using namespace vka;
 VkaCommandBuffer vkaCreateCommandBuffer(IResourcePool *pPool)
 {
@@ -19,6 +20,7 @@ void vkaSubmit(std::vector<VkaCommandBuffer> cmdBufs, VkQueue queue, const Submi
 	std::vector<VkCommandBuffer> vkCmdBufs;
 	for (size_t i = 0; i < cmdBufs.size(); i++)
 	{
+		vkaClearState(cmdBufs[i]);
 		cmdBufs[i]->end();
 		cmdBufs[i]->garbageCollect();
 		vkCmdBufs.push_back(cmdBufs[i]->getHandle());

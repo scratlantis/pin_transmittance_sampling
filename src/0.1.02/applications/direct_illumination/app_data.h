@@ -2,6 +2,8 @@
 #include <vka/vka.h>
 #include <random>
 #include "shaderStructs.h"
+#include "config.h"
+#define PI 3.14159265359
 using namespace vka;
 GVar gvar_use_pins{"show pins", 0, GVAR_ENUM, GVAR_APPLICATION, {"None", "All", "Grid", "Nearest Neighbor 1", "Nearest Neighbor 2"}};
 GVar gvar_pin_selection_coef{"pin selection coef", 1.0f, GVAR_UNORM, GVAR_APPLICATION};
@@ -9,20 +11,23 @@ GVar gvar_ray_lenght{"secondary ray length", 1.0f, GVAR_UNORM, GVAR_APPLICATION}
 GVar gvar_positional_jitter{"positional_jitter", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
 GVar gvar_angular_jitter{"angular", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
 
-GVar gvar_use_env_map{"use env map", 1.0f, GVAR_BOOL, GVAR_APPLICATION};
-GVar gvar_recreate_pins{"recreate pins", 1, GVAR_EVENT, GVAR_APPLICATION};
+GVar gvar_use_env_map{"use env map", 1, GVAR_BOOL, GVAR_APPLICATION};
+GVar gvar_reload{"reload", 0, GVAR_EVENT, GVAR_APPLICATION};
 
 // POST PROCESSING
 GVar gvar_use_exp_moving_average{"use exponential moving average", false, GVAR_BOOL, GVAR_APPLICATION};
 GVar gvar_use_gaus_blur{"use gauss blur", false, GVAR_BOOL, GVAR_APPLICATION};
 GVar gvar_exp_moving_average_coef{"exp moving average coef", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
 
+
 struct AppConfig
 {
 	uint32_t gaussianCount = 30;
 	uint32_t gaussianMargin = 0.2f;
 	uint32_t pinsPerGridCell = 20;
+	uint32_t pinsGridSize = 20;
 	uint32_t pinCountSqrt = 100;
+	uint32_t inline pinCount() { return pinCountSqrt * pinCountSqrt; }
 	uint32_t gaussFilterRadius = 4;
 
 
@@ -40,7 +45,7 @@ struct AppData
 {
 	uint32_t    cnt;
 	FixedCamera camera = FixedCameraCI_Default();
-	SamplerDefinition envMapSamplerDef;
+	SamplerDefinition defaultSampler;
 	VkaBuffer viewBuf;
 	VkaBuffer gaussianBuf;
 	VkaBuffer pinBuf;
@@ -59,12 +64,14 @@ struct AppData
 	VkaBuffer gaussianNNSphereTransformBuf;
 	VkaBuffer gaussianNN2SphereTransformBuf;
 
+	VkaImage envMap;
+
 
 	void init(vka::IResourcePool* pPool)
 	{
 		cnt              = 0;
 		camera           = FixedCamera(FixedCameraCI_Default());
-		envMapSamplerDef = SamplerDefinition();
+		defaultSampler = SamplerDefinition();
 		// StorageBuffers
 		viewBuf             = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		gaussianBuf         = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
@@ -73,6 +80,7 @@ struct AppData
 		pinGridBuf          = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		pinTransmittanceBuf = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		pinUsedBuffer       = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+
 
 		// VertexBuffers/IndexBuffers
 		pinVertexBuffer = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
@@ -90,6 +98,7 @@ struct AppData
 
 	void update(VkaCommandBuffer cmdBuf, AppConfig config)
 	{
+		Mappable pinsLocal = nullptr;
 		// Update camera
 		{
 			camera.keyControl(0.016);
@@ -103,7 +112,7 @@ struct AppData
 			View *view                   = (View *) vkaMapStageing(viewBuf, sizeof(View));
 			view->width                  = gState.io.extent.width;
 			view->height                 = gState.io.extent.height;
-			view->frameCounter           = cnt++;
+			view->frameCounter           = cnt;
 			view->camPos                 = glm::vec4(camera.getPosition(), 1.0);
 			view->viewMat                = camera.getViewMatrix();
 			view->inverseViewMat         = glm::inverse(view->viewMat);
@@ -143,12 +152,13 @@ struct AppData
 			vkaCmdUpload(cmdBuf, gaussianNNSphereTransformBuf);
 			vkaCmdUpload(cmdBuf, gaussianNN2SphereTransformBuf);
 		}
-		if (gvar_recreate_pins.val.v_bool)
+		if (gvar_reload.val.v_bool || cnt == 0)
 		{
 			// Recompute gaussians
+			uint32_t pinCount = config.pinCountSqrt * config.pinCountSqrt;
+			std::mt19937                          gen32(42);
+			std::uniform_real_distribution<float> unormDistribution(0.0, 1.0);
 			{
-				std::mt19937                          gen32(42);
-				std::uniform_real_distribution<float> unormDistribution(0.0, 1.0);
 				Gaussian                             *gaussiansData = static_cast<Gaussian *>(vkaMapStageing(gaussianBuf, sizeof(Gaussian) * config.gaussianCount));
 				for (size_t i = 0; i < config.gaussianCount; i++)
 				{
@@ -161,7 +171,103 @@ struct AppData
 				vkaUnmap(gaussianBuf);
 				vkaCmdUpload(cmdBuf, gaussianBuf);
 			}
-		}
 
+			// Recompute pins
+			{
+				Pin                                  *pinData  = static_cast<Pin *>(vkaMapStageing(pinBuf, sizeof(Pin) * pinCount));
+				for (size_t i = 0; i < pinCount; i++)
+				{
+					pinData[i].phi.x   = 2.0 * PI * unormDistribution(gen32);
+					pinData[i].phi.y   = 2.0 * PI * unormDistribution(gen32);
+					pinData[i].theta.x = glm::acos(1.0 - 2.0 * unormDistribution(gen32));
+					pinData[i].theta.y = glm::acos(1.0 - 2.0 * unormDistribution(gen32));
+				}
+				vkaUnmap(pinBuf);
+				vkaCmdUpload(cmdBuf, pinBuf, pinsLocal);
+			}
+
+			// Pin transmittance
+			{
+				pinTransmittanceBuf->changeSize(pinCount);
+				pinTransmittanceBuf->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
+				pinTransmittanceBuf->recreate();
+				ComputeCmd computeCmd;
+				setDefaults(computeCmd, pinCount, shaderPath + "pins_eval_transmittance.comp",
+				{
+				           {"GAUSSIAN_COUNT", std::to_string(config.gaussianCount)},
+				           {"PIN_COUNT", std::to_string(pinCount)}
+				});
+				addDescriptor(computeCmd, gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+				addDescriptor(computeCmd, pinBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+				addDescriptor(computeCmd, pinTransmittanceBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+				vkaCmdCompute(cmdBuf, computeCmd);
+			}
+
+			// Pin directions
+			{
+				glm::vec4 *pinDirectionsData = static_cast<glm::vec4 *>(vkaMapStageing(pinDirectionsBuffer, sizeof(glm::vec4) * pinCount));
+				Pin       *pinData           = static_cast<Pin *>(pinsLocal->map(0, pinBuf->getSize()));
+				for (size_t i = 0; i < pinCount; i++)
+				{
+					glm::vec2 x      = sin(pinData[i].phi) * cos(pinData[i].theta);
+					glm::vec2 y      = sin(pinData[i].phi) * sin(pinData[i].theta);
+					glm::vec2 z      = cos(pinData[i].phi);
+					glm::vec3 origin = glm::vec3(x.x, y.x, z.x) + glm::vec3(0.5);
+					origin *= 0.866025403784;        // sqrt(3)/2
+					glm::vec3 direction  = glm::normalize(glm::vec3(x.y - x.x, y.y - y.x, z.y - z.x));
+					pinDirectionsData[i] = glm::vec4(direction, 0.0);
+				}
+				pinsLocal->unmap();
+				vkaUnmap(pinDirectionsBuffer);
+				vkaCmdUpload(cmdBuf, pinDirectionsBuffer);
+			}
+			// Line Buffers
+			{
+				PosVertex *vertexData = static_cast<PosVertex *>(vkaMapStageing(pinVertexBuffer, sizeof(PosVertex) * 2 * pinCount));
+				Index     *indexData  = static_cast<Index *>(vkaMapStageing(pinIndexBuffer, sizeof(Index) * 2 * pinCount));
+				Pin       *pinData    = static_cast<Pin *>(pinsLocal->map(0, pinBuf->getSize()));
+				for (size_t i = 0; i < pinCount; i++)
+				{
+					glm::vec2 x = sin(pinData[i].phi) * cos(pinData[i].theta);
+					glm::vec2 y = sin(pinData[i].phi) * sin(pinData[i].theta);
+					glm::vec2 z = cos(pinData[i].phi);
+					// glm::vec3 origin = glm::vec3(x.x, y.x, z.x) + glm::vec3(0.5);
+					glm::vec3 origin = glm::vec3(x.x, y.x, z.x);
+					origin *= 0.866025403784;        // sqrt(3)/2
+					glm::vec3 direction   = glm::normalize(glm::vec3(x.y - x.x, y.y - y.x, z.y - z.x));
+					vertexData[i * 2]     = PosVertex(origin + direction * 0.1f);
+					vertexData[i * 2 + 1] = PosVertex(origin + direction * 0.866025403784f * 2.0f - direction * 0.1f);
+					indexData[i * 2]      = i * 2;
+					indexData[i * 2 + 1]  = i * 2 + 1;
+				}
+				pinsLocal->unmap();
+				vkaUnmap(pinVertexBuffer);
+				vkaUnmap(pinIndexBuffer);
+				vkaCmdUpload(cmdBuf, pinVertexBuffer);
+				vkaCmdUpload(cmdBuf, pinIndexBuffer);
+			}
+			// Grid Buffer
+			{
+				pinGridBuf->changeSize(sizeof(PinGridEntry) * config.pinsPerGridCell * config.pinsGridSize * config.pinsGridSize * config.pinsGridSize);
+				pinGridBuf->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
+				pinGridBuf->recreate();
+				ComputeCmd computeCmd;
+				setDefaults(computeCmd, {config.pinsGridSize, config.pinsGridSize, config.pinsGridSize}, shaderPath + "pins_grid_gen.comp",
+				            {{"PIN_GRID_SIZE", std::to_string(config.pinsGridSize)},
+				             {"GAUSSIAN_COUNT", std::to_string(config.gaussianCount)},
+				             {"PIN_COUNT", std::to_string(pinCount)}});
+				addDescriptor(computeCmd, pinBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+				addDescriptor(computeCmd, pinGridBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+				vkaCmdCompute(cmdBuf, computeCmd);
+			}
+			// Pin used Buffer
+			{
+				pinUsedBuffer->changeSize(sizeof(uint32_t) * pinCount);
+				pinUsedBuffer->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
+				pinUsedBuffer->recreate();
+			}
+
+		}
+		cnt++;
 	 }
 };

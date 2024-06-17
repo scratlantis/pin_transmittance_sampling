@@ -177,4 +177,9 @@ VmaMemoryUsage Buffer_I::getMemoryType() const
 	return state.memProperty.vma;
 }
 
+const Buffer_R *Buffer_I::getMappable() const
+{
+	return res;
+}
+
 }

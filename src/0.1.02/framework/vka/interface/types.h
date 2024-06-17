@@ -1,10 +1,11 @@
 #pragma once
 #include <vka/resource_objects/resource_common.h>
 #include <vka/state_objects/global_state.h>
-typedef vka::Buffer_I    *VkaBuffer;
-typedef vka::Image_I     *VkaImage;
-typedef vka::CmdBuffer_I *VkaCommandBuffer;
-typedef vka::AppState      *VkaState;
+typedef vka::Buffer_I       *VkaBuffer;
+typedef vka::Image_I        *VkaImage;
+typedef vka::CmdBuffer_I    *VkaCommandBuffer;
+typedef vka::AppState       *VkaState;
+typedef const vka::Buffer_R *Mappable;
 
 class DescriptorObjects; // sampler, image , buffer
 
@@ -61,9 +62,8 @@ struct DrawCmd
 struct ComputeCmd
 {
 	vka::ComputePipelineDefinition pipelineDef;
-	std::vector<VkaImage>      attachments;
 	std::vector<vka::IDescriptor *> descriptors;
-
+	glm::uvec3 workGroupCount;
 	vka::RenderState getRenderState() const;
 };
 

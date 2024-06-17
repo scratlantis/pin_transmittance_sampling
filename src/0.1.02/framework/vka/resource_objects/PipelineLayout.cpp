@@ -4,14 +4,14 @@ namespace vka
 {
 hash_t PipelineLayoutDefinition::hash() const
 {
-	hash_t hash = byteHashVector(pcRanges);
+	hash_t hash = hashVector(pcRanges);
 	hashCombineLocal(hash, hashVector(descSetLayoutDef));
 	return hash;
 }
 DEFINE_EQUALS_OVERLOAD(PipelineLayoutDefinition, ResourceIdentifier)
 bool PipelineLayoutDefinition::operator==(const PipelineLayoutDefinition &other) const
 {
-	return memcmpVector(pcRanges, other.pcRanges) && cmpVector(descSetLayoutDef, other.descSetLayoutDef);
+	return cmpVector(pcRanges, other.pcRanges) && cmpVector(descSetLayoutDef, other.descSetLayoutDef);
 }
 
 void PipelineLayout::free()

@@ -48,7 +48,7 @@ bool loadObj(std::string path, VkaBuffer vertexBuffer, VkaBuffer indexBuffer, Vk
 	surfaceData.vertexCount = vertexCount;
 	surfaceData.indexOffset = 0;
 	surfaceData.indexCount = indices.size();
-	vkaWriteStaging(indexBuffer, &surfaceData, sizeof(SurfaceData));
+	vkaWriteStaging(surfaceBuffer, &surfaceData, sizeof(SurfaceData));
 	return true;
 }
 void ModelCache::clear()
@@ -72,7 +72,7 @@ ModelData ModelCache::fetch(VkaCommandBuffer cmdBuf, std::string path, uint32_t 
 		modelData.indexBuffer   = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		modelData.surfaceBuffer = vkaCreateBuffer(pPool);        // Only used cpu side
 		modelData.surfaceCount  = 0;
-		std::string fullPath    = baseDir + "/" + path;
+		std::string fullPath    = modelPath + path;
 		if (loadObj(fullPath, modelData.vertexBuffer, modelData.indexBuffer, modelData.surfaceBuffer, modelData.surfaceCount, bytesPerVertex, parse))
 		{
 			map.insert({path, modelData});

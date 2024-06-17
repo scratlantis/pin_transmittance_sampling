@@ -4,17 +4,15 @@ namespace vka
 {
 hash_t DescriptorSetLayoutDefinition::hash() const
 {
-	return flags HASHC byteHashVector(bindings);
+	return flags HASHC hashVector(bindings);
 }
 
 DEFINE_EQUALS_OVERLOAD(DescriptorSetLayoutDefinition, ResourceIdentifier)
 
 bool DescriptorSetLayoutDefinition::operator==(const DescriptorSetLayoutDefinition &other) const
 {
-	return flags == other.flags && memcmpVector(bindings, other.bindings);
+	return flags == other.flags && cmpVector(bindings, other.bindings);
 }
-
-
 
 void DescriptorSetLayout::free()
 {

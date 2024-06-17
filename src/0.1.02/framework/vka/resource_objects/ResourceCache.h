@@ -32,8 +32,10 @@ class ResourceCache : public IResourceCache
 			handle = it->second.getHandle();
 		else
 		{
+			printVka("Cachable created.\n");
 			Obj obj = Obj(gState.cache, rID); // civ
-			map.insert({rID, obj});
+			auto ret = map.insert({rID, obj});
+			VKA_ASSERT(ret.second);
 			handle = obj.getHandle();
 		}
 	}
@@ -90,6 +92,51 @@ class ResourceCache : public IResourceCache
 		VkSampler handle;
 		fetch(samplers, rID, handle);
 		return handle;
+		//auto it = samplers.find(rID);
+		//bool found = it != samplers.end();
+		//VkSampler handle;
+		//size_t samplersSize = samplers.size();
+
+
+		////fetch(samplers, rID, handle);
+		//it = samplers.find(rID);
+		//if (it != samplers.end())
+		//	handle = it->second.getHandle();
+		//else
+		//{
+		//	Sampler obj = Sampler(gState.cache, rID);        // civ
+		//	samplers.insert({rID, obj});
+		//	handle = obj.getHandle();
+		//}
+
+
+		//if (!found)
+		//{
+		//	printVka("Sampler not found\n");
+		//	VKA_ASSERT(samplers.size() == samplersSize + 1);
+		//}
+		//return handle;
+
+		//size_t    samplersSize = samplers.size();
+
+		//// fetch(samplers, rID, handle);
+		//VkSampler handle;
+		//printVka("Sampler Hash:%d\n", byteHashPtr(this));
+		//auto      it    = samplers.find(rID);
+		//bool      notFound = (it == samplers.end());
+		//if (notFound)
+		//{
+		//	Sampler obj = Sampler(gState.cache, rID);        // civ
+		//	auto ret = samplers.insert({rID, obj});
+		//	VKA_ASSERT(ret.second);
+		//	handle = obj.getHandle();
+		//}
+		//else
+		//{
+		//	handle = it->second.getHandle();
+		//}
+		//return handle;
+
 	}
 
 	void clearDescSetLayouts() override

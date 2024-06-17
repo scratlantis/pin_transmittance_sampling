@@ -26,3 +26,12 @@ RenderState DrawCmd::getRenderState() const
 		return state;
 	};
 }
+
+RenderState ComputeCmd::getRenderState() const
+{
+	RenderState state{};
+	state.pipeline = gState.cache->fetch(pipelineDef);
+	state.bindPoint = VK_PIPELINE_BIND_POINT_COMPUTE;
+	state.pipelineLayoutDef = pipelineDef.pipelineLayoutDefinition;
+	return state;
+}

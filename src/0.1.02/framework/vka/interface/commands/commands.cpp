@@ -6,12 +6,31 @@
 
 using namespace vka;
 
+
+void vkaClearState(VkaCommandBuffer cmdBuf)
+{
+	if (cmdBuf->renderState.renderPass != VK_NULL_HANDLE)
+	{
+		vkaCmdEndRenderPass(cmdBuf);
+	}
+	cmdBuf->renderState = {};
+}
+
 // Buffer
 void vkaCmdCopyBuffer(VkaCommandBuffer cmdBuf, const Buffer_I *src, const Buffer_I *dst)
 {
 	VkDeviceSize minDataSize = std::min(src->getSize(), dst->getSize());
 	VkBufferCopy copyRegion{0, 0, minDataSize};
+	vkaClearState(cmdBuf);
 	vkCmdCopyBuffer(cmdBuf->getHandle(), src->getHandle(), dst->getHandle(), 1, &copyRegion);
+}
+void vkaCmdUpload(VkaCommandBuffer cmdBuf, VkaBuffer buf, Mappable &mappable)
+{
+	buf->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
+	buf->addUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	const Buffer_I localBuf = buf->recreate();
+	vkaCmdCopyBuffer(cmdBuf, &localBuf, buf);
+	mappable = localBuf.getMappable();
 }
 void vkaCmdUpload(VkaCommandBuffer cmdBuf, VkaBuffer buf)
 {
@@ -37,6 +56,7 @@ void vkaCmdImageMemoryBarrier(VkaCommandBuffer cmdBuf, VkaImage image, VkImageLa
 	memory_barrier.dstAccessMask                   = getAccessFlags(newLayout);
 	VkPipelineStageFlags src_stage                 = getStageFlags(image->getLayout());
 	VkPipelineStageFlags dst_stage                 = getStageFlags(newLayout);
+	vkaClearState(cmdBuf);
 	vkCmdPipelineBarrier(
 	    cmdBuf->getHandle(),
 	    src_stage, dst_stage,
@@ -67,6 +87,7 @@ void vkaCmdCopyBufferToImage(VkaCommandBuffer cmdBuf, VkaBuffer src, VkaImage ds
 	region.imageSubresource.layerCount     = 1;
 	region.imageOffset                     = {0, 0, 0};
 	region.imageExtent                     = dst->getExtent();
+	vkaClearState(cmdBuf);
 	vkCmdCopyBufferToImage(cmdBuf->getHandle(), src->getHandle(), dst->getHandle(), dst->getLayout(), 1, &region);
 }
 
@@ -108,7 +129,7 @@ void vkaCmdCopyImage(VkaCommandBuffer cmdBuf, VkaImage src, VkImageLayout srcNew
 	imageCopy.dstSubresource = subresourceLayerDst;
 	imageCopy.dstOffset      = offset;
 	imageCopy.extent         = src->getExtent();
-
+	vkaClearState(cmdBuf);
 	vkCmdCopyImage(cmdBuf->getHandle(), src->getHandle(), src->getLayout(), dst->getHandle(), dst->getLayout(), 1, &imageCopy);
 
 	vkaCmdTransitionLayout(cmdBuf, src, srcNewLayout, srcSubRange.baseArrayLayer, srcSubRange.layerCount);
@@ -126,16 +147,19 @@ void barrier(VkaCommandBuffer cmdBuf, VkPipelineStageFlags srcStage, VkPipelineS
 	VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
 	barrier.srcAccessMask = srcAccesFlags;
 	barrier.dstAccessMask = dstAccesFlags;
+	vkaClearState(cmdBuf);
 	vkCmdPipelineBarrier(cmdBuf->getHandle(), srcStage, dstStage, 0, 1, &barrier, 0, nullptr, 0, nullptr);
 }
 
 void vkaCmdFillBuffer(VkaCommandBuffer cmdBuf, VkaBuffer dst, VkDeviceSize offset, VkDeviceSize size, uint32_t data)
 {
+	vkaClearState(cmdBuf);
 	vkCmdFillBuffer(cmdBuf->getHandle(), dst->getHandle(), offset, size, data);
 }
 
 void vkaCmdFillBuffer(VkaCommandBuffer cmdBuf, VkaBuffer dst, uint32_t data)
 {
+	vkaClearState(cmdBuf);
 	vkCmdFillBuffer(cmdBuf->getHandle(), dst->getHandle(), 0, VK_WHOLE_SIZE, data);
 }
 
@@ -171,6 +195,7 @@ void vkaCmdStartRenderPass(VkaCommandBuffer cmdBuf, VkRenderPass renderpass, VkF
 void vkaCmdEndRenderPass(VkaCommandBuffer cmdBuf)
 {
 	vkCmdEndRenderPass(cmdBuf->getHandle());
+	cmdBuf->renderState.renderPass   = VK_NULL_HANDLE;
 }
 
 // bind, dispatch/draw, push desc, push constants
@@ -219,10 +244,10 @@ void vkaCmdPushConstants(VkaCommandBuffer cmdBuf, VkShaderStageFlags shaderStage
 	vkCmdPushConstants(cmdBuf->getHandle(), gState.cache->fetch(cmdBuf->renderState.pipelineLayoutDef), shaderStage, offset, size, data);
 }
 
-void vkaCmdDispatch(VkaCommandBuffer cmdBuf, uint32_t x, uint32_t y, uint32_t z)
+void vkaCmdDispatch(VkaCommandBuffer cmdBuf, glm::uvec3 workgroups)
 {
 	VKA_ASSERT(cmdBuf->stateBits & CMD_BUF_STATE_BITS_BOUND_PIPELINE);
-	vkCmdDispatch(cmdBuf->getHandle(), x, y, z);
+	vkCmdDispatch(cmdBuf->getHandle(), workgroups.x, workgroups.y, workgroups.z);
 }
 
 void vkaCmdBindVertexBuffers(VkaCommandBuffer cmdBuf)
@@ -246,6 +271,11 @@ void vkaCmdDrawIndexed(VkaCommandBuffer cmdBuf, uint32_t indexCount, uint32_t in
 	vkCmdDrawIndexed(cmdBuf->getHandle(), indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
+void vkaCmdDraw(VkaCommandBuffer cmdBuf, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+{
+	vkCmdDraw(cmdBuf->getHandle(), vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
 void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCmd &drawCall)
 {
 	VKA_ASSERT(drawCall.model.surfaceCount == 1);
@@ -253,12 +283,12 @@ void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCmd &drawCall)
 
 	RenderState newRenderState = drawCall.getRenderState();
 	uint32_t    diffBits       = cmdBuf->renderState.calculateDifferenceBits(newRenderState);
-	cmdBuf->renderState        = newRenderState;
+	// End render pass if needed
 	if (diffBits & RENDER_STATE_ACTION_BIT_END_RENDER_PASS)
 	{
 		vkaCmdEndRenderPass(cmdBuf);
 	}
-
+	// Assure images are in correct layout
 	if (diffBits & RENDER_STATE_ACTION_BIT_START_RENDER_PASS)
 	{
 		VKA_ASSERT(drawCall.attachments.size() == drawCall.pipelineDef.renderPassDefinition.attachmentDescriptions.size())
@@ -267,9 +297,15 @@ void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCmd &drawCall)
 			vkaCmdTransitionLayout(cmdBuf, drawCall.attachments[i], drawCall.pipelineDef.renderPassDefinition.attachmentDescriptions[i].initialLayout);
 			drawCall.attachments[i]->setLayout(drawCall.pipelineDef.renderPassDefinition.attachmentDescriptions[i].finalLayout);
 		}
+	}
+	// Aquire new render state
+	cmdBuf->renderState        = newRenderState;
+	// Start render pass if needed
+	if (diffBits & RENDER_STATE_ACTION_BIT_START_RENDER_PASS)
+	{
 		vkaCmdStartRenderPass(cmdBuf, cmdBuf->renderState.renderPass, cmdBuf->renderState.framebuffer, cmdBuf->renderState.getClearValues(), newRenderState.renderArea);
 	}
-
+	// Bind pipeline if needed
 	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_PIPELINE)
 	{
 		vkaCmdBindPipeline(cmdBuf);
@@ -284,7 +320,7 @@ void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCmd &drawCall)
 
 	// for now only one surface
 	SurfaceData surfaceData[1];
-	if (drawCall.model.surfaceBuffer->getSize() != 0)
+	if (drawCall.model.surfaceBuffer != nullptr && drawCall.model.surfaceBuffer->getSize() != 0)
 	{
 		vkaRead(drawCall.model.surfaceBuffer, &surfaceData[0]);
 	}
@@ -304,8 +340,11 @@ void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCmd &drawCall)
 	vkaCmdDrawIndexed(cmdBuf, surfaceData[0].indexCount, drawCall.instanceCount, surfaceData[0].indexOffset, surfaceData[0].vertexOffset, 0);
 }
 
-void vkaCmdFinishDraw(VkaCommandBuffer cmdBuf)
+void vkaCmdCompute(VkaCommandBuffer cmdBuf, ComputeCmd &computeCmd)
 {
-	vkaCmdEndRenderPass(cmdBuf);
-	cmdBuf->renderState = {};
+	vkaClearState(cmdBuf);
+	cmdBuf->renderState = computeCmd.getRenderState();
+	vkaCmdBindPipeline(cmdBuf, computeCmd.pipelineDef);
+	vkaCmdPushDescriptors(cmdBuf, 0, computeCmd.descriptors);// only one descriptor set for now
+	vkaCmdDispatch(cmdBuf, computeCmd.workGroupCount);
 }

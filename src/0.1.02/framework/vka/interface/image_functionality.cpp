@@ -18,3 +18,11 @@ VkaImage vkaGetSwapchainImage()
 	gState.io.swapchainImage = new SwapchainImage_I();
 	return gState.io.swapchainImage;
 }
+
+VkaImage vkaCreateImage(IResourcePool* pPool ,VkFormat format, VkImageUsageFlags usageFlags, VkExtent2D extent)
+{
+	VkImageCreateInfo ci = ImageCreateInfo_Default(usageFlags, extent, format);
+	VkaImage          img = new Image_I(pPool, ci, true);
+	img->createHandles();
+	return img;
+}

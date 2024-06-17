@@ -83,7 +83,7 @@ class Image_I : public Resource_T<VkImage>, public IDescriptor
 	  {
 		  return layout;
 	  }
-	  virtual VkImageLayout getInitialLayout()
+	  virtual VkImageLayout getInitialLayout() const
 	  {
 		  return ci.initialLayout;
 	  }

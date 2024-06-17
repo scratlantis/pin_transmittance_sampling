@@ -3,9 +3,10 @@
 //#include <vka/resource_objects/resource_common.h>
 #include "../types.h"
 
-
-// Buffer
+//class Buffer_I;
+    // Buffer
 void vkaCmdCopyBuffer(VkaCommandBuffer cmdBuf, const vka::Buffer_I *src, const vka::Buffer_I *dst);
+void vkaCmdUpload(VkaCommandBuffer cmdBuf, VkaBuffer buf, Mappable &mappable);
 void vkaCmdUpload(VkaCommandBuffer cmdBuf, VkaBuffer buf);
 void vkaCmdFillBuffer(VkaCommandBuffer cmdBuf, VkaBuffer dst, VkDeviceSize offset, VkDeviceSize size, uint32_t data);
 void vkaCmdFillBuffer(VkaCommandBuffer cmdBuf, VkaBuffer dst, uint32_t data);
@@ -28,10 +29,12 @@ void vkaCmdBindPipeline(VkaCommandBuffer cmdBuf, vka::ComputePipelineDefinition 
 void vkaCmdBindPipeline(VkaCommandBuffer cmdBuf);
 void vkaCmdPushDescriptors(VkaCommandBuffer cmdBuf, uint32_t setIdx, std::vector<vka::IDescriptor *> desc);
 void vkaCmdPushConstants(VkaCommandBuffer cmdBuf, VkShaderStageFlags shaderStage, uint32_t offset, uint32_t size, const void *data);
-void vkaCmdDispatch(VkaCommandBuffer cmdBuf, uint32_t x, uint32_t y, uint32_t z);
+void vkaCmdDispatch(VkaCommandBuffer cmdBuf, glm::uvec3 workgroups);
 void vkaCmdBindVertexBuffers(VkaCommandBuffer cmdBuf);
 void vkaCmdBindIndexBuffer(VkaCommandBuffer cmdBuf, VkDeviceSize offset);
 void vkaCmdDrawIndexed(VkaCommandBuffer cmdBuf, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance);
+void vkaCmdDraw(VkaCommandBuffer cmdBuf, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCmd &drawCall);
-void vkaCmdFinishDraw(VkaCommandBuffer cmdBuf);
+void vkaCmdCompute(VkaCommandBuffer cmdBuf, ComputeCmd &computeCmd);
+void vkaClearState(VkaCommandBuffer cmdBuf);
 

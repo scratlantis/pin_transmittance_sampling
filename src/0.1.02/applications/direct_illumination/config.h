@@ -1,6 +1,11 @@
 #pragma once
 #include <vka/state_objects/global_state.h>
 #include <vka/interface/types.h>
+
+static const std::string shaderPath  = std::string(APP_SRC_DIR) + "/shaders/";
+static const std::string modelPath   = std::string(RESOURCE_BASE_DIR) + "/models/";
+static const std::string texturePath = std::string(RESOURCE_BASE_DIR) + "/textures/";
+
 struct D3VKPTDeviceCI : vka::DeviceCI
 {
 	D3VKPTDeviceCI(std::string appName)

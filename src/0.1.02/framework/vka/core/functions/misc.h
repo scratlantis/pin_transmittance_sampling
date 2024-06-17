@@ -71,16 +71,6 @@ inline hash_t hashVector(const T* p, uint32_t count)
 
 
 
-//template <class T>
-//inline hash_t shallowHashStructure(const T *v)
-//{
-//	if (v == nullptr)
-//	{
-//		return 0;
-//	}
-//	return hashArray((const uint8_t *) v, sizeof(T));
-//}
-
 template <class T>
 inline hash_t byteHashPtr(const T *p)
 {
@@ -97,17 +87,6 @@ inline hash_t byteHashPtr(const T *p)
 	return value;
 }
 
-//template <class T>
-//inline hash_t shallowHashArray(const std::vector<T> &arr)
-//{
-//	hash_t       value = 0;
-//	for (std::size_t i = 0; i < arr.size(); ++i)
-//	{
-//		hashCombineLocal(value, shallowHashStructure(&arr[i]));
-//	}
-//	return value;
-//}
-
 template <class T>
 inline hash_t byteHashVector(const std::vector<T> &arr)
 {
@@ -117,6 +96,44 @@ inline hash_t byteHashVector(const std::vector<T> &arr)
 		hashCombineLocal(value, byteHashPtr(&arr[i]));
 	}
 	return value;
+}
+template <class T>
+inline bool memcmpPtr(const T *a, const T *b)
+{
+	if (a == nullptr && b == nullptr)
+	{
+		return true;
+	}
+	if (a == nullptr || b == nullptr)
+	{
+		return false;
+	}
+	return memcmp(a, b, sizeof(T)) == 0;
+}
+
+template <class T>
+inline bool memcmpVector(const std::vector<T> &a, const std::vector<T> &b)
+{
+	if (a.size() != b.size())
+	{
+		return false;
+	}
+	if (a.size() == 0)
+	{
+		return true;
+	}
+	bool isEqual = memcmp(a.data(), b.data(), a.size() * sizeof(T)) == 0;
+	return isEqual;
+}
+
+template <class T>
+inline bool memcmpArray(const T *a, const T *b, uint32_t count)
+{
+	if (count == 0)
+	{
+		return true;
+	}
+	return memcmp(a, b, count * sizeof(T)) == 0;
 }
 
 template <class T>
@@ -131,19 +148,6 @@ inline hash_t hashVector(const std::vector<T> &arr)
 }
 
 
-template <class T>
-inline bool memcmpPtr(const T *a, const T *b)
-{
-	if (a == nullptr && b == nullptr)
-	{
-		return true;
-	}
-	if (a == nullptr || b == nullptr)
-	{
-		return false;
-	}
-	return memcmp(a, b, sizeof(T)) == 0;
-}
 
 template <class T>
 inline bool cmpPtr(const T *a, const T *b)
@@ -160,29 +164,7 @@ inline bool cmpPtr(const T *a, const T *b)
 }
 
 
-template <class T>
-inline bool memcmpVector(const std::vector<T> &a, const std::vector<T> &b)
-{
-	if (a.size() != b.size())
-	{
-		return false;
-	}
-	if (a.size() == 0)
-	{
-		return true;
-	}
-	bool isEqual = memcmp(a.data(), b.data(), a.size() * sizeof(T)) == 0;
-	return isEqual;
-}
-template <class T>
-inline bool memcmpArray(const T *a, const T *b, uint32_t count)
-{
-	if (count == 0)
-	{
-		return true;
-	}
-	return memcmp(a, b, count * sizeof(T)) == 0;
-}
+
 
 
 template <class T>
@@ -492,6 +474,8 @@ VkAccessFlags inline getAccessFlags(VkImageLayout layout)
 			return VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
 			return VK_ACCESS_SHADER_READ_BIT;
+		case VK_IMAGE_LAYOUT_GENERAL:
+			return VK_ACCESS_SHADER_WRITE_BIT;
 		default:
 			return VkAccessFlags();
 	}
@@ -514,6 +498,8 @@ VkPipelineStageFlags inline getStageFlags(VkImageLayout oldImageLayout)
 			return VK_PIPELINE_STAGE_HOST_BIT;
 		case VK_IMAGE_LAYOUT_UNDEFINED:
 			return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		case VK_IMAGE_LAYOUT_GENERAL:
+			return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		default:
 			return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 	}
