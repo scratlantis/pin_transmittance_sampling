@@ -24,12 +24,12 @@ hash_t RasterizationPipelineDefinition::hash() const
 	HASHC hashVector(dynamicStates)
 	HASHC hashVector(sampleMasks)
 
-	HASHC byteHashVector(colorBlendAttachmentStates)
-	HASHC byteHashVector(shaderDefinitions)
-	HASHC byteHashVector(vertexBindingDescriptions)
-	HASHC byteHashVector(vertexAttributeDescriptions)
-	HASHC byteHashVector(viewports)
-	HASHC byteHashVector(scissors);
+	HASHC hashVector(colorBlendAttachmentStates)
+	HASHC hashVector(shaderDefinitions)
+	HASHC hashVector(vertexBindingDescriptions)
+	HASHC hashVector(vertexAttributeDescriptions)
+	HASHC hashVector(viewports)
+	HASHC hashVector(scissors);
 	// clang-format on
 }
 

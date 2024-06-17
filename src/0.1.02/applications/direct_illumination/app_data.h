@@ -32,7 +32,7 @@ struct AppConfig
 
 
 	Transform gaussianFogCubeTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(-0.5, -0.5, -0.5)));
-	Transform sphereTransform          = Transform(glm::mat4(1.0));
+	//Transform sphereTransform          = Transform(glm::mat4(1.0));
 	Transform pinMatTransform          = Transform(glm::mat4(1.0));
 	Transform gaussianSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, -4.0, 0.0)));
 	Transform gaussianNNGridSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, -1.5, 0.0)));
@@ -107,6 +107,7 @@ struct AppData
 				camera.mouseControl(0.016);
 			}
 		}
+		Transform sphereTransform = Transform(glm::translate(glm::mat4(1.0), camera.getFixpoint()) * glm::scale(glm::mat4(1.0), glm::vec3(0.1)));
 		// Update view
 		{
 			View *view                   = (View *) vkaMapStageing(viewBuf, sizeof(View));
@@ -138,12 +139,21 @@ struct AppData
 		// Update instance buffers
 		{
 			vkaWriteStaging(gaussianFogCubeTransformBuf, &config.gaussianFogCubeTransform, sizeof(Transform));
-			vkaWriteStaging(sphereTransformBuf, &config.sphereTransform, sizeof(Transform));
+			vkaWriteStaging(sphereTransformBuf, &sphereTransform, sizeof(Transform));
 			vkaWriteStaging(pinMatTransformBuf, &config.pinMatTransform, sizeof(Transform));
 			vkaWriteStaging(gaussianSphereTransformBuf, &config.gaussianSphereTransform, sizeof(Transform));
 			vkaWriteStaging(gaussianNNGridSphereTransformBuf, &config.gaussianNNGridSphereTransform, sizeof(Transform));
-			vkaWriteStaging(gaussianNNSphereTransformBuf, &config.gaussianNNSphereTransform, sizeof(Transform));
-			vkaWriteStaging(gaussianNN2SphereTransformBuf, &config.gaussianNN2SphereTransform, sizeof(Transform));
+
+			Transform *dataNN1 = (Transform*) vkaMapStageing(gaussianNNSphereTransformBuf, config.pinCountSqrt * sizeof(Transform));
+			Transform *dataNN2 = (Transform*) vkaMapStageing(gaussianNN2SphereTransformBuf, config.pinCountSqrt * sizeof(Transform));
+			for (size_t i = 0; i < config.pinCountSqrt; i++)
+			{
+				memcpy(&dataNN1[i], &config.gaussianNNSphereTransform, sizeof(Transform));
+				memcpy(&dataNN2[i], &config.gaussianNN2SphereTransform, sizeof(Transform));
+			}
+			vkaUnmap(gaussianNNSphereTransformBuf);
+			vkaUnmap(gaussianNN2SphereTransformBuf);
+
 			vkaCmdUpload(cmdBuf, gaussianFogCubeTransformBuf);
 			vkaCmdUpload(cmdBuf, sphereTransformBuf);
 			vkaCmdUpload(cmdBuf, pinMatTransformBuf);
@@ -171,7 +181,6 @@ struct AppData
 				vkaUnmap(gaussianBuf);
 				vkaCmdUpload(cmdBuf, gaussianBuf);
 			}
-
 			// Recompute pins
 			{
 				Pin                                  *pinData  = static_cast<Pin *>(vkaMapStageing(pinBuf, sizeof(Pin) * pinCount));
@@ -185,6 +194,8 @@ struct AppData
 				vkaUnmap(pinBuf);
 				vkaCmdUpload(cmdBuf, pinBuf, pinsLocal);
 			}
+
+			vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
 			// Pin transmittance
 			{
@@ -246,6 +257,7 @@ struct AppData
 				vkaCmdUpload(cmdBuf, pinVertexBuffer);
 				vkaCmdUpload(cmdBuf, pinIndexBuffer);
 			}
+			vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 			// Grid Buffer
 			{
 				pinGridBuf->changeSize(sizeof(PinGridEntry) * config.pinsPerGridCell * config.pinsGridSize * config.pinsGridSize * config.pinsGridSize);
@@ -254,8 +266,9 @@ struct AppData
 				ComputeCmd computeCmd;
 				setDefaults(computeCmd, {config.pinsGridSize, config.pinsGridSize, config.pinsGridSize}, shaderPath + "pins_grid_gen.comp",
 				            {{"PIN_GRID_SIZE", std::to_string(config.pinsGridSize)},
-				             {"GAUSSIAN_COUNT", std::to_string(config.gaussianCount)},
-				             {"PIN_COUNT", std::to_string(pinCount)}});
+				             {"PIN_COUNT", std::to_string(pinCount)},
+				             {"PINS_PER_GRID_CELL", std::to_string(config.gaussianCount)}
+					});
 				addDescriptor(computeCmd, pinBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 				addDescriptor(computeCmd, pinGridBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 				vkaCmdCompute(cmdBuf, computeCmd);
@@ -268,6 +281,7 @@ struct AppData
 			}
 
 		}
+		vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 		cnt++;
 	 }
 };

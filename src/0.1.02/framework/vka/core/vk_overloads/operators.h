@@ -242,6 +242,23 @@ struct VkRect2D_OP : public VkRect2D
 			&& extent.height == other.extent.height;
 		// clang-format on
 	}
+	VkRect2D_OP operator*(Rect2D<float> const &other)
+	{
+		// clang-format off
+		VkRect2D_OP result;
+		result.offset.x = other.x * extent.width;
+		result.offset.y = other.y * extent.height;
+		result.extent.width = extent.width * other.width;
+		result.extent.height = extent.height * other.height;
+		return result;
+		// clang-format on
+	}
+	void operator*=(Rect2D<float> const &other)
+	{
+		// clang-format off
+		*this = *this * other;
+		// clang-format on
+	}
 	bool operator!=(VkRect2D_OP const &other) const
 	{
 		return !(*this == other);

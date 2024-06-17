@@ -86,55 +86,55 @@ inline hash_t byteHashPtr(const T *p)
 	}
 	return value;
 }
-
-template <class T>
-inline hash_t byteHashVector(const std::vector<T> &arr)
-{
-	hash_t value = 0;
-	for (std::size_t i = 0; i < arr.size(); ++i)
-	{
-		hashCombineLocal(value, byteHashPtr(&arr[i]));
-	}
-	return value;
-}
-template <class T>
-inline bool memcmpPtr(const T *a, const T *b)
-{
-	if (a == nullptr && b == nullptr)
-	{
-		return true;
-	}
-	if (a == nullptr || b == nullptr)
-	{
-		return false;
-	}
-	return memcmp(a, b, sizeof(T)) == 0;
-}
-
-template <class T>
-inline bool memcmpVector(const std::vector<T> &a, const std::vector<T> &b)
-{
-	if (a.size() != b.size())
-	{
-		return false;
-	}
-	if (a.size() == 0)
-	{
-		return true;
-	}
-	bool isEqual = memcmp(a.data(), b.data(), a.size() * sizeof(T)) == 0;
-	return isEqual;
-}
-
-template <class T>
-inline bool memcmpArray(const T *a, const T *b, uint32_t count)
-{
-	if (count == 0)
-	{
-		return true;
-	}
-	return memcmp(a, b, count * sizeof(T)) == 0;
-}
+//
+//template <class T>
+//inline hash_t byteHashVector(const std::vector<T> &arr)
+//{
+//	hash_t value = 0;
+//	for (std::size_t i = 0; i < arr.size(); ++i)
+//	{
+//		hashCombineLocal(value, byteHashPtr(&arr[i]));
+//	}
+//	return value;
+//}
+//template <class T>
+//inline bool memcmpPtr(const T *a, const T *b)
+//{
+//	if (a == nullptr && b == nullptr)
+//	{
+//		return true;
+//	}
+//	if (a == nullptr || b == nullptr)
+//	{
+//		return false;
+//	}
+//	return memcmp(a, b, sizeof(T)) == 0;
+//}
+//
+//template <class T>
+//inline bool memcmpVector(const std::vector<T> &a, const std::vector<T> &b)
+//{
+//	if (a.size() != b.size())
+//	{
+//		return false;
+//	}
+//	if (a.size() == 0)
+//	{
+//		return true;
+//	}
+//	bool isEqual = memcmp(a.data(), b.data(), a.size() * sizeof(T)) == 0;
+//	return isEqual;
+//}
+//
+//template <class T>
+//inline bool memcmpArray(const T *a, const T *b, uint32_t count)
+//{
+//	if (count == 0)
+//	{
+//		return true;
+//	}
+//	return memcmp(a, b, count * sizeof(T)) == 0;
+//}
 
 template <class T>
 inline hash_t hashVector(const std::vector<T> &arr)

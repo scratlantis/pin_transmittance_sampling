@@ -206,7 +206,96 @@ int main()
 			// Material Pass
 			if (1)
 			{
+				DrawCmd drawCmdTemplate{};
+				setDefaults(drawCmdTemplate.pipelineDef, RasterizationPipelineDefaultValues());
+				drawCmdTemplate.model = modelCache.fetch(cmdBuf, "sphere/sphere.obj", sizeof(PosVertex), PosVertex::parse);
+				addInput(drawCmdTemplate.pipelineDef, PosVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
+				addInput(drawCmdTemplate.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
+				addDepthAttachment(drawCmdTemplate, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+				addColorAttachment(drawCmdTemplate, offscreenImage, {0.9f, 0.9f, 0.9f, 0.0f},
+				                   VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				                   VKA_BLEND_OP_WRITE, VKA_BLEND_OP_WRITE);
+				drawCmdTemplate.renderArea = VkRect2D{{0, 0}, gState.io.extent};
+				drawCmdTemplate.renderArea *= Rect2D<float>{0.8, 0.0, 0.2, 1.0};
+				drawCmdTemplate.pipelineDef.rasterizationState.cullMode  = VK_CULL_MODE_BACK_BIT;
+				drawCmdTemplate.pipelineDef.rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
+				addShader(drawCmdTemplate.pipelineDef, shaderPath + "secondary_pins_render.vert", {});
 
+				createFramebuffer(drawCmdTemplate, framebufferCache);
+				// Gaussian
+				{
+					DrawCmd drawCmd = drawCmdTemplate;
+					addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, &appData.defaultSampler, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+					addShader(drawCmd.pipelineDef, shaderPath + "pins_render_gaussian.frag",
+					          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)}});
+
+					drawCmd.instanceBuffers = {appData.gaussianSphereTransformBuf};
+					drawCmd.instanceCount   = 1;
+
+					vkaCmdDraw(cmdBuf, drawCmd);
+				}
+				// Grid
+				{
+					DrawCmd drawCmd = drawCmdTemplate;
+					addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.pinTransmittanceBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.pinGridBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, &appData.defaultSampler, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+					addShader(drawCmd.pipelineDef, shaderPath + "pins_render_gaussian_nn_grid.frag",
+					          {{"PIN_GRID_SIZE", std::to_string(appConfig.pinsGridSize)},
+					           {"PIN_COUNT", std::to_string(appConfig.pinCount())},
+					           {"PINS_PER_GRID_CELL", std::to_string(appConfig.pinsPerGridCell)},
+					           {"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)}});
+
+					drawCmd.instanceBuffers                          = {appData.gaussianNNGridSphereTransformBuf};
+					drawCmd.instanceCount                            = 1;
+					vkaCmdDraw(cmdBuf, drawCmd);
+				}
+				// NN
+				if (1)
+				{
+					DrawCmd drawCmd = drawCmdTemplate;
+					addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.pinBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.pinTransmittanceBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.pinDirectionsBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.pinUsedBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+
+					addDescriptor(drawCmd, &appData.defaultSampler, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+					drawCmd.instanceCount = appConfig.pinCountSqrt;
+					{
+					    DrawCmd NN1 = drawCmd;
+						addShader(NN1.pipelineDef, shaderPath + "pins_render_gaussian_nn.frag",
+								  {{"PIN_COUNT", std::to_string(appConfig.pinCount())},
+								   {"PIN_COUNT_SQRT", std::to_string(appConfig.pinCountSqrt)},
+								   {"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
+								   {"METRIC_ANGLE_DISTANCE", ""}
+							});
+						NN1.instanceBuffers = {appData.gaussianNNSphereTransformBuf};
+						vkaCmdDraw(cmdBuf, NN1);
+					}
+					{
+						DrawCmd NN2 = drawCmd;
+						addShader(NN2.pipelineDef, shaderPath + "pins_render_gaussian_nn.frag",
+						          {{"PIN_COUNT", std::to_string(appConfig.pinCount())},
+						           {"PIN_COUNT_SQRT", std::to_string(appConfig.pinCountSqrt)},
+						           {"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
+						           {"METRIC_DISTANCE_DISTANCE", ""}});
+						NN2.instanceBuffers = {appData.gaussianNN2SphereTransformBuf};
+						vkaCmdDraw(cmdBuf, NN2);
+					}
+				}
 			}
 
 			vkaCmdCopyImage(cmdBuf, offscreenImage, offscreenImage->getLayout(), swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);

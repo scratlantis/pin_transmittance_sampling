@@ -19,7 +19,7 @@ void vkaCmdCopyImage(VkaCommandBuffer cmdBuf, VkaImage src, VkImageLayout srcNew
                      ImageSubresourceRange srcSubRange = {0, 0, 1}, ImageSubresourceRange dstSubRange = {0, 0, 1});
 void vkaCmdCopyImage(VkaCommandBuffer cmdBuf, VkaImage src, VkaImage dst);
 // General
-void barrier(VkaCommandBuffer cmdBuf, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccesFlags, VkAccessFlags dstAccesFlags);
+void vkaCmdBarrier(VkaCommandBuffer cmdBuf, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccesFlags, VkAccessFlags dstAccesFlags);
 
 // Pipelines
 void vkaCmdStartRenderPass(VkaCommandBuffer cmdBuf, VkRenderPass renderpass, VkFramebuffer framebuffer,

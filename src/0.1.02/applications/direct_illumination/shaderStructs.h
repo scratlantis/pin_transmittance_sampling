@@ -127,7 +127,7 @@ class Transform
 		     6 * sizeof(glm::vec4),
 		     7 * sizeof(glm::vec4)
 		};
-		layout.stride  = sizeof(PosVertex);
+		layout.stride = sizeof(Transform);
 		return layout;
 	}
 };

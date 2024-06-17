@@ -142,7 +142,7 @@ void vkaCmdCopyImage(VkaCommandBuffer cmdBuf, VkaImage src, VkaImage dst)
 }
 
 // General
-void barrier(VkaCommandBuffer cmdBuf, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccesFlags, VkAccessFlags dstAccesFlags)
+void vkaCmdBarrier(VkaCommandBuffer cmdBuf, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccesFlags, VkAccessFlags dstAccesFlags)
 {
 	VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
 	barrier.srcAccessMask = srcAccesFlags;

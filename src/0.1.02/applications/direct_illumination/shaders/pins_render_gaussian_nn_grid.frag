@@ -61,6 +61,7 @@ void main()
 	vec3 originalDir = dir;
 	applyJitter(view.positionalJitter, view.angularJitter, startPos, dir);
 
+
 	vec3 p1 = startPos;
 	uvec3 p1ID = uvec3(floor(p1*PIN_GRID_SIZE));
 	uint gridIdx = getCellIndex(p1ID);
@@ -79,21 +80,25 @@ void main()
 		}
 	}
 	uint pinIdx = grid[maxDotIdx].data.pinIndex;
-	float transmittance = pin_transmittance[pinIdx];
+	//float transmittance = pin_transmittance[pinIdx];
 
 	vec3 origin,direction;
 	Pin p = grid[maxDotIdx].pin;
 	getRay(p, origin, direction);
+
 	dir = direction * sign(dot(dir, direction));
 	startPos = origin + dir*dot(startPos-origin,dir);
+
 	vec3 exitPoint = cubeExitPoint(startPos, dir);
 	vec3 endPos = exitPoint;
+
+
 	if(distance(startPos,exitPoint) > view.secRayLength)
 	{
 		endPos = startPos + dir*view.secRayLength;
 	}
 
-	transmittance = 1.0;
+	float transmittance = 1.0;
 	float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
 	for(int i = 0; i < GAUSSIAN_COUNT; i++)
 	{
