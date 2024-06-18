@@ -25,8 +25,8 @@ struct AppConfig
 	uint32_t gaussianCount = 30;
 	uint32_t gaussianMargin = 0.2f;
 	uint32_t pinsPerGridCell = 20;
-	uint32_t pinsGridSize = 20;
-	uint32_t pinCountSqrt = 100;
+	uint32_t pinsGridSize = 10;
+	uint32_t pinCountSqrt = 50;
 	uint32_t inline pinCount() { return pinCountSqrt * pinCountSqrt; }
 	uint32_t gaussFilterRadius = 4;
 
@@ -139,20 +139,14 @@ struct AppData
 		// Update instance buffers
 		{
 			vkaWriteStaging(gaussianFogCubeTransformBuf, &config.gaussianFogCubeTransform, sizeof(Transform));
-			vkaWriteStaging(sphereTransformBuf, &sphereTransform, sizeof(Transform));
+			vkaFillStaging(sphereTransformBuf, &sphereTransform, sizeof(Transform), 2);
+
 			vkaWriteStaging(pinMatTransformBuf, &config.pinMatTransform, sizeof(Transform));
 			vkaWriteStaging(gaussianSphereTransformBuf, &config.gaussianSphereTransform, sizeof(Transform));
 			vkaWriteStaging(gaussianNNGridSphereTransformBuf, &config.gaussianNNGridSphereTransform, sizeof(Transform));
 
-			Transform *dataNN1 = (Transform*) vkaMapStageing(gaussianNNSphereTransformBuf, config.pinCountSqrt * sizeof(Transform));
-			Transform *dataNN2 = (Transform*) vkaMapStageing(gaussianNN2SphereTransformBuf, config.pinCountSqrt * sizeof(Transform));
-			for (size_t i = 0; i < config.pinCountSqrt; i++)
-			{
-				memcpy(&dataNN1[i], &config.gaussianNNSphereTransform, sizeof(Transform));
-				memcpy(&dataNN2[i], &config.gaussianNN2SphereTransform, sizeof(Transform));
-			}
-			vkaUnmap(gaussianNNSphereTransformBuf);
-			vkaUnmap(gaussianNN2SphereTransformBuf);
+			vkaFillStaging(gaussianNNSphereTransformBuf, &config.gaussianNNSphereTransform, sizeof(Transform), config.pinCountSqrt);
+			vkaFillStaging(gaussianNN2SphereTransformBuf, &config.gaussianNN2SphereTransform, sizeof(Transform), config.pinCountSqrt);
 
 			vkaCmdUpload(cmdBuf, gaussianFogCubeTransformBuf);
 			vkaCmdUpload(cmdBuf, sphereTransformBuf);
@@ -267,7 +261,7 @@ struct AppData
 				setDefaults(computeCmd, {config.pinsGridSize, config.pinsGridSize, config.pinsGridSize}, shaderPath + "pins_grid_gen.comp",
 				            {{"PIN_GRID_SIZE", std::to_string(config.pinsGridSize)},
 				             {"PIN_COUNT", std::to_string(pinCount)},
-				             {"PINS_PER_GRID_CELL", std::to_string(config.gaussianCount)}
+				             {"PINS_PER_GRID_CELL", std::to_string(config.pinsPerGridCell)}
 					});
 				addDescriptor(computeCmd, pinBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 				addDescriptor(computeCmd, pinGridBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);

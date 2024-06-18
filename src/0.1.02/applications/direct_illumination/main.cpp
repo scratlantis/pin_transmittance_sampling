@@ -41,7 +41,7 @@ int main()
 	VkaImage offscreenImage = vkaCreateSwapchainAttachment(
 	    gState.io.format,
 	    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-	    VK_IMAGE_LAYOUT_GENERAL);
+	    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	VkaImage depthImage = vkaCreateSwapchainAttachment(
 	    VK_FORMAT_D32_SFLOAT,
 	    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
@@ -129,19 +129,16 @@ int main()
 				addInput(drawCmdTemplate.pipelineDef, PosVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
 				addInput(drawCmdTemplate.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
 				addDepthAttachment(drawCmdTemplate, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-				addColorAttachment(drawCmdTemplate, lineColorImg, VK_CLEAR_COLOR_NONE,
-				                   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-				                   VKA_BLEND_OP_WRITE, VKA_BLEND_OP_WRITE);
-				addColorAttachment(drawCmdTemplate, linePosImg, {0.0f,0.0f,0.0f,0.0f},
-				                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-				                   VKA_BLEND_OP_WRITE, VKA_BLEND_OP_WRITE);
+				addColorAttachment(drawCmdTemplate, lineColorImg, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				addColorAttachment(drawCmdTemplate, linePosImg, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0.0f, 0.0f, 0.0f, 0.0f});
 				createFramebuffer(drawCmdTemplate, framebufferCache);
 				// Sphere
+				if (1)
 				{
 					DrawCmd drawCmd = drawCmdTemplate;
 					drawCmd.model           = modelCache.fetch(cmdBuf, "lowpoly_sphere/lowpoly_sphere.obj", sizeof(PosVertex), PosVertex::parse);
 					drawCmd.instanceBuffers = {appData.sphereTransformBuf};
-					drawCmd.instanceCount   = 1;
+					drawCmd.instanceCount   = 2;
 
 					addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -154,7 +151,7 @@ int main()
 					vkaCmdDraw(cmdBuf, drawCmd);
 				}
 				// Pins
-				if (0)
+				if (1)
 				{
 					DrawCmd drawCmd         = drawCmdTemplate;
 					drawCmd.model           = {appData.pinVertexBuffer, appData.pinIndexBuffer, nullptr, 1};
@@ -163,18 +160,15 @@ int main()
 
 					addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 					addDescriptor(drawCmd, appData.pinUsedBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-
 					addShader(drawCmd.pipelineDef, shaderPath + "pins_visualize.vert");
 					addShader(drawCmd.pipelineDef, shaderPath + "pins_visualize.frag",
 						{{"PIN_COUNT", std::to_string(appConfig.pinCount())}});
-
 					drawCmd.pipelineDef.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
 					vkaCmdDraw(cmdBuf, drawCmd);
 				}
 				vkaCmdCopyImage(cmdBuf, lineColorImg, offscreenImage);
 				vkaCmdFillBuffer(cmdBuf, appData.pinUsedBuffer, 0);
 			}
-			vkaCmdCopyImage(cmdBuf, lineColorImg, offscreenImage);
 			// Fog Cube
 			if (1)
 			{
@@ -197,9 +191,7 @@ int main()
 				          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)}});
 
 				addDepthAttachment(drawCmd, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-				addColorAttachment(drawCmd, offscreenImage, VK_CLEAR_COLOR_NONE,
-				                   VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL,
-								   VKA_BLEND_OP_WRITE, VKA_BLEND_OP_WRITE);
+				addColorAttachment(drawCmd, offscreenImage);
 				createFramebuffer(drawCmd, framebufferCache);
 				vkaCmdDraw(cmdBuf, drawCmd);
 			}
@@ -212,12 +204,12 @@ int main()
 				addInput(drawCmdTemplate.pipelineDef, PosVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
 				addInput(drawCmdTemplate.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
 				addDepthAttachment(drawCmdTemplate, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-				addColorAttachment(drawCmdTemplate, offscreenImage, {0.9f, 0.9f, 0.9f, 0.0f},
-				                   VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				                   VKA_BLEND_OP_WRITE, VKA_BLEND_OP_WRITE);
-				drawCmdTemplate.renderArea = VkRect2D{{0, 0}, gState.io.extent};
+				addColorAttachment(drawCmdTemplate, offscreenImage, {0.9f, 0.9f, 0.9f, 0.0f});
+				addColorAttachment(drawCmdTemplate, pinIdImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 0, 0, 0});
+
+				drawCmdTemplate.renderArea = VkRect2D{ {0, 0}, gState.io.extent };
 				drawCmdTemplate.renderArea *= Rect2D<float>{0.8, 0.0, 0.2, 1.0};
-				drawCmdTemplate.pipelineDef.rasterizationState.cullMode  = VK_CULL_MODE_BACK_BIT;
+				drawCmdTemplate.pipelineDef.rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 				drawCmdTemplate.pipelineDef.rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
 				addShader(drawCmdTemplate.pipelineDef, shaderPath + "secondary_pins_render.vert", {});
 
@@ -231,10 +223,10 @@ int main()
 					addDescriptor(drawCmd, envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 					addShader(drawCmd.pipelineDef, shaderPath + "pins_render_gaussian.frag",
-					          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)}});
+						{ {"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)} });
 
-					drawCmd.instanceBuffers = {appData.gaussianSphereTransformBuf};
-					drawCmd.instanceCount   = 1;
+					drawCmd.instanceBuffers = { appData.gaussianSphereTransformBuf };
+					drawCmd.instanceCount = 1;
 
 					vkaCmdDraw(cmdBuf, drawCmd);
 				}
@@ -249,13 +241,13 @@ int main()
 					addDescriptor(drawCmd, envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 					addShader(drawCmd.pipelineDef, shaderPath + "pins_render_gaussian_nn_grid.frag",
-					          {{"PIN_GRID_SIZE", std::to_string(appConfig.pinsGridSize)},
-					           {"PIN_COUNT", std::to_string(appConfig.pinCount())},
-					           {"PINS_PER_GRID_CELL", std::to_string(appConfig.pinsPerGridCell)},
-					           {"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)}});
+						{ {"PIN_GRID_SIZE", std::to_string(appConfig.pinsGridSize)},
+						 {"PIN_COUNT", std::to_string(appConfig.pinCount())},
+						 {"PINS_PER_GRID_CELL", std::to_string(appConfig.pinsPerGridCell)},
+						 {"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)} });
 
-					drawCmd.instanceBuffers                          = {appData.gaussianNNGridSphereTransformBuf};
-					drawCmd.instanceCount                            = 1;
+					drawCmd.instanceBuffers = { appData.gaussianNNGridSphereTransformBuf };
+					drawCmd.instanceCount = 1;
 					vkaCmdDraw(cmdBuf, drawCmd);
 				}
 				// NN
@@ -275,37 +267,47 @@ int main()
 
 					drawCmd.instanceCount = appConfig.pinCountSqrt;
 					{
-					    DrawCmd NN1 = drawCmd;
+						DrawCmd NN1 = drawCmd;
 						addShader(NN1.pipelineDef, shaderPath + "pins_render_gaussian_nn.frag",
-								  {{"PIN_COUNT", std::to_string(appConfig.pinCount())},
-								   {"PIN_COUNT_SQRT", std::to_string(appConfig.pinCountSqrt)},
-								   {"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
-								   {"METRIC_ANGLE_DISTANCE", ""}
+							{ {"PIN_COUNT", std::to_string(appConfig.pinCount())},
+							 {"PIN_COUNT_SQRT", std::to_string(appConfig.pinCountSqrt)},
+							 {"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
+							 {"METRIC_ANGLE_DISTANCE", ""}
 							});
-						NN1.instanceBuffers = {appData.gaussianNNSphereTransformBuf};
+						NN1.instanceBuffers = { appData.gaussianNNSphereTransformBuf };
 						vkaCmdDraw(cmdBuf, NN1);
 					}
 					{
 						DrawCmd NN2 = drawCmd;
 						addShader(NN2.pipelineDef, shaderPath + "pins_render_gaussian_nn.frag",
-						          {{"PIN_COUNT", std::to_string(appConfig.pinCount())},
-						           {"PIN_COUNT_SQRT", std::to_string(appConfig.pinCountSqrt)},
-						           {"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
-						           {"METRIC_DISTANCE_DISTANCE", ""}});
-						NN2.instanceBuffers = {appData.gaussianNN2SphereTransformBuf};
+							{ {"PIN_COUNT", std::to_string(appConfig.pinCount())},
+							 {"PIN_COUNT_SQRT", std::to_string(appConfig.pinCountSqrt)},
+							 {"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
+							 {"METRIC_DISTANCE_DISTANCE", ""} });
+						NN2.instanceBuffers = { appData.gaussianNN2SphereTransformBuf };
 						vkaCmdDraw(cmdBuf, NN2);
 					}
 				}
 			}
-
 			vkaCmdCopyImage(cmdBuf, offscreenImage, offscreenImage->getLayout(), swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 			// GUI
 			if (1)
 			{
-				vkaCmdStartRenderPass(cmdBuf, guiRenderPass, framebufferCache.fetch(guiRenderPass, {swapchainImage}), {VK_CLEAR_COLOR_BLACK});
+				vkaCmdStartRenderPass(cmdBuf, guiRenderPass, framebufferCache.fetch(guiRenderPass, { swapchainImage }), { VK_CLEAR_COLOR_BLACK });
 				gui.render(cmdBuf);
 				vkaCmdEndRenderPass(cmdBuf);
 			}
+		}
+		// Update used pins
+		if (1)
+		{
+			ComputeCmd computeCmd;
+			setDefaults(computeCmd, gState.io.extent, shaderPath + "write_used_pins.comp", {{"PIN_COUNT", std::to_string(appConfig.pinCount())}});
+			addDescriptor(computeCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+			addDescriptor(computeCmd, appData.pinUsedBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+			addDescriptor(computeCmd, &appData.defaultSampler, VK_DESCRIPTOR_TYPE_SAMPLER);
+			addDescriptor(computeCmd, pinIdImage, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+			vkaCmdCompute(cmdBuf, computeCmd);
 		}
 
 		vkaSwapBuffers({cmdBuf});

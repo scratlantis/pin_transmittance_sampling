@@ -241,7 +241,7 @@ class GaussianNN_M : public Material
 		ShaderDefinition vertShaderDef{shaderPathPrefix + "secondary_pins_render.vert"};
 		ShaderDefinition fragShaderDef{shaderPathPrefix + "pins_render_gaussian_nn.frag"};
 		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
-		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT_SQRT)});
+		fragShaderDef.args.push_back({"PIN_COUNT_SQRT", std::to_string(PIN_COUNT_SQRT)});
 		fragShaderDef.args.push_back({"GAUSSIAN_COUNT", std::to_string(GAUSSIAN_COUNT)});
 		for (auto& arg : additionalShaderArgs)
 		{

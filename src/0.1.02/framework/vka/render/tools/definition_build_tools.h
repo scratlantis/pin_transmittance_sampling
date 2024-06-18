@@ -141,9 +141,11 @@ inline void addShader(RasterizationPipelineDefinition &def, std::string path, st
 	def.shaderDefinitions.push_back(ShaderDefinition(path, args));
 }
 
-inline void addUnusedAttachmentState(RasterizationPipelineDefinition &def)
+inline void addWriteAttachmentState(RasterizationPipelineDefinition &def)
 {
-	def.colorBlendAttachmentStates.push_back({});
+	VkPipelineColorBlendAttachmentState_OP attachmentBlendState{};
+	attachmentBlendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	def.colorBlendAttachmentStates.push_back(attachmentBlendState);
 }
 
 inline void addBlendAttachmentState(RasterizationPipelineDefinition &def, BlendOperation colorBlendOp, BlendOperation alphaBlendOp,
@@ -174,20 +176,29 @@ inline void addDepthAttachment(RasterizationPipelineDefinition &def, VkaImage de
 	addDepthAttachment(def.renderPassDefinition, depthImage->getFormat(), clear);
 }
 
-inline void addUnusedColorAttachment(RasterizationPipelineDefinition &def, VkaImage image,
+inline void addWriteColorAttachment(RasterizationPipelineDefinition &def, VkaImage image,
                                      VkImageLayout layoutIn, VkImageLayout layoutOut, bool clear)
 {
-	addUnusedAttachmentState(def);
+	addWriteAttachmentState(def);
 	addColorAttachment(def.renderPassDefinition, layoutIn, layoutOut, image->getFormat(), clear);
 }
 
-inline void addColorAttachment(RasterizationPipelineDefinition &def, VkaImage image,
+inline void addBlendColorAttachment(RasterizationPipelineDefinition &def, VkaImage image,
                                VkImageLayout layoutIn, VkImageLayout layoutOut, bool clear,
                                BlendOperation colorBlendOp, BlendOperation alphaBlendOp)
 {
 	addBlendAttachmentState(def, colorBlendOp, alphaBlendOp);
 	addColorAttachment(def.renderPassDefinition, layoutIn, layoutOut, image->getFormat(), clear);
 }
+
+//inline void addColorAttachment(RasterizationPipelineDefinition &def, VkaImage image,
+//                               VkImageLayout layoutIn, VkImageLayout layoutOut, bool clear,
+//                               BlendOperation colorBlendOp, BlendOperation alphaBlendOp)
+//{
+//	addBlendAttachmentState(def, colorBlendOp, alphaBlendOp);
+//	addColorAttachment(def.renderPassDefinition, layoutIn, layoutOut, image->getFormat(), clear);
+//}
+
 
 inline void addDescriptor(RasterizationPipelineDefinition &def, VkShaderStageFlags shaderStage, VkDescriptorType type)
 {
@@ -283,10 +294,25 @@ inline void addColorAttachment(DrawCmd &drawCmd, VkaImage image, ClearValue clea
                                VkImageLayout layoutIn, VkImageLayout layoutOut,
                                BlendOperation colorBlendOp, BlendOperation alphaBlendOp)
 {
-	addColorAttachment(drawCmd.pipelineDef, image, layoutIn, layoutOut, clearValue.type != CLEAR_VALUE_NONE, colorBlendOp, alphaBlendOp);
+	addBlendColorAttachment(drawCmd.pipelineDef, image, layoutIn, layoutOut, clearValue.type != CLEAR_VALUE_NONE, colorBlendOp, alphaBlendOp);
 	drawCmd.attachments.push_back(image);
 	drawCmd.clearValues.push_back(clearValue);
 }
+
+inline void addColorAttachment(DrawCmd &drawCmd, VkaImage image, VkImageLayout layoutOut, ClearValue clearValue = {})
+{
+	addWriteColorAttachment(drawCmd.pipelineDef, image, image->getLayout(), layoutOut, clearValue.type != CLEAR_VALUE_NONE);
+	drawCmd.attachments.push_back(image);
+	drawCmd.clearValues.push_back(clearValue);
+}
+
+inline void addColorAttachment(DrawCmd &drawCmd, VkaImage image, ClearValue clearValue = {})
+{
+	addWriteColorAttachment(drawCmd.pipelineDef, image, image->getLayout(), image->getLayout(), clearValue.type != CLEAR_VALUE_NONE);
+	drawCmd.attachments.push_back(image);
+	drawCmd.clearValues.push_back(clearValue);
+}
+
 
 inline void createFramebuffer(DrawCmd &drawCmd, FramebufferCache &framebufferCache)
 {

@@ -10,4 +10,5 @@ VkaBuffer vkaCreateBuffer(vka::IResourcePool *pPool, VkBufferUsageFlags usageFla
 void *vkaMapStageing(VkaBuffer buffer, uint32_t size);
 void  vkaUnmap(VkaBuffer buffer);
 void  vkaWriteStaging(VkaBuffer buffer, void *data, uint32_t size);
+void  vkaFillStaging(VkaBuffer buffer, void *data, uint32_t size, uint32_t count);
 void  vkaRead(VkaBuffer buffer, void *dst);
