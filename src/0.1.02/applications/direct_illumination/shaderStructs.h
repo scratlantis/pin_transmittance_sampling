@@ -131,3 +131,57 @@ class Transform
 		return layout;
 	}
 };
+
+typedef uint32_t uint;
+typedef glm::vec2 vec2;
+typedef glm::vec3 vec3;
+typedef glm::vec4 vec4;
+typedef glm::mat4 mat4;
+
+
+#define CCP_IMPLEMENTATION
+#include "newShaders/shaderStructs.glsl"
+
+
+//struct FrameConstants
+//{
+//	uint frameIdx;
+//	uint padding[3];
+//};
+//
+//struct ViewConstants
+//{
+//	mat4 viewMat;
+//	mat4 inverseViewMat;
+//	mat4 projectionMat;
+//	mat4 inverseProjectionMat;
+//
+//	vec4 camPos;
+//
+//	uint width;
+//	uint height;
+//	uint padding[2];
+//};
+//
+//struct GuiVar
+//{
+//	uint padding[4];
+//};
+//
+//struct Volume
+//{
+//	mat4 modelMat;
+//	mat4 inverseModelMat;
+//};
+//
+//struct ShaderConst
+//{
+//	FrameConstants frame;
+//	ViewConstants  view;
+//	GuiVar         gui;
+//	Volume         volume;
+//};
+
+
+// new
+

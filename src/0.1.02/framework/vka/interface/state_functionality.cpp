@@ -9,3 +9,8 @@ void vkaSwapBuffers(std::vector<VkaCommandBuffer> cmdBufs)
 	gState.presentFrame();
 	gState.nextFrame();
 }
+
+vka::VkRect2D_OP vkaGetScissorRect(float x, float y, float width, float height)
+{
+	return vka::VkRect2D_OP{{{0, 0}, gState.io.extent}} * Rect2D<float>{ x, y, std::min(width,1.0f-x), std::min(height,1.0f-y)};
+}

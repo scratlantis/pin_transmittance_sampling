@@ -63,8 +63,9 @@ enum GVar_Type
 // Categorie
 enum GVar_Cat
 {
-	GVAR_FRAMEWORK,
-	GVAR_APPLICATION,
+	GVAR_RUNTIME_SETTINGS,
+	GVAR_LOAD_SETTINGS,
+	GVAR_WINDOW_SETTINGS
 };
 
 struct GVar

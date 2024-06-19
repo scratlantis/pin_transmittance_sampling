@@ -5,25 +5,45 @@
 #include "config.h"
 #define PI 3.14159265359
 using namespace vka;
-GVar gvar_use_pins{"show pins", 0, GVAR_ENUM, GVAR_APPLICATION, {"None", "All", "Grid", "Nearest Neighbor 1", "Nearest Neighbor 2"}};
-GVar gvar_pin_selection_coef{"pin selection coef", 1.0f, GVAR_UNORM, GVAR_APPLICATION};
-GVar gvar_ray_lenght{"secondary ray length", 1.0f, GVAR_UNORM, GVAR_APPLICATION};
-GVar gvar_positional_jitter{"positional_jitter", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
-GVar gvar_angular_jitter{"angular", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
+GVar gvar_pin_selection_coef{"pin selection coef", 0.5f, GVAR_UNORM, GVAR_RUNTIME_SETTINGS};
+GVar gvar_ray_lenght{"secondary ray length", 1.0f, GVAR_UNORM, GVAR_RUNTIME_SETTINGS};
+GVar gvar_positional_jitter{"positional_jitter", 0.0f, GVAR_UNORM, GVAR_RUNTIME_SETTINGS};
+GVar gvar_angular_jitter{"angular", 0.0f, GVAR_UNORM, GVAR_RUNTIME_SETTINGS};
 
-GVar gvar_use_env_map{"use env map", 1, GVAR_BOOL, GVAR_APPLICATION};
-GVar gvar_reload{"reload", 0, GVAR_EVENT, GVAR_APPLICATION};
+
+
+
+GVar gvar_gaussian_count{"gaussian count", 30, GVAR_UINT, GVAR_LOAD_SETTINGS};
+GVar gvar_gaussian_margin{"gaussian margin", 0.2f, GVAR_UNORM, GVAR_LOAD_SETTINGS};
+GVar gvar_pins_per_grid_cell{"pins per grid cell", 20, GVAR_UINT, GVAR_LOAD_SETTINGS};
+GVar gvar_pins_grid_size{"pins grid size", 10, GVAR_UINT, GVAR_LOAD_SETTINGS};
+GVar gvar_pin_count_sqrt{"pin count sqrt", 50, GVAR_UINT, GVAR_LOAD_SETTINGS};
+GVar gvar_reload{"reload", 0, GVAR_EVENT, GVAR_LOAD_SETTINGS};
+
+GVar gvar_use_pins{"show pins", 0, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"None", "All", "Grid", "Nearest Neighbor 1", "Nearest Neighbor 2"}};
+GVar gvar_use_env_map{"use env map", 0, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
+GVar gvar_show_cursor{"use gaussian", 1, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"None", "Inner Sphere", "Outher Sphere"}};
+GVar gvar_show_gaussian{"gaussian", 1, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
+GVar gvar_show_grid{"grid", 1, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
+GVar gvar_show_nn1{"nearest neighbor (distance/angle)", 1, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
+GVar gvar_show_nn2{"nearest neighbor (distance/distance)", 1, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
+
+GVar gvar_render_mode{"render mode", 0, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Angle Transmittance", "Reflection Transmittance"}};
+
+
+
+
 
 // POST PROCESSING
-GVar gvar_use_exp_moving_average{"use exponential moving average", false, GVAR_BOOL, GVAR_APPLICATION};
-GVar gvar_use_gaus_blur{"use gauss blur", false, GVAR_BOOL, GVAR_APPLICATION};
-GVar gvar_exp_moving_average_coef{"exp moving average coef", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
+//GVar gvar_use_exp_moving_average{"use exponential moving average", false, GVAR_BOOL, GVAR_APPLICATION};
+//GVar gvar_use_gaus_blur{"use gauss blur", false, GVAR_BOOL, GVAR_APPLICATION};
+//GVar gvar_exp_moving_average_coef{"exp moving average coef", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
 
 
 struct AppConfig
 {
 	uint32_t gaussianCount = 30;
-	uint32_t gaussianMargin = 0.2f;
+	float gaussianMargin = 0.2f;
 	uint32_t pinsPerGridCell = 20;
 	uint32_t pinsGridSize = 10;
 	uint32_t pinCountSqrt = 50;
@@ -32,13 +52,49 @@ struct AppConfig
 
 
 	Transform gaussianFogCubeTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(-0.5, -0.5, -0.5)));
-	//Transform sphereTransform          = Transform(glm::mat4(1.0));
 	Transform pinMatTransform          = Transform(glm::mat4(1.0));
-	Transform gaussianSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, -4.0, 0.0)));
-	Transform gaussianNNGridSphereTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, -1.5, 0.0)));
-	Transform gaussianNNSphereTransform     = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 1.5, 0.0)));
-	Transform gaussianNN2SphereTransform    = Transform(glm::translate(glm::mat4(1.0), glm::vec3(0.0, 4.0, 0.0)));
-	Rect2D<float> relSecondaryViewport = {0.8, 0.0, 0.2, 1.0};
+
+	Transform gaussianSphereTransform;
+	Transform gaussianNNGridSphereTransform;
+	Transform gaussianNNSphereTransform;
+	Transform gaussianNN2SphereTransform;
+
+	VkRect2D_OP mainViewport;
+	VkRect2D_OP guiViewport;
+	VkRect2D_OP materialViewPort;
+
+	glm::mat4 mainProjectionMat;
+
+
+	void update()
+	{
+		glm::vec3                pos   = glm::vec3(-4.0, 0.0, 0.0);
+		glm::vec3                step  = glm::vec3(2.5, 0.0, 0.0);
+		std::vector<Transform *> items = {&gaussianSphereTransform, &gaussianNNGridSphereTransform, &gaussianNNSphereTransform, &gaussianNN2SphereTransform};
+		for (int i = 0; i < 4; i++)
+		{
+			*items[i] = Transform(glm::translate(glm::mat4(1.0), pos));
+			pos += step;
+		}
+
+
+		if (gvar_reload.val.v_bool)
+		{
+			gaussianCount   = gvar_gaussian_count.val.v_uint;
+			gaussianMargin  = gvar_gaussian_margin.val.v_float;
+			pinsPerGridCell = gvar_pins_per_grid_cell.val.v_uint;
+			pinsGridSize    = gvar_pins_grid_size.val.v_uint;
+			pinCountSqrt    = gvar_pin_count_sqrt.val.v_uint;
+		}
+
+
+		mainViewport = vkaGetScissorRect(0.2, 0.0, 1.0, 0.8);
+		guiViewport  = vkaGetScissorRect(0.2, 0.0);
+		materialViewPort = vkaGetScissorRect(0.205, 0.81, 0.79, 0.18);
+
+		mainProjectionMat = glm::perspective(glm::radians(60.0f), (float) mainViewport.extent.width / (float) mainViewport.extent.height, 0.1f, 500.0f);
+
+	}
 };
 
 struct AppData
@@ -65,6 +121,16 @@ struct AppData
 	VkaBuffer gaussianNN2SphereTransformBuf;
 
 	VkaImage envMap;
+
+	// New
+	GuiVar guiVariables;
+	FrameConstants frameConstants;
+
+	// main view
+	ViewConstants mainViewConstants;
+
+	Transform volumeTransform;
+
 
 
 	void init(vka::IResourcePool* pPool)
@@ -111,8 +177,8 @@ struct AppData
 		// Update view
 		{
 			View *view                   = (View *) vkaMapStageing(viewBuf, sizeof(View));
-			view->width                  = gState.io.extent.width;
-			view->height                 = gState.io.extent.height;
+			view->width                  = config.mainViewport.extent.width;
+			view->height                 = config.mainViewport.extent.height;
 			view->frameCounter           = cnt;
 			view->camPos                 = glm::vec4(camera.getPosition(), 1.0);
 			view->viewMat                = camera.getViewMatrix();
@@ -122,10 +188,10 @@ struct AppData
 			view->cube                   = Cube{glm::mat4(1.0), glm::mat4(1.0)};
 			view->showPins               = gvar_use_pins.val.v_int;
 			view->pinSelectionCoef       = gvar_pin_selection_coef.val.v_float;
-			view->expMovingAverageCoef   = gvar_exp_moving_average_coef.val.v_float;
-			view->secondaryWidth         = config.relSecondaryViewport.width * gState.io.extent.width;
-			view->secondaryHeight        = config.relSecondaryViewport.height * gState.io.extent.height;
-			view->secondaryProjectionMat = glm::perspective(glm::radians(60.0f), (float) view->secondaryWidth / (float) view->secondaryHeight, 0.1f, 500.0f);
+			view->expMovingAverageCoef   = 0.99;        // gvar_exp_moving_average_coef.val.v_float;
+			view->secondaryWidth         = config.materialViewPort.extent.width;
+			view->secondaryHeight        = config.materialViewPort.extent.height;
+			view->secondaryProjectionMat = glm::perspective(glm::radians(30.0f), (float) view->secondaryWidth / (float) view->secondaryHeight, 0.1f, 500.0f);
 			view->probe                  = glm::vec4(camera.getFixpoint(), 1.0);
 			view->fogModelMatrix         = config.gaussianFogCubeTransform.mat;
 			view->fogInvModelMatrix      = config.gaussianFogCubeTransform.invMat;
@@ -135,6 +201,29 @@ struct AppData
 			view->useEnvMap              = gvar_use_env_map.val.v_bool;
 			vkaUnmap(viewBuf);
 			vkaCmdUpload(cmdBuf, viewBuf);
+		}
+		// Update shaderConst (will replace view)
+		{
+			mainViewConstants.width  = config.mainViewport.extent.width;
+			mainViewConstants.height = config.mainViewport.extent.height;
+
+			mainViewConstants.viewMat              = camera.getViewMatrix();
+			mainViewConstants.inverseViewMat       = glm::inverse(mainViewConstants.viewMat);
+			mainViewConstants.projectionMat        = config.mainProjectionMat;
+			mainViewConstants.inverseProjectionMat = glm::inverse(mainViewConstants.projectionMat);
+			mainViewConstants.camPos               = glm::vec4(camera.getPosition(), 1.0);
+			mainViewConstants.camFixpoint          = glm::vec4(camera.getFixpoint(), 1.0);
+
+			frameConstants.frameIdx = cnt;
+
+			guiVariables.useEnvMap              = gvar_use_env_map.val.v_bool;
+			guiVariables.secRayLength           = gvar_ray_lenght.val.v_float;
+			guiVariables.positionalJitter       = gvar_positional_jitter.val.v_float;
+			guiVariables.angularJitter          = gvar_angular_jitter.val.v_float;
+			guiVariables.showPins               = gvar_use_pins.val.v_int;
+			guiVariables.pinSelectionCoef       = gvar_pin_selection_coef.val.v_float;
+
+			volumeTransform = config.gaussianFogCubeTransform;
 		}
 		// Update instance buffers
 		{

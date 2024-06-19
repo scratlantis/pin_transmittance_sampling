@@ -54,6 +54,7 @@ void GvarGui::addGVars(GVar_Cat category)
 	{
 		if (gVars[i]->cat == category)
 		{
+			ImGui::PushItemWidth(ImGui::GetWindowSize().x*0.3);
 			addGVar(gVars[i]);
 		}
 	}
@@ -61,18 +62,25 @@ void GvarGui::addGVars(GVar_Cat category)
 
 void GvarGui::buildGui()
 {
-	ImGui::Begin("Gui");
+	ImGui::SetNextWindowPos({0.f,0.f});
+	ImGui::SetNextWindowSize({0.2f * gState.io.extent.width, 1.0f * gState.io.extent.height});
+	ImGui::Begin("Gui", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize);
 
-	if (ImGui::CollapsingHeader("Application"))
+	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+	if (ImGui::CollapsingHeader("Runtime Settings"))
 	{
-		addGVars(GVAR_APPLICATION);
+	    addGVars(GVAR_RUNTIME_SETTINGS);
 	}
-
-	if (ImGui::CollapsingHeader("Framework"))
+	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+	if (ImGui::CollapsingHeader("Load Settings"))
 	{
-		addGVars(GVAR_FRAMEWORK);
+	    addGVars(GVAR_LOAD_SETTINGS);
 	}
-
+	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+	if (ImGui::CollapsingHeader("Load Settings"))
+	{
+	    addGVars(GVAR_WINDOW_SETTINGS);
+	}
 	ImGui::End();
 }
 
@@ -82,15 +90,15 @@ void GvarGui::configure()
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO &io         = ImGui::GetIO();
-	float    sizePixels = 18;
+	float    sizePixels = 16;
 	io.Fonts->AddFontFromFileTTF("../external/IMGUI/misc/fonts/Roboto-Medium.ttf", sizePixels);
 	io.Fonts->AddFontFromFileTTF("../external/IMGUI/misc/fonts/Cousine-Regular.ttf", sizePixels);
 	io.Fonts->AddFontFromFileTTF("../external/IMGUI/misc/fonts/DroidSans.ttf", sizePixels);
 	io.Fonts->AddFontFromFileTTF("../external/IMGUI/misc/fonts/Karla-Regular.ttf", sizePixels);
 	io.Fonts->AddFontFromFileTTF("../external/IMGUI/misc/fonts/ProggyClean.ttf", sizePixels);
 	io.Fonts->AddFontFromFileTTF("../external/IMGUI/misc/fonts/ProggyTiny.ttf", sizePixels);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 10);
-	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 10);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1);
 	ImGui::StyleColorsDark();
 }

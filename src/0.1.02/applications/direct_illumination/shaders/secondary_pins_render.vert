@@ -25,7 +25,7 @@ void main()
 	vec4 pos = vec4( vertex_position,1.0);
 	vec4 worldPos = modelMat * pos;
 
-	mat4 secondaryViewMat = mat4(-1.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0, 0.0,0.0,-1.0,0.0, 0.0,0.0,-10.0,1.0);
+	mat4 secondaryViewMat = mat4(-1.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0, 0.0,0.0,-1.0,0.0, 0.0,0.0,-6.0,1.0);
 	vec4 viewPos = secondaryViewMat*worldPos;
 	vec4 clipPos = (view.secondaryProjectionMat * viewPos);
 	fragment_position = pos.xyz;

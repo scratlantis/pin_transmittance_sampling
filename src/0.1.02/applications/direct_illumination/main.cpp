@@ -9,13 +9,27 @@ const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 // clang-format off
 std::vector<GVar *> gVars =
 {
-        &gvar_use_pins,
 		&gvar_pin_selection_coef,
 		&gvar_ray_lenght,
 		&gvar_positional_jitter,
 		&gvar_angular_jitter,
+
+		&gvar_gaussian_count,
+		&gvar_gaussian_margin,
+		&gvar_pins_per_grid_cell,
+		&gvar_pins_grid_size,
+		&gvar_pin_count_sqrt,
+		&gvar_reload,
+
+        &gvar_use_pins,
 		&gvar_use_env_map,
-		&gvar_reload
+		&gvar_show_cursor,
+
+		&gvar_show_gaussian,
+		&gvar_show_grid,
+		&gvar_show_nn1,
+		&gvar_show_nn2,
+		&gvar_render_mode
 };
 // clang-format on
 int main()
@@ -57,11 +71,24 @@ int main()
 	    VK_FORMAT_R32_UINT,
 	    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
-	RenderPassDefinition guiRenderPassDef = RenderPassDefinition();
-	setDefaults(guiRenderPassDef);
-	addColorAttachment(guiRenderPassDef, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, gState.io.format, false);
-	VkRenderPass         guiRenderPass    = gState.cache->fetch(guiRenderPassDef);
-	gui.create(guiRenderPass, 0);
+	// New
+	VkaImage transmittanceImage = vkaCreateSwapchainAttachment(
+		VK_FORMAT_R32_SFLOAT,
+	    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+
+
+	RenderPassDefinition swapchainRenderPassDef = RenderPassDefinition();
+	setDefaults(swapchainRenderPassDef);
+	addColorAttachment(swapchainRenderPassDef, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, gState.io.format, true);
+
+
+	RenderPassDefinition attachmentClearRenderPassDef = RenderPassDefinition();
+	setDefaults(attachmentClearRenderPassDef);
+	addColorAttachment(attachmentClearRenderPassDef, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, gState.io.format, true);
+
+	VkRenderPass         swapchainRenderPass    = gState.cache->fetch(swapchainRenderPassDef);
+	VkRenderPass attachmentClearRenderPass = gState.cache->fetch(attachmentClearRenderPassDef);
+	gui.create(swapchainRenderPass, 0);
 	
 
 	
@@ -94,10 +121,11 @@ int main()
 		VkaCommandBuffer cmdBuf = vkaCreateCommandBuffer(gState.frame->stack);
 		if (1) // Gui button
 		{
+			appConfig.update();
 			appData.update(cmdBuf, appConfig);
 		}
-		// Render
-		
+		// Render probe
+		if (gvar_render_mode.val.v_int == 0)
 		{
 			VkaImage envMap;
 			if (1)
@@ -121,24 +149,30 @@ int main()
 				vkaCmdCompute(cmdBuf, computeCmd);
 			}
 			vkaCmdImageMemoryBarrier(cmdBuf, lineColorImg, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			// Borders
+			
+
+
+			DrawCmd drawCmdMainWindow{};
+			setDefaults(drawCmdMainWindow.pipelineDef, RasterizationPipelineDefaultValues());
+			drawCmdMainWindow.renderArea = appConfig.mainViewport;
 			// Wireframe Pass
 			if (1)
 			{
-				DrawCmd drawCmdTemplate{};
-				setDefaults(drawCmdTemplate.pipelineDef, RasterizationPipelineDefaultValues());
-				addInput(drawCmdTemplate.pipelineDef, PosVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
-				addInput(drawCmdTemplate.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
-				addDepthAttachment(drawCmdTemplate, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-				addColorAttachment(drawCmdTemplate, lineColorImg, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-				addColorAttachment(drawCmdTemplate, linePosImg, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0.0f, 0.0f, 0.0f, 0.0f});
-				createFramebuffer(drawCmdTemplate, framebufferCache);
+				DrawCmd drawCmdWireframe = drawCmdMainWindow;
+				addInput(drawCmdWireframe.pipelineDef, PosVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
+				addInput(drawCmdWireframe.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
+				addDepthAttachment(drawCmdWireframe, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+				addColorAttachment(drawCmdWireframe, lineColorImg, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				addColorAttachment(drawCmdWireframe, linePosImg, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0.0f, 0.0f, 0.0f, 0.0f});
+				createFramebuffer(drawCmdWireframe, framebufferCache);
 				// Sphere
-				if (1)
+				if (gvar_show_cursor.val.v_int)
 				{
-					DrawCmd drawCmd = drawCmdTemplate;
+					DrawCmd drawCmd         = drawCmdWireframe;
 					drawCmd.model           = modelCache.fetch(cmdBuf, "lowpoly_sphere/lowpoly_sphere.obj", sizeof(PosVertex), PosVertex::parse);
 					drawCmd.instanceBuffers = {appData.sphereTransformBuf};
-					drawCmd.instanceCount   = 2;
+					drawCmd.instanceCount   = gvar_show_cursor.val.v_int;
 
 					addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -153,7 +187,7 @@ int main()
 				// Pins
 				if (1)
 				{
-					DrawCmd drawCmd         = drawCmdTemplate;
+					DrawCmd drawCmd         = drawCmdWireframe;
 					drawCmd.model           = {appData.pinVertexBuffer, appData.pinIndexBuffer, nullptr, 1};
 					drawCmd.instanceBuffers = {appData.pinMatTransformBuf};
 					drawCmd.instanceCount   = 1;
@@ -172,8 +206,7 @@ int main()
 			// Fog Cube
 			if (1)
 			{
-				DrawCmd drawCmd{};
-				setDefaults(drawCmd.pipelineDef, RasterizationPipelineDefaultValues());
+				DrawCmd drawCmd = drawCmdMainWindow;
 				drawCmd.model           = modelCache.fetch(cmdBuf, "cube/cube.obj", sizeof(PosVertex), PosVertex::parse);
 				drawCmd.instanceBuffers = {appData.gaussianFogCubeTransformBuf};
 				drawCmd.instanceCount   = 1;
@@ -198,23 +231,27 @@ int main()
 			// Material Pass
 			if (1)
 			{
+				vkaClearState(cmdBuf);
+				vkaCmdStartRenderPass(cmdBuf, attachmentClearRenderPass, framebufferCache.fetch(attachmentClearRenderPass, {offscreenImage}), {{0.f, 0.f, 0.f, 0.f}}, vkaGetScissorRect(0.2, 0.8));
+				vkaCmdEndRenderPass(cmdBuf);
+
+
 				DrawCmd drawCmdTemplate{};
 				setDefaults(drawCmdTemplate.pipelineDef, RasterizationPipelineDefaultValues());
 				drawCmdTemplate.model = modelCache.fetch(cmdBuf, "sphere/sphere.obj", sizeof(PosVertex), PosVertex::parse);
 				addInput(drawCmdTemplate.pipelineDef, PosVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
 				addInput(drawCmdTemplate.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
 				addDepthAttachment(drawCmdTemplate, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-				addColorAttachment(drawCmdTemplate, offscreenImage, {0.9f, 0.9f, 0.9f, 0.0f});
+				addColorAttachment(drawCmdTemplate, offscreenImage, {0.5f, 0.5f, 0.5f, 0.0f});
 				addColorAttachment(drawCmdTemplate, pinIdImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 0, 0, 0});
-
-				drawCmdTemplate.renderArea = VkRect2D{ {0, 0}, gState.io.extent };
-				drawCmdTemplate.renderArea *= Rect2D<float>{0.8, 0.0, 0.2, 1.0};
+				drawCmdTemplate.renderArea                               = appConfig.materialViewPort;
 				drawCmdTemplate.pipelineDef.rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 				drawCmdTemplate.pipelineDef.rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
 				addShader(drawCmdTemplate.pipelineDef, shaderPath + "secondary_pins_render.vert", {});
 
 				createFramebuffer(drawCmdTemplate, framebufferCache);
 				// Gaussian
+				if (gvar_show_gaussian.val.v_bool)
 				{
 					DrawCmd drawCmd = drawCmdTemplate;
 					addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -231,6 +268,7 @@ int main()
 					vkaCmdDraw(cmdBuf, drawCmd);
 				}
 				// Grid
+				if (gvar_show_grid.val.v_bool)
 				{
 					DrawCmd drawCmd = drawCmdTemplate;
 					addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -266,6 +304,7 @@ int main()
 					addDescriptor(drawCmd, envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 					drawCmd.instanceCount = appConfig.pinCountSqrt;
+					if (gvar_show_nn1.val.v_bool)
 					{
 						DrawCmd NN1 = drawCmd;
 						addShader(NN1.pipelineDef, shaderPath + "pins_render_gaussian_nn.frag",
@@ -277,6 +316,7 @@ int main()
 						NN1.instanceBuffers = { appData.gaussianNNSphereTransformBuf };
 						vkaCmdDraw(cmdBuf, NN1);
 					}
+					if (gvar_show_nn2.val.v_bool)
 					{
 						DrawCmd NN2 = drawCmd;
 						addShader(NN2.pipelineDef, shaderPath + "pins_render_gaussian_nn.frag",
@@ -289,14 +329,41 @@ int main()
 					}
 				}
 			}
-			vkaCmdCopyImage(cmdBuf, offscreenImage, offscreenImage->getLayout(), swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-			// GUI
-			if (1)
+		}
+		vkaCmdCopyImage(cmdBuf, offscreenImage, offscreenImage->getLayout(), swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		if (gvar_render_mode.val.v_int == 1)
+		{
+			vkaClearState(cmdBuf);
+			vkaCmdStartRenderPass(cmdBuf, attachmentClearRenderPass, framebufferCache.fetch(attachmentClearRenderPass, {offscreenImage}), {{1.f, 1.f, 1.f, 1.f}}, appConfig.guiViewport);
+			vkaCmdEndRenderPass(cmdBuf);
+
+			// Todo:
+			// rasterization Sphere
+			// glsl Sample direction (rng(pixel_pos))
+
+			// Transmittance pass:
+			// Transmittance <--- Gaussian, PinNN, PinGrid
 			{
-				vkaCmdStartRenderPass(cmdBuf, guiRenderPass, framebufferCache.fetch(guiRenderPass, { swapchainImage }), { VK_CLEAR_COLOR_BLACK });
-				gui.render(cmdBuf);
-				vkaCmdEndRenderPass(cmdBuf);
+
 			}
+
+			// Pre fog passes:
+			// Pos,Color <--- Pins, Sphere, Shaded Obj
+			{
+
+			}
+			
+			// Primary Ray Fog pass:
+			{
+
+			}
+		}
+		// GUI
+		if (1)
+		{
+			vkaCmdStartRenderPass(cmdBuf, swapchainRenderPass, framebufferCache.fetch(swapchainRenderPass, {swapchainImage}), {{0.2f, 0.2f, 0.2f, 0.0f}}, vkaGetScissorRect(0.0, 0.0, 0.2, 1.0));
+			gui.render(cmdBuf);
+			vkaCmdEndRenderPass(cmdBuf);
 		}
 		// Update used pins
 		if (1)
