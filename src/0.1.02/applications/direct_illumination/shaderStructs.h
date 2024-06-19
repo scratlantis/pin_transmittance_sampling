@@ -91,6 +91,65 @@ class PosVertex
 		vertex->y         = vertexAttributes.vertices[idx * 3 + 1];
 		vertex->z         = vertexAttributes.vertices[idx * 3 + 2];
 	}
+
+	static void parseObj(VkaBuffer vertexBuffer, const std::vector<ObjVertex> &vertexList, VkaBuffer indexBuffer, const std::vector<Index> &indexList)
+	{
+		PosVertex *vertexData = static_cast<PosVertex *>(vkaMapStageing(vertexBuffer, vertexList.size() * sizeof(PosVertex)));
+		for (size_t i = 0; i < vertexList.size(); i++)
+		{
+			vertexData[i].pos    = vertexList[i].v;
+		}
+		vkaUnmap(vertexBuffer);
+		vkaWriteStaging(indexBuffer, static_cast<const void *>(indexList.data()), indexList.size() * sizeof(Index));
+	}
+};
+
+class PosNormalVertex
+{
+  public:
+	PosNormalVertex(){};
+	PosNormalVertex(glm::vec3 pos, glm::vec3 vertex) :
+	    pos(pos)
+	{}
+	glm::vec3 pos;
+	glm::vec3 normal;
+
+	static VertexDataLayout getVertexDataLayout()
+	{
+		VertexDataLayout layout{};
+		layout.formats = {VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT};
+		layout.offsets = {
+		    offsetof(PosNormalVertex, pos),
+		    offsetof(PosNormalVertex, normal),
+		};
+		layout.stride = sizeof(PosNormalVertex);
+		return layout;
+	}
+
+	static void parse(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes)
+	{
+		PosNormalVertex *vertex = (PosNormalVertex *) vertexPointer;
+		vertex->pos.x         = vertexAttributes.vertices[idx * 3];
+		vertex->pos.y         = vertexAttributes.vertices[idx * 3 + 1];
+		vertex->pos.z         = vertexAttributes.vertices[idx * 3 + 2];
+
+		vertex->normal.x = vertexAttributes.normals[idx * 3];
+		vertex->normal.y = vertexAttributes.normals[idx * 3 + 1];
+		vertex->normal.z = vertexAttributes.normals[idx * 3 + 2];
+	}
+
+	static void parseObj(VkaBuffer vertexBuffer, const std::vector<ObjVertex> &vertexList, VkaBuffer indexBuffer, const std::vector<Index> &indexList)
+	{
+		PosNormalVertex *vertexData = static_cast<PosNormalVertex *>(vkaMapStageing(vertexBuffer, vertexList.size() * sizeof(PosNormalVertex)));
+		for (size_t i = 0; i < vertexList.size(); i++)
+		{
+			vertexData[i].pos = vertexList[i].v;
+			vertexData[i].normal = vertexList[i].vn;
+		}
+		vkaUnmap(vertexBuffer);
+		vkaWriteStaging(indexBuffer, static_cast<const void *>(indexList.data()), indexList.size() * sizeof(Index));
+
+	}
 };
 
 class Transform

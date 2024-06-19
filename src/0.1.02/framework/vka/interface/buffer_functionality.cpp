@@ -20,14 +20,14 @@ void vkaUnmap(VkaBuffer buffer)
 {
 	buffer->unmap();
 }
-void vkaWriteStaging(VkaBuffer buffer, void *data, uint32_t size)
+void vkaWriteStaging(VkaBuffer buffer, const void *data, uint32_t size)
 {
 	void *mapping = vkaMapStageing(buffer, size);
 	memcpy(mapping, data, size);
 	vkaUnmap(buffer);
 }
 
-void vkaFillStaging(VkaBuffer buffer, void *data, uint32_t size, uint32_t count)
+void vkaFillStaging(VkaBuffer buffer, const void *data, uint32_t size, uint32_t count)
 {
 	void *mapping = vkaMapStageing(buffer, size*count);
 	for (size_t i = 0; i < count; i++)

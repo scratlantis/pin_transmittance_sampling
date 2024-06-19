@@ -15,9 +15,10 @@ static void parse_VEC3(void *vertexPointer, uint32_t idx, const tinyobj::attrib_
 	vertex->z         = vertexAttributes.vertices[idx * 3 + 2];
 }
 
+
 class ModelCache
 {
-	std::unordered_map<std::string, ModelData> map;
+	std::unordered_map<ModelKey, ModelData> map;
 	std::string                                modelPath;
 	IResourcePool                        *pPool;
   public:
@@ -25,9 +26,11 @@ class ModelCache
 	    modelPath(modelPath), pPool(pPool)
 	{}
 	void      clear();
-	ModelData fetch(VkaCommandBuffer cmdBuf, std::string path, uint32_t bytesPerVertex, void (*parse)(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes));
+	//ModelData fetch(VkaCommandBuffer cmdBuf, std::string path, uint32_t bytesPerVertex, void (*parse)(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes));
+	ModelData fetch(VkaCommandBuffer cmdBuf, std::string path, void (*parse)(VkaBuffer vertexBuffer, const std::vector<ObjVertex> &vertexList, VkaBuffer indexBuffer, const std::vector<Index> &indexList));
 
 };
 }
 
 DECLARE_HASH(ModelData, hash);
+

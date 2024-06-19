@@ -44,6 +44,72 @@ struct ModelData
 	}
 };
 
+struct ModelKey
+{
+	std::string path;
+	void       *loadFunction;
+
+	bool operator==(const ModelKey &other) const
+	{
+		return path == other.path && loadFunction == loadFunction;
+	}
+
+	vka::hash_t hash() const
+	{
+		return std::hash<std::string>()(path) ^ std::hash<void *>()(loadFunction);
+	}
+};
+DECLARE_HASH(ModelKey, hash);
+
+
+namespace std
+{
+
+template <>
+struct hash<glm::vec3>
+{
+	size_t operator()(glm::vec3 const &type) const
+	{
+		return type.x HASHC type.y HASHC type.z;
+	}
+};
+
+template <>
+struct hash<glm::vec2>
+{
+	size_t operator()(glm::vec2 const &type) const
+	{
+		return type.x HASHC type.y;
+	};
+};
+
+}        // namespace std
+
+struct ObjVertex
+{
+	glm::vec3 v;
+	glm::vec2 vt;
+	glm::vec3 vn;
+
+	ObjVertex(glm::vec3 v, glm::vec2 vt, glm::vec3 vn) :
+	    v(v), vt(vt), vn(vn)
+	{}
+	ObjVertex() :
+	    v(0), vt(0), vn(0)
+	{}
+	bool operator==(const ObjVertex &other) const
+	{
+		return v == other.v && vt == other.vt && vn == other.vn;
+	}
+	vka::hash_t hash() const
+	{
+		return std::hash<glm::vec3>()(v) ^ std::hash<glm::vec2>()(vt) ^ std::hash<glm::vec3>()(vn);
+	}
+};
+
+
+DECLARE_HASH(ObjVertex, hash);
+
 struct DrawCmd
 {
 	ModelData                            model;

@@ -148,6 +148,7 @@ int main()
 			appData.update(cmdBuf, appConfig);
 		}
 		// Render probe
+		
 		if (gvar_render_mode.val.v_int == 0)
 		{
 			VkaImage envMap;
@@ -193,7 +194,7 @@ int main()
 				if (gvar_show_cursor.val.v_int)
 				{
 					DrawCmd drawCmd         = drawCmdWireframe;
-					drawCmd.model           = modelCache.fetch(cmdBuf, "lowpoly_sphere/lowpoly_sphere.obj", sizeof(PosVertex), PosVertex::parse);
+					drawCmd.model           = modelCache.fetch(cmdBuf, "lowpoly_sphere/lowpoly_sphere.obj", PosVertex::parseObj);
 					drawCmd.instanceBuffers = {appData.sphereTransformBuf};
 					drawCmd.instanceCount   = gvar_show_cursor.val.v_int;
 
@@ -231,7 +232,7 @@ int main()
 			if (1)
 			{
 				DrawCmd drawCmd = drawCmdMainWindow;
-				drawCmd.model           = modelCache.fetch(cmdBuf, "cube/cube.obj", sizeof(PosVertex), PosVertex::parse);
+				drawCmd.model           = modelCache.fetch(cmdBuf, "cube/cube.obj", PosVertex::parseObj);
 				drawCmd.instanceBuffers = {appData.gaussianFogCubeTransformBuf};
 				drawCmd.instanceCount   = 1;
 				addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -262,7 +263,7 @@ int main()
 
 				DrawCmd drawCmdTemplate{};
 				setDefaults(drawCmdTemplate.pipelineDef, RasterizationPipelineDefaultValues());
-				drawCmdTemplate.model = modelCache.fetch(cmdBuf, "sphere/sphere.obj", sizeof(PosVertex), PosVertex::parse);
+				drawCmdTemplate.model = modelCache.fetch(cmdBuf, "sphere/sphere.obj", PosVertex::parseObj);
 				addInput(drawCmdTemplate.pipelineDef, PosVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
 				addInput(drawCmdTemplate.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
 				addDepthAttachment(drawCmdTemplate, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
@@ -353,7 +354,20 @@ int main()
 					}
 				}
 			}
+
+			// Update used pins
+			if (1)
+			{
+				ComputeCmd computeCmd;
+				setDefaults(computeCmd, gState.io.extent, shaderPath + "write_used_pins.comp", {{"PIN_COUNT", std::to_string(appConfig.pinCount())}});
+				addDescriptor(computeCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+				addDescriptor(computeCmd, appData.pinUsedBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+				addDescriptor(computeCmd, &appData.defaultSampler, VK_DESCRIPTOR_TYPE_SAMPLER);
+				addDescriptor(computeCmd, pinIdImage, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+				vkaCmdCompute(cmdBuf, computeCmd);
+			}
 		}
+		
 		
 		if (gvar_render_mode.val.v_int == 1)
 		{
@@ -380,11 +394,11 @@ int main()
 			// Transmittance <--- Gaussian, PinNN, PinGrid
 			{
 				DrawCmd drawCmd         = drawCmdMainWindow;
-				drawCmd.model           = modelCache.fetch(cmdBuf, "lowpoly_sphere/lowpoly_sphere.obj", sizeof(PosVertex), PosVertex::parse);
+				drawCmd.model           = modelCache.fetch(cmdBuf, "sphere/sphere.obj", PosNormalVertex::parseObj);
 				drawCmd.instanceBuffers = {appData.sphereTransformBuf};
 				drawCmd.instanceCount   = 1;
 				addDescriptor(drawCmd, appData.shaderConstBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-				addInput(drawCmd.pipelineDef, PosVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
+				addInput(drawCmd.pipelineDef, PosNormalVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
 				addInput(drawCmd.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
 
 				addShader(drawCmd.pipelineDef, newShaderPath + "shading.vert", {});
@@ -394,10 +408,10 @@ int main()
 				addDepthAttachment(drawCmd, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 				addColorAttachment(drawCmd, offscreenImage);
 				createFramebuffer(drawCmd, framebufferCache);
-				vkaCmdDraw(cmdBuf, drawCmd);
-				drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_NONE;
+				drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_BACK_BIT;
 				drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
 				drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+				vkaCmdDraw(cmdBuf, drawCmd);
 			}
 
 			// Pre fog passes:
@@ -411,6 +425,7 @@ int main()
 
 			}
 		}
+		
 
 
 		vkaCmdCopyImage(cmdBuf, offscreenImage, offscreenImage->getLayout(), swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
@@ -428,17 +443,7 @@ int main()
 			gui.vkaImGuiRender(cmdBuf);
 			vkaCmdEndRenderPass(cmdBuf);
 		}
-		// Update used pins
-		if (1)
-		{
-			ComputeCmd computeCmd;
-			setDefaults(computeCmd, gState.io.extent, shaderPath + "write_used_pins.comp", {{"PIN_COUNT", std::to_string(appConfig.pinCount())}});
-			addDescriptor(computeCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			addDescriptor(computeCmd, appData.pinUsedBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-			addDescriptor(computeCmd, &appData.defaultSampler, VK_DESCRIPTOR_TYPE_SAMPLER);
-			addDescriptor(computeCmd, pinIdImage, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-			vkaCmdCompute(cmdBuf, computeCmd);
-		}
+		
 
 		vkaSwapBuffers({cmdBuf});
 	}
