@@ -84,14 +84,6 @@ class PosVertex
 		return layout;
 	}
 
-	static void parse(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes)
-	{
-		glm::vec3 *vertex = (glm::vec3 *) vertexPointer;
-		vertex->x         = vertexAttributes.vertices[idx * 3];
-		vertex->y         = vertexAttributes.vertices[idx * 3 + 1];
-		vertex->z         = vertexAttributes.vertices[idx * 3 + 2];
-	}
-
 	static void parseObj(VkaBuffer vertexBuffer, const std::vector<ObjVertex> &vertexList, VkaBuffer indexBuffer, const std::vector<Index> &indexList)
 	{
 		PosVertex *vertexData = static_cast<PosVertex *>(vkaMapStageing(vertexBuffer, vertexList.size() * sizeof(PosVertex)));
@@ -124,18 +116,6 @@ class PosNormalVertex
 		};
 		layout.stride = sizeof(PosNormalVertex);
 		return layout;
-	}
-
-	static void parse(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes)
-	{
-		PosNormalVertex *vertex = (PosNormalVertex *) vertexPointer;
-		vertex->pos.x         = vertexAttributes.vertices[idx * 3];
-		vertex->pos.y         = vertexAttributes.vertices[idx * 3 + 1];
-		vertex->pos.z         = vertexAttributes.vertices[idx * 3 + 2];
-
-		vertex->normal.x = vertexAttributes.normals[idx * 3];
-		vertex->normal.y = vertexAttributes.normals[idx * 3 + 1];
-		vertex->normal.z = vertexAttributes.normals[idx * 3 + 2];
 	}
 
 	static void parseObj(VkaBuffer vertexBuffer, const std::vector<ObjVertex> &vertexList, VkaBuffer indexBuffer, const std::vector<Index> &indexList)

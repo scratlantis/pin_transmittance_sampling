@@ -8,6 +8,10 @@
 	vkaUnmap(appData.##NAME);        \
 	vkaCmdUpload(CMD_BUF, appData.##NAME);
 
+#define APP_DATA_PUSH_DESC(CMD_BUF, TYPE, BUF_NAME, VAR_NAME)\
+vkaWriteStaging(appData.##BUF_NAME, &appData.##VAR_NAME, sizeof(TYPE));\
+vkaCmdUpload(CMD_BUF, appData.##BUF_NAME);
+
 using namespace vka;
 AppState gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
@@ -19,6 +23,7 @@ std::vector<GVar *> gVars =
 		&gvar_ray_lenght,
 		&gvar_positional_jitter,
 		&gvar_angular_jitter,
+		&gvar_gaussian_weight,
 
 		&gvar_gaussian_count,
 		&gvar_gaussian_margin,
@@ -35,7 +40,8 @@ std::vector<GVar *> gVars =
 		&gvar_show_grid,
 		&gvar_show_nn1,
 		&gvar_show_nn2,
-		&gvar_render_mode
+		&gvar_render_mode,
+		&gvar_transmittance_mode
 };
 // clang-format on
 int main()
@@ -375,44 +381,88 @@ int main()
 			vkaCmdStartRenderPass(cmdBuf, attachmentClearRP, framebufferCache.fetch(attachmentClearRP, {offscreenImage}), {{1.f, 1.f, 1.f, 1.f}}, appConfig.mainViewport);
 			vkaCmdEndRenderPass(cmdBuf);
 
-			// Todo:
-			// rasterization Sphere
-			// glsl Sample direction (rng(pixel_pos))
-
 			DrawCmd drawCmdMainWindow{};
 			setDefaults(drawCmdMainWindow.pipelineDef, RasterizationPipelineDefaultValues());
 			drawCmdMainWindow.renderArea = appConfig.mainViewport;
 
-			MAP_APP_DATA(ShaderConst, shaderConstBuf)
-			shaderConstBuf->frame = appData.frameConstants;
-			shaderConstBuf->gui   = appData.guiVariables;
-			shaderConstBuf->view  = appData.mainViewConstants;
-			shaderConstBuf->volume = appData.volumeTransform;
-			PUSH_APP_DATA(cmdBuf, shaderConstBuf)
+
+			APP_DATA_PUSH_DESC(cmdBuf, CamConst, camConstBuf, mainCamConst);
+			APP_DATA_PUSH_DESC(cmdBuf, ViewConst, viewConstBuf, mainViewConst);
+			APP_DATA_PUSH_DESC(cmdBuf, GuiVar, guiVarBuf, guiVar);
+			APP_DATA_PUSH_DESC(cmdBuf, Transform, cubeTransformBuf, cubeTransform);
+
 			vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-			// Transmittance pass:
-			// Transmittance <--- Gaussian, PinNN, PinGrid
+			DrawCmd drawCmd         = drawCmdMainWindow;
+			drawCmd.model           = modelCache.fetch(cmdBuf, "sphere/sphere.obj", PosNormalVertex::parseObj);
+			drawCmd.instanceBuffers = {appData.sphereTransformBuf};
+			addDescriptor(drawCmd, appData.camConstBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			addDescriptor(drawCmd, appData.viewConstBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+			addDescriptor(drawCmd, appData.guiVarBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+			addDescriptor(drawCmd, appData.cubeTransformBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+			addInput(drawCmd.pipelineDef, PosNormalVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
+			addInput(drawCmd.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
+			addDepthAttachment(drawCmd, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+			addColorAttachment(drawCmd, offscreenImage);
+			createFramebuffer(drawCmd, framebufferCache);
+			drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_BACK_BIT;
+			drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
+			drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+			
+			// Exact
+			if (gvar_transmittance_mode.val.v_int == 0)
 			{
-				DrawCmd drawCmd         = drawCmdMainWindow;
-				drawCmd.model           = modelCache.fetch(cmdBuf, "sphere/sphere.obj", PosNormalVertex::parseObj);
-				drawCmd.instanceBuffers = {appData.sphereTransformBuf};
 				drawCmd.instanceCount   = 1;
-				addDescriptor(drawCmd, appData.shaderConstBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-				addInput(drawCmd.pipelineDef, PosNormalVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
-				addInput(drawCmd.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
-
-				addShader(drawCmd.pipelineDef, newShaderPath + "shading.vert", {});
-				addShader(drawCmd.pipelineDef, newShaderPath + "shading.frag", {});
-				          //{{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)}});
-
-				addDepthAttachment(drawCmd, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-				addColorAttachment(drawCmd, offscreenImage);
-				createFramebuffer(drawCmd, framebufferCache);
-				drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_BACK_BIT;
-				drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
-				drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+				addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
+				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/gaussian/exact.frag",
+				          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)}});
 				vkaCmdDraw(cmdBuf, drawCmd);
 			}
+			// Grid
+			if (gvar_transmittance_mode.val.v_int == 1)
+			{
+				drawCmd.instanceCount = appConfig.pinCountSqrt;
+				addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addDescriptor(drawCmd, appData.pinBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
+				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/gaussian/grid.frag",
+				          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
+				           {"PIN_GRID_SIZE", std::to_string(appConfig.pinsGridSize)},
+				           {"PINS_PER_GRID_CELL", std::to_string(appConfig.pinsPerGridCell)}});
+				vkaCmdDraw(cmdBuf, drawCmd);
+			}
+			// NN1
+			if (gvar_transmittance_mode.val.v_int == 2)
+			{
+				drawCmd.instanceCount   = appConfig.pinCountSqrt;
+				addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addDescriptor(drawCmd, appData.pinBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
+				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/gaussian/nearest_neighbor.frag",
+				          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
+				           {"PIN_COUNT", std::to_string(appConfig.pinCount())},
+				           {"PIN_COUNT_SQRT", std::to_string(appConfig.pinCountSqrt)},
+				           {"METRIC_ANGLE_DISTANCE", ""}});
+				vkaCmdDraw(cmdBuf, drawCmd);
+			}
+			// NN2
+			if (gvar_transmittance_mode.val.v_int == 3)
+			{
+				drawCmd.instanceCount = appConfig.pinCountSqrt;
+				addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addDescriptor(drawCmd, appData.pinBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
+				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/gaussian/nearest_neighbor.frag",
+				          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
+				           {"PIN_COUNT", std::to_string(appConfig.pinCount())},
+				           {"PIN_COUNT_SQRT", std::to_string(appConfig.pinCountSqrt)},
+				           {"METRIC_DISTANCE_DISTANCE", ""}});
+				vkaCmdDraw(cmdBuf, drawCmd);
+			}
+
+
+
+
 
 			// Pre fog passes:
 			// Pos,Color <--- Pins, Sphere, Shaded Obj

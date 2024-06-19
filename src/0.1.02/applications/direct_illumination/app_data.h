@@ -9,7 +9,7 @@ GVar gvar_pin_selection_coef{"pin selection coef", 0.5f, GVAR_UNORM, GVAR_RUNTIM
 GVar gvar_ray_lenght{"secondary ray length", 1.0f, GVAR_UNORM, GVAR_RUNTIME_SETTINGS};
 GVar gvar_positional_jitter{"positional_jitter", 0.0f, GVAR_UNORM, GVAR_RUNTIME_SETTINGS};
 GVar gvar_angular_jitter{"angular", 0.0f, GVAR_UNORM, GVAR_RUNTIME_SETTINGS};
-
+GVar gvar_gaussian_weight{"gaussian weight", 0.2f, GVAR_UNORM, GVAR_LOAD_SETTINGS};
 
 
 
@@ -29,6 +29,7 @@ GVar gvar_show_nn1{"nearest neighbor (distance/angle)", 1, GVAR_BOOL, GVAR_WINDO
 GVar gvar_show_nn2{"nearest neighbor (distance/distance)", 1, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
 
 GVar gvar_render_mode{"render mode", 1, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Angle Transmittance", "Reflection Transmittance"}};
+GVar gvar_transmittance_mode{"transmittance mode", 1, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Exact", "Grid", "Nearest Neighbor 1", "Nearest Neighbor 2"}};
 
 
 
@@ -131,15 +132,21 @@ struct AppData
 	VkaImage envMap;
 
 	// New
-	GuiVar guiVariables;
-	FrameConstants frameConstants;
+	CamConst mainCamConst;
+	ViewConst mainViewConst;
+
+	GuiVar guiVar;
+
+	Transform cubeTransform;
 
 	// main view
-	ViewConstants mainViewConstants;
 
 	Transform volumeTransform;
 
-	VkaBuffer shaderConstBuf;
+	VkaBuffer camConstBuf;
+	VkaBuffer viewConstBuf;
+	VkaBuffer guiVarBuf;
+	VkaBuffer cubeTransformBuf;
 
 
 
@@ -171,7 +178,12 @@ struct AppData
 		gaussianNNSphereTransformBuf     = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 		gaussianNN2SphereTransformBuf    = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
-		shaderConstBuf = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+
+		camConstBuf = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+		viewConstBuf = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+		guiVarBuf    = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+		cubeTransformBuf = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+
 	}
 
 	void update(VkaCommandBuffer cmdBuf, AppConfig config)
@@ -216,26 +228,27 @@ struct AppData
 		}
 		// Update shaderConst (will replace view)
 		{
-			mainViewConstants.width  = config.mainViewport.extent.width;
-			mainViewConstants.height = config.mainViewport.extent.height;
+			mainViewConst.width  = config.mainViewport.extent.width;
+			mainViewConst.height = config.mainViewport.extent.height;
+			mainViewConst.frameIdx = cnt;
 
-			mainViewConstants.viewMat              = camera.getViewMatrix();
-			mainViewConstants.inverseViewMat       = glm::inverse(mainViewConstants.viewMat);
-			mainViewConstants.projectionMat        = config.mainProjectionMat;
-			mainViewConstants.inverseProjectionMat = glm::inverse(mainViewConstants.projectionMat);
-			mainViewConstants.camPos               = glm::vec4(camera.getPosition(), 1.0);
-			mainViewConstants.camFixpoint          = glm::vec4(camera.getFixpoint(), 1.0);
+			mainCamConst.viewMat                  = camera.getViewMatrix();
+			mainCamConst.inverseViewMat            = glm::inverse(mainCamConst.viewMat);
+			mainCamConst.projectionMat             = config.mainProjectionMat;
+			mainCamConst.inverseProjectionMat      = glm::inverse(mainCamConst.projectionMat);
+			mainCamConst.camPos                    = glm::vec4(camera.getPosition(), 1.0);
+			mainCamConst.camFixpoint               = glm::vec4(camera.getFixpoint(), 1.0);
 
-			frameConstants.frameIdx = cnt;
 
-			guiVariables.useEnvMap              = gvar_use_env_map.val.v_bool;
-			guiVariables.secRayLength           = gvar_ray_lenght.val.v_float;
-			guiVariables.positionalJitter       = gvar_positional_jitter.val.v_float;
-			guiVariables.angularJitter          = gvar_angular_jitter.val.v_float;
-			guiVariables.showPins               = gvar_use_pins.val.v_int;
-			guiVariables.pinSelectionCoef       = gvar_pin_selection_coef.val.v_float;
+			guiVar.useEnvMap              = gvar_use_env_map.val.v_bool;
+			guiVar.secRayLength           = gvar_ray_lenght.val.v_float;
+			guiVar.positionalJitter       = gvar_positional_jitter.val.v_float;
+			guiVar.angularJitter          = gvar_angular_jitter.val.v_float;
+			guiVar.showPins               = gvar_use_pins.val.v_int;
+			guiVar.pinSelectionCoef       = gvar_pin_selection_coef.val.v_float;
+			guiVar.gaussianWeight       = gvar_gaussian_weight.val.v_float;
 
-			volumeTransform = config.gaussianFogCubeTransform;
+			cubeTransform = config.gaussianFogCubeTransform;
 		}
 		// Update instance buffers
 		{

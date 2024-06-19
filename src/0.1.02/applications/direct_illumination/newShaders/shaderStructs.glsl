@@ -1,25 +1,24 @@
 // Included in executable
-struct FrameConstants // 16 Byte Alignment
-{
-	uint frameIdx;
-	uint padding[3];
-};
 
-struct ViewConstants // 64 Byte Alignment
+struct CamConst
 {
 	mat4 projectionMat;
 	mat4 viewMat;
 	mat4 inverseViewMat;
 	mat4 inverseProjectionMat;
-
 	vec4 camPos;
 	vec4 camFixpoint;
-	uint width;
-	uint height;
-	uint padding[6];
 };
 
-struct GuiVar // 16 Byte Alignment
+struct ViewConst
+{
+	uint width;
+	uint height;
+	uint frameIdx;
+	uint padding[1];
+};
+
+struct GuiVar
 {
 	uint useEnvMap;
 	float secRayLength;
@@ -28,28 +27,48 @@ struct GuiVar // 16 Byte Alignment
 
 	uint showPins;
 	float pinSelectionCoef;
-	uint padding[2];
+	float gaussianWeight;
+	uint padding[1];
 };
 
-struct Volume // 64 Byte Alignment
-{
-	mat4 modelMat;
-	mat4 inverseModelMat;
-};
+
 
 #ifndef CCP_IMPLEMENTATION
-struct Transform // 
+struct Transform
 {
 	mat4 mat;
 	mat4 invMat;
 };
+struct Gaussian
+{
+	vec3  mean;
+	float variance;
+};
+
+struct Pin
+{
+	vec2 theta;
+	vec2 phi;
+};
+
+
+struct PinData
+{
+	uint pinIndex;
+	uint padding[3];
+};
+
+struct PinGridEntry
+{
+	Pin pin;
+	PinData data;
+};
 #endif
 
-struct ShaderConst
-{
-	ViewConstants view;
-	Transform volume;
-	FrameConstants frame;
-	GuiVar gui;
-};
+
+
+
+
+
+
 

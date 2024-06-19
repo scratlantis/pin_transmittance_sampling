@@ -26,7 +26,6 @@ class ModelCache
 	    modelPath(modelPath), pPool(pPool)
 	{}
 	void      clear();
-	//ModelData fetch(VkaCommandBuffer cmdBuf, std::string path, uint32_t bytesPerVertex, void (*parse)(void *vertexPointer, uint32_t idx, const tinyobj::attrib_t &vertexAttributes));
 	ModelData fetch(VkaCommandBuffer cmdBuf, std::string path, void (*parse)(VkaBuffer vertexBuffer, const std::vector<ObjVertex> &vertexList, VkaBuffer indexBuffer, const std::vector<Index> &indexList));
 
 };
