@@ -1,11 +1,11 @@
 // Included in executable
-struct FrameConstants
+struct FrameConstants // 16 Byte Alignment
 {
 	uint frameIdx;
 	uint padding[3];
 };
 
-struct ViewConstants
+struct ViewConstants // 64 Byte Alignment
 {
 	mat4 projectionMat;
 	mat4 viewMat;
@@ -14,13 +14,12 @@ struct ViewConstants
 
 	vec4 camPos;
 	vec4 camFixpoint;
-
 	uint width;
 	uint height;
-	uint padding[2];
+	uint padding[6];
 };
 
-struct GuiVar
+struct GuiVar // 16 Byte Alignment
 {
 	uint useEnvMap;
 	float secRayLength;
@@ -32,14 +31,14 @@ struct GuiVar
 	uint padding[2];
 };
 
-struct Volume
+struct Volume // 64 Byte Alignment
 {
 	mat4 modelMat;
 	mat4 inverseModelMat;
 };
 
 #ifndef CCP_IMPLEMENTATION
-struct Transform
+struct Transform // 
 {
 	mat4 mat;
 	mat4 invMat;
@@ -48,9 +47,9 @@ struct Transform
 
 struct ShaderConst
 {
-	FrameConstants frame;
 	ViewConstants view;
-	GuiVar gui;
 	Transform volume;
+	FrameConstants frame;
+	GuiVar gui;
 };
 

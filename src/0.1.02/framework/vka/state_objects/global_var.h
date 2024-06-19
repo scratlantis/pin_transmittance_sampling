@@ -76,4 +76,6 @@ struct GVar
 	GVar_Cat    cat;
 	GVar_Enum_t enumVal;
 };
+
 }		// namespace vka
+extern std::vector<vka::GVar *> gVars;

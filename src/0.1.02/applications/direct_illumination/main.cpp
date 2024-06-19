@@ -11,7 +11,8 @@
 using namespace vka;
 AppState gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
-// clang-format off
+std::string       gShaderLog       = "";
+    // clang-format off
 std::vector<GVar *> gVars =
 {
 		&gvar_pin_selection_coef,
@@ -44,7 +45,8 @@ int main()
 	IOControlerCI ioCI     = DefaultIOControlerCI(APP_NAME, 1000, 700);
 	GlfwWindow    window   = GlfwWindow();
 	gState.init(deviceCI, ioCI, &window);
-	GvarGui     gui    = GvarGui();
+	ImGuiWrapper     gui    = ImGuiWrapper();
+	guiConfigDefault();
 	// Init:
 	VkaImage         swapchainImage   = vkaGetSwapchainImage();
 	FramebufferCache framebufferCache = FramebufferCache();
@@ -82,18 +84,33 @@ int main()
 	    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
 
-	RenderPassDefinition swapchainRenderPassDef = RenderPassDefinition();
-	setDefaults(swapchainRenderPassDef);
-	addColorAttachment(swapchainRenderPassDef, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, gState.io.format, true);
+	VkRenderPass swapchainLoadRP, swapchainClearRP, attachmentClearRP;
 
-
-	RenderPassDefinition attachmentClearRenderPassDef = RenderPassDefinition();
+	{
+		RenderPassDefinition swapchainLoadRPDef = RenderPassDefinition();
+		setDefaults(swapchainLoadRPDef);
+		addColorAttachment(swapchainLoadRPDef, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, gState.io.format, false);
+		swapchainLoadRP = gState.cache->fetch(swapchainLoadRPDef);
+	}
+	{
+		RenderPassDefinition swapchainClearRPDef = RenderPassDefinition();
+		setDefaults(swapchainClearRPDef);
+		addColorAttachment(swapchainClearRPDef, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, gState.io.format, true);
+		swapchainClearRP = gState.cache->fetch(swapchainClearRPDef);
+	}
+	{
+		RenderPassDefinition attachmentClearRPDef = RenderPassDefinition();
+		setDefaults(attachmentClearRPDef);
+		addColorAttachment(attachmentClearRPDef, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, gState.io.format, true);
+		attachmentClearRP = gState.cache->fetch(attachmentClearRPDef);
+	}
+	/*RenderPassDefinition attachmentClearRenderPassDef = RenderPassDefinition();
 	setDefaults(attachmentClearRenderPassDef);
-	addColorAttachment(attachmentClearRenderPassDef, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, gState.io.format, true);
+	addColorAttachment(attachmentClearRenderPassDef, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, gState.io.format, true);*/
 
-	VkRenderPass         swapchainRenderPass    = gState.cache->fetch(swapchainRenderPassDef);
-	VkRenderPass attachmentClearRenderPass = gState.cache->fetch(attachmentClearRenderPassDef);
-	gui.create(swapchainRenderPass, 0);
+	/*VkRenderPass         swapchainRenderPass    = gState.cache->fetch(swapchainLoadRP);
+	VkRenderPass attachmentClearRenderPass = gState.cache->fetch(attachmentClearRenderPassDef);*/
+	gui.vkaImGuiInit(swapchainLoadRP, 0);
 	
 
 	
@@ -101,21 +118,22 @@ int main()
 	VkaCommandBuffer cmdBuf = vkaCreateCommandBuffer(gState.frame->stack);
 	gState.io.swapchainAttachmentPool->refreshImages(cmdBuf);
 	appData.update(cmdBuf, appConfig);
-	gui.upload(cmdBuf);
+	gui.vkaImGuiUpload(cmdBuf);
 	vkaExecuteImmediat(cmdBuf);
-	gui.freeStaging();
+	gui.vkaImGuiFreeStaging();
 
 
 	// Main loop:
 	while (!gState.io.shouldTerminate())
 	{
-		gui.newFrame();
+		gui.vkaImGuiNewFrame();
 		VkaImage swapchainImage = vkaGetSwapchainImage();
 		// Reload shaders
 		if (gState.io.keyEvent[GLFW_KEY_R] && gState.io.keyPressed[GLFW_KEY_R])
 		{
 			vkDeviceWaitIdle(gState.device.logical);
 			gState.cache->clearShaders();
+			gShaderLog = "";
 		}
 		// Resize window
 		if (gState.io.swapchainRecreated())
@@ -238,7 +256,7 @@ int main()
 			if (1)
 			{
 				vkaClearState(cmdBuf);
-				vkaCmdStartRenderPass(cmdBuf, attachmentClearRenderPass, framebufferCache.fetch(attachmentClearRenderPass, {offscreenImage}), {{0.f, 0.f, 0.f, 0.f}}, vkaGetScissorRect(0.2, 0.8));
+				vkaCmdStartRenderPass(cmdBuf, attachmentClearRP, framebufferCache.fetch(attachmentClearRP, {offscreenImage}), {{0.f, 0.f, 0.f, 0.f}}, vkaGetScissorRect(0.2, 0.8));
 				vkaCmdEndRenderPass(cmdBuf);
 
 
@@ -340,7 +358,7 @@ int main()
 		if (gvar_render_mode.val.v_int == 1)
 		{
 			vkaClearState(cmdBuf);
-			vkaCmdStartRenderPass(cmdBuf, attachmentClearRenderPass, framebufferCache.fetch(attachmentClearRenderPass, {offscreenImage}), {{1.f, 1.f, 1.f, 1.f}}, appConfig.mainViewport);
+			vkaCmdStartRenderPass(cmdBuf, attachmentClearRP, framebufferCache.fetch(attachmentClearRP, {offscreenImage}), {{1.f, 1.f, 1.f, 1.f}}, appConfig.mainViewport);
 			vkaCmdEndRenderPass(cmdBuf);
 
 			// Todo:
@@ -365,7 +383,6 @@ int main()
 				drawCmd.model           = modelCache.fetch(cmdBuf, "lowpoly_sphere/lowpoly_sphere.obj", sizeof(PosVertex), PosVertex::parse);
 				drawCmd.instanceBuffers = {appData.sphereTransformBuf};
 				drawCmd.instanceCount   = 1;
-				addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
 				addDescriptor(drawCmd, appData.shaderConstBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 				addInput(drawCmd.pipelineDef, PosVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
 				addInput(drawCmd.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
@@ -400,8 +417,15 @@ int main()
 		// GUI
 		if (1)
 		{
-			vkaCmdStartRenderPass(cmdBuf, swapchainRenderPass, framebufferCache.fetch(swapchainRenderPass, {swapchainImage}), {{0.2f, 0.2f, 0.2f, 0.0f}}, vkaGetScissorRect(0.0, 0.0, 0.2, 1.0));
-			gui.render(cmdBuf);
+			vkaCmdStartRenderPass(cmdBuf, swapchainClearRP, framebufferCache.fetch(swapchainClearRP, {swapchainImage}), {{0.2f, 0.2f, 0.2f, 0.0f}}, vkaGetScissorRect(0.0, 0.0, 0.2, 1.0));
+			vkaCmdEndRenderPass(cmdBuf);
+			vkaCmdStartRenderPass(cmdBuf, swapchainLoadRP, framebufferCache.fetch(swapchainLoadRP, {swapchainImage}));
+			gvar_gui::buildGui(appConfig.guiViewport);
+			if (gShaderLog != "")
+			{
+				shader_console_gui::buildGui(appConfig.mainViewport);
+			}
+			gui.vkaImGuiRender(cmdBuf);
 			vkaCmdEndRenderPass(cmdBuf);
 		}
 		// Update used pins
@@ -422,6 +446,6 @@ int main()
 	vkDeviceWaitIdle(gState.device.logical);
 	framebufferCache.clear();
 	heap.clear();
-	gui.destroy();
+	gui.vkaImGuiDestroy();
 	gState.destroy();
 }

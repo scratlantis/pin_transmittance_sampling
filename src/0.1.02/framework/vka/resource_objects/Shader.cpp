@@ -102,6 +102,8 @@ void Shader::createModule(ShaderDefinition const &def)
 	if (shader_log.size() > 0)
 	{
 		printVka("Error compiling shader '%s' : %s", def.fileIDShort().c_str(), shader_log.data());
+		gShaderLog += "\nShader compile error:\n";
+		gShaderLog += shader_log.data();
 	}
 
 	std::stringstream shader_spv_path;
