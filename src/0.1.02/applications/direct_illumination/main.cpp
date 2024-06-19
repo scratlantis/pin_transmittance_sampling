@@ -3,6 +3,11 @@
 #include "app_data.h"
 #include "shaderStructs.h"
 
+#define MAP_APP_DATA(TYPE, NAME) TYPE *NAME = static_cast<TYPE *>(vkaMapStageing(appData.##NAME, sizeof(TYPE)));
+#define PUSH_APP_DATA(CMD_BUF, NAME) \
+	vkaUnmap(appData.##NAME);        \
+	vkaCmdUpload(CMD_BUF, appData.##NAME);
+
 using namespace vka;
 AppState gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
@@ -184,6 +189,7 @@ int main()
 					drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 					vkaCmdDraw(cmdBuf, drawCmd);
 				}
+
 				// Pins
 				if (1)
 				{
@@ -330,21 +336,51 @@ int main()
 				}
 			}
 		}
-		vkaCmdCopyImage(cmdBuf, offscreenImage, offscreenImage->getLayout(), swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		
 		if (gvar_render_mode.val.v_int == 1)
 		{
 			vkaClearState(cmdBuf);
-			vkaCmdStartRenderPass(cmdBuf, attachmentClearRenderPass, framebufferCache.fetch(attachmentClearRenderPass, {offscreenImage}), {{1.f, 1.f, 1.f, 1.f}}, appConfig.guiViewport);
+			vkaCmdStartRenderPass(cmdBuf, attachmentClearRenderPass, framebufferCache.fetch(attachmentClearRenderPass, {offscreenImage}), {{1.f, 1.f, 1.f, 1.f}}, appConfig.mainViewport);
 			vkaCmdEndRenderPass(cmdBuf);
 
 			// Todo:
 			// rasterization Sphere
 			// glsl Sample direction (rng(pixel_pos))
 
+			DrawCmd drawCmdMainWindow{};
+			setDefaults(drawCmdMainWindow.pipelineDef, RasterizationPipelineDefaultValues());
+			drawCmdMainWindow.renderArea = appConfig.mainViewport;
+
+			MAP_APP_DATA(ShaderConst, shaderConstBuf)
+			shaderConstBuf->frame = appData.frameConstants;
+			shaderConstBuf->gui   = appData.guiVariables;
+			shaderConstBuf->view  = appData.mainViewConstants;
+			shaderConstBuf->volume = appData.volumeTransform;
+			PUSH_APP_DATA(cmdBuf, shaderConstBuf)
+			vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 			// Transmittance pass:
 			// Transmittance <--- Gaussian, PinNN, PinGrid
 			{
+				DrawCmd drawCmd         = drawCmdMainWindow;
+				drawCmd.model           = modelCache.fetch(cmdBuf, "lowpoly_sphere/lowpoly_sphere.obj", sizeof(PosVertex), PosVertex::parse);
+				drawCmd.instanceBuffers = {appData.sphereTransformBuf};
+				drawCmd.instanceCount   = 1;
+				addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+				addDescriptor(drawCmd, appData.shaderConstBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+				addInput(drawCmd.pipelineDef, PosVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
+				addInput(drawCmd.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
 
+				addShader(drawCmd.pipelineDef, newShaderPath + "shading.vert", {});
+				addShader(drawCmd.pipelineDef, newShaderPath + "shading.frag", {});
+				          //{{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)}});
+
+				addDepthAttachment(drawCmd, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+				addColorAttachment(drawCmd, offscreenImage);
+				createFramebuffer(drawCmd, framebufferCache);
+				vkaCmdDraw(cmdBuf, drawCmd);
+				drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_NONE;
+				drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
+				drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
 			}
 
 			// Pre fog passes:
@@ -358,6 +394,9 @@ int main()
 
 			}
 		}
+
+
+		vkaCmdCopyImage(cmdBuf, offscreenImage, offscreenImage->getLayout(), swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 		// GUI
 		if (1)
 		{

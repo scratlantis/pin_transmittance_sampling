@@ -64,6 +64,7 @@ struct AppConfig
 	VkRect2D_OP materialViewPort;
 
 	glm::mat4 mainProjectionMat;
+	glm::mat4 matrialProjectionMat;
 
 
 	void update()
@@ -87,12 +88,19 @@ struct AppConfig
 			pinCountSqrt    = gvar_pin_count_sqrt.val.v_uint;
 		}
 
-
-		mainViewport = vkaGetScissorRect(0.2, 0.0, 1.0, 0.8);
-		guiViewport  = vkaGetScissorRect(0.2, 0.0);
+		if (gvar_render_mode.val.v_int == 0)
+		{
+			mainViewport = vkaGetScissorRect(0.2, 0.0, 1.0, 0.8);
+		}
+		else
+		{
+			mainViewport = vkaGetScissorRect(0.2, 0.0, 1.0, 1.0);
+		}
+		guiViewport  = vkaGetScissorRect(0.0, 0.0, 0.2, 1.0);
 		materialViewPort = vkaGetScissorRect(0.205, 0.81, 0.79, 0.18);
 
 		mainProjectionMat = glm::perspective(glm::radians(60.0f), (float) mainViewport.extent.width / (float) mainViewport.extent.height, 0.1f, 500.0f);
+		matrialProjectionMat = glm::perspective(glm::radians(30.0f), (float) materialViewPort.extent.width / (float) materialViewPort.extent.height, 0.1f, 500.0f);
 
 	}
 };
@@ -131,6 +139,8 @@ struct AppData
 
 	Transform volumeTransform;
 
+	VkaBuffer shaderConstBuf;
+
 
 
 	void init(vka::IResourcePool* pPool)
@@ -160,6 +170,8 @@ struct AppData
 		gaussianNNGridSphereTransformBuf = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 		gaussianNNSphereTransformBuf     = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 		gaussianNN2SphereTransformBuf    = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+
+		shaderConstBuf = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 	}
 
 	void update(VkaCommandBuffer cmdBuf, AppConfig config)
@@ -177,13 +189,13 @@ struct AppData
 		// Update view
 		{
 			View *view                   = (View *) vkaMapStageing(viewBuf, sizeof(View));
-			view->width                  = config.mainViewport.extent.width;
-			view->height                 = config.mainViewport.extent.height;
+			view->width                  = gState.io.extent.width;        // config.mainViewport.extent.width;
+			view->height                 = gState.io.extent.height;        // config.mainViewport.extent.height;
 			view->frameCounter           = cnt;
 			view->camPos                 = glm::vec4(camera.getPosition(), 1.0);
 			view->viewMat                = camera.getViewMatrix();
 			view->inverseViewMat         = glm::inverse(view->viewMat);
-			view->projectionMat          = glm::perspective(glm::radians(60.0f), (float) gState.io.extent.width / (float) gState.io.extent.height, 0.1f, 500.0f);
+			view->projectionMat          = config.mainProjectionMat;
 			view->inverseProjectionMat   = glm::inverse(view->projectionMat);
 			view->cube                   = Cube{glm::mat4(1.0), glm::mat4(1.0)};
 			view->showPins               = gvar_use_pins.val.v_int;
@@ -191,7 +203,7 @@ struct AppData
 			view->expMovingAverageCoef   = 0.99;        // gvar_exp_moving_average_coef.val.v_float;
 			view->secondaryWidth         = config.materialViewPort.extent.width;
 			view->secondaryHeight        = config.materialViewPort.extent.height;
-			view->secondaryProjectionMat = glm::perspective(glm::radians(30.0f), (float) view->secondaryWidth / (float) view->secondaryHeight, 0.1f, 500.0f);
+			view->secondaryProjectionMat = config.matrialProjectionMat;
 			view->probe                  = glm::vec4(camera.getFixpoint(), 1.0);
 			view->fogModelMatrix         = config.gaussianFogCubeTransform.mat;
 			view->fogInvModelMatrix      = config.gaussianFogCubeTransform.invMat;

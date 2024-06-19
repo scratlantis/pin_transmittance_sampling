@@ -6,7 +6,7 @@
 //layout(location = 1) flat in int fragment_instanceId;
 //layout(location = 2) in mat4 fragment_modelMat;
 //layout(location = 6) in mat4 fragment_invModelMat;
-layout(binding = 0) uniform SHADER_CONST {ShaderConst c;};
+//layout(binding = 0) uniform SHADER_CONST {ShaderConst c;};
 layout(location = 0) out vec4 outColor;
 
 void main()

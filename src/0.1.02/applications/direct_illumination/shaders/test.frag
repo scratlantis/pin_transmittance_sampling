@@ -12,4 +12,3 @@ void main()
 {
 	outColor = vec4(inUV, 0.0, 1.0);
 }
-```

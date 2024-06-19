@@ -7,9 +7,9 @@ struct FrameConstants
 
 struct ViewConstants
 {
+	mat4 projectionMat;
 	mat4 viewMat;
 	mat4 inverseViewMat;
-	mat4 projectionMat;
 	mat4 inverseProjectionMat;
 
 	vec4 camPos;
@@ -38,15 +38,6 @@ struct Volume
 	mat4 inverseModelMat;
 };
 
-
-struct ShaderConst
-{
-	FrameConstants frame;
-	ViewConstants view;
-	GuiVar gui;
-	Volume volume;
-};
-
 #ifndef CCP_IMPLEMENTATION
 struct Transform
 {
@@ -54,3 +45,12 @@ struct Transform
 	mat4 invMat;
 };
 #endif
+
+struct ShaderConst
+{
+	FrameConstants frame;
+	ViewConstants view;
+	GuiVar gui;
+	Transform volume;
+};
+
