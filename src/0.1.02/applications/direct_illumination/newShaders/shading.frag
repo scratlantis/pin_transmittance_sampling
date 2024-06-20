@@ -16,4 +16,5 @@ void main()
 	vec3 L_tangentSpace = sampleLampert(xi);
 	mat3 TNB = getTangentBase(fs_world_normal);
 	outColor.rgb = (normalize(TNB*L_tangentSpace));
+	outColor.rgb = vec3(0.0,0.0,1.0);
 }

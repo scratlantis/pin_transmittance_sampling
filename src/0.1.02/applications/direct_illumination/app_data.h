@@ -149,6 +149,14 @@ struct AppData
 	VkaBuffer cubeTransformBuf;
 
 
+	// Histogram
+	bool startRegionSelect = false;
+	bool regionSelected = false;
+	bool histogramLoaded = false;
+	VkaImage histogramImage;
+	VkaBuffer histogramBuffer;
+	glm::uvec2 regionStart;
+	glm::uvec2 regionEnd;
 
 	void init(vka::IResourcePool* pPool)
 	{
@@ -197,6 +205,24 @@ struct AppData
 				camera.mouseControl(0.016);
 			}
 		}
+		if ((!startRegionSelect) && gState.io.mouse.leftEvent && gState.io.mouse.leftPressed)
+		{
+			startRegionSelect = true;
+			regionSelected = false;
+			regionStart = gState.io.mouse.pos;
+		}
+
+		//startRegionSelect = false;
+		//startRegionSelect = regionSelected && gState.io.keyPressed[GLFW_KEY_E];
+
+		if (startRegionSelect && gState.io.mouse.leftEvent && !gState.io.mouse.leftPressed)
+		{
+			startRegionSelect = false;
+			regionSelected = true;
+			histogramLoaded = false;
+			regionEnd = gState.io.mouse.pos;
+		}
+
 		Transform sphereTransform = Transform(glm::translate(glm::mat4(1.0), camera.getFixpoint()) * glm::scale(glm::mat4(1.0), glm::vec3(0.1)));
 		// Update view
 		{

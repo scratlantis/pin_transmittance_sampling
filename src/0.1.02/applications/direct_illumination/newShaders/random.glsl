@@ -62,4 +62,9 @@ float unormNext(inout uint seed)
 	return random(seed);
 }
 
-
+void applyJitter(float coefPos, float coefAngle, inout vec3 pos, inout vec3 dir)
+{
+	pos += (random3D(pos)-vec3(0.5)) * coefPos*1.0;
+	dir += (random3D(dir)-vec3(0.5)) * coefAngle;
+	dir = normalize(dir);
+}

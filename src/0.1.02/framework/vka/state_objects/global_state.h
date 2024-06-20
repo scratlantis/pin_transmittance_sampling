@@ -185,3 +185,4 @@ class AppState
 extern vka::AppState            gState;
 extern const std::string        gShaderOutputDir;
 extern std::string				gShaderLog;
+extern std::string              gVkaShaderPath;

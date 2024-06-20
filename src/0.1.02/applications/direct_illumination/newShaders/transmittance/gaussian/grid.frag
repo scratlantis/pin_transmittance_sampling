@@ -48,6 +48,9 @@ void main()
 	vec3 direction = TRANSFORM_DIR(uCube.invMat, L_worldSpace);
 	vec3 origin = TRANSFORM(uCube.invMat, fs_world_pos);
 
+
+	applyJitter(uGui.positionalJitter, uGui.angularJitter, origin, direction);
+
 	uvec3 cellID = uvec3(floor(origin*PIN_GRID_SIZE));
 	uint gridIdx = getCellIndex(cellID);
 	float maxDot = 0.f;

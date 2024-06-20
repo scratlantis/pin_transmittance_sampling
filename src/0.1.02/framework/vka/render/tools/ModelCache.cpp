@@ -88,7 +88,7 @@ ModelData ModelCache::fetch(VkaCommandBuffer cmdBuf, std::string path, void (*pa
 	auto     it = map.find(key);
 	if (it == map.end())
 	{
-		ModelData modelData;
+		ModelData modelData{};
 		modelData.vertexBuffer  = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		modelData.indexBuffer   = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 		modelData.surfaceBuffer = vkaCreateBuffer(pPool);        // Only used cpu side

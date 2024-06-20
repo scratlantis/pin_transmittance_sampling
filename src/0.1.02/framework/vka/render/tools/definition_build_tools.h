@@ -116,6 +116,26 @@ inline void setDefaults(RasterizationPipelineDefinition &def, RasterizationPipel
 	def.dynamicStates                         = initValues.dynamicStates;
 	setDefaults(def.renderPassDefinition);
 }
+// Rasterization Pipeline
+inline void setDefaults(RasterizationPipelineDefinition &def)
+{
+	def                                       = {};
+	def.multisampleState.sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	def.multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	def.multisampleState.minSampleShading     = 1.f;
+	def.inputAssemblyState.sType              = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	def.inputAssemblyState.topology           = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	def.tessellationState.sType               = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+	def.rasterizationState.sType              = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	def.rasterizationState.lineWidth          = 1.0;
+	def.depthStencilState.sType               = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	def.depthStencilState.minDepthBounds      = 0.0;
+	def.depthStencilState.maxDepthBounds      = 1.0;
+	def.globalColorBlendState.logicOp         = VK_LOGIC_OP_NO_OP;
+	def.dynamicStates                         = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+	setDefaults(def.renderPassDefinition);
+}
+
 
 inline void addInput(RasterizationPipelineDefinition &def, VertexDataLayout inputLayout, VkVertexInputRate inputRate)
 {

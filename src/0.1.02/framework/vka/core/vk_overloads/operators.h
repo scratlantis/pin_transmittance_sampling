@@ -228,6 +228,13 @@ struct PipelineMultisampleStateCreateInfo_OP : public VkPipelineMultisampleState
 struct VkRect2D_OP : public VkRect2D
 {
 	VkRect2D_OP() = default;
+	VkRect2D_OP(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+	{
+		this->offset.x = x;
+		this->offset.y = y;
+		this->extent.width = width;
+		this->extent.height = height;
+	}
 	VkRect2D_OP(VkRect2D const &other)
 	{
 		this->offset = other.offset;

@@ -1,7 +1,7 @@
 #version 460
 #extension GL_GOOGLE_include_directive : enable
 #include "shaderStructs.glsl"
-layout(binding = 0) uniform SHADER_CONST {ShaderConst c;};
+layout(binding = 0) uniform CAM_CONST {CamConst uCam;};
 
 layout(location = 0) in vec3 vs_position;
 layout(location = 1) in vec3 vs_normal;
@@ -24,7 +24,7 @@ void main()
 	fs_world_pos = worldPos.xyz;
 	fs_world_normal = vs_normal.xyz;
 
-	vec4 viewPos = c.view.viewMat*worldPos;
-	vec4 clipPos = c.view.projectionMat * viewPos;
+	vec4 viewPos = uCam.viewMat*worldPos;
+	vec4 clipPos = uCam.projectionMat * viewPos;
 	gl_Position =  vec4(clipPos);
 }

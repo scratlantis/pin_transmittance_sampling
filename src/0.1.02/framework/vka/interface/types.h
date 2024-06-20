@@ -33,6 +33,7 @@ struct ModelData
 	VkaBuffer indexBuffer;
 	VkaBuffer surfaceBuffer;
 	uint32_t  surfaceCount;
+	SurfaceData surfaceData; // if surfaceBuffer is null // todo fix equals and hash
 
 	bool operator==(const ModelData &other) const
 	{

@@ -455,4 +455,6 @@ void AppState::destroy()
 	device.destroy();
 	io.terminateWindowManager();
 }
+
 }        // namespace vka
+std::string gVkaShaderPath = std::string(FRAMEWORK_SRC_DIR) + "/vka/shaders/";

@@ -423,7 +423,7 @@ int main()
 			{
 				drawCmd.instanceCount = appConfig.pinCountSqrt;
 				addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-				addDescriptor(drawCmd, appData.pinBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addDescriptor(drawCmd, appData.pinGridBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
 				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/gaussian/grid.frag",
 				          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
@@ -459,6 +459,24 @@ int main()
 				           {"METRIC_DISTANCE_DISTANCE", ""}});
 				vkaCmdDraw(cmdBuf, drawCmd);
 			}
+			{
+				DrawCmd drawCmd         = drawCmdMainWindow;
+				drawCmd.model           = modelCache.fetch(cmdBuf, "cube/cube.obj", PosNormalVertex::parseObj);
+				drawCmd.instanceBuffers = {appData.gaussianFogCubeTransformBuf};
+				drawCmd.instanceCount   = 1;
+				addDescriptor(drawCmd, appData.camConstBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+				addInput(drawCmd.pipelineDef, PosNormalVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
+				addInput(drawCmd.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
+				addDepthAttachment(drawCmd, depthImage, true, VK_TRUE, VK_COMPARE_OP_NEVER);
+				addColorAttachment(drawCmd, offscreenImage);
+				createFramebuffer(drawCmd, framebufferCache);
+				drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_BACK_BIT;
+				drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
+				drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
+				addShader(drawCmd.pipelineDef, newShaderPath + "shading.vert", {});
+				addShader(drawCmd.pipelineDef, newShaderPath + "shading.frag", {});
+				vkaCmdDraw(cmdBuf, drawCmd);
+			}
 
 
 
@@ -475,10 +493,45 @@ int main()
 
 			}
 		}
-		
-
-
 		vkaCmdCopyImage(cmdBuf, offscreenImage, offscreenImage->getLayout(), swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		
+		if (appData.regionSelected && !appData.histogramLoaded)
+		{
+			// Load histogram -> appData.histogramImage
+			appData.histogramLoaded = true;
+		}
+		if (appData.startRegionSelect)
+		{
+			glm::uvec2                regionEnd = gState.io.mouse.pos;
+			glm::uvec2 upperLeft = glm::min(appData.regionStart,  regionEnd);
+			glm::uvec2 lowerRight = glm::max(appData.regionStart,  regionEnd);
+			glm::uvec2 size = lowerRight - upperLeft;
+			VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
+			
+			/*vkaCmdStartRenderPass(cmdBuf, swapchainClearRP, framebufferCache.fetch(swapchainClearRP, {swapchainImage}), {{0.2f, 0.2f, 0.2f, 0.0f}}, scissor);
+			vkaCmdEndRenderPass(cmdBuf);*/
+			if (size.x != 0 && size.y != 0 && upperLeft.x >= 0 && upperLeft.y >= 0 && lowerRight.x < swapchainImage->getExtent().width && lowerRight.y < swapchainImage->getExtent().height)
+			{
+				vkaCmdStartRenderPass(cmdBuf, swapchainClearRP, framebufferCache.fetch(swapchainClearRP, {swapchainImage}), {{0.2f, 0.2f, 0.2f, 0.0f}}, scissor);
+				//vkaCmdFill(cmdBuf, glm::vec4(0.0));
+				vkaCmdEndRenderPass(cmdBuf);
+			}
+		}
+		else if (appData.histogramLoaded)
+		{
+			glm::uvec2  upperLeft  = glm::min(appData.regionStart, appData.regionEnd);
+			glm::uvec2  lowerRight = glm::max(appData.regionStart, appData.regionEnd);
+			glm::uvec2  size       = lowerRight - upperLeft;
+			VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
+
+			if (size.x != 0 && size.y != 0 && upperLeft.x >= 0 && upperLeft.y >= 0 && lowerRight.x < swapchainImage->getExtent().width && lowerRight.y < swapchainImage->getExtent().height)
+			{
+				vkaCmdStartRenderPass(cmdBuf, swapchainClearRP, framebufferCache.fetch(swapchainClearRP, {swapchainImage}), {{0.2f, 0.2f, 0.2f, 0.0f}}, scissor);
+				//vkaCmdFill(cmdBuf, glm::vec4(0.0));
+				vkaCmdEndRenderPass(cmdBuf);
+			}
+		}
+
 		// GUI
 		if (1)
 		{

@@ -3,6 +3,7 @@
 #include "../buffer_functionality.h"
 #include "../image_functionality.h"
 #include "../cmd_buffer_functionality.h"
+#include <vka/render/tools/definition_build_tools.h>
 
 using namespace vka;
 
@@ -313,7 +314,7 @@ void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCmd &drawCall)
 	// for now, only one descriptor set, always rebind
 	vkaCmdPushDescriptors(cmdBuf, 0, drawCall.descriptors);
 
-	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_VERTEX_BUFFER)
+	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_VERTEX_BUFFER && !cmdBuf->renderState.vertexBuffers.empty())
 	{
 		vkaCmdBindVertexBuffers(cmdBuf);
 	}
@@ -324,20 +325,34 @@ void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCmd &drawCall)
 	{
 		vkaRead(drawCall.model.surfaceBuffer, &surfaceData[0]);
 	}
-	else
+	else if (drawCall.model.vertexBuffer)
 	{
 		surfaceData[0].indexOffset = 0;
-		surfaceData[0].indexCount  = drawCall.model.indexBuffer->getSize() / sizeof(Index);
 		surfaceData[0].vertexOffset = 0;
 		surfaceData[0].vertexCount = drawCall.model.vertexBuffer->getSize() / drawCall.pipelineDef.vertexBindingDescriptions[0].stride;
+		if (drawCall.model.indexBuffer)
+			surfaceData[0].indexCount  = drawCall.model.indexBuffer->getSize() / sizeof(Index);
+		else
+			surfaceData[0].indexCount = 0;
+	}
+	else
+	{
+		surfaceData[0] = drawCall.model.surfaceData;
 	}
 
-	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_INDEX_BUFFER)
+	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_INDEX_BUFFER && cmdBuf->renderState.indexBuffer)
 	{
 		vkaCmdBindIndexBuffer(cmdBuf, surfaceData[0].indexOffset);
 	}
 
-	vkaCmdDrawIndexed(cmdBuf, surfaceData[0].indexCount, drawCall.instanceCount, surfaceData[0].indexOffset, surfaceData[0].vertexOffset, 0);
+	if (cmdBuf->renderState.indexBuffer)
+	{
+		vkaCmdDrawIndexed(cmdBuf, surfaceData[0].indexCount, drawCall.instanceCount, surfaceData[0].indexOffset, surfaceData[0].vertexOffset, 0);
+	}
+	else
+	{
+		vkaCmdDraw(cmdBuf, surfaceData[0].vertexCount, drawCall.instanceCount, surfaceData[0].vertexOffset, 0);
+	}
 }
 
 void vkaCmdCompute(VkaCommandBuffer cmdBuf, ComputeCmd &computeCmd)
