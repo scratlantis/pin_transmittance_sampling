@@ -60,14 +60,14 @@ int main()
 	ModelCache       modelCache       = ModelCache(&heap, modelPath);
 	TextureCache     textureCache     = TextureCache(&heap, texturePath);
 	AppData appData = AppData();
-
+	FastDrawState fastDrawState = FastDrawState(&framebufferCache, gState.cache);
 
 	appData.init(&heap);
 
 	// Create Images
 	VkaImage offscreenImage = vkaCreateSwapchainAttachment(
 	    gState.io.format,
-	    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+	    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 	    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	VkaImage depthImage = vkaCreateSwapchainAttachment(
 	    VK_FORMAT_D32_SFLOAT,
@@ -508,7 +508,10 @@ int main()
 
 			}
 		}
-		vkaCmdCopyImage(cmdBuf, offscreenImage, offscreenImage->getLayout(), swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+		
+
+		vkaCmdCopyImage(cmdBuf, offscreenImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 		
 		if (appData.regionSelected && !appData.histogramLoaded)
 		{
@@ -522,14 +525,10 @@ int main()
 			glm::uvec2 lowerRight = glm::max(appData.regionStart,  regionEnd);
 			glm::uvec2 size = lowerRight - upperLeft;
 			VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
-			
-			/*vkaCmdStartRenderPass(cmdBuf, swapchainClearRP, framebufferCache.fetch(swapchainClearRP, {swapchainImage}), {{0.2f, 0.2f, 0.2f, 0.0f}}, scissor);
-			vkaCmdEndRenderPass(cmdBuf);*/
-			if (size.x != 0 && size.y != 0 && upperLeft.x >= 0 && upperLeft.y >= 0 && lowerRight.x < swapchainImage->getExtent().width && lowerRight.y < swapchainImage->getExtent().height)
+			if (scissor.isValid(swapchainImage->getExtent2D()))
 			{
-				vkaCmdStartRenderPass(cmdBuf, swapchainClearRP, framebufferCache.fetch(swapchainClearRP, {swapchainImage}), {{0.2f, 0.2f, 0.2f, 0.0f}}, scissor);
-				//vkaCmdFill(cmdBuf, glm::vec4(0.0));
-				vkaCmdEndRenderPass(cmdBuf);
+				fastDrawState.drawRect(cmdBuf, swapchainImage, {0.2f, 0.2f, 0.8f, 0.2f}, scissor);
+				
 			}
 		}
 		else if (appData.histogramLoaded)
@@ -538,18 +537,19 @@ int main()
 			glm::uvec2  lowerRight = glm::max(appData.regionStart, appData.regionEnd);
 			glm::uvec2  size       = lowerRight - upperLeft;
 			VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
-
-			if (size.x != 0 && size.y != 0 && upperLeft.x >= 0 && upperLeft.y >= 0 && lowerRight.x < swapchainImage->getExtent().width && lowerRight.y < swapchainImage->getExtent().height)
+			if (scissor.isValid(swapchainImage->getExtent2D()))
 			{
-				vkaCmdStartRenderPass(cmdBuf, swapchainClearRP, framebufferCache.fetch(swapchainClearRP, {swapchainImage}), {{0.2f, 0.2f, 0.2f, 0.0f}}, scissor);
-				//vkaCmdFill(cmdBuf, glm::vec4(0.0));
-				vkaCmdEndRenderPass(cmdBuf);
+				fastDrawState.drawRect(cmdBuf, swapchainImage, {0.2f, 0.2f, 0.8f, 0.2f}, scissor);
+				fastDrawState.computeHistogram(cmdBuf, offscreenImage, &appData.defaultSampler, appData.histogramBuffer, appData.histogramAverageBuffer, scissor);
+				vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+				fastDrawState.renderHistogram(cmdBuf, appData.histogramBuffer, appData.histogramAverageBuffer, swapchainImage, scissor);
 			}
 		}
-
+		vkaCmdTransitionLayout(cmdBuf, offscreenImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		// GUI
 		if (1)
 		{
+			vkaClearState(cmdBuf);
 			vkaCmdStartRenderPass(cmdBuf, swapchainClearRP, framebufferCache.fetch(swapchainClearRP, {swapchainImage}), {{0.2f, 0.2f, 0.2f, 0.0f}}, vkaGetScissorRect(0.0, 0.0, 0.2, 1.0));
 			vkaCmdEndRenderPass(cmdBuf);
 			vkaCmdStartRenderPass(cmdBuf, swapchainLoadRP, framebufferCache.fetch(swapchainLoadRP, {swapchainImage}));

@@ -238,7 +238,7 @@ inline void nextDescriptorSet(RasterizationPipelineDefinition &def)
 
 
 // Compute Pipeline
-inline void setDefaults(ComputeCmd &computeCmd, uint32_t taskSize, const std::string path, std::vector<ShaderArgs> args)
+inline void setDefaults(ComputeCmd &computeCmd, uint32_t taskSize, const std::string path, std::vector<ShaderArgs> args = {})
 {
 	computeCmd                   = {};
 	glm::uvec3 workGroupSize     = {128, 1, 1};
@@ -250,7 +250,7 @@ inline void setDefaults(ComputeCmd &computeCmd, uint32_t taskSize, const std::st
 }
 
 // Compute Pipeline
-inline void setDefaults(ComputeCmd &computeCmd, glm::uvec2 taskSize, std::string path, std::vector<ShaderArgs> args)
+inline void setDefaults(ComputeCmd &computeCmd, glm::uvec2 taskSize, std::string path, std::vector<ShaderArgs> args = {})
 {
 	computeCmd                   = {};
 	glm::uvec3 workGroupSize     = {32, 32, 1};

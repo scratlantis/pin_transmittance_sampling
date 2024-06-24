@@ -36,6 +36,9 @@ void main()
 	// Compute ray segment
 	vec3 dir = TRANSFORM_DIR(uCube.invMat, L_worldSpace);
 	vec3 origin = TRANSFORM(uCube.invMat, fs_world_pos);
+
+	applyJitter(uGui.positionalJitter, uGui.angularJitter, origin, dir);
+
 	float t = min(unitCubeExitDist(origin,dir), uGui.secRayLength);
 	vec3 destination = origin + t*dir;
 
@@ -47,4 +50,5 @@ void main()
 		transmittance *= clamp(1.0-uGui.gaussianWeight*weight*evalTransmittanceGaussianSegment(origin, destination, sGaussians[i]), 0.0, 1.0);
 	}
 	outColor.rgb = vec3(transmittance);
+	//outColor.rgb = vec3(t);
 }

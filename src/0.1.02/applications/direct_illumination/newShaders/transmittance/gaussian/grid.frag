@@ -47,9 +47,13 @@ void main()
 	// Transform to cube space
 	vec3 direction = TRANSFORM_DIR(uCube.invMat, L_worldSpace);
 	vec3 origin = TRANSFORM(uCube.invMat, fs_world_pos);
-
-
+	
 	applyJitter(uGui.positionalJitter, uGui.angularJitter, origin, direction);
+
+	float tOriginal = min(unitCubeExitDist(origin,direction), uGui.secRayLength);
+	//vec3 destination = origin + tOriginal*direction;
+
+
 
 	uvec3 cellID = uvec3(floor(origin*PIN_GRID_SIZE));
 	uint gridIdx = getCellIndex(cellID);
@@ -84,10 +88,11 @@ void main()
 
 	// Compute transmittance
 	float transmittance = 1.0;
-	float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
+	float weight = clamp((tOriginal/t) * 10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
 	for(int i = 0; i < GAUSSIAN_COUNT; i++)
 	{
 		transmittance *= clamp(1.0-uGui.gaussianWeight*weight*evalTransmittanceGaussianSegment(rayOrigin, rayDestination, sGaussians[i]), 0.0, 1.0);
 	}
 	outColor.rgb = vec3(transmittance);
+	//outColor.rgb = vec3(t);
 }

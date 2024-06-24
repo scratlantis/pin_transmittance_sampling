@@ -71,6 +71,10 @@ class Image_I : public Resource_T<VkImage>, public IDescriptor
 	  {
 		  return ci.extent;
 	  }
+	  virtual VkExtent2D getExtent2D() const
+	  {
+		  return {ci.extent.width, ci.extent.height};
+	  }
 	  virtual uint32_t getMipLevels() const
 	  {
 		  return ci.mipLevels;
@@ -151,14 +155,14 @@ class Image_I : public Resource_T<VkImage>, public IDescriptor
 
 	virtual void createHandles();
 	virtual Image_I   recreate();
-	void           attainInitialLayout(CmdBuffer_I *cmdBuf);
+	//void           attainInitialLayout(CmdBuffer_I *cmdBuf);
 	virtual void       detachChildResources();
 	virtual void     track(IResourcePool *pPool) override;
 	virtual void     free() override;
 	virtual hash_t    hash() const override;
 
 	void writeDescriptorInfo(VkWriteDescriptorSet &write, VkDescriptorBufferInfo *&pBufferInfo, VkDescriptorImageInfo *&pImageInfos) const override;
-	void updateLayout(VkCommandBuffer cmdBuf, VkImageLayout newLayout);
+	//void updateLayout(VkCommandBuffer cmdBuf, VkImageLayout newLayout);
 
 };
 
@@ -169,6 +173,7 @@ class SwapchainImage_I : public Image_I
 	VkImageView getViewHandle() const override;
 	VkFormat    getFormat() const override;
 	VkExtent3D  getExtent() const override;
+	VkExtent2D  getExtent2D() const override;
 	uint32_t    getMipLevels() const override
 	{
 		return 1;

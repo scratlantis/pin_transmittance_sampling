@@ -153,8 +153,8 @@ struct AppData
 	bool startRegionSelect = false;
 	bool regionSelected = false;
 	bool histogramLoaded = false;
-	VkaImage histogramImage;
 	VkaBuffer histogramBuffer;
+	VkaBuffer histogramAverageBuffer;
 	glm::uvec2 regionStart;
 	glm::uvec2 regionEnd;
 
@@ -192,6 +192,9 @@ struct AppData
 		guiVarBuf    = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		cubeTransformBuf = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 
+		histogramBuffer = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		histogramAverageBuffer = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+
 	}
 
 	void update(VkaCommandBuffer cmdBuf, AppConfig config)
@@ -205,7 +208,7 @@ struct AppData
 				camera.mouseControl(0.016);
 			}
 		}
-		if ((!startRegionSelect) && gState.io.mouse.leftEvent && gState.io.mouse.leftPressed)
+		if ((!startRegionSelect) && gState.io.mouse.leftEvent && gState.io.mouse.leftPressed && gState.io.keyPressed[GLFW_KEY_E])
 		{
 			startRegionSelect = true;
 			regionSelected = false;
@@ -213,7 +216,8 @@ struct AppData
 		}
 
 		//startRegionSelect = false;
-		//startRegionSelect = regionSelected && gState.io.keyPressed[GLFW_KEY_E];
+		/*if (startRegionSelect && gState.io.keyPressed[GLFW_KEY_E])
+			DEBUG_BREAK;*/
 
 		if (startRegionSelect && gState.io.mouse.leftEvent && !gState.io.mouse.leftPressed)
 		{
@@ -222,6 +226,7 @@ struct AppData
 			histogramLoaded = false;
 			regionEnd = gState.io.mouse.pos;
 		}
+		//startRegionSelect = startRegionSelect && gState.io.keyPressed[GLFW_KEY_E];
 
 		Transform sphereTransform = Transform(glm::translate(glm::mat4(1.0), camera.getFixpoint()) * glm::scale(glm::mat4(1.0), glm::vec3(0.1)));
 		// Update view

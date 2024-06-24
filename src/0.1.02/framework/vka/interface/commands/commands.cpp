@@ -279,7 +279,7 @@ void vkaCmdDraw(VkaCommandBuffer cmdBuf, uint32_t vertexCount, uint32_t instance
 
 void vkaCmdDraw(VkaCommandBuffer cmdBuf, DrawCmd &drawCall)
 {
-	VKA_ASSERT(drawCall.model.surfaceCount == 1);
+	//VKA_ASSERT(drawCall.model.surfaceCount == 1);
 	VKA_ASSERT(drawCall.pipelineDef.subpass == 0);
 
 	RenderState newRenderState = drawCall.getRenderState();

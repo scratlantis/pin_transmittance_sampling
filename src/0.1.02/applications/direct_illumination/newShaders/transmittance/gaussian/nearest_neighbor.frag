@@ -46,8 +46,11 @@ void main()
 	// Transform to cube space
 	vec3 direction = TRANSFORM_DIR(uCube.invMat, L_worldSpace);
 	vec3 origin = TRANSFORM(uCube.invMat, fs_world_pos);
-	float t = min(unitCubeExitDist(origin,direction), uGui.secRayLength);
-	vec3 destination = origin + t*direction;
+
+	applyJitter(uGui.positionalJitter, uGui.angularJitter, origin, direction);
+
+	float tOriginal = min(unitCubeExitDist(origin,direction), uGui.secRayLength);
+	vec3 destination = origin + tOriginal*direction;
 
 	float maxMetric = 0.0;
 	uint maxMetricIdx = 0;
@@ -97,15 +100,22 @@ void main()
 
 
 	// Compute ray segment
-	t = min(unitCubeExitDist(rayOrigin,rayDir), uGui.secRayLength);
+	float t = min(unitCubeExitDist(rayOrigin,rayDir), uGui.secRayLength);
 	vec3 rayDestination = rayOrigin + t*rayDir;
+
+	if(tOriginal < EPSILON)
+	{
+		outColor.rgb = vec3(0.0);
+		return;
+	}
 
 	// Compute transmittance
 	float transmittance = 1.0;
-	float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
+	float weight = clamp((tOriginal/t) * 10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
 	for(int i = 0; i < GAUSSIAN_COUNT; i++)
 	{
 		transmittance *= clamp(1.0-uGui.gaussianWeight*weight*evalTransmittanceGaussianSegment(rayOrigin, rayDestination, sGaussians[i]), 0.0, 1.0);
 	}
 	outColor.rgb = vec3(transmittance);
+	//outColor.rgb = vec3(t);
 }

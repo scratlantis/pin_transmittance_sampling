@@ -141,6 +141,11 @@ VkExtent3D SwapchainImage_I::getExtent() const
 {
 	return {gState.io.extent.width, gState.io.extent.height, 1};
 }
+
+VkExtent2D SwapchainImage_I::getExtent2D() const
+{
+	return {gState.io.extent.width, gState.io.extent.height};
+}
 VkImageUsageFlags SwapchainImage_I::getUsage() const
 {
 	return gState.io.imageUsage;

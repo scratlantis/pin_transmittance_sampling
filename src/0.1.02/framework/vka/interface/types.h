@@ -165,3 +165,7 @@ struct BlendOperation
 	{                                                              \
 		VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD \
 	}
+#define VKA_BLEND_OP_ALPHA                                         \
+	{                                                              \
+		VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD \
+	}

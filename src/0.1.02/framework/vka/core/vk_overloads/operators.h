@@ -249,6 +249,10 @@ struct VkRect2D_OP : public VkRect2D
 			&& extent.height == other.extent.height;
 		// clang-format on
 	}
+	bool isValid(VkExtent2D const& extent) const
+	{
+		return offset.x > 0 && offset.y > 0 && this->extent.width > 0 && this->extent.height > 0 && offset.x + this->extent.width <= extent.width && offset.y + this->extent.height <= extent.height;
+	}
 	VkRect2D_OP operator*(Rect2D<float> const &other)
 	{
 		// clang-format off

@@ -1,0 +1,27 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+#ifndef BUCKETS
+#define BUCKETS 256
+#endif
+
+struct Params
+{
+    ivec2 offset;
+	uvec2 extent;
+};
+layout(binding = 0) uniform PARAMS {Params params;};
+layout(binding = 1) buffer COUNTER_BUFFER {uint bucket[BUCKETS];};
+layout(binding = 2) buffer AVERAGE_BUFFER {float average;};
+void main()
+{
+	float localAverage = 0.0f;
+	float normalizationTerm = 1.0f / float(params.extent.x * params.extent.y * BUCKETS);
+	for (uint i = 1; i < BUCKETS; i++)
+	{
+		localAverage+= float(bucket[i]) * float(i) * normalizationTerm;
+	}
+	average = localAverage;
+}

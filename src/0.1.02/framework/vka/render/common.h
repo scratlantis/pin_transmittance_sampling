@@ -5,3 +5,4 @@
 #include "tools/FramebufferCache.h"
 #include "tools/ModelCache.h"
 #include "tools/TextureCache.h"
+#include "tools/fast_draw_commands.h"

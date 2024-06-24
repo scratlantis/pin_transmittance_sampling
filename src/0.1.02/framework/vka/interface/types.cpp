@@ -20,7 +20,10 @@ RenderState DrawCmd::getRenderState() const
 		state.pipeline          = gState.cache->fetch(pipelineDef);
 		state.bindPoint         = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		state.pipelineLayoutDef = pipelineDef.pipelineLayoutDefinition;
-		state.vertexBuffers     = {model.vertexBuffer};
+		if (model.vertexBuffer)
+		{
+			state.vertexBuffers = {model.vertexBuffer};
+		}
 		state.vertexBuffers.insert(state.vertexBuffers.end(), instanceBuffers.begin(), instanceBuffers.end());
 		state.indexBuffer = model.indexBuffer;
 		return state;
