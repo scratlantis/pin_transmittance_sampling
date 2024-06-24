@@ -71,7 +71,8 @@ int main()
 	    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	VkaImage depthImage = vkaCreateSwapchainAttachment(
 	    VK_FORMAT_D32_SFLOAT,
-	    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+	    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+	    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 	VkaImage lineColorImg = vkaCreateSwapchainAttachment(
 	    gState.io.format,
 	    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
@@ -90,20 +91,33 @@ int main()
 	    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
 
+	VkRenderPass clearDepthRP;
+	{
+		RenderPassDefinition clearDepthDef = RenderPassDefinition();
+		setDefaults(clearDepthDef);
+		addDepthAttachment(clearDepthDef, VK_FORMAT_D32_SFLOAT, true);
+		clearDepthRP = gState.cache->fetch(clearDepthDef);
+	}
+
+
+
 	VkRenderPass swapchainLoadRP, swapchainClearRP, attachmentClearRP;
 
+	
 	{
 		RenderPassDefinition swapchainLoadRPDef = RenderPassDefinition();
 		setDefaults(swapchainLoadRPDef);
 		addColorAttachment(swapchainLoadRPDef, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, gState.io.format, false);
 		swapchainLoadRP = gState.cache->fetch(swapchainLoadRPDef);
 	}
+	
 	{
 		RenderPassDefinition swapchainClearRPDef = RenderPassDefinition();
 		setDefaults(swapchainClearRPDef);
 		addColorAttachment(swapchainClearRPDef, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, gState.io.format, true);
 		swapchainClearRP = gState.cache->fetch(swapchainClearRPDef);
 	}
+	
 	{
 		RenderPassDefinition attachmentClearRPDef = RenderPassDefinition();
 		setDefaults(attachmentClearRPDef);
@@ -211,7 +225,7 @@ int main()
 
 					drawCmd.pipelineDef.rasterizationState.cullMode  = VK_CULL_MODE_NONE;
 					drawCmd.pipelineDef.rasterizationState.frontFace = VK_FRONT_FACE_CLOCKWISE;
-					drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
+					//drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 					vkaCmdDraw(cmdBuf, drawCmd);
 				}
 
@@ -374,7 +388,11 @@ int main()
 			}
 		}
 		
-		
+		if (0)
+		{
+			vkaCmdStartRenderPass(cmdBuf, clearDepthRP, framebufferCache.fetch(clearDepthRP, {depthImage}), {{1.0f, 0}});
+			vkaCmdEndRenderPass(cmdBuf);
+		}
 		if (gvar_render_mode.val.v_int == 1)
 		{
 			vkaClearState(cmdBuf);
@@ -383,6 +401,11 @@ int main()
 
 			DrawCmd drawCmdMainWindow{};
 			setDefaults(drawCmdMainWindow.pipelineDef, RasterizationPipelineDefaultValues());
+			addDepthAttachment(drawCmdMainWindow, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+			addColorAttachment(drawCmdMainWindow, offscreenImage);
+			createFramebuffer(drawCmdMainWindow, framebufferCache);
+			addInput(drawCmdMainWindow.pipelineDef, PosNormalVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
+			addInput(drawCmdMainWindow.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
 			drawCmdMainWindow.renderArea = appConfig.mainViewport;
 
 
@@ -399,11 +422,7 @@ int main()
 			addDescriptor(drawCmd, appData.viewConstBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 			addDescriptor(drawCmd, appData.guiVarBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 			addDescriptor(drawCmd, appData.cubeTransformBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-			addInput(drawCmd.pipelineDef, PosNormalVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
-			addInput(drawCmd.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
-			addDepthAttachment(drawCmd, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
-			addColorAttachment(drawCmd, offscreenImage);
-			createFramebuffer(drawCmd, framebufferCache);
+			
 			drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_BACK_BIT;
 			drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
 			drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
@@ -459,18 +478,14 @@ int main()
 				           {"METRIC_DISTANCE_DISTANCE", ""}});
 				vkaCmdDraw(cmdBuf, drawCmd);
 			}
+			if (1)
 			{
 				DrawCmd drawCmd         = drawCmdMainWindow;
 				drawCmd.model           = modelCache.fetch(cmdBuf, "cube/cube.obj", PosNormalVertex::parseObj);
 				drawCmd.instanceBuffers = {appData.gaussianFogCubeTransformBuf};
 				drawCmd.instanceCount   = 1;
 				addDescriptor(drawCmd, appData.camConstBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-				addInput(drawCmd.pipelineDef, PosNormalVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
-				addInput(drawCmd.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
-				addDepthAttachment(drawCmd, depthImage, true, VK_TRUE, VK_COMPARE_OP_NEVER);
-				addColorAttachment(drawCmd, offscreenImage);
-				createFramebuffer(drawCmd, framebufferCache);
-				drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_BACK_BIT;
+				drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_NONE;
 				drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
 				drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_LINE;
 				addShader(drawCmd.pipelineDef, newShaderPath + "shading.vert", {});

@@ -45,9 +45,9 @@ void Device::createInstance()
 
 	if (!instanceExtensions.empty())
 	{
-		IF_VALIDATION(
+//		IF_VALIDATION(
 		    instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-		    instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);)
+		    instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);//)
 		instanceCreateInfo.enabledExtensionCount   = static_cast<uint32_t>(instanceExtensions.size());
 		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 	}
@@ -56,7 +56,7 @@ void Device::createInstance()
 	instanceCreateInfo.ppEnabledLayerNames = &validationLayerName;
 	instanceCreateInfo.enabledLayerCount   = 1;
 	VK_CHECK(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
-	IF_VALIDATION(
+	//IF_VALIDATION(
 	    uint32_t instanceLayerCount;
 	    vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
 	    std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
@@ -74,7 +74,7 @@ void Device::createInstance()
 		    instanceCreateInfo.enabledLayerCount   = 1;
 	    } else {
 		    std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled";
-	    })
+	    }
 	gState.initBits |= STATE_INIT_DEVICE_INSTANCE_BIT;
 }
 void Device::selectPhysicalDevice()

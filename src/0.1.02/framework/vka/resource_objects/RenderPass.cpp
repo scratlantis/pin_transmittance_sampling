@@ -40,7 +40,7 @@ RenderPass::RenderPass(IResourceCache *pCache, RenderPassDefinition const &def)
 		vkSubpassDescriptions[i] = def.subpassDescriptions[i].getVulkanStruct();
 	}
 	renderPassCreateInfo.pSubpasses      = vkSubpassDescriptions.data();
-	renderPassCreateInfo.dependencyCount = VKA_COUNT(vkSubpassDescriptions);
+	renderPassCreateInfo.dependencyCount = VKA_COUNT(def.subpassDependencies);
 	renderPassCreateInfo.pDependencies   = def.subpassDependencies.data();
 	VK_CHECK(vkCreateRenderPass(gState.device.logical, &renderPassCreateInfo, nullptr, &handle));
 }

@@ -67,6 +67,7 @@ inline void addAttachment(RenderPassDefinition &def, AttachmentLayoutDescription
 			break;
 		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
 			def.subpassDescriptions[def.currentSubpass].depthStencilAttachment = ref;
+			def.subpassDescriptions[def.currentSubpass].hasDepthStencilAttachment = true;
 			break;
 		default:
 			printVka("Unsupported internal layout");
