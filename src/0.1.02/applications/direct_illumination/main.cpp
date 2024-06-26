@@ -30,6 +30,7 @@ std::vector<GVar *> gVars =
 		&gvar_pins_per_grid_cell,
 		&gvar_pins_grid_size,
 		&gvar_pin_count_sqrt,
+		&gvar_gaussian_std_deviation,
 		&gvar_reload,
 
         &gvar_use_pins,
@@ -162,25 +163,30 @@ int main()
 		}
 
 		VkaCommandBuffer cmdBuf = vkaCreateCommandBuffer(gState.frame->stack);
-		if (1) // Gui button
+		if (1)
 		{
 			appConfig.update();
 			appData.update(cmdBuf, appConfig);
 		}
-		// Render probe
-		
+
+
+		// Fetch envmap
+		VkaImage envMap;
+	    if (1)
+	    {
+		    envMap = textureCache.fetch(cmdBuf,
+		                                "autumn_field_2k.hdr",
+		                                VK_FORMAT_R32G32B32A32_SFLOAT,
+		                                VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+		                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	    }
+	    vkaCmdImageMemoryBarrier(cmdBuf, lineColorImg, VK_IMAGE_LAYOUT_GENERAL);
+
+
+
 		if (gvar_render_mode.val.v_int == 0)
 		{
-			VkaImage envMap;
-			if (1)
-			{
-				envMap = textureCache.fetch(cmdBuf,
-					"autumn_field_2k.hdr",
-					VK_FORMAT_R32G32B32A32_SFLOAT,
-					VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-					VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-			}
-			vkaCmdImageMemoryBarrier(cmdBuf, lineColorImg, VK_IMAGE_LAYOUT_GENERAL);
+			
 			// Render env map to offscreen image
 			if (1)
 			{
@@ -440,7 +446,7 @@ int main()
 			// Grid
 			if (gvar_transmittance_mode.val.v_int == 1)
 			{
-				drawCmd.instanceCount = appConfig.pinCountSqrt;
+				drawCmd.instanceCount = 1;        // appConfig.pinCountSqrt;
 				addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 				addDescriptor(drawCmd, appData.pinGridBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
@@ -506,6 +512,75 @@ int main()
 			// Primary Ray Fog pass:
 			{
 
+			}
+		}
+		if (gvar_render_mode.val.v_int == 2)
+		{
+
+			if (gvar_use_env_map.val.v_bool)
+			{
+
+				fastDrawState.drawEnvMap(cmdBuf, offscreenImage, envMap, appData.defaultSampler, appData.camera.getViewMatrix(), appConfig.mainProjectionMat, appConfig.mainViewport);
+			}
+			else
+			{
+				vkaClearState(cmdBuf);
+				vkaCmdStartRenderPass(cmdBuf, attachmentClearRP, framebufferCache.fetch(attachmentClearRP, {offscreenImage}), {{1.f, 1.f, 1.f, 1.f}}, appConfig.mainViewport);
+				vkaCmdEndRenderPass(cmdBuf);
+			}
+
+
+			DrawCmd drawCmdMainWindow{};
+			setDefaults(drawCmdMainWindow.pipelineDef, RasterizationPipelineDefaultValues());
+			addDepthAttachment(drawCmdMainWindow, depthImage, true, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+			addColorAttachment(drawCmdMainWindow, offscreenImage);
+			createFramebuffer(drawCmdMainWindow, framebufferCache);
+			addInput(drawCmdMainWindow.pipelineDef, PosNormalVertex::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_VERTEX);
+			addInput(drawCmdMainWindow.pipelineDef, Transform::getVertexDataLayout(), VK_VERTEX_INPUT_RATE_INSTANCE);
+			drawCmdMainWindow.renderArea = appConfig.mainViewport;
+
+			APP_DATA_PUSH_DESC(cmdBuf, CamConst, camConstBuf, mainCamConst);
+			APP_DATA_PUSH_DESC(cmdBuf, ViewConst, viewConstBuf, mainViewConst);
+			APP_DATA_PUSH_DESC(cmdBuf, GuiVar, guiVarBuf, guiVar);
+			APP_DATA_PUSH_DESC(cmdBuf, Transform, cubeTransformBuf, cubeTransform);
+
+			vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+			DrawCmd drawCmd         = drawCmdMainWindow;
+			drawCmd.model           = modelCache.fetch(cmdBuf, "cube/cube.obj", PosNormalVertex::parseObj);
+			drawCmd.instanceBuffers = {appData.gaussianFogCubeTransformBuf};
+			addDescriptor(drawCmd, appData.camConstBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+			addDescriptor(drawCmd, appData.viewConstBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+			addDescriptor(drawCmd, appData.guiVarBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+			addDescriptor(drawCmd, appData.cubeTransformBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+			// Envmap
+			addDescriptor(drawCmd, &appData.defaultSampler, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		    addDescriptor(drawCmd, envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+			drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_BACK_BIT;
+			drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
+			drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+			// Exact
+			if (gvar_transmittance_mode.val.v_int == 0)
+			{
+				drawCmd.instanceCount = 1;
+				addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
+				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/gaussian/fog_cube.frag",
+				          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)}});
+				vkaCmdDraw(cmdBuf, drawCmd);
+			}
+			// Grid
+			if (gvar_transmittance_mode.val.v_int == 1)
+			{
+				drawCmd.instanceCount = 1;
+				addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addDescriptor(drawCmd, appData.pinGridBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
+				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/gaussian/fog_cube_grid.frag",
+				          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
+				           {"PIN_GRID_SIZE", std::to_string(appConfig.pinsGridSize)},
+				           {"PINS_PER_GRID_CELL", std::to_string(appConfig.pinsPerGridCell)}});
+				vkaCmdDraw(cmdBuf, drawCmd);
 			}
 		}
 

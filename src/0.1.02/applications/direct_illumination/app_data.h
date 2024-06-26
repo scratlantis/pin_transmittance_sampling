@@ -18,6 +18,7 @@ GVar gvar_gaussian_margin{"gaussian margin", 0.2f, GVAR_UNORM, GVAR_LOAD_SETTING
 GVar gvar_pins_per_grid_cell{"pins per grid cell", 20, GVAR_UINT, GVAR_LOAD_SETTINGS};
 GVar gvar_pins_grid_size{"pins grid size", 10, GVAR_UINT, GVAR_LOAD_SETTINGS};
 GVar gvar_pin_count_sqrt{"pin count sqrt", 50, GVAR_UINT, GVAR_LOAD_SETTINGS};
+GVar gvar_gaussian_std_deviation{"std deviation", 0.5f, GVAR_UNORM, GVAR_LOAD_SETTINGS};
 GVar gvar_reload{"reload", 0, GVAR_EVENT, GVAR_LOAD_SETTINGS};
 
 GVar gvar_use_pins{"show pins", 0, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"None", "All", "Grid", "Nearest Neighbor 1", "Nearest Neighbor 2"}};
@@ -28,7 +29,7 @@ GVar gvar_show_grid{"grid", 1, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
 GVar gvar_show_nn1{"nearest neighbor (distance/angle)", 1, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
 GVar gvar_show_nn2{"nearest neighbor (distance/distance)", 1, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
 
-GVar gvar_render_mode{"render mode", 1, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Angle Transmittance", "Reflection Transmittance"}};
+GVar gvar_render_mode{"render mode", 2, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Angle Transmittance", "Reflection Transmittance", "Volume Transmittance"}};
 GVar gvar_transmittance_mode{"transmittance mode", 0, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Exact", "Grid", "Nearest Neighbor 1", "Nearest Neighbor 2"}};
 
 
@@ -52,7 +53,8 @@ struct AppConfig
 	uint32_t gaussFilterRadius = 4;
 
 
-	Transform gaussianFogCubeTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(-0.5, -0.5, -0.5)));
+	//Transform gaussianFogCubeTransform = Transform(glm::translate(glm::mat4(1.0), glm::vec3(-0.5, -0.5, -0.5)));
+	Transform gaussianFogCubeTransform = Transform(glm::mat4(1.0));
 	Transform pinMatTransform          = Transform(glm::mat4(1.0));
 
 	Transform gaussianSphereTransform;
@@ -278,6 +280,7 @@ struct AppData
 			guiVar.showPins               = gvar_use_pins.val.v_int;
 			guiVar.pinSelectionCoef       = gvar_pin_selection_coef.val.v_float;
 			guiVar.gaussianWeight       = gvar_gaussian_weight.val.v_float;
+			guiVar.stdDeviation           = gvar_gaussian_std_deviation.val.v_float;
 
 			cubeTransform = config.gaussianFogCubeTransform;
 		}
@@ -314,7 +317,7 @@ struct AppData
 					gaussiansData[i].mean.x   = config.gaussianMargin + (1.0 - 2.0 * config.gaussianMargin) * unormDistribution(gen32);
 					gaussiansData[i].mean.y   = config.gaussianMargin + (1.0 - 2.0 * config.gaussianMargin) * unormDistribution(gen32);
 					gaussiansData[i].mean.z   = config.gaussianMargin + (1.0 - 2.0 * config.gaussianMargin) * unormDistribution(gen32);
-					float standardDeviation   = 0.1 + 0.4 * unormDistribution(gen32);
+					float standardDeviation   = gvar_gaussian_std_deviation.val.v_float*0.2;        // 0.1 + 0.4 * unormDistribution(gen32);
 					gaussiansData[i].variance = standardDeviation * standardDeviation;
 				}
 				vkaUnmap(gaussianBuf);

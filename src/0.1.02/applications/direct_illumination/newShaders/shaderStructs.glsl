@@ -28,7 +28,8 @@ struct GuiVar
 	uint showPins;
 	float pinSelectionCoef;
 	float gaussianWeight;
-	uint padding[1];
+	float stdDeviation;
+	//uint padding[1];
 };
 
 
