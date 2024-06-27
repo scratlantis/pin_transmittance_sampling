@@ -620,6 +620,48 @@ int main()
 				fastDrawState.renderHistogram(cmdBuf, appData.histogramBuffer, appData.histogramAverageBuffer, swapchainImage, scissor);
 			}
 		}
+
+
+
+		if (appData.regionSelectedAccum && !appData.accumulationLoaded)
+		{
+			// Load histogram -> appData.histogramImage
+			appData.accumulationLoaded = true;
+		}
+		if (appData.startRegionSelectAccum)
+		{
+			glm::uvec2  regionEnd  = gState.io.mouse.pos;
+			glm::uvec2  upperLeft  = glm::min(appData.regionStartAccum, regionEnd);
+			glm::uvec2  lowerRight = glm::max(appData.regionStartAccum, regionEnd);
+			glm::uvec2  size       = lowerRight - upperLeft;
+			VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
+			if (scissor.isValid(swapchainImage->getExtent2D()))
+			{
+				fastDrawState.drawRect(cmdBuf, swapchainImage, {0.8f, 0.2f, 0.2f, 0.2f}, scissor);
+			}
+		}
+		else if (appData.accumulationLoaded)
+		{
+			glm::uvec2  upperLeft  = glm::min(appData.regionStartAccum, appData.regionEndAccum);
+			glm::uvec2  lowerRight = glm::max(appData.regionStartAccum, appData.regionEndAccum);
+			glm::uvec2  size       = lowerRight - upperLeft;
+			VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
+
+			if (scissor.isValid(swapchainImage->getExtent2D()))
+			{
+
+				appData.accumulationImage->changeExtent(getExtent3D(scissor.extent));
+				appData.accumulationImage->recreate();
+
+				vkaCmdTransitionLayout(cmdBuf, appData.accumulationImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+				fastDrawState.accumulate(cmdBuf, offscreenImage, appData.defaultSampler, appData.accumulationImage, scissor, appData.accumulationCount++);
+				vkaCmdTransitionLayout(cmdBuf, appData.accumulationImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+				fastDrawState.renderSprite(cmdBuf, appData.accumulationImage, appData.defaultSampler, swapchainImage, scissor);
+			}
+		}
+
+
+
 		vkaCmdTransitionLayout(cmdBuf, offscreenImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 		// GUI
 		if (1)

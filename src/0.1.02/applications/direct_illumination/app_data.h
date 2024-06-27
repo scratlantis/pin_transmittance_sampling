@@ -133,6 +133,8 @@ struct AppData
 
 	VkaImage envMap;
 
+	VkaImage accumulationImage;
+
 	// New
 	CamConst mainCamConst;
 	ViewConst mainViewConst;
@@ -155,6 +157,14 @@ struct AppData
 	bool startRegionSelect = false;
 	bool regionSelected = false;
 	bool histogramLoaded = false;
+
+	bool startRegionSelectAccum = false;
+	bool regionSelectedAccum    = false;
+	bool accumulationLoaded            = false;
+	uint32_t accumulationCount = 0;
+	glm::uvec2 regionStartAccum;
+	glm::uvec2 regionEndAccum;
+
 	VkaBuffer histogramBuffer;
 	VkaBuffer histogramAverageBuffer;
 	glm::uvec2 regionStart;
@@ -197,6 +207,8 @@ struct AppData
 		histogramBuffer = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		histogramAverageBuffer = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
+		accumulationImage = vkaCreateImage(pPool, gState.io.format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, {10,10});
+
 	}
 
 	void update(VkaCommandBuffer cmdBuf, AppConfig config)
@@ -216,11 +228,6 @@ struct AppData
 			regionSelected = false;
 			regionStart = gState.io.mouse.pos;
 		}
-
-		//startRegionSelect = false;
-		/*if (startRegionSelect && gState.io.keyPressed[GLFW_KEY_E])
-			DEBUG_BREAK;*/
-
 		if (startRegionSelect && gState.io.mouse.leftEvent && !gState.io.mouse.leftPressed)
 		{
 			startRegionSelect = false;
@@ -228,7 +235,25 @@ struct AppData
 			histogramLoaded = false;
 			regionEnd = gState.io.mouse.pos;
 		}
-		//startRegionSelect = startRegionSelect && gState.io.keyPressed[GLFW_KEY_E];
+
+		if ((!startRegionSelectAccum) && gState.io.mouse.leftEvent && gState.io.mouse.leftPressed && gState.io.keyPressed[GLFW_KEY_F])
+		{
+			accumulationCount      = 0;
+			startRegionSelectAccum = true;
+			regionSelectedAccum    = false;
+			regionStartAccum       = gState.io.mouse.pos;
+		}
+		if (startRegionSelectAccum && gState.io.mouse.leftEvent && !gState.io.mouse.leftPressed)
+		{
+			startRegionSelectAccum = false;
+			regionSelectedAccum    = true;
+			accumulationLoaded   = false;
+			regionEndAccum         = gState.io.mouse.pos;
+		}
+
+
+
+
 
 		Transform sphereTransform = Transform(glm::translate(glm::mat4(1.0), camera.getFixpoint()) * glm::scale(glm::mat4(1.0), glm::vec3(0.1)));
 		// Update view

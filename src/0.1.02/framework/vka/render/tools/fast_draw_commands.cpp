@@ -121,38 +121,62 @@ void FastDrawState::renderHistogram(VkaCommandBuffer cmdBuf, VkaBuffer src, VkaB
 	vkaCmdDraw(cmdBuf, drawCmd);
 }
 
-//void FastDrawState::accumulate(VkaCommandBuffer cmdBuf, VkaImage src, VkaImage dst, VkRect2D_OP area, uint32_t accumulationCount)
-//{
-//	ComputeCmd computeCmd = {};
-//	setDefaults(computeCmd, area.extent, gVkaShaderPath + "histogram.comp");
-//	dst->changeSize(sizeof(uint32_t) * 256);
-//	dst->addUsage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-//	dst->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
-//	dst->recreate();
-//	vkaCmdFillBuffer(cmdBuf, dst, 0, dst->getSize(), 0);
-//	VkaBuffer ubo = vkaCreateBuffer(gState.frame->stack, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-//	vkaWriteStaging(ubo, static_cast<const void *>(&area), sizeof(VkRect2D_OP));
-//	vkaCmdUpload(cmdBuf, ubo);
-//	vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-//	addDescriptor(computeCmd, ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-//	addDescriptor(computeCmd, dst, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-//	addDescriptor(computeCmd, pSamplerDef, VK_DESCRIPTOR_TYPE_SAMPLER);
-//	addDescriptor(computeCmd, src, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-//	vkaCmdCompute(cmdBuf, computeCmd);
-//
-//	vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-//
-//	average->changeSize(sizeof(uint32_t));
-//	average->addUsage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-//	average->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
-//	average->recreate();
-//	setDefaults(computeCmd, 1U, gVkaShaderPath + "histogram_sum.comp");
-//	addDescriptor(computeCmd, ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-//	addDescriptor(computeCmd, dst, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-//	addDescriptor(computeCmd, average, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-//	vkaCmdCompute(cmdBuf, computeCmd);
-//}
+void FastDrawState::accumulate(VkaCommandBuffer cmdBuf, VkaImage src, SamplerDefinition samplerDef, VkaImage dst, VkRect2D_OP area, uint32_t accumulationCount)
+{
 
-//void FastDrawState::renderSprite(VkaCommandBuffer cmdBuf, VkaImage src, VkaImage dst, VkRect2D_OP area, uint32_t accumulationCount)
-//{
-//}
+	struct PushDescriptor
+	{
+		glm::ivec2 offset;
+		glm::uvec2 extent;
+		glm::uint  count;
+	};
+
+	VkaBuffer       pdBuf    = vkaCreateBuffer(gState.frame->stack, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+	PushDescriptor *pd       = static_cast<PushDescriptor *>(vkaMapStageing(pdBuf, sizeof(PushDescriptor)));
+	pd->offset               = {area.offset.x, area.offset.y};
+	pd->extent               = {area.extent.width, area.extent.height};
+	pd->count                = accumulationCount;
+	vkaUnmap(pdBuf);
+	vkaCmdUpload(cmdBuf, pdBuf);
+
+	DrawCmd drawCmd = {};
+	setDefaults(drawCmd.pipelineDef);
+	drawCmd.renderArea.extent                    = area.extent;
+	drawCmd.model.surfaceData.vertexCount = 3;
+	drawCmd.instanceCount                 = 1;
+	addColorAttachment(drawCmd, dst, {}, dst->getLayout(), dst->getLayout(), VKA_BLEND_OP_ALPHA, VKA_BLEND_OP_ALPHA);
+	createFramebuffer(drawCmd, *framebufferCache);
+	drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_BACK_BIT;
+	drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
+	drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+
+	addDescriptor(drawCmd, pdBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	addDescriptor(drawCmd, &samplerDef, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	addDescriptor(drawCmd, src, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	addShader(drawCmd.pipelineDef, gVkaShaderPath + "fill.vert", {});
+	addShader(drawCmd.pipelineDef, gVkaShaderPath + "accumulate.frag", {});
+	vkaCmdDraw(cmdBuf, drawCmd);
+
+}
+
+void FastDrawState::renderSprite(VkaCommandBuffer cmdBuf, VkaImage src, SamplerDefinition samplerDef, VkaImage dst, VkRect2D_OP area)
+{
+	DrawCmd drawCmd = {};
+	setDefaults(drawCmd.pipelineDef);
+	drawCmd.renderArea                    = area;
+	drawCmd.model.surfaceData.vertexCount = 3;
+	drawCmd.instanceCount                 = 1;
+	addColorAttachment(drawCmd, dst, {}, dst->getLayout(), dst->getLayout(), VKA_BLEND_OP_WRITE, VKA_BLEND_OP_WRITE);
+	createFramebuffer(drawCmd, *framebufferCache);
+	drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_BACK_BIT;
+	drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
+	drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+
+	addDescriptor(drawCmd, &samplerDef, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	addDescriptor(drawCmd, src, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	addShader(drawCmd.pipelineDef, gVkaShaderPath + "fill.vert", {});
+	addShader(drawCmd.pipelineDef, gVkaShaderPath + "sprite.frag", {});
+	vkaCmdDraw(cmdBuf, drawCmd);
+}

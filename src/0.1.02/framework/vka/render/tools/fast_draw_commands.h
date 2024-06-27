@@ -22,9 +22,9 @@ class FastDrawState
 
 	void renderHistogram(VkaCommandBuffer cmdBuf, VkaBuffer src, VkaBuffer average, VkaImage dst, VkRect2D_OP area);
 
-	void accumulate(VkaCommandBuffer cmdBuf, VkaImage src, VkaImage dst, VkRect2D_OP area, uint32_t accumulationCount);
+	void accumulate(VkaCommandBuffer cmdBuf, VkaImage src, SamplerDefinition sampler, VkaImage dst, VkRect2D_OP area, uint32_t accumulationCount);
 
-	void renderSprite(VkaCommandBuffer cmdBuf, VkaImage src, VkaImage dst, VkRect2D_OP area, uint32_t accumulationCount);
+	void renderSprite(VkaCommandBuffer cmdBuf, VkaImage src, SamplerDefinition samplerDef, VkaImage dst, VkRect2D_OP area);
 
 
 };
