@@ -7,6 +7,10 @@ layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
 #define BUCKETS 256
 #endif
 
+#ifndef BUCKET_RANGE
+#define BUCKET_RANGE 1.0f
+#endif
+
 struct Params
 {
     ivec2 offset;
@@ -21,7 +25,7 @@ void main()
 	float normalizationTerm = 1.0f / float(params.extent.x * params.extent.y * BUCKETS);
 	for (uint i = 1; i < BUCKETS; i++)
 	{
-		localAverage+= float(bucket[i]) * float(i) * normalizationTerm;
+		localAverage+= float(bucket[i]) * float(i) * normalizationTerm * BUCKET_RANGE;
 	}
-	average = localAverage;
+	average += localAverage;
 }
