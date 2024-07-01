@@ -67,7 +67,7 @@ int main()
 
 	// Create Images
 	VkaImage offscreenImage = vkaCreateSwapchainAttachment(
-	    gState.io.format,
+	    VK_FORMAT_R32G32B32A32_SFLOAT,
 	    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 	    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	VkaImage depthImage = vkaCreateSwapchainAttachment(
@@ -102,7 +102,7 @@ int main()
 
 
 
-	VkRenderPass swapchainLoadRP, swapchainClearRP, attachmentClearRP;
+	VkRenderPass swapchainLoadRP, swapchainClearRP, hdrAttachmentClearRP;
 
 	
 	{
@@ -120,10 +120,10 @@ int main()
 	}
 	
 	{
-		RenderPassDefinition attachmentClearRPDef = RenderPassDefinition();
-		setDefaults(attachmentClearRPDef);
-		addColorAttachment(attachmentClearRPDef, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, gState.io.format, true);
-		attachmentClearRP = gState.cache->fetch(attachmentClearRPDef);
+		RenderPassDefinition hdrAttachmentClearRPDef = RenderPassDefinition();
+		setDefaults(hdrAttachmentClearRPDef);
+		addColorAttachment(hdrAttachmentClearRPDef, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_FORMAT_R32G32B32A32_SFLOAT, true);
+		hdrAttachmentClearRP = gState.cache->fetch(hdrAttachmentClearRPDef);
 	}
 	/*RenderPassDefinition attachmentClearRenderPassDef = RenderPassDefinition();
 	setDefaults(attachmentClearRenderPassDef);
@@ -283,7 +283,7 @@ int main()
 			if (1)
 			{
 				vkaClearState(cmdBuf);
-				vkaCmdStartRenderPass(cmdBuf, attachmentClearRP, framebufferCache.fetch(attachmentClearRP, {offscreenImage}), {{0.f, 0.f, 0.f, 0.f}}, vkaGetScissorRect(0.2, 0.8));
+				vkaCmdStartRenderPass(cmdBuf, hdrAttachmentClearRP, framebufferCache.fetch(hdrAttachmentClearRP, {offscreenImage}), {{0.f, 0.f, 0.f, 0.f}}, vkaGetScissorRect(0.2, 0.8));
 				vkaCmdEndRenderPass(cmdBuf);
 
 
@@ -402,7 +402,7 @@ int main()
 		if (gvar_render_mode.val.v_int == 1)
 		{
 			vkaClearState(cmdBuf);
-			vkaCmdStartRenderPass(cmdBuf, attachmentClearRP, framebufferCache.fetch(attachmentClearRP, {offscreenImage}), {{1.f, 1.f, 1.f, 1.f}}, appConfig.mainViewport);
+			vkaCmdStartRenderPass(cmdBuf, hdrAttachmentClearRP, framebufferCache.fetch(hdrAttachmentClearRP, {offscreenImage}), {{1.f, 1.f, 1.f, 1.f}}, appConfig.mainViewport);
 			vkaCmdEndRenderPass(cmdBuf);
 
 			DrawCmd drawCmdMainWindow{};
@@ -525,7 +525,7 @@ int main()
 			else
 			{
 				vkaClearState(cmdBuf);
-				vkaCmdStartRenderPass(cmdBuf, attachmentClearRP, framebufferCache.fetch(attachmentClearRP, {offscreenImage}), {{1.f, 1.f, 1.f, 1.f}}, appConfig.mainViewport);
+				vkaCmdStartRenderPass(cmdBuf, hdrAttachmentClearRP, framebufferCache.fetch(hdrAttachmentClearRP, {offscreenImage}), {{1.f, 1.f, 1.f, 1.f}}, appConfig.mainViewport);
 				vkaCmdEndRenderPass(cmdBuf);
 			}
 
@@ -586,8 +586,13 @@ int main()
 
 		
 
-		vkaCmdCopyImage(cmdBuf, offscreenImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-		
+		//vkaCmdCopyImage(cmdBuf, offscreenImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+		vkaCmdTransitionLayout(cmdBuf, offscreenImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		vkaCmdTransitionLayout(cmdBuf, swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+		VkRect2D_OP scissor = {0, 0, offscreenImage->getExtent2D().width, offscreenImage->getExtent2D().height};
+		fastDrawState.renderSprite(cmdBuf, offscreenImage, appData.defaultSampler, swapchainImage, scissor);
+
 		if (appData.regionSelected && !appData.histogramLoaded)
 		{
 			// Load histogram -> appData.histogramImage
