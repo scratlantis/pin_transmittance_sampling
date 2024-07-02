@@ -1,12 +1,8 @@
-vec2 getEnvMapTexCoord(vec3 dir)
+vec2 sampleSphericalMap(vec3 v)
 {
-	vec3 viewDir = dir;
-	viewDir = vec3(viewDir.y,-viewDir.x,viewDir.z);
-	viewDir = vec3(viewDir.z, viewDir.y, -viewDir.x);
-	float theta = atan(viewDir.y/viewDir.x);
-	float phi = atan(length(viewDir.xy), viewDir.z);
-	vec2 texCoords;
-	texCoords.x = theta/(PI);
-	texCoords.y = phi/PI;
-	return texCoords;
+	const vec2 invAtan = vec2(0.1591, 0.3183);
+    vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
+    uv *= invAtan;
+    uv += 0.5;
+    return uv;
 }

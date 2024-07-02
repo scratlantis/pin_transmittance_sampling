@@ -1,0 +1,90 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_shader_atomic_float : enable
+
+#ifndef BINS
+#define BINS 16
+#endif
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+
+struct Extent
+{
+    uint width;
+    uint height;
+};
+
+layout(binding = 0) uniform EXTENT {
+    Extent extent;
+};
+
+
+layout(binding = 1) buffer OUT
+{
+    float bins[BINS];
+};
+layout(binding = 2) uniform sampler uSampler;
+layout(binding = 3) uniform texture2D uTexture;
+
+float computeLuminance(vec3 color)
+{
+    return (color.r + color.g + color.b) / 3.0;
+}
+
+void main()
+{
+/*
+    uint gID = gl_GlobalInvocationID.x;
+
+    if(gID >= extent.width) return;)
+
+    //uint columnOffset = gID * BINS;
+    //if(columnOffset >= extent.width) return;)
+    //uint columCount = min(BINS, extent.width - columnOffset);
+    //uint rowCount = extent.height;
+    //float normalizationTerm = 1.0 /float(columCount * rowCount);
+    //float totalLuminance = 0.0;
+
+    for(int i = 0; i < 1; i++)
+    {
+        //#ifdef SWAP_AXIS
+        //ivec2 texelCoord = ivec2(i,gID);
+        //#else
+        //ivec2 texelCoord = ivec2(gID,i);
+        //#endif
+
+        vec3 texelVal = texelFetch(sampler2D(uTexture, uSampler) , texelCoord, 0).rgb;
+        float luminance = computeLuminance(texelVal);
+        totalLuminance += luminance;// * normalizationTerm;
+    }
+    bins[gID] = totalLuminance;
+
+    uvec2 size = uvec2(0);
+    */
+
+    uint gID = gl_GlobalInvocationID.x;
+    #ifdef SWAP_AXIS
+    uvec2 size = uvec2(extent.height, extent.width);
+    #else
+    uvec2 size = uvec2(extent.width, extent.height);
+    #endif
+    const uint columnsPerBin = size.x/BINS;
+	if(gID >= size.x) return;
+    uint  binIdx = gID/columnsPerBin;
+    float normalizationTerm = 1.0/float(BINS*size.y);
+    float totalLuminance = 0.0;
+    for(int i = 0; i < size.y; i++)
+    {
+        #ifdef SWAP_AXIS
+        ivec2 texelCoord = ivec2(i,gID);
+        #else
+        ivec2 texelCoord = ivec2(gID,i);
+        #endif
+
+        vec3 texelVal = texelFetch(sampler2D(uTexture, uSampler) , texelCoord, 0).rgb;
+        float luminance = computeLuminance(texelVal);
+        totalLuminance += 0.01*luminance * normalizationTerm;
+    }
+    atomicAdd(bins[binIdx], totalLuminance);
+}

@@ -28,6 +28,7 @@ struct D3VKPTDeviceCI : vka::DeviceCI
 		enabledDeviceExtensions.push_back(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+		enabledDeviceExtensions.push_back(VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME);
 
 		// Device Features
 		VkPhysicalDeviceVulkan11Features vulkan11Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
@@ -45,8 +46,8 @@ struct D3VKPTDeviceCI : vka::DeviceCI
 		enabledFeatures.addNode(features12);
 
 		VkPhysicalDeviceShaderAtomicFloatFeaturesEXT shaderAtomicFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT};
-		shaderAtomicFeatures.shaderBufferFloat32Atomics   = true;
-		shaderAtomicFeatures.shaderBufferFloat32AtomicAdd = true;
+		shaderAtomicFeatures.shaderBufferFloat32Atomics   = VK_TRUE;
+		shaderAtomicFeatures.shaderBufferFloat32AtomicAdd = VK_TRUE;
 		enabledFeatures.addNode(shaderAtomicFeatures);
 
 		VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
@@ -57,6 +58,7 @@ struct D3VKPTDeviceCI : vka::DeviceCI
 		shader64Features.shaderImageInt64Atomics = VK_TRUE;
 		enabledFeatures.addNode(shader64Features);
 
+		
 		/*VkPhysicalDeviceDescriptorIndexingFeatures indexing_features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
 		indexing_features.runtimeDescriptorArray                    = VK_TRUE;
 		indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;

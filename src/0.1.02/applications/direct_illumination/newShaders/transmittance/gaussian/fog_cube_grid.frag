@@ -32,7 +32,7 @@ vec3 getDirectionalIllum(vec3 dir)
 {
 	if(uGui.useEnvMap == 1)
 	{
-		vec2 texCoords = getEnvMapTexCoord( dir);
+		vec2 texCoords = sampleSphericalMap( dir);
 		vec4 texColor = texture(sampler2D(envMap, envMapSampler), texCoords);
 		return texColor.xyz;
 	}

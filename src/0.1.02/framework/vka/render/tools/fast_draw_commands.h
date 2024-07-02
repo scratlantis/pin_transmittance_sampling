@@ -26,5 +26,12 @@ class FastDrawState
 
 	void renderSprite(VkaCommandBuffer cmdBuf, VkaImage src, SamplerDefinition samplerDef, VkaImage dst, VkRect2D_OP area);
 
+	void normalize(VkaCommandBuffer cmdBuf, VkaBuffer buffer, uint32_t count);
+
+	void marginalize(VkaCommandBuffer cmdBuf, VkaBuffer pdfHorizontal, VkaBuffer pdfVertical, VkaImage src, glm::uvec2 binCount);
+
+	void renderDistribution(VkaCommandBuffer cmdBuf, VkaBuffer src, uint32_t binCount, VkaImage dst, VkRect2D_OP area);
+
+
 
 };

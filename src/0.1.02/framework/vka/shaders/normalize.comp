@@ -1,0 +1,27 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+
+#ifndef COUNT
+#define COUNT 16
+#endif
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+
+layout(binding = 0) buffer BUF
+{
+    float buf[COUNT];
+};
+
+void main()
+{
+    float sum = 0;
+    for(int i = 0; i< COUNT; i++)
+    {
+        sum += buf[i];
+    }
+    for(int i = 0; i< COUNT; i++)
+    {
+        buf[i] /= sum;
+    }
+}

@@ -100,7 +100,69 @@ void FastDrawState::computeHistogram(VkaCommandBuffer cmdBuf, VkaImage src, Samp
 	vkaCmdCompute(cmdBuf, computeCmd);
 }
 
-void FastDrawState::renderHistogram(VkaCommandBuffer cmdBuf, VkaBuffer src, VkaBuffer average, VkaImage dst, VkRect2D_OP area)
+
+void initStorageBuffer(VkaCommandBuffer cmdBuf, VkaBuffer buffer, VkDeviceSize size)
+{
+	buffer->changeSize(size);
+	buffer->addUsage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	buffer->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
+	buffer->recreate();
+	vkaCmdFillBuffer(cmdBuf, buffer, 0, buffer->getSize(), 0);
+}
+
+VkaBuffer makeUniformBuffer(VkaCommandBuffer cmdBuf, const void *data, VkDeviceSize size)
+{
+	VkaBuffer ubo = vkaCreateBuffer(gState.frame->stack, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+	vkaWriteStaging(ubo, data, size);
+	vkaCmdUpload(cmdBuf, ubo);
+	return ubo;
+}
+
+
+
+
+void FastDrawState::normalize(VkaCommandBuffer cmdBuf, VkaBuffer buffer, uint32_t count)
+{
+	ComputeCmd computeCmd = {};
+	setDefaults(computeCmd, count, gVkaShaderPath + "normalize.comp", {{"COUNT", std::to_string(count)}});
+	addDescriptor(computeCmd, buffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	vkaCmdCompute(cmdBuf, computeCmd);
+}
+
+
+void FastDrawState::marginalize(VkaCommandBuffer cmdBuf, VkaBuffer pdfHorizontal, VkaBuffer pdfVertical, VkaImage src, glm::uvec2 binCount)
+{
+	initStorageBuffer(cmdBuf, pdfHorizontal, sizeof(float) * binCount.x);
+	initStorageBuffer(cmdBuf, pdfVertical, sizeof(float) * binCount.y);
+	VkExtent2D        extent  = src->getExtent2D();
+	VkaBuffer  ubo    = makeUniformBuffer(cmdBuf, &extent, sizeof(VkExtent2D));
+	SamplerDefinition sampler = SamplerDefinition();
+
+	vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+	ComputeCmd computeCmd = {};
+	setDefaults(computeCmd, extent.width, gVkaShaderPath + "marginalize.comp", {});
+	addDescriptor(computeCmd, ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	addDescriptor(computeCmd, pdfHorizontal, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	addDescriptor(computeCmd, &sampler, VK_DESCRIPTOR_TYPE_SAMPLER);
+	addDescriptor(computeCmd, src, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	vkaCmdCompute(cmdBuf, computeCmd);
+
+	setDefaults(computeCmd, extent.height, gVkaShaderPath + "marginalize.comp", {{"SWAP_AXIS", ""}});
+	addDescriptor(computeCmd, ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	addDescriptor(computeCmd, pdfVertical, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	addDescriptor(computeCmd, &sampler, VK_DESCRIPTOR_TYPE_SAMPLER);
+	addDescriptor(computeCmd, src, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	vkaCmdCompute(cmdBuf, computeCmd);
+
+	vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+	normalize(cmdBuf, pdfHorizontal, binCount.x);
+	normalize(cmdBuf, pdfVertical, binCount.y);
+}
+
+
+
+void FastDrawState::renderDistribution(VkaCommandBuffer cmdBuf, VkaBuffer src, uint32_t binCount, VkaImage dst, VkRect2D_OP area)
 {
 	DrawCmd drawCmd = {};
 	setDefaults(drawCmd.pipelineDef);
@@ -116,6 +178,31 @@ void FastDrawState::renderHistogram(VkaCommandBuffer cmdBuf, VkaBuffer src, VkaB
 	VkaBuffer ubo = vkaCreateBuffer(gState.frame->stack, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 	vkaWriteStaging(ubo, static_cast<const void *>(&area), sizeof(VkRect2D_OP));
 	vkaCmdUpload(cmdBuf, ubo);
+	addDescriptor(drawCmd, ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	addDescriptor(drawCmd, src, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	addShader(drawCmd.pipelineDef, gVkaShaderPath + "fill.vert", {});
+	addShader(drawCmd.pipelineDef, gVkaShaderPath + "render_distribution.frag", {{"BUCKETS", std::to_string(binCount)}});
+	vkaCmdDraw(cmdBuf, drawCmd);
+}
+
+
+
+void FastDrawState::renderHistogram(VkaCommandBuffer cmdBuf, VkaBuffer src, VkaBuffer average, VkaImage dst, VkRect2D_OP area)
+{
+	DrawCmd drawCmd = {};
+	setDefaults(drawCmd.pipelineDef);
+	drawCmd.renderArea                    = area;
+	drawCmd.model.surfaceData.vertexCount = 3;
+	drawCmd.instanceCount                 = 1;
+	addColorAttachment(drawCmd, dst, {}, dst->getLayout(), dst->getLayout(), VKA_BLEND_OP_ALPHA, VKA_BLEND_OP_ALPHA);
+	createFramebuffer(drawCmd, *framebufferCache);
+	drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_BACK_BIT;
+	drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
+	drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+
+	VkaBuffer ubo = makeUniformBuffer(cmdBuf, &area, sizeof(VkRect2D_OP));
+
 	addDescriptor(drawCmd, ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	addDescriptor(drawCmd, src, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 	addDescriptor(drawCmd, average, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);

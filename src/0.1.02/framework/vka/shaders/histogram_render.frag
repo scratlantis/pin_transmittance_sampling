@@ -5,37 +5,6 @@
 #define BUCKETS 256
 #endif
 
-	float gauss_cdf_approx_Eidous_Ananbeh(float z)
-{
-	float c1 = 1.5957764;
-	float c2 = 0.0726161;
-	float c3 = 0.00003318;
-	float c4 = 0.00021785;
-	float c5 = 0.00006293;
-	float c6 = 0.00000519;
-	float z3 = z * z * z;
-	float z6 = z3*z3;
-	float z7 = z6*z;
-	float z8 = z7*z;
-	float z9 = z8*z;
-	return 1.0 - 1.0 / (1.0 + exp(c1*z + c2*z3+c3*z6+c4*z7+c5*z8+c6*z9));
-}
-
-float gauss_inv_cdf_approx_Schmeiser(float pIn)
-{
-	float coef = 5.06329113924; // 1.0 / 0.1975
-	if(pIn>=0.5)
-	{
-		float p = pIn;
-		return (pow(p, 0.135) - pow(1.0 - p, 0.135)) * coef;
-	}
-	else
-	{
-		float p = 1.0-pIn;
-		return - (pow(p, 0.135) - pow(1.0 - p, 0.135)) * coef;
-	}
-}
-
 struct Params
 {
     ivec2 offset;

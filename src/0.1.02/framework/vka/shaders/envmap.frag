@@ -15,18 +15,17 @@ layout(binding = 0) uniform PUSH_DESC {PushDescriptor pd;};
 layout(binding = 1) uniform sampler envMapSampler;
 layout(binding = 2) uniform texture2D envMap;
 
-vec2 getEnvMapTexCoord(vec3 dir)
+
+
+vec2 SampleSphericalMap(vec3 v)
 {
-	vec3 viewDir = dir;
-	viewDir = vec3(viewDir.y,-viewDir.x,viewDir.z);
-	viewDir = vec3(viewDir.z, viewDir.y, -viewDir.x);
-	float theta = atan(viewDir.y/viewDir.x);
-	float phi = atan(length(viewDir.xy), viewDir.z);
-	vec2 texCoords;
-	texCoords.x = theta/(PI);
-	texCoords.y = phi/PI;
-	return texCoords;
+	const vec2 invAtan = vec2(0.1591, 0.3183);
+    vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
+    uv *= invAtan;
+    uv += 0.5;
+    return uv;
 }
+
 
 
 void main()
@@ -37,7 +36,8 @@ void main()
     vec4 target         = pd.inverseProjectionMat * clipCoords;
     vec3 direction      = (pd.inverseViewMat * target).xyz;
 	direction =  normalize(direction);
-	vec2 texCoords = getEnvMapTexCoord(direction);
+	vec2 texCoords = SampleSphericalMap(direction);
 	vec4 texColor = texture(sampler2D(envMap, envMapSampler), texCoords);
 	outColor.rgb = texColor.rgb;
+	//outColor.rg = texCoords;
 }

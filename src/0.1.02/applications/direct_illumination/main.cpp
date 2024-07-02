@@ -91,6 +91,9 @@ int main()
 		VK_FORMAT_R32_SFLOAT,
 	    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
+	// Debug
+	VkaBuffer pdfHorizontal = vkaCreateBuffer(&heap);
+	VkaBuffer pdfVertical   = vkaCreateBuffer(&heap);
 
 	VkRenderPass clearDepthRP;
 	{
@@ -163,24 +166,21 @@ int main()
 		}
 
 		VkaCommandBuffer cmdBuf = vkaCreateCommandBuffer(gState.frame->stack);
-		if (1)
 		{
 			appConfig.update();
 			appData.update(cmdBuf, appConfig);
 		}
 
-
-		// Fetch envmap
 		VkaImage envMap;
-	    if (1)
+		// Fetch envmap
 	    {
 		    envMap = textureCache.fetch(cmdBuf,
 		                                "autumn_field_2k.hdr",
 		                                VK_FORMAT_R32G32B32A32_SFLOAT,
 		                                VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
 		                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			vkaCmdImageMemoryBarrier(cmdBuf, lineColorImg, VK_IMAGE_LAYOUT_GENERAL);
 	    }
-	    vkaCmdImageMemoryBarrier(cmdBuf, lineColorImg, VK_IMAGE_LAYOUT_GENERAL);
 
 
 
@@ -589,82 +589,100 @@ int main()
 		//vkaCmdCopyImage(cmdBuf, offscreenImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
 		vkaCmdTransitionLayout(cmdBuf, offscreenImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+
 		vkaCmdTransitionLayout(cmdBuf, swapchainImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 		VkRect2D_OP scissor = {0, 0, offscreenImage->getExtent2D().width, offscreenImage->getExtent2D().height};
 		fastDrawState.renderSprite(cmdBuf, offscreenImage, appData.defaultSampler, swapchainImage, scissor);
-
-		if (appData.regionSelected && !appData.histogramLoaded)
+		// Histogram
 		{
-			// Load histogram -> appData.histogramImage
-			appData.histogramLoaded = true;
-		}
-		if (appData.startRegionSelect)
-		{
-			glm::uvec2                regionEnd = gState.io.mouse.pos;
-			glm::uvec2 upperLeft = glm::min(appData.regionStart,  regionEnd);
-			glm::uvec2 lowerRight = glm::max(appData.regionStart,  regionEnd);
-			glm::uvec2 size = lowerRight - upperLeft;
-			VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
-			if (scissor.isValid(swapchainImage->getExtent2D()))
+			if (appData.regionSelected && !appData.histogramLoaded)
 			{
-				fastDrawState.drawRect(cmdBuf, swapchainImage, {0.2f, 0.2f, 0.8f, 0.2f}, scissor);
-				
+				// Load histogram -> appData.histogramImage
+				appData.histogramLoaded = true;
 			}
-		}
-		else if (appData.histogramLoaded)
-		{
-			glm::uvec2  upperLeft  = glm::min(appData.regionStart, appData.regionEnd);
-			glm::uvec2  lowerRight = glm::max(appData.regionStart, appData.regionEnd);
-			glm::uvec2  size       = lowerRight - upperLeft;
-			VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
-			if (scissor.isValid(swapchainImage->getExtent2D()))
+			if (appData.startRegionSelect)
 			{
-				fastDrawState.drawRect(cmdBuf, swapchainImage, {0.2f, 0.2f, 0.8f, 0.2f}, scissor);
-				fastDrawState.computeHistogram(cmdBuf, offscreenImage, &appData.defaultSampler, appData.histogramBuffer, appData.histogramAverageBuffer, scissor);
-				vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-				fastDrawState.renderHistogram(cmdBuf, appData.histogramBuffer, appData.histogramAverageBuffer, swapchainImage, scissor);
+				glm::uvec2  regionEnd  = gState.io.mouse.pos;
+				glm::uvec2  upperLeft  = glm::min(appData.regionStart, regionEnd);
+				glm::uvec2  lowerRight = glm::max(appData.regionStart, regionEnd);
+				glm::uvec2  size       = lowerRight - upperLeft;
+				VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
+				if (scissor.isValid(swapchainImage->getExtent2D()))
+				{
+					fastDrawState.drawRect(cmdBuf, swapchainImage, {0.2f, 0.2f, 0.8f, 0.2f}, scissor);
+				}
 			}
-		}
-
-
-
-		if (appData.regionSelectedAccum && !appData.accumulationLoaded)
-		{
-			// Load histogram -> appData.histogramImage
-			appData.accumulationLoaded = true;
-		}
-		if (appData.startRegionSelectAccum)
-		{
-			glm::uvec2  regionEnd  = gState.io.mouse.pos;
-			glm::uvec2  upperLeft  = glm::min(appData.regionStartAccum, regionEnd);
-			glm::uvec2  lowerRight = glm::max(appData.regionStartAccum, regionEnd);
-			glm::uvec2  size       = lowerRight - upperLeft;
-			VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
-			if (scissor.isValid(swapchainImage->getExtent2D()))
+			else if (appData.histogramLoaded)
 			{
-				fastDrawState.drawRect(cmdBuf, swapchainImage, {0.8f, 0.2f, 0.2f, 0.2f}, scissor);
-			}
-		}
-		else if (appData.accumulationLoaded)
-		{
-			glm::uvec2  upperLeft  = glm::min(appData.regionStartAccum, appData.regionEndAccum);
-			glm::uvec2  lowerRight = glm::max(appData.regionStartAccum, appData.regionEndAccum);
-			glm::uvec2  size       = lowerRight - upperLeft;
-			VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
-
-			if (scissor.isValid(swapchainImage->getExtent2D()))
-			{
-
-				appData.accumulationImage->changeExtent(getExtent3D(scissor.extent));
-				appData.accumulationImage->recreate();
-
-				vkaCmdTransitionLayout(cmdBuf, appData.accumulationImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-				fastDrawState.accumulate(cmdBuf, offscreenImage, appData.defaultSampler, appData.accumulationImage, scissor, appData.accumulationCount++);
-				vkaCmdTransitionLayout(cmdBuf, appData.accumulationImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-				fastDrawState.renderSprite(cmdBuf, appData.accumulationImage, appData.defaultSampler, swapchainImage, scissor);
+				glm::uvec2  upperLeft  = glm::min(appData.regionStart, appData.regionEnd);
+				glm::uvec2  lowerRight = glm::max(appData.regionStart, appData.regionEnd);
+				glm::uvec2  size       = lowerRight - upperLeft;
+				VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
+				if (scissor.isValid(swapchainImage->getExtent2D()))
+				{
+					fastDrawState.drawRect(cmdBuf, swapchainImage, {0.2f, 0.2f, 0.8f, 0.2f}, scissor);
+					fastDrawState.computeHistogram(cmdBuf, offscreenImage, &appData.defaultSampler, appData.histogramBuffer, appData.histogramAverageBuffer, scissor);
+					vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+					fastDrawState.renderHistogram(cmdBuf, appData.histogramBuffer, appData.histogramAverageBuffer, swapchainImage, scissor);
+				}
 			}
 		}
 
+		// Accumulation
+		{
+			if (appData.regionSelectedAccum && !appData.accumulationLoaded)
+			{
+				// Load histogram -> appData.histogramImage
+				appData.accumulationLoaded = true;
+			}
+			if (appData.startRegionSelectAccum)
+			{
+				glm::uvec2  regionEnd  = gState.io.mouse.pos;
+				glm::uvec2  upperLeft  = glm::min(appData.regionStartAccum, regionEnd);
+				glm::uvec2  lowerRight = glm::max(appData.regionStartAccum, regionEnd);
+				glm::uvec2  size       = lowerRight - upperLeft;
+				VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
+				if (scissor.isValid(swapchainImage->getExtent2D()))
+				{
+					fastDrawState.drawRect(cmdBuf, swapchainImage, {0.8f, 0.2f, 0.2f, 0.2f}, scissor);
+				}
+			}
+			else if (appData.accumulationLoaded)
+			{
+				glm::uvec2  upperLeft  = glm::min(appData.regionStartAccum, appData.regionEndAccum);
+				glm::uvec2  lowerRight = glm::max(appData.regionStartAccum, appData.regionEndAccum);
+				glm::uvec2  size       = lowerRight - upperLeft;
+				VkRect2D_OP scissor    = {upperLeft.x, upperLeft.y, size.x, size.y};
+
+				if (scissor.isValid(swapchainImage->getExtent2D()))
+				{
+					appData.accumulationImage->changeExtent(getExtent3D(scissor.extent));
+					appData.accumulationImage->recreate();
+
+					vkaCmdTransitionLayout(cmdBuf, appData.accumulationImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+					fastDrawState.accumulate(cmdBuf, offscreenImage, appData.defaultSampler, appData.accumulationImage, scissor, appData.accumulationCount++);
+					vkaCmdTransitionLayout(cmdBuf, appData.accumulationImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+					fastDrawState.renderSprite(cmdBuf, appData.accumulationImage, appData.defaultSampler, swapchainImage, scissor);
+				}
+			}
+		}
+
+
+		// Visualize Importance Sampling
+		if (gState.io.keyEvent[GLFW_KEY_T] || gState.io.keyEvent[GLFW_KEY_G])
+		{
+			fastDrawState.marginalize(cmdBuf, pdfHorizontal, pdfVertical, envMap, {16, 16});
+			vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+		}
+		if (gState.io.keyPressed[GLFW_KEY_T])
+		{
+			fastDrawState.renderDistribution(cmdBuf, pdfHorizontal, 16, swapchainImage, appConfig.mainViewport);
+		}
+		if (gState.io.keyPressed[GLFW_KEY_G])
+		{
+			fastDrawState.renderDistribution(cmdBuf, pdfVertical, 16, swapchainImage, appConfig.mainViewport);
+		}
 
 
 		vkaCmdTransitionLayout(cmdBuf, offscreenImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
