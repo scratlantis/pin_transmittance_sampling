@@ -30,7 +30,15 @@ void Image_I::createHandles()
 	res->track(pPool);
 	if (createView)
 	{
-		VkImageViewCreateInfo viewCI = ImageViewCreateInfo_Default(handle, format);
+		VkImageViewCreateInfo viewCI;
+		if (ci.extent.depth > 1)
+		{
+			viewCI = ImageViewCreateInfo3D_Default(handle, format);
+		}
+		else
+		{
+			viewCI = ImageViewCreateInfo_Default(handle, format);
+		}
 		VK_CHECK(vkCreateImageView(gState.device.logical, &viewCI, nullptr, &viewHandle));
 		viewRes = new ImageView_R(viewHandle);
 		viewRes->track(pPool);

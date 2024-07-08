@@ -26,3 +26,11 @@ VkaImage vkaCreateImage(IResourcePool* pPool ,VkFormat format, VkImageUsageFlags
 	img->createHandles();
 	return img;
 }
+
+VkaImage vkaCreateImage(IResourcePool *pPool, VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent)
+{
+	VkImageCreateInfo ci  = ImageCreateInfo3D_Default(usageFlags, extent, format);
+	VkaImage          img = new Image_I(pPool, ci, true);
+	img->createHandles();
+	return img;
+}

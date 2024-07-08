@@ -1,0 +1,23 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "random.glsl"
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+#ifndef VOLUME_SIZE
+#define VOLUME_SIZE 256
+#endif
+
+layout(binding = 0, r32f) uniform image3D volumeData;
+
+void main()
+{
+	ivec3 gID = ivec3(gl_GlobalInvocationID.xyz);
+	if (gID.x >= VOLUME_SIZE || gID.y >= VOLUME_SIZE || gID.z >= VOLUME_SIZE)
+	{
+		return;
+	}
+	vec3 pos = vec3(gID) / float(VOLUME_SIZE);
+	vec4 density = 10.0*vec4(perlinNoise(pos*5.0));
+	imageStore(volumeData, gID, density);
+
+}

@@ -31,7 +31,7 @@ GVar gvar_show_nn2{"nearest neighbor (distance/distance)", 1, GVAR_BOOL, GVAR_WI
 
 GVar gvar_render_mode{"render mode", 2, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Angle Transmittance", "Reflection Transmittance", "Volume Transmittance"}};
 GVar gvar_transmittance_mode{"transmittance mode", 0, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Exact", "Grid", "Nearest Neighbor 1", "Nearest Neighbor 2"}};
-
+GVar gvar_volume_type{"volume type", 1, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Gaussian", "Raymarched"}};
 
 
 
@@ -170,6 +170,11 @@ struct AppData
 	glm::uvec2 regionStart;
 	glm::uvec2 regionEnd;
 
+
+	// Ray marching
+
+	VkaImage volumeImage;
+
 	void init(vka::IResourcePool* pPool)
 	{
 		cnt              = 0;
@@ -207,7 +212,9 @@ struct AppData
 		histogramBuffer = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		histogramAverageBuffer = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
-		accumulationImage = vkaCreateImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, {10, 10});
+		accumulationImage = vkaCreateImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VkExtent2D{10, 10});
+
+		volumeImage = vkaCreateImage(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VkExtent3D{256, 256, 256});
 
 	}
 
@@ -450,5 +457,15 @@ struct AppData
 		}
 		vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 		cnt++;
+		vkaCmdTransitionLayout(cmdBuf, volumeImage, VK_IMAGE_LAYOUT_GENERAL);
+		{
+			ComputeCmd computeCmd;
+			setDefaults(computeCmd, {256, 256, 256}, newShaderPath + "volume_gen.comp",
+			            {{"VOLUME_SIZE", std::to_string(256)}});
+			addDescriptor(computeCmd, volumeImage, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+			vkaCmdCompute(cmdBuf, computeCmd);
+		}
+		vkaCmdTransitionLayout(cmdBuf, volumeImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
 	 }
 };

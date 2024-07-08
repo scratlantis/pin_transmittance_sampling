@@ -8,3 +8,5 @@ VkaImage vkaCreateSwapchainAttachment(VkFormat format, VkImageUsageFlags usageFl
 VkaImage vkaGetSwapchainImage();
 
 VkaImage vkaCreateImage(IResourcePool *pPool, VkFormat format, VkImageUsageFlags usageFlags, VkExtent2D extent);
+
+VkaImage vkaCreateImage(IResourcePool *pPool, VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent);

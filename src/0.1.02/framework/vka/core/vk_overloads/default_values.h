@@ -41,6 +41,29 @@ struct ImageCreateInfo_Default : public VkImageCreateInfo
 	}
 };
 
+struct ImageCreateInfo3D_Default : public VkImageCreateInfo
+{
+	ImageCreateInfo3D_Default(VkImageUsageFlags usageFlags, VkExtent3D extent, VkFormat format)
+	{
+		std::memset(this, 0, sizeof(ImageCreateInfo3D_Default));
+		this->sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		this->pNext                 = nullptr;
+		this->flags                 = 0;
+		this->imageType             = VK_IMAGE_TYPE_3D;
+		this->format                = format;
+		this->extent                = extent;
+		this->mipLevels             = 1;
+		this->arrayLayers           = 1;
+		this->samples               = VK_SAMPLE_COUNT_1_BIT;
+		this->tiling                = VK_IMAGE_TILING_OPTIMAL;
+		this->usage                 = usageFlags;
+		this->sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
+		this->queueFamilyIndexCount = 0;
+		this->pQueueFamilyIndices   = nullptr;
+		this->initialLayout         = VK_IMAGE_LAYOUT_PREINITIALIZED;
+	}
+};
+
 struct SamplerCreateInfo_Default : public VkSamplerCreateInfo
 {
 	SamplerCreateInfo_Default(float maxLodValue)
@@ -77,6 +100,27 @@ struct ImageViewCreateInfo_Default : public VkImageViewCreateInfo
 		std::memset(this, 0, sizeof(ImageViewCreateInfo_Default));
 		sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+		components.r                    = VK_COMPONENT_SWIZZLE_IDENTITY;
+		components.g                    = VK_COMPONENT_SWIZZLE_IDENTITY;
+		components.b                    = VK_COMPONENT_SWIZZLE_IDENTITY;
+		components.a                    = VK_COMPONENT_SWIZZLE_IDENTITY;
+		subresourceRange.baseMipLevel   = 0;
+		subresourceRange.levelCount     = 1;
+		subresourceRange.baseArrayLayer = 0;
+		subresourceRange.layerCount     = 1;
+		image                           = vkImage;
+		format                          = vkFormat;
+		subresourceRange.aspectMask     = getAspectFlags(vkFormat);
+	}
+};
+
+struct ImageViewCreateInfo3D_Default : public VkImageViewCreateInfo
+{
+	ImageViewCreateInfo3D_Default(const VkImage &vkImage, const VkFormat &vkFormat)
+	{
+		std::memset(this, 0, sizeof(ImageViewCreateInfo3D_Default));
+		sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewType                        = VK_IMAGE_VIEW_TYPE_3D;
 		components.r                    = VK_COMPONENT_SWIZZLE_IDENTITY;
 		components.g                    = VK_COMPONENT_SWIZZLE_IDENTITY;
 		components.b                    = VK_COMPONENT_SWIZZLE_IDENTITY;

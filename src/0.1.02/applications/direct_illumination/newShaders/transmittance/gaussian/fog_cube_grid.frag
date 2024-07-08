@@ -22,12 +22,49 @@ layout(binding = 3) uniform CUBE_TRANSFORM {Transform uCube;};
 
 layout(binding = 4) uniform sampler envMapSampler;
 layout(binding = 5) uniform texture2D envMap;
-layout(binding = 6) buffer GAUSSIAN_STORAGE {Gaussian sGaussians[GAUSSIAN_COUNT];};
-layout(binding = 7) buffer GRID_STORAGE {PinGridEntry sGrid[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
+
+layout(binding = 6) buffer ENV_MAP_PDF_X {float envmapPdfX[ENVMAP_PDF_BINS];};
+layout(binding = 7) buffer ENV_MAP_PDF_Y {float envmapPdfY[ENVMAP_PDF_BINS];};
+
+layout(binding = 8) buffer GAUSSIAN_STORAGE {Gaussian sGaussians[GAUSSIAN_COUNT];};
+layout(binding = 9) buffer GRID_STORAGE {PinGridEntry sGrid[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
 uint getCellIndex(uvec3 idx)
 {
 	return  (idx.x + idx.y*PIN_GRID_SIZE + idx.z*PIN_GRID_SIZE*PIN_GRID_SIZE)*PINS_PER_GRID_CELL;
 }
+
+
+vec3 sampleDirectionEnvMap(inout float weight, vec4 rng, inout vec2 uv)
+{
+	int x = 0;
+	int y = 0;
+	float cdf = 0;
+	for(; x < ENVMAP_PDF_BINS; x++)
+	{
+		cdf += envmapPdfX[x];
+		if(rng.x < cdf)
+		{
+			break;
+		}
+	}
+	cdf = 0;
+	for(; y < ENVMAP_PDF_BINS; y++)
+	{
+		cdf += envmapPdfY[y];
+		if(rng.y < cdf)
+		{
+			break;
+		}
+	}
+	
+	
+	
+	
+	weight = envmapPdfX[x] * envmapPdfY[y] * float(ENVMAP_PDF_BINS * ENVMAP_PDF_BINS);
+	uv = vec2((float(x)+rng.z)/ENVMAP_PDF_BINS, (float(y)+rng.w)/ENVMAP_PDF_BINS);
+	return uvToDirection(uv);
+}
+
 vec3 getDirectionalIllum(vec3 dir)
 {
 	if(uGui.useEnvMap == 1)
@@ -79,7 +116,10 @@ void main()
 	else
 	{
 	vec3 scatterOrigin = origin + t*dir;
-	vec3 scatterDir = normalize(vec3(0.5) - vec3(unormNext(seed),unormNext(seed),unormNext(seed)));
+	float pdf = 1.0;
+	vec2 uv = vec2(1.0);
+	vec3 scatterDir = sampleDirectionEnvMap(pdf, vec4(unormNext(seed),unormNext(seed),unormNext(seed), unormNext(seed)), uv);
+	//vec3 scatterDir = normalize(vec3(0.5) - vec3(unormNext(seed),unormNext(seed),unormNext(seed)));
 	float tScatter = min(unitCubeExitDist(scatterOrigin,scatterDir), uGui.secRayLength);
 	
 	applyJitter(uGui.positionalJitter, uGui.angularJitter, scatterOrigin, scatterDir);
@@ -116,7 +156,8 @@ void main()
 	{
 		transmittance *= clamp(1.0-uGui.gaussianWeight*(tScatter/t)*weight*evalTransmittanceGaussianSegment(rayOrigin, rayDestination, sGaussians[i]), 0.0, 1.0);
 	}
-		outColor.rgb += 0.1*transmittance*getDirectionalIllum(scatterDir);
+	//outColor.rgb += 0.1*transmittance*getDirectionalIllum(scatterDir);
+	outColor.rgb += 0.1*transmittance*texture(sampler2D(envMap, envMapSampler), uv).rgb/pdf;
 	}
 	}
 

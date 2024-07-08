@@ -61,7 +61,7 @@ VkaImage TextureCache::fetch(VkaCommandBuffer cmdBuf, std::string path, VkFormat
 		if (loadImg(texturePath + path, imgData))
 		{
 			printVka(("Loading texture " + path).c_str());
-			img = vkaCreateImage(pPool, format, usage, {static_cast<uint32_t>(imgData.width), static_cast<uint32_t>(imgData.height)});
+			img = vkaCreateImage(pPool, format, usage, VkExtent2D{static_cast<uint32_t>(imgData.width), static_cast<uint32_t>(imgData.height)});
 			vkaCmdUploadImageData(cmdBuf, imgData.data, imgData.size(), img, layout);
 			unloadImg(imgData);
 			map.insert({path, img});

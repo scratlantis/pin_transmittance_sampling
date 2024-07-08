@@ -21,7 +21,44 @@ layout(binding = 3) uniform CUBE_TRANSFORM {Transform uCube;};
 
 layout(binding = 4) uniform sampler envMapSampler;
 layout(binding = 5) uniform texture2D envMap;
-layout(binding = 6) buffer GAUSSIAN_STORAGE {Gaussian sGaussians[GAUSSIAN_COUNT];};
+
+layout(binding = 6) buffer ENV_MAP_PDF_X {float envmapPdfX[ENVMAP_PDF_BINS];};
+layout(binding = 7) buffer ENV_MAP_PDF_Y {float envmapPdfY[ENVMAP_PDF_BINS];};
+
+layout(binding = 8) buffer GAUSSIAN_STORAGE {Gaussian sGaussians[GAUSSIAN_COUNT];};
+
+
+
+vec3 sampleDirectionEnvMap(inout float weight, vec4 rng, inout vec2 uv)
+{
+	int x = 0;
+	int y = 0;
+	float cdf = 0;
+	for(; x < ENVMAP_PDF_BINS; x++)
+	{
+		cdf += envmapPdfX[x];
+		if(rng.x < cdf)
+		{
+			break;
+		}
+	}
+	cdf = 0;
+	for(; y < ENVMAP_PDF_BINS; y++)
+	{
+		cdf += envmapPdfY[y];
+		if(rng.y < cdf)
+		{
+			break;
+		}
+	}
+	
+	
+	
+	
+	weight = envmapPdfX[x] * envmapPdfY[y] * float(ENVMAP_PDF_BINS * ENVMAP_PDF_BINS);
+	uv = vec2((float(x)+rng.z)/ENVMAP_PDF_BINS, (float(y)+rng.w)/ENVMAP_PDF_BINS);
+	return uvToDirection(uv);
+}
 
 
 vec3 getDirectionalIllum(vec3 dir)
@@ -42,6 +79,8 @@ void main()
 	outColor.a = 1.0;
 	outColor.rgb = vec3(0.0);
 
+
+
 	uint seed = floatBitsToUint(random(gl_FragCoord.xy));
 	seed+= uView.frameIdx;
 
@@ -54,34 +93,6 @@ void main()
 	float t = unitCubeExitDist(origin,dir);
 	//t = 10.0;
 	vec3 destination = origin + t*dir;
-
-
-	if(false)
-	{
-	vec3 scatterOrigin = origin;
-	vec3 scatterDir = dir;
-	float tScatter = (unitCubeExitDist(scatterOrigin,scatterDir));
-	vec3 scatterDestination = scatterOrigin + tScatter*scatterDir;
-	float transmittance = 1.0;
-	float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
-	for(int i = 0; i < GAUSSIAN_COUNT; i++)
-	{
-		transmittance *= clamp(1.0-uGui.gaussianWeight*weight*evalTransmittanceGaussianSegment(scatterOrigin, scatterDestination, sGaussians[i]), 0.0, 1.0);
-	}
-	outColor.rgb = vec3(transmittance);
-
-
-	float phiOrigin = 0;
-	float phiDst = 0;
-	evalTransmittanceGaussianSegmentPhi(scatterOrigin, scatterDestination, sGaussians[0], phiOrigin, phiDst);
-	vec2 rng = vec2(unormNext(seed), unormNext(seed));
-	float p = rng.y * (phiDst - phiOrigin) + phiOrigin;
-	float dist = gauss_inv_cdf_approx_Schmeiser(p) * distance(scatterOrigin,scatterDestination)*0.2;
-	vec3 target = scatterOrigin + dist*scatterDir;
-	float depth = distance(target,uCam.camPos.xyz);
-	outColor.rgb = vec3(dist);
-	return;
-	}
 
 
 	// Compute transmittance
@@ -104,7 +115,13 @@ void main()
 	{
 		{
 			vec3 scatterOrigin = origin + t*dir;
-			vec3 scatterDir = normalize(vec3(0.5) - vec3(unormNext(seed),unormNext(seed),unormNext(seed)));
+			//vec3 scatterDir = normalize(vec3(0.5) - vec3(unormNext(seed),unormNext(seed),unormNext(seed)));
+
+			float pdf = 1.0;
+			vec2 uv = vec2(1.0);
+			vec3 scatterDir = sampleDirectionEnvMap(pdf, vec4(unormNext(seed),unormNext(seed),unormNext(seed), unormNext(seed)), uv);
+
+
 			applyJitter(uGui.positionalJitter, uGui.angularJitter, scatterOrigin, scatterDir);
 
 			float tScatter = min(unitCubeExitDist(scatterOrigin,scatterDir), uGui.secRayLength);
@@ -114,7 +131,14 @@ void main()
 			{
 				transmittance *= clamp(1.0-uGui.gaussianWeight*weight*evalTransmittanceGaussianSegment(scatterOrigin, scatterDestination, sGaussians[i]), 0.0, 1.0);
 			}
-			outColor.rgb += 0.1*transmittance*getDirectionalIllum(scatterDir);
+			//outColor.rgb += 0.1*transmittance*getDirectionalIllum(scatterDir) / pdf;
+			//outColor.rgb += 0.1 * texColor.xyz/pdf;
+			outColor.rgb += 0.1*transmittance*texture(sampler2D(envMap, envMapSampler), uv).rgb/pdf;
+			//outColor.rg += 0.1*uv;
+			//outColor.rg += 0.1*vec2(9.0/16.0,5.0/16.0);
+			//outColor.rgb += 0.1*transmittance*getDirectionalIllum(scatterDir);
+			//outColor.rgb += 0.1*getDirectionalIllum(scatterDir);
+			//outColor.rgb += 0.1 * vec3(1.0/pdf);
 
 			}
 		}

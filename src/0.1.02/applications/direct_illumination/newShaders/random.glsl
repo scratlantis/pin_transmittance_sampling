@@ -1,4 +1,6 @@
 
+#extension GL_EXT_control_flow_attributes : enable
+
 //https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
 /*
     static.frag
@@ -67,4 +69,44 @@ void applyJitter(float coefPos, float coefAngle, inout vec3 pos, inout vec3 dir)
 	pos += (random3D(pos)-vec3(0.5)) * coefPos*1.0;
 	dir += (random3D(dir)-vec3(0.5)) * coefAngle;
 	dir = normalize(dir);
+}
+
+
+// Based on Ronja's shader tutorials
+// https://www.ronja-tutorials.com/post/026-perlin-noise/
+
+#define EASE_IN(A) (A)*(A)
+#define EASE_OUT(A) (1-(EASE_IN(1-(A))))
+#define EASE_IN_OUT(A) mix(EASE_IN(A),EASE_OUT(A),(A))
+#define EASE_IN_OUT3(A) vec3(EASE_IN_OUT((A).x), EASE_IN_OUT((A).y), EASE_IN_OUT((A).z));
+
+
+
+float perlinNoise(vec3 val)
+{
+	vec3 frac = fract(val);
+	vec3 a = EASE_IN_OUT3(frac);
+	float cellNoiseZ[2];
+	[[unroll]]
+	for(uint z = 0; z<=1; z++)
+	{
+		float cellNoiseY[2];
+		[[unroll]]
+		for(uint y = 0; y<=1; y++)
+		{
+			float cellNoiseX[2];
+			[[unroll]]
+			for(uint x = 0; x<=1; x++)
+			{
+				vec3 cell = floor(val) + vec3(x, y, z);
+				vec3 cellDir = random3D(cell) * 2 - 1;
+				vec3 compVec = frac - vec3(x , y, z);
+				cellNoiseX[x] = dot(cellDir, compVec);
+			}
+			cellNoiseY[y] = mix(cellNoiseX[0], cellNoiseX[1], a.x);
+		}
+		cellNoiseZ[z] = mix(cellNoiseY[0], cellNoiseY[1], a.y);
+	}
+	//return a.z;
+	return mix(cellNoiseZ[0], cellNoiseZ[1], a.z);
 }
