@@ -25,3 +25,15 @@ void unitCubeIntersection(vec3 origin, vec3 direction,inout vec3 entry, inout ve
 	entry = origin + tMin * dir;
 	exit = origin + tMax * dir;
 }
+
+
+void projectRaySegment(vec3 targetBegin, vec3 targetEnd, vec3 srcBegin, vec3 srcEnd, inout float valBegin, inout float valEnd)
+{
+	vec3 dirTarget = normalize(targetEnd - targetBegin);
+	float distTarget = distance(targetEnd, targetBegin);
+	vec3 deltaBeginBegin = srcBegin-targetBegin;
+	valBegin = dot(deltaBeginBegin, dirTarget)/distTarget;
+	vec3 deltaEndBegin = srcEnd-targetBegin;
+	valEnd = dot(deltaEndBegin, dirTarget)/distTarget;
+
+}

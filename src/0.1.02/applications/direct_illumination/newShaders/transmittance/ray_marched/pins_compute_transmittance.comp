@@ -43,7 +43,7 @@ void main()
 	float densitySum = 0.0f;
 	for(uint i = 0; i < PIN_TRANSMITTANCE_STEPS; i++)
 	{
-		vec3 samplePoint = entry + direction * (float(i) * stepSize);
+		vec3 samplePoint = entry + direction * (float(i+1) * stepSize);
 		float density = texture(sampler3D(volumeData, texSampler), samplePoint).r;
 		densitySum+=density*stepSize;
 		pinTransmittance[pinIndex * PIN_TRANSMITTANCE_STEPS + i] = densitySum;

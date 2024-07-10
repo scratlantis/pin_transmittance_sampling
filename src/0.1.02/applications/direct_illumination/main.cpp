@@ -581,10 +581,14 @@ int main()
 					addDescriptor(drawCmd, appData.volumeImage, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
 					addDescriptor(drawCmd, &appData.volumeDataSampler, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 					addDescriptor(drawCmd, appData.pinGridBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.pinTransmittanceBufV2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 					addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
 					addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/ray_marched/fog_cube_grid.frag",
 					          {{"PIN_GRID_SIZE", std::to_string(appConfig.pinsGridSize)},
-					           {"PINS_PER_GRID_CELL", std::to_string(appConfig.pinsPerGridCell)}});
+					           {"PINS_PER_GRID_CELL", std::to_string(appConfig.pinsPerGridCell)},
+					           {"PIN_COUNT", std::to_string(appConfig.pinCount())},
+					           {"PIN_TRANSMITTANCE_STEPS", std::to_string(appConfig.pinTransmittanceSteps)},
+						});
 				}
 				vkaCmdDraw(cmdBuf, drawCmd);
 			}
