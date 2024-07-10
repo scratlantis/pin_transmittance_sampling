@@ -3,6 +3,7 @@
 #include <random>
 #include "shaderStructs.h"
 #include "config.h"
+#include <filesystem>
 #define PI 3.14159265359
 using namespace vka;
 GVar gvar_pin_selection_coef{"pin selection coef", 0.5f, GVAR_UNORM, GVAR_RUNTIME_SETTINGS};
@@ -23,7 +24,7 @@ GVar gvar_gaussian_std_deviation{"std deviation", 0.5f, GVAR_UNORM, GVAR_LOAD_SE
 GVar gvar_reload{"reload", 0, GVAR_EVENT, GVAR_LOAD_SETTINGS};
 
 GVar gvar_use_pins{"show pins", 0, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"None", "All", "Grid", "Nearest Neighbor 1", "Nearest Neighbor 2"}};
-GVar gvar_use_env_map{"use env map", 0, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
+GVar gvar_env_map{"Envmap", 0, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"None"}};
 GVar gvar_show_cursor{"use gaussian", 1, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"None", "Inner Sphere", "Outher Sphere"}};
 GVar gvar_show_gaussian{"gaussian", 1, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
 GVar gvar_show_grid{"grid", 1, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
@@ -114,6 +115,11 @@ struct AppConfig
 
 struct AppData
 {
+
+	TextureCache* pTextureCache;
+	FastDrawState* pFastDrawState; 
+
+
 	uint32_t    cnt;
 	FixedCamera camera = FixedCameraCI_Default();
 	SamplerDefinition defaultSampler;
@@ -137,6 +143,9 @@ struct AppData
 	VkaBuffer gaussianNN2SphereTransformBuf;
 
 	VkaImage envMap;
+	VkaBuffer pdfHorizontal;
+	VkaBuffer pdfVertical;
+	uint32_t envMapIndexLastFrame = 0;
 
 	VkaImage accumulationImage;
 
@@ -182,7 +191,7 @@ struct AppData
 	VkaImage volumeImage;
 	VkaBuffer pinTransmittanceBufV2;
 
-	void init(vka::IResourcePool* pPool)
+	void init(vka::IResourcePool* pPool, vka::TextureCache* textureCache, FastDrawState* fastDrawState)
 	{
 		cnt              = 0;
 		camera           = FixedCamera(FixedCameraCI_Default());
@@ -228,6 +237,12 @@ struct AppData
 		accumulationImage = vkaCreateImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VkExtent2D{10, 10});
 
 		volumeImage = vkaCreateImage(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VkExtent3D{256, 256, 256});
+
+		pTextureCache = textureCache;
+		pdfHorizontal = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+		pdfVertical   = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+
+		pFastDrawState = fastDrawState;
 
 	}
 
@@ -300,7 +315,7 @@ struct AppData
 			view->secRayLength           = gvar_ray_lenght.val.v_float;
 			view->positionalJitter       = gvar_positional_jitter.val.v_float;
 			view->angularJitter          = gvar_angular_jitter.val.v_float;
-			view->useEnvMap              = gvar_use_env_map.val.v_bool;
+			view->useEnvMap              = gvar_env_map.val.v_uint;
 			vkaUnmap(viewBuf);
 			vkaCmdUpload(cmdBuf, viewBuf);
 		}
@@ -318,7 +333,7 @@ struct AppData
 			mainCamConst.camFixpoint               = glm::vec4(camera.getFixpoint(), 1.0);
 
 
-			guiVar.useEnvMap              = gvar_use_env_map.val.v_bool;
+			guiVar.useEnvMap              = gvar_env_map.val.v_uint;
 			guiVar.secRayLength           = gvar_ray_lenght.val.v_float;
 			guiVar.positionalJitter       = gvar_positional_jitter.val.v_float;
 			guiVar.angularJitter          = gvar_angular_jitter.val.v_float;
@@ -482,7 +497,6 @@ struct AppData
 			}
 
 			// Pin transmittance V2
-			if (1)
 			{
 				pinTransmittanceBufV2->changeSize(pinCount * config.pinTransmittanceSteps * sizeof(float));
 				pinTransmittanceBufV2->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
@@ -498,6 +512,33 @@ struct AppData
 				vkaCmdCompute(cmdBuf, computeCmd);
 			}
 
+		}
+		// Scan envmap
+		if (gvar_env_map.val.v_uint != envMapIndexLastFrame || gvar_reload.val.v_bool || cnt == 0)
+		{
+			gvar_env_map.enumVal = {"None"};
+			for (const auto &entry : std::filesystem::directory_iterator(texturePath + std::string("envmap/2k/")))
+			{
+				std::string name = entry.path().string();
+				name             = std::string("envmap/2k/") + name.substr(name.find_last_of("/") + 1);
+				gvar_env_map.enumVal.push_back(name);
+			}
+			gvar_env_map.val.v_uint = std::min(gvar_env_map.val.v_uint, uint32_t(gvar_env_map.enumVal.size() - 1));
+
+			// Fetch envmap
+			VKA_ASSERT(gvar_env_map.enumVal.size() >= 2);
+			uint32_t envMapIdx = std::max(1u, gvar_env_map.val.v_uint);
+			{
+				envMap = pTextureCache->fetch(cmdBuf,
+				                              gvar_env_map.enumVal[envMapIdx],
+				                              VK_FORMAT_R32G32B32A32_SFLOAT,
+				                              VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+				                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				pFastDrawState->marginalize(cmdBuf, pdfHorizontal, pdfVertical, envMap, {64, 64});
+			}
+
+			envMapIndexLastFrame = gvar_env_map.val.v_uint;
 		}
 		vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 		cnt++;

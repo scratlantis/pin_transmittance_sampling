@@ -35,7 +35,7 @@ std::vector<GVar *> gVars =
 		&gvar_reload,
 
         &gvar_use_pins,
-		&gvar_use_env_map,
+		&gvar_env_map,
 		&gvar_show_cursor,
 
 		&gvar_show_gaussian,
@@ -66,7 +66,7 @@ int main()
 	AppData appData = AppData();
 	FastDrawState fastDrawState = FastDrawState(&framebufferCache, gState.cache);
 
-	appData.init(&heap);
+	appData.init(&heap, &textureCache, &fastDrawState);
 
 	// Create Images
 	VkaImage offscreenImage = vkaCreateSwapchainAttachment(
@@ -94,9 +94,7 @@ int main()
 		VK_FORMAT_R32_SFLOAT,
 	    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
-	// Debug
-	VkaBuffer pdfHorizontal = vkaCreateBuffer(&heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-	VkaBuffer pdfVertical   = vkaCreateBuffer(&heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+	
 
 	// Create Defaul Render Passes
 	VkRenderPass swapchainLoadRP, swapchainClearRP, hdrAttachmentClearRP;
@@ -128,18 +126,7 @@ int main()
 	appData.update(cmdBuf, appConfig);
 	gui.vkaImGuiUpload(cmdBuf);
 
-	VkaImage envMap;
-	// Fetch envmap
-	{
-		envMap = textureCache.fetch(cmdBuf,
-		                            "evening_field_2k.hdr",
-		                            VK_FORMAT_R32G32B32A32_SFLOAT,
-		                            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-		                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		vkaCmdImageMemoryBarrier(cmdBuf, lineColorImg, VK_IMAGE_LAYOUT_GENERAL);
-
-		fastDrawState.marginalize(cmdBuf, pdfHorizontal, pdfVertical, envMap, {64, 64});
-	}
+	
 	vkaExecuteImmediat(cmdBuf);
 	gui.vkaImGuiFreeStaging();
 
@@ -181,7 +168,7 @@ int main()
 				setDefaults(computeCmd, gState.io.extent, shaderPath + "render_env_map.comp");
 				addDescriptor(computeCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 				addDescriptor(computeCmd, &appData.defaultSampler, VK_DESCRIPTOR_TYPE_SAMPLER);
-				addDescriptor(computeCmd, envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+				addDescriptor(computeCmd, appData.envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 				addDescriptor(computeCmd, lineColorImg, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 				vkaCmdCompute(cmdBuf, computeCmd);
 			}
@@ -295,7 +282,7 @@ int main()
 					addDescriptor(drawCmd, appData.viewBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 					addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 					addDescriptor(drawCmd, &appData.defaultSampler, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-					addDescriptor(drawCmd, envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 					addShader(drawCmd.pipelineDef, shaderPath + "pins_render_gaussian.frag",
 						{ {"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)} });
@@ -314,7 +301,7 @@ int main()
 					addDescriptor(drawCmd, appData.pinGridBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 					addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 					addDescriptor(drawCmd, &appData.defaultSampler, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-					addDescriptor(drawCmd, envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 					addShader(drawCmd.pipelineDef, shaderPath + "pins_render_gaussian_nn_grid.frag",
 						{ {"PIN_GRID_SIZE", std::to_string(appConfig.pinsGridSize)},
@@ -339,7 +326,7 @@ int main()
 
 
 					addDescriptor(drawCmd, &appData.defaultSampler, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-					addDescriptor(drawCmd, envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 					drawCmd.instanceCount = appConfig.pinCountSqrt;
 					if (gvar_show_nn1.val.v_bool)
@@ -498,10 +485,10 @@ int main()
 		if (gvar_render_mode.val.v_int == 2)
 		{
 
-			if (gvar_use_env_map.val.v_bool)
+			if (gvar_env_map.val.v_uint != 0)
 			{
 
-				fastDrawState.drawEnvMap(cmdBuf, offscreenImage, envMap, appData.defaultSampler, appData.camera.getViewMatrix(), appConfig.mainProjectionMat, appConfig.mainViewport);
+				fastDrawState.drawEnvMap(cmdBuf, offscreenImage, appData.envMap, appData.defaultSampler, appData.camera.getViewMatrix(), appConfig.mainProjectionMat, appConfig.mainViewport);
 			}
 			else
 			{
@@ -535,10 +522,10 @@ int main()
 			addDescriptor(drawCmd, appData.cubeTransformBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 			// Envmap
 			addDescriptor(drawCmd, &appData.defaultSampler, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-		    addDescriptor(drawCmd, envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+			addDescriptor(drawCmd, appData.envMap, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		    addDescriptor(drawCmd, pdfHorizontal, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-			addDescriptor(drawCmd, pdfVertical, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+		    addDescriptor(drawCmd, appData.pdfHorizontal, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+			addDescriptor(drawCmd, appData.pdfVertical, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 			drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_BACK_BIT;
 			drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
@@ -710,11 +697,11 @@ int main()
 			{
 				if (gState.io.keyPressed[GLFW_KEY_T])
 				{
-					fastDrawState.renderDistribution(cmdBuf, pdfHorizontal, 64, swapchainImage, appConfig.mainViewport);
+					fastDrawState.renderDistribution(cmdBuf, appData.pdfHorizontal, 64, swapchainImage, appConfig.mainViewport);
 				}
 				if (gState.io.keyPressed[GLFW_KEY_G])
 				{
-					fastDrawState.renderDistribution(cmdBuf, pdfVertical, 64, swapchainImage, appConfig.mainViewport);
+					fastDrawState.renderDistribution(cmdBuf, appData.pdfVertical, 64, swapchainImage, appConfig.mainViewport);
 				}
 			}
 		}

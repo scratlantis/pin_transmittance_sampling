@@ -62,7 +62,7 @@ vec3 sampleDirectionEnvMap(inout float weight, vec4 rng, inout vec2 uv)
 
 vec3 getDirectionalIllum(vec3 dir)
 {
-	if(uGui.useEnvMap == 1)
+	if(uGui.useEnvMap != 0)
 	{
 		vec2 texCoords = sampleSphericalMap( dir);
 		vec4 texColor = texture(sampler2D(envMap, envMapSampler), texCoords);
