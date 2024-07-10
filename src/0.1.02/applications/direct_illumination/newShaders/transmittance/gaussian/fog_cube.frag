@@ -6,6 +6,11 @@
 #include "../../ray.glsl"
 #include "../gaussian.glsl"
 #include "../../envmap.glsl"
+
+#ifndef GAUSSIAN_COUNT
+#define GAUSSIAN_COUNT 10
+#endif
+
 // in
 layout(location = 0) in vec3 fs_world_pos;
 layout(location = 1) in vec3 fs_world_normal;
@@ -99,13 +104,13 @@ void main()
 	outColor.rgb = vec3(0.0);
 	for(int i = 0; i < 10; i++)
 	{
-	float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
-	bool hit = false;
-	for(int i = 0; i < GAUSSIAN_COUNT; i++)
-	{
-		 vec2 rng = vec2(unormNext(seed), unormNext(seed));
-		 hit = intersect(origin, destination, sGaussians[i], rng, uGui.gaussianWeight*weight, t) || hit;
-	}
+		float weight = clamp(10.0/float(GAUSSIAN_COUNT), 0.0,1.0);
+		bool hit = false;
+		for(int i = 0; i < GAUSSIAN_COUNT; i++)
+		{
+			 vec2 rng = vec2(unormNext(seed), unormNext(seed));
+			 hit = intersect2(origin, destination, sGaussians[i], rng, uGui.gaussianWeight*weight, t) || hit;
+		}
 
 	if(!hit)
 	{
@@ -127,19 +132,19 @@ void main()
 			float tScatter = min(unitCubeExitDist(scatterOrigin,scatterDir), uGui.secRayLength);
 			vec3 scatterDestination = scatterOrigin + tScatter*scatterDir;
 			float transmittance = 1.0;
+			//for(int i = 0; i < GAUSSIAN_COUNT; i++)
+			//{
+			//	float density = clamp(1.0-uGui.gaussianWeight*weight*evalTransmittanceGaussianSegment(scatterOrigin, scatterDestination, sGaussians[i]), 0.0, 1.0);
+			//	transmittance *= density;
+			//}
+
 			for(int i = 0; i < GAUSSIAN_COUNT; i++)
 			{
-				transmittance *= clamp(1.0-uGui.gaussianWeight*weight*evalTransmittanceGaussianSegment(scatterOrigin, scatterDestination, sGaussians[i]), 0.0, 1.0);
+				float density = uGui.gaussianWeight*weight*evalTransmittanceGaussianSegment(scatterOrigin, scatterDestination, sGaussians[i]);
+				transmittance *= exp(-density);
 			}
-			//outColor.rgb += 0.1*transmittance*getDirectionalIllum(scatterDir) / pdf;
-			//outColor.rgb += 0.1 * texColor.xyz/pdf;
-			outColor.rgb += 0.1*transmittance*texture(sampler2D(envMap, envMapSampler), uv).rgb/pdf;
-			//outColor.rg += 0.1*uv;
-			//outColor.rg += 0.1*vec2(9.0/16.0,5.0/16.0);
-			//outColor.rgb += 0.1*transmittance*getDirectionalIllum(scatterDir);
-			//outColor.rgb += 0.1*getDirectionalIllum(scatterDir);
-			//outColor.rgb += 0.1 * vec3(1.0/pdf);
 
+			outColor.rgb += 0.1*transmittance*texture(sampler2D(envMap, envMapSampler), uv).rgb/pdf;
 			}
 		}
 	}

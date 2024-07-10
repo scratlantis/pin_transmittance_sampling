@@ -271,10 +271,6 @@ float evalTransmittanceGaussian(vec3 origin, vec3 direction, Gaussian g)
 
 void getRay(Pin pin, inout vec3 origin, inout vec3 direction)
 {
-	//vec2 x = sin(pin.theta) * cos(pin.phi);
-    //vec2 y = sin(pin.theta) * sin(pin.phi);
-    //vec2 z = cos(pin.theta);
-
 	vec2 x = sin(pin.phi) * cos(pin.theta);
     vec2 y = sin(pin.phi) * sin(pin.theta);
     vec2 z = cos(pin.phi);
@@ -283,8 +279,6 @@ void getRay(Pin pin, inout vec3 origin, inout vec3 direction)
 	origin += vec3(0.5);
 	direction = normalize(vec3(x.y - x.x, y.y - y.x, z.y - z.x));
 }
-
-
 
 vec3 cubeExitPoint(vec3 startPos, vec3 dir)
 {

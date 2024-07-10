@@ -5,6 +5,15 @@
 #include "../../brdf.glsl"
 #include "../../ray.glsl"
 #include "../../envmap.glsl"
+#include "../pin.glsl"
+
+#ifndef PIN_GRID_SIZE
+#define PIN_GRID_SIZE 10
+#endif
+#ifndef PINS_PER_GRID_CELL
+#define PINS_PER_GRID_CELL 10
+#endif
+
 // in
 layout(location = 0) in vec3 fs_world_pos;
 layout(location = 1) in vec3 fs_world_normal;
@@ -26,6 +35,12 @@ layout(binding = 7) buffer ENV_MAP_PDF_Y {float envmapPdfY[ENVMAP_PDF_BINS];};
 
 layout(binding = 8) uniform texture3D volumeData;
 layout(binding = 9) uniform sampler volumeDataSampler;
+layout(binding = 10) buffer GRID_STORAGE {PinGridEntry sGrid[PIN_GRID_SIZE*PIN_GRID_SIZE*PIN_GRID_SIZE*PINS_PER_GRID_CELL];};
+
+uint getCellIndex(uvec3 idx)
+{
+	return  (idx.x + idx.y*PIN_GRID_SIZE + idx.z*PIN_GRID_SIZE*PIN_GRID_SIZE)*PINS_PER_GRID_CELL;
+}
 
 
 vec3 sampleDirectionEnvMap(inout float weight, vec4 rng, inout vec2 uv)
@@ -118,13 +133,6 @@ void main()
 		}
 		float t = z;
 
-	//for(int i = 0; i < GAUSSIAN_COUNT; i++)
-	//{
-	//	 vec2 rng = vec2(unormNext(seed), unormNext(seed));
-	//	 hit = intersect(origin, destination, sGaussians[i], rng, uGui.gaussianWeight*weight, t) || hit;
-	//}
-
-
 
 	if(!hit)
 	{
@@ -139,13 +147,44 @@ void main()
 			vec3 scatterDir = sampleDirectionEnvMap(pdf, vec4(unormNext(seed),unormNext(seed),unormNext(seed), unormNext(seed)), uv);
 			applyJitter(uGui.positionalJitter, uGui.angularJitter, scatterOrigin, scatterDir);
 			float tScatter = min(unitCubeExitDist(scatterOrigin,scatterDir), uGui.secRayLength);
-			vec3 scatterDestination = scatterOrigin + tScatter*scatterDir;
+
+			applyJitter(uGui.positionalJitter, uGui.angularJitter, scatterOrigin, scatterDir);
+			scatterOrigin = clamp(vec3(0.0),vec3(0.9999), scatterOrigin);
+			
+			// bin to pin
+			uvec3 cellID = uvec3(floor(scatterOrigin*PIN_GRID_SIZE));
+			uint gridIdx = getCellIndex(cellID);
+			float maxDot = 0.f;
+			uint maxDotIdx = gridIdx;
+			for(uint i = 0; i < PINS_PER_GRID_CELL; i++)
+			{
+				Pin pin = sGrid[gridIdx + i].pin;
+				vec3 pinOrigin, pinDirection;
+				getRay(pin, pinOrigin, pinDirection);
+				float dotProd = dot(pinDirection, scatterDir);
+				if(dotProd > maxDot)
+				{
+					maxDot = dotProd;
+					maxDotIdx = i + gridIdx;
+				}
+			}
+			uint pinIdx = sGrid[maxDotIdx].data.pinIndex;
+	
+			// bin to pin
+			vec3 pinOrigin,pinDirection;
+			Pin p = sGrid[maxDotIdx].pin;
+			getRay(p, pinOrigin, pinDirection);
+			vec3 rayDir = pinDirection * sign(dot(scatterDir, pinDirection));
+			vec3 rayOrigin = pinOrigin + rayDir*dot(scatterOrigin-pinOrigin,rayDir);
+			float t = min(unitCubeExitDist(rayOrigin,rayDir), uGui.secRayLength);
+			vec3 rayDestination = rayOrigin + t*rayDir;
+
 			float transmittance = 1.0;
 
-			vec3 lastSamplePos = scatterOrigin;
+			vec3 lastSamplePos = rayOrigin;
 			for(float z = 0.0; z < tScatter; z+=stepSize*unormNext(seed))
 			{
-				vec3 samplePos = scatterOrigin + z*scatterDir;
+				vec3 samplePos = rayOrigin + z*rayDir;
 				float density = weight*distance(samplePos,lastSamplePos)*texture(sampler3D(volumeData, volumeDataSampler), samplePos).r;
 				transmittance*=exp(-density);
 				lastSamplePos = samplePos;

@@ -30,6 +30,7 @@ std::vector<GVar *> gVars =
 		&gvar_pins_per_grid_cell,
 		&gvar_pins_grid_size,
 		&gvar_pin_count_sqrt,
+		&gvar_pin_transmittance_steps,
 		&gvar_gaussian_std_deviation,
 		&gvar_reload,
 
@@ -43,7 +44,8 @@ std::vector<GVar *> gVars =
 		&gvar_show_nn2,
 		&gvar_render_mode,
 		&gvar_transmittance_mode,
-		&gvar_volume_type
+		&gvar_volume_type,
+		&gvar_accumulate
 };
 // clang-format on
 int main()
@@ -76,7 +78,7 @@ int main()
 	    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 	    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 	VkaImage lineColorImg = vkaCreateSwapchainAttachment(
-	    gState.io.format,
+	    VK_FORMAT_R32G32B32A32_SFLOAT,
 	    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
 	    VK_IMAGE_LAYOUT_GENERAL);
 	VkaImage linePosImg = vkaCreateSwapchainAttachment(
@@ -118,7 +120,7 @@ int main()
 	}
 	gui.vkaImGuiInit(swapchainLoadRP, 0);
 	
-
+	
 	
 	AppConfig appConfig = AppConfig();
 	VkaCommandBuffer cmdBuf = vkaCreateCommandBuffer(gState.frame->stack);
@@ -167,8 +169,12 @@ int main()
 
 		if (gvar_render_mode.val.v_int == 0)
 		{
-			
+			vkaClearState(cmdBuf);
+			vkaCmdStartRenderPass(cmdBuf, hdrAttachmentClearRP, framebufferCache.fetch(hdrAttachmentClearRP, {offscreenImage}), {{1.f, 1.f, 1.f, 1.f}}, appConfig.mainViewport);
+			vkaCmdEndRenderPass(cmdBuf);
+
 			// Render env map to offscreen image
+			vkaCmdImageMemoryBarrier(cmdBuf, lineColorImg, VK_IMAGE_LAYOUT_GENERAL);
 			if (1)
 			{
 				ComputeCmd computeCmd;
@@ -537,38 +543,49 @@ int main()
 			drawCmd.pipelineDef.rasterizationState.cullMode    = VK_CULL_MODE_BACK_BIT;
 			drawCmd.pipelineDef.rasterizationState.frontFace   = VK_FRONT_FACE_CLOCKWISE;
 			drawCmd.pipelineDef.rasterizationState.polygonMode = VK_POLYGON_MODE_FILL;
+			drawCmd.instanceCount = 1;
 			// Exact
 			if (gvar_transmittance_mode.val.v_int == 0)
 			{
 				if (gvar_volume_type.val.v_int == 0)
 				{
-					drawCmd.instanceCount = 1;
 					addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
 					addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
 					addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/gaussian/fog_cube.frag",
 					          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)}});
-					vkaCmdDraw(cmdBuf, drawCmd);
 				}
 				else
 				{
-					drawCmd.instanceCount = 1;
 					addDescriptor(drawCmd, appData.volumeImage, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, &appData.volumeDataSampler, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
 					addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
 					addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/ray_marched/fog_cube.frag");
-					vkaCmdDraw(cmdBuf, drawCmd);
 				}
+				vkaCmdDraw(cmdBuf, drawCmd);
 			}
 			// Grid
 			if (gvar_transmittance_mode.val.v_int == 1)
 			{
-				drawCmd.instanceCount = 1;
-				addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-				addDescriptor(drawCmd, appData.pinGridBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
-				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
-				addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/gaussian/fog_cube_grid.frag",
-				          {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
-				           {"PIN_GRID_SIZE", std::to_string(appConfig.pinsGridSize)},
-				           {"PINS_PER_GRID_CELL", std::to_string(appConfig.pinsPerGridCell)}});
+				if (gvar_volume_type.val.v_int == 0)
+				{
+					addDescriptor(drawCmd, appData.gaussianBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.pinGridBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
+					addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/gaussian/fog_cube_grid.frag",
+							  {{"GAUSSIAN_COUNT", std::to_string(appConfig.gaussianCount)},
+							   {"PIN_GRID_SIZE", std::to_string(appConfig.pinsGridSize)},
+							   {"PINS_PER_GRID_CELL", std::to_string(appConfig.pinsPerGridCell)}});
+				}
+				else
+				{
+					addDescriptor(drawCmd, appData.volumeImage, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, &appData.volumeDataSampler, VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addDescriptor(drawCmd, appData.pinGridBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT);
+					addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/vert.vert", {});
+					addShader(drawCmd.pipelineDef, newShaderPath + "transmittance/ray_marched/fog_cube_grid.frag",
+					          {{"PIN_GRID_SIZE", std::to_string(appConfig.pinsGridSize)},
+					           {"PINS_PER_GRID_CELL", std::to_string(appConfig.pinsPerGridCell)}});
+				}
 				vkaCmdDraw(cmdBuf, drawCmd);
 			}
 		}
@@ -615,6 +632,39 @@ int main()
 			}
 
 			// Accumulation
+
+			if (gvar_accumulate.val.v_bool)
+			{
+				bool resetAccumulationLastFrame = appData.resetAccumulation;
+				appData.resetAccumulation =
+				    // clang-format off
+					gState.io.mouse.leftPressed
+					|| gState.io.mouse.rightPressed
+					|| gState.io.mouse.scrollChange != 0.0
+					|| gState.io.keyPressed[GLFW_KEY_W]
+					|| gState.io.keyPressed[GLFW_KEY_A]
+					|| gState.io.keyPressed[GLFW_KEY_S]
+					|| gState.io.keyPressed[GLFW_KEY_D]
+					|| gState.io.keyPressed[GLFW_KEY_SPACE]
+					|| gState.io.keyPressed[GLFW_KEY_LEFT_SHIFT];
+				// clang-format on
+				if (!appData.resetAccumulation)
+				{
+					appData.accumulationImage->changeExtent(getExtent3D(scissor.extent));
+					appData.accumulationImage->recreate();
+
+					if (resetAccumulationLastFrame)
+					{
+						appData.accumulationCount = 1;
+					}
+
+					vkaCmdTransitionLayout(cmdBuf, appData.accumulationImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+					fastDrawState.accumulate(cmdBuf, offscreenImage, appData.defaultSampler, appData.accumulationImage, scissor, appData.accumulationCount++);
+					vkaCmdTransitionLayout(cmdBuf, appData.accumulationImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+					fastDrawState.renderSprite(cmdBuf, appData.accumulationImage, appData.defaultSampler, swapchainImage, scissor);
+				}
+			}
+			else
 			{
 				if (appData.regionSelectedAccum && !appData.accumulationLoaded)
 				{

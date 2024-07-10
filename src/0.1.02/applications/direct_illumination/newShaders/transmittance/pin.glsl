@@ -9,3 +9,4 @@ void getRay(Pin pin, inout vec3 origin, inout vec3 direction)
 	origin += vec3(0.5);
 	direction = normalize(vec3(x.y - x.x, y.y - y.x, z.y - z.x));
 }
+

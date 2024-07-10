@@ -17,7 +17,7 @@ void main()
 		return;
 	}
 	vec3 pos = vec3(gID) / float(VOLUME_SIZE);
-	vec4 density = 10.0*vec4(perlinNoise(pos*5.0));
+	vec4 density = 10.0*max(vec4(0.0),sqrt((vec4(perlinNoise(pos*4.0)) + vec4(perlinNoise(pos*2.0)))));
 	imageStore(volumeData, gID, density);
 
 }

@@ -1,0 +1,51 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "../../shaderStructs.glsl"
+#include "../pin.glsl"
+#include "../../ray.glsl"
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+#ifndef PIN_COUNT
+#define PIN_COUNT 100
+#endif
+
+#ifndef PIN_TRANSMITTANCE_STEPS
+#define PIN_TRANSMITTANCE_STEPS 16
+#endif
+
+layout(binding = 0) buffer PINS
+{
+	Pin pins[PIN_COUNT];
+};
+
+layout(binding = 1) buffer PIN_TRANSMITTANCE
+{
+	float pinTransmittance[PIN_TRANSMITTANCE_STEPS*PIN_COUNT];
+};
+
+layout(binding = 2) uniform texture3D volumeData;
+layout(binding = 3) uniform sampler texSampler;
+
+void main()
+{
+	uint pinIndex = gl_GlobalInvocationID.x;
+	if (pinIndex >= PIN_COUNT)
+	{
+		return;
+	}
+
+	vec3 origin, direction, entry, exit;
+	getRay(pins[pinIndex], origin, direction);
+	unitCubeIntersection(origin, direction, entry, exit);
+	float rayLenght = distance(entry, exit);
+	float stepSize = rayLenght / float(PIN_TRANSMITTANCE_STEPS);
+
+	float densitySum = 0.0f;
+	for(uint i = 0; i < PIN_TRANSMITTANCE_STEPS; i++)
+	{
+		vec3 samplePoint = entry + direction * (float(i) * stepSize);
+		float density = texture(sampler3D(volumeData, texSampler), samplePoint).r;
+		densitySum+=density*stepSize;
+		pinTransmittance[pinIndex * PIN_TRANSMITTANCE_STEPS + i] = densitySum;
+	}
+}

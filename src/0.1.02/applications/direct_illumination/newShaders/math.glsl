@@ -1,15 +1,17 @@
+
+
 void assureNotZero(inout vec3 v)
 {
-	if(abs(v.x) < EPSILON)
+	if(abs(v.x) < 0.0001f)
 	{
-		v.x = EPSILON;
+		v.x = 0.0001f;
 	}
-	if(abs(v.y) < EPSILON)
+	if(abs(v.y) < 0.0001f)
 	{
-		v.y = EPSILON;
+		v.y = 0.0001f;
 	}
-	if(abs(v.z) < EPSILON)
+	if(abs(v.z) < 0.0001f)
 	{
-		v.z = EPSILON;
+		v.z = 0.0001f;
 	}
 }

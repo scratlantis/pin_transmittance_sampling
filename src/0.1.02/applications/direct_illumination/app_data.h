@@ -18,6 +18,7 @@ GVar gvar_gaussian_margin{"gaussian margin", 0.2f, GVAR_UNORM, GVAR_LOAD_SETTING
 GVar gvar_pins_per_grid_cell{"pins per grid cell", 20, GVAR_UINT, GVAR_LOAD_SETTINGS};
 GVar gvar_pins_grid_size{"pins grid size", 10, GVAR_UINT, GVAR_LOAD_SETTINGS};
 GVar gvar_pin_count_sqrt{"pin count sqrt", 50, GVAR_UINT, GVAR_LOAD_SETTINGS};
+GVar gvar_pin_transmittance_steps{"transmittance_steps", 16, GVAR_UINT, GVAR_LOAD_SETTINGS};
 GVar gvar_gaussian_std_deviation{"std deviation", 0.5f, GVAR_UNORM, GVAR_LOAD_SETTINGS};
 GVar gvar_reload{"reload", 0, GVAR_EVENT, GVAR_LOAD_SETTINGS};
 
@@ -32,6 +33,7 @@ GVar gvar_show_nn2{"nearest neighbor (distance/distance)", 1, GVAR_BOOL, GVAR_WI
 GVar gvar_render_mode{"render mode", 2, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Angle Transmittance", "Reflection Transmittance", "Volume Transmittance"}};
 GVar gvar_transmittance_mode{"transmittance mode", 0, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Exact", "Grid", "Nearest Neighbor 1", "Nearest Neighbor 2"}};
 GVar gvar_volume_type{"volume type", 1, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Gaussian", "Raymarched"}};
+GVar gvar_accumulate{"accumulation mode", 0, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
 
 
 
@@ -49,6 +51,7 @@ struct AppConfig
 	uint32_t pinsPerGridCell = 20;
 	uint32_t pinsGridSize = 10;
 	uint32_t pinCountSqrt = 50;
+	uint32_t pinTransmittanceSteps = 64;
 	uint32_t inline pinCount() { return pinCountSqrt * pinCountSqrt; }
 	uint32_t gaussFilterRadius = 4;
 
@@ -89,6 +92,7 @@ struct AppConfig
 			pinsPerGridCell = gvar_pins_per_grid_cell.val.v_uint;
 			pinsGridSize    = gvar_pins_grid_size.val.v_uint;
 			pinCountSqrt    = gvar_pin_count_sqrt.val.v_uint;
+			pinTransmittanceSteps = gvar_pin_transmittance_steps.val.v_uint;
 		}
 
 		if (gvar_render_mode.val.v_int == 0)
@@ -113,6 +117,7 @@ struct AppData
 	uint32_t    cnt;
 	FixedCamera camera = FixedCameraCI_Default();
 	SamplerDefinition defaultSampler;
+	SamplerDefinition volumeDataSampler;
 	VkaBuffer viewBuf;
 	VkaBuffer gaussianBuf;
 	VkaBuffer pinBuf;
@@ -164,6 +169,7 @@ struct AppData
 	uint32_t accumulationCount = 0;
 	glm::uvec2 regionStartAccum;
 	glm::uvec2 regionEndAccum;
+	bool       resetAccumulation = true;
 
 	VkaBuffer histogramBuffer;
 	VkaBuffer histogramAverageBuffer;
@@ -174,12 +180,19 @@ struct AppData
 	// Ray marching
 
 	VkaImage volumeImage;
+	VkaBuffer pinTransmittanceBufV2;
 
 	void init(vka::IResourcePool* pPool)
 	{
 		cnt              = 0;
 		camera           = FixedCamera(FixedCameraCI_Default());
 		defaultSampler = SamplerDefinition();
+		volumeDataSampler = SamplerDefinition();
+		volumeDataSampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		volumeDataSampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		volumeDataSampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		volumeDataSampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+		//defaultSampler.borderColor
 		// StorageBuffers
 		viewBuf             = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		gaussianBuf         = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
@@ -188,7 +201,7 @@ struct AppData
 		pinGridBuf          = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		pinTransmittanceBuf = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		pinUsedBuffer       = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-
+		pinTransmittanceBufV2 = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
 		// VertexBuffers/IndexBuffers
 		pinVertexBuffer = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
@@ -416,12 +429,14 @@ struct AppData
 					glm::vec2 x = sin(pinData[i].phi) * cos(pinData[i].theta);
 					glm::vec2 y = sin(pinData[i].phi) * sin(pinData[i].theta);
 					glm::vec2 z = cos(pinData[i].phi);
-					// glm::vec3 origin = glm::vec3(x.x, y.x, z.x) + glm::vec3(0.5);
 					glm::vec3 origin = glm::vec3(x.x, y.x, z.x);
 					origin *= 0.866025403784;        // sqrt(3)/2
+					origin += glm::vec3(0.5);
+
 					glm::vec3 direction   = glm::normalize(glm::vec3(x.y - x.x, y.y - y.x, z.y - z.x));
 					vertexData[i * 2]     = PosVertex(origin + direction * 0.1f);
 					vertexData[i * 2 + 1] = PosVertex(origin + direction * 0.866025403784f * 2.0f - direction * 0.1f);
+
 					indexData[i * 2]      = i * 2;
 					indexData[i * 2 + 1]  = i * 2 + 1;
 				}
@@ -453,19 +468,39 @@ struct AppData
 				pinUsedBuffer->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
 				pinUsedBuffer->recreate();
 			}
+			// Set up volume data
+			{
+				vkaCmdTransitionLayout(cmdBuf, volumeImage, VK_IMAGE_LAYOUT_GENERAL);
+
+				ComputeCmd computeCmd;
+				setDefaults(computeCmd, {256, 256, 256}, newShaderPath + "volume_gen.comp",
+				            {{"VOLUME_SIZE", std::to_string(256)}});
+				addDescriptor(computeCmd, volumeImage, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+				vkaCmdCompute(cmdBuf, computeCmd);
+
+				vkaCmdTransitionLayout(cmdBuf, volumeImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			}
+
+			// Pin transmittance V2
+			if (1)
+			{
+				pinTransmittanceBufV2->changeSize(pinCount * config.pinTransmittanceSteps * sizeof(float));
+				pinTransmittanceBufV2->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
+				pinTransmittanceBufV2->recreate();
+				ComputeCmd computeCmd;
+				setDefaults(computeCmd, pinCount, newShaderPath + "transmittance/ray_marched/pins_compute_transmittance.comp",
+				            {{"PIN_TRANSMITTANCE_STEPS", std::to_string(config.pinTransmittanceSteps)},
+				             {"PIN_COUNT", std::to_string(pinCount)}});
+				addDescriptor(computeCmd, pinBuf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+				addDescriptor(computeCmd, pinTransmittanceBufV2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+				addDescriptor(computeCmd, volumeImage, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+				addDescriptor(computeCmd, &volumeDataSampler, VK_DESCRIPTOR_TYPE_SAMPLER);
+				vkaCmdCompute(cmdBuf, computeCmd);
+			}
 
 		}
 		vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 		cnt++;
-		vkaCmdTransitionLayout(cmdBuf, volumeImage, VK_IMAGE_LAYOUT_GENERAL);
-		{
-			ComputeCmd computeCmd;
-			setDefaults(computeCmd, {256, 256, 256}, newShaderPath + "volume_gen.comp",
-			            {{"VOLUME_SIZE", std::to_string(256)}});
-			addDescriptor(computeCmd, volumeImage, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-			vkaCmdCompute(cmdBuf, computeCmd);
-		}
-		vkaCmdTransitionLayout(cmdBuf, volumeImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	 }
 };
