@@ -45,7 +45,13 @@ std::vector<GVar *> gVars =
 		&gvar_render_mode,
 		&gvar_transmittance_mode,
 		&gvar_volume_type,
-		&gvar_accumulate
+		&gvar_accumulate,
+
+		&gvar_perlin_scale0,
+		&gvar_perlin_scale1,
+		&gvar_perlin_frequency0,
+		&gvar_perlin_frequency1,
+		&gvar_perlin_falloff
 };
 // clang-format on
 int main()

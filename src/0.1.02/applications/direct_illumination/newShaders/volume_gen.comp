@@ -1,6 +1,7 @@
 #version 460
 #extension GL_GOOGLE_include_directive : enable
 #include "random.glsl"
+#include "shaderStructs.glsl"
 layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
 
 #ifndef VOLUME_SIZE
@@ -8,6 +9,8 @@ layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
 #endif
 
 layout(binding = 0, r32f) uniform image3D volumeData;
+layout(binding = 1) uniform GUI_VAR {GuiVar uGui;};
+
 
 void main()
 {
@@ -17,7 +20,21 @@ void main()
 		return;
 	}
 	vec3 pos = vec3(gID) / float(VOLUME_SIZE);
-	vec4 density = 10.0*max(vec4(0.0),sqrt((vec4(perlinNoise(pos*4.0)) + vec4(perlinNoise(pos*2.0)))));
-	imageStore(volumeData, gID, density);
+
+
+	float density0 = uGui.perlinScale0 * 200.0 * max( 0.0,(perlinNoise(pos*uGui.perlinFrequency0*20.0)) );
+	float density1 = uGui.perlinScale1 * 200.0 * max( 0.0,(perlinNoise(pos*uGui.perlinFrequency1*20.0)) );
+
+
+	//float density0 = 20.0 * max( 0.0,(perlinNoise(pos*4.0)) );
+	//float density1 = uGui.perlinScale1*20.0 * max( 0.0,(perlinNoise(pos*4.0)) );
+
+	//density*= exp(-1.0*distance(pos, vec3(0.5)));
+	float density = density0 + density1;
+	if(uGui.perlinFalloff == 1)
+	{
+		density*= max(0,sin(0.5-distance(pos, vec3(0.5))));
+	}
+	imageStore(volumeData, gID, vec4(density));
 
 }

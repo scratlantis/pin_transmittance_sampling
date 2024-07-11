@@ -37,12 +37,42 @@ GVar gvar_volume_type{"volume type", 1, GVAR_ENUM, GVAR_WINDOW_SETTINGS, {"Gauss
 GVar gvar_accumulate{"accumulation mode", 0, GVAR_BOOL, GVAR_WINDOW_SETTINGS};
 
 
+GVar gvar_perlin_scale0{"scale 0", 0.5f, GVAR_UNORM, GVAR_PERLIN_NOISE_SETTINGS};
+GVar gvar_perlin_scale1{"scale 1", 0.5f, GVAR_UNORM, GVAR_PERLIN_NOISE_SETTINGS};
+GVar gvar_perlin_frequency0{"frequency 0", 0.5f, GVAR_UNORM, GVAR_PERLIN_NOISE_SETTINGS};
+GVar gvar_perlin_frequency1{"frequency 1", 0.5f, GVAR_UNORM, GVAR_PERLIN_NOISE_SETTINGS};
+GVar gvar_perlin_falloff{"Falloff", false, GVAR_BOOL, GVAR_PERLIN_NOISE_SETTINGS};
+
 
 
 // POST PROCESSING
 //GVar gvar_use_exp_moving_average{"use exponential moving average", false, GVAR_BOOL, GVAR_APPLICATION};
 //GVar gvar_use_gaus_blur{"use gauss blur", false, GVAR_BOOL, GVAR_APPLICATION};
 //GVar gvar_exp_moving_average_coef{"exp moving average coef", 0.0f, GVAR_UNORM, GVAR_APPLICATION};
+
+
+struct PerlinNoiseConfig
+{
+	float scale[2];
+	float frequency[2];
+	bool  falloff;
+
+	bool operator==(const PerlinNoiseConfig &other) const
+	{
+		return falloff == other.falloff && scale[0] == other.scale[0] && scale[1] == other.scale[1] && frequency[0] == other.frequency[0] && frequency[1] == other.frequency[1];
+	}
+
+	bool update()
+	{
+		PerlinNoiseConfig newConf = PerlinNoiseConfig{gvar_perlin_scale0.val.v_float, gvar_perlin_scale1.val.v_float, gvar_perlin_frequency0.val.v_float, gvar_perlin_frequency1.val.v_float, gvar_perlin_falloff.val.v_bool};
+		if (newConf == *this)
+		{
+			return false;
+		}
+		*this = newConf;
+		return true;
+	}
+};
 
 
 struct AppConfig
@@ -154,7 +184,6 @@ struct AppData
 	ViewConst mainViewConst;
 
 	GuiVar guiVar;
-
 	Transform cubeTransform;
 
 	// main view
@@ -190,6 +219,8 @@ struct AppData
 
 	VkaImage volumeImage;
 	VkaBuffer pinTransmittanceBufV2;
+
+	PerlinNoiseConfig perlinNoiseConfig;
 
 	void init(vka::IResourcePool* pPool, vka::TextureCache* textureCache, FastDrawState* fastDrawState)
 	{
@@ -332,7 +363,6 @@ struct AppData
 			mainCamConst.camPos                    = glm::vec4(camera.getPosition(), 1.0);
 			mainCamConst.camFixpoint               = glm::vec4(camera.getFixpoint(), 1.0);
 
-
 			guiVar.useEnvMap              = gvar_env_map.val.v_uint;
 			guiVar.secRayLength           = gvar_ray_lenght.val.v_float;
 			guiVar.positionalJitter       = gvar_positional_jitter.val.v_float;
@@ -341,6 +371,20 @@ struct AppData
 			guiVar.pinSelectionCoef       = gvar_pin_selection_coef.val.v_float;
 			guiVar.gaussianWeight       = gvar_gaussian_weight.val.v_float;
 			guiVar.stdDeviation           = gvar_gaussian_std_deviation.val.v_float;
+
+			/*guiVar.perlinScale[0] = gvar_perlin_scale0.val.v_float;
+			guiVar.perlinScale[1] = gvar_perlin_scale1.val.v_float;
+			guiVar.perlinFrequency[0] = gvar_perlin_frequency0.val.v_float;
+			guiVar.perlinFrequency[1] = gvar_perlin_frequency1.val.v_float;*/
+
+			guiVar.perlinScale0     = gvar_perlin_scale0.val.v_float;
+			guiVar.perlinScale1     = gvar_perlin_scale1.val.v_float;
+			guiVar.perlinFrequency0 = gvar_perlin_frequency0.val.v_float;
+			guiVar.perlinFrequency1 = gvar_perlin_frequency1.val.v_float;
+			guiVar.perlinFalloff	= gvar_perlin_falloff.val.v_bool;
+
+			vkaWriteStaging(guiVarBuf, &guiVar, sizeof(GuiVar));
+			vkaCmdUpload(cmdBuf, guiVarBuf);
 
 			cubeTransform = config.gaussianFogCubeTransform;
 		}
@@ -364,10 +408,13 @@ struct AppData
 			vkaCmdUpload(cmdBuf, gaussianNNSphereTransformBuf);
 			vkaCmdUpload(cmdBuf, gaussianNN2SphereTransformBuf);
 		}
+		vkaCmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+		uint32_t pinCount = config.pinCountSqrt * config.pinCountSqrt;
 		if (gvar_reload.val.v_bool || cnt == 0)
 		{
 			// Recompute gaussians
-			uint32_t pinCount = config.pinCountSqrt * config.pinCountSqrt;
+			
 			std::mt19937                          gen32(42);
 			std::uniform_real_distribution<float> unormDistribution(0.0, 1.0);
 			{
@@ -483,6 +530,9 @@ struct AppData
 				pinUsedBuffer->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
 				pinUsedBuffer->recreate();
 			}
+		}
+		if (gvar_reload.val.v_bool || cnt == 0 || perlinNoiseConfig.update())
+		{
 			// Set up volume data
 			{
 				vkaCmdTransitionLayout(cmdBuf, volumeImage, VK_IMAGE_LAYOUT_GENERAL);
@@ -491,6 +541,7 @@ struct AppData
 				setDefaults(computeCmd, {256, 256, 256}, newShaderPath + "volume_gen.comp",
 				            {{"VOLUME_SIZE", std::to_string(256)}});
 				addDescriptor(computeCmd, volumeImage, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+				addDescriptor(computeCmd, guiVarBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 				vkaCmdCompute(cmdBuf, computeCmd);
 
 				vkaCmdTransitionLayout(cmdBuf, volumeImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -511,7 +562,6 @@ struct AppData
 				addDescriptor(computeCmd, &volumeDataSampler, VK_DESCRIPTOR_TYPE_SAMPLER);
 				vkaCmdCompute(cmdBuf, computeCmd);
 			}
-
 		}
 		// Scan envmap
 		if (gvar_env_map.val.v_uint != envMapIndexLastFrame || gvar_reload.val.v_bool || cnt == 0)

@@ -29,7 +29,16 @@ struct GuiVar
 	float pinSelectionCoef;
 	float gaussianWeight;
 	float stdDeviation;
-	//uint padding[1];
+
+	//float perlinScale[2];
+	//float perlinFrequency[2];
+
+	float perlinScale0;
+	float perlinScale1;
+	float perlinFrequency0;
+	float perlinFrequency1;
+	uint perlinFalloff;
+	uint padding[3];
 };
 
 

@@ -93,9 +93,14 @@ void buildGui(VkRect2D_OP viewport)
 		addGVars(GVAR_LOAD_SETTINGS);
 	}
 	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-	if (ImGui::CollapsingHeader("Load Settings"))
+	if (ImGui::CollapsingHeader("Window Settings"))
 	{
 		addGVars(GVAR_WINDOW_SETTINGS);
+	}
+	ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+	if (ImGui::CollapsingHeader("Perlin Noise Settings"))
+	{
+		addGVars(GVAR_PERLIN_NOISE_SETTINGS);
 	}
 	ImGui::End();
 }
