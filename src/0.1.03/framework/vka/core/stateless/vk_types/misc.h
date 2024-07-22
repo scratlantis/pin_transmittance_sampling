@@ -57,7 +57,7 @@ struct ClearValue
 		value.depthStencil.depth   = depth;
 		value.depthStencil.stencil = stencil;
 	}
-	bool operator==(const ClearValue &other) const
+	bool operator==(ClearValue const &other) const
 	{
 		if (type != other.type)
 			return false;
@@ -85,6 +85,38 @@ struct ClearValue
 				       value.depthStencil.stencil == other.value.depthStencil.stencil;
 		}
 		return false;
+	}
+	bool operator!=(ClearValue const &other) const
+	{
+		return !(*this == other);
+	}
+	bool hash() const
+	{
+		// clang-format off
+		switch (type)
+		{
+			case CLEAR_VALUE_NONE:
+				return 0;
+			case CLEAR_VALUE_FLOAT:
+				return value.color.float32[0]
+				       HASHC value.color.float32[1]
+				       HASHC value.color.float32[2]
+				       HASHC value.color.float32[3];
+			case CLEAR_VALUE_INT:
+				return value.color.int32[0]
+				       HASHC value.color.int32[1]
+				       HASHC value.color.int32[2]
+				       HASHC value.color.int32[3];
+			case CLEAR_VALUE_UINT:
+				return value.color.uint32[0]
+				       HASHC value.color.uint32[1]
+				       HASHC value.color.uint32[2]
+				       HASHC value.color.uint32[3];
+			case CLEAR_VALUE_DEPTH_STENCIL:
+				return value.depthStencil.depth
+				       HASHC value.depthStencil.stencil;
+		}
+		// clang-format on
 	}
 };
 
@@ -367,7 +399,6 @@ struct VkAttachmentDescription_OP : public VkAttachmentDescription
 		// clang-format on
 	}
 };
-// DEFINE_ZERO_PAD(VkAttachmentDescription)
 
 struct VkSubpassDependency_OP : public VkSubpassDependency
 {
