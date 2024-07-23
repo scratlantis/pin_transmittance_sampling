@@ -16,7 +16,7 @@ class Descriptor
 
 	Descriptor(std::vector<const Buffer_R *> buffers, VkDescriptorType type, VkShaderStageFlags shaderStage);
 	Descriptor(std::vector<const Image_R *> images, VkDescriptorType type, VkShaderStageFlags shaderStage);
-	Descriptor(std::vector < const SamplerDefinition> samplersDefs, VkShaderStageFlags shaderStage);
+	Descriptor(std::vector <SamplerDefinition> samplersDefs, VkShaderStageFlags shaderStage);
 
 	Descriptor(const SamplerDefinition samplerDef, const Image_R *image, VkShaderStageFlags shaderStage);
 	~Descriptor(){};

@@ -1,5 +1,5 @@
 #include "Image.h"
-#include <vka/core/core_state/CoreState.h>
+#include <vka/globals.h>
 #include <vka/core/stateless/vk_types/default_values.h>
 
 namespace vka
@@ -164,13 +164,5 @@ void SwapchainImage_R::setLayout(VkImageLayout layout)
 hash_t SwapchainImage_R::hash() const
 {
 	return (hash_t) gState.io.images[gState.frame->frameIndex] << VKA_RESOURCE_META_DATA_HASH_SHIFT;
-}
-
-void Image_R::writeDescriptorInfo(VkWriteDescriptorSet &write, VkDescriptorBufferInfo *&pBufferInfo, VkDescriptorImageInfo *&pImageInfos) const
-{
-	pImageInfos->imageView   = viewHandle;
-	pImageInfos->imageLayout = layout;
-	write.pImageInfo         = pImageInfos;
-	pImageInfos++;
 }
 }        // namespace vka

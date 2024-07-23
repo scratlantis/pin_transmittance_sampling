@@ -22,11 +22,11 @@ struct ComputePipelineDefinition : public ResourceIdentifier
 	hash_t hash() const override;
 };
 
-class ComputePipeline : public Cachable_T<VkPipeline>
+class ComputePipeline_R : public Cachable_T<VkPipeline>
 {
   public:
 	virtual void free();
-	ComputePipeline(IResourceCache *pCache, ComputePipelineDefinition const &definition);
+	ComputePipeline_R(IResourceCache *pCache, ComputePipelineDefinition const &definition);
 };
 }        // namespace vka
 DECLARE_HASH(vka::ComputePipelineDefinition, hash)

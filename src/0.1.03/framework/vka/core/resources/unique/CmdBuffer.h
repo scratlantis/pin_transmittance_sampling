@@ -1,12 +1,13 @@
 #pragma once
 #include <vka/core/stateless/vk_types/misc.h>
 #include "../Resource.h"
+#include <vka/core/resources/cachable/PipelineLayout.h>
 namespace vka
 {
-class CmdBuffer_R : public Resource_T<VkCommandBuffer>
+class CmdBufferVK_R : public Resource_T<VkCommandBuffer>
 {
   public:
-	CmdBuffer_R(VkCommandBuffer handle, VkCommandPool cmdPool) :
+	CmdBufferVK_R(VkCommandBuffer handle, VkCommandPool cmdPool) :
 	    Resource_T<VkCommandBuffer>(handle), cmdPool(cmdPool)
 	{}
 	void free() override;
@@ -110,8 +111,7 @@ struct RenderState
 class CmdBuffer_R : public Resource_T<VkCommandBuffer>
 {
   protected:
-	CmdBuffer_R *res                = nullptr;
-	bool         hasMemoryOwnership = false;
+	CmdBufferVK_R *res                = nullptr;
 
   public:
 	// State

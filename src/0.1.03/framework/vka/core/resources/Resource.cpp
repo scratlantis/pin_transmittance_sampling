@@ -1,5 +1,5 @@
 #include "Resource.h"
-#include <vka/core/core_state/CoreState.h>
+#include <vka/globals.h>
 namespace vka
 {
 void Resource::garbageCollect()

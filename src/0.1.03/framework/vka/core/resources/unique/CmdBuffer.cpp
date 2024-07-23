@@ -1,9 +1,9 @@
 #include "CmdBuffer.h"
-#include <vka/core/core_state/CoreState.h>
+#include <vka/globals.h>
 
 namespace vka
 {
-void CmdBuffer_R::free()
+void CmdBufferVK_R::free()
 {
 	vkFreeCommandBuffers(gState.device.logical, cmdPool, 1, &handle);
 }
@@ -36,7 +36,7 @@ void CmdBuffer_R::createHandles(CmdBufferCapabitlityMask capability, VkCommandBu
 	beginInfo.flags = usage;
 	VK_CHECK(vkBeginCommandBuffer(handle, &beginInfo));
 	stateBits |= CMD_BUF_STATE_BITS_RECORDING;
-	res = new CmdBuffer_R(handle, cmdPool);
+	res = new CmdBufferVK_R(handle, cmdPool);
 	res->track(pPool);
 }
 hash_t CmdBuffer_R::hash() const
@@ -45,19 +45,6 @@ hash_t CmdBuffer_R::hash() const
 }
 void CmdBuffer_R::free()
 {
-	if (!hasMemoryOwnership)
-	{
-		res                = nullptr;
-		pPool              = nullptr;
-		handle             = VK_NULL_HANDLE;
-		capability         = CMD_BUF_CAPABILITY_MASK_NONE;
-		uint32_t stateBits = 0;
-	}
-	else
-	{
-		printVka("Cant free CmdBuffer with memory ownership\n");
-		DEBUG_BREAK;
-	}
 }
 
 void CmdBuffer_R::track(IResourcePool *pPool)
@@ -73,7 +60,6 @@ void CmdBuffer_R::track(IResourcePool *pPool)
 		res->track(pPool);
 	}
 	Resource::track(pPool);
-	hasMemoryOwnership = false;
 }
 
 std::vector<VkClearValue> RenderState::getClearValues() const

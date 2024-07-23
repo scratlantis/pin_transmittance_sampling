@@ -51,7 +51,7 @@ Descriptor::Descriptor(std::vector<const Image_R *> images, VkDescriptorType typ
 	this->stage  = shaderStage;
 	count        = images.size();
 }
-Descriptor::Descriptor(std::vector<const SamplerDefinition> samplersDefs, VkShaderStageFlags shaderStage)
+Descriptor::Descriptor(std::vector<SamplerDefinition> samplersDefs, VkShaderStageFlags shaderStage)
 {
 	this->type = VK_DESCRIPTOR_TYPE_SAMPLER;
 	this->stage = shaderStage;
@@ -61,7 +61,7 @@ Descriptor::Descriptor(std::vector<const SamplerDefinition> samplersDefs, VkShad
 		samplers.push_back(gState.cache->fetch(def));
 	}
 }
-Descriptor::Descriptor(const SamplerDefinition samplerDef, const Image_R *image, VkShaderStageFlags shaderStage)
+Descriptor::Descriptor(SamplerDefinition samplerDef, const Image_R *image, VkShaderStageFlags shaderStage)
 {
 	VKA_ASSERT(image != nullptr);
 	stage    = shaderStage;
@@ -69,7 +69,6 @@ Descriptor::Descriptor(const SamplerDefinition samplerDef, const Image_R *image,
 	images = {image};
 	samplers = {gState.cache->fetch(samplerDef)};
 	type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
 }
 
 void Descriptor::writeDescriptorInfo(VkWriteDescriptorSet &write, VkDescriptorBufferInfo *&pBufferInfo, VkDescriptorImageInfo *&pImageInfos) const
