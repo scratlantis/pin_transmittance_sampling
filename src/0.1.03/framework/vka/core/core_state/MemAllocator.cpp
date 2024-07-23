@@ -1,6 +1,6 @@
 #define VMA_IMPLEMENTATION
 #include "MemAllocator.h"
-#include "CoreState.h"
+#include <vka/globals.h>
 
 namespace vka
 {

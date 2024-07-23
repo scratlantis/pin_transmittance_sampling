@@ -2,19 +2,19 @@
 #include <vulkan/vulkan.h>
 namespace vka
 {
-class DescriptorSetLayout;
+class DescriptorSetLayout_R;
 class DescriptorSetLayoutDefinition;
-class PipelineLayout;
+class PipelineLayout_R;
 class PipelineLayoutDefinition;
 class RasterizationPipeline;
 class RasterizationPipelineDefinition;
 class ComputePipeline;
 class ComputePipelineDefinition;
-class RenderPass;
+class RenderPass_R;
 class RenderPassDefinition;
 class Sampler;
 class SamplerDefinition;
-class Shader;
+class Shader_R;
 class ShaderDefinition;
 
 class IResourceCache

@@ -1,0 +1,181 @@
+#include "Buffer.h"
+#include <vka/core/core_state/CoreState.h>
+
+namespace vka
+{
+
+void BufferVMA_R::free()
+{
+	gState.memAlloc.destroyBuffer(handle, allocation);
+}
+
+void *BufferVMA_R::map(uint32_t offset, uint32_t size) const
+{
+	void *data;
+	gState.memAlloc.mapMemory(allocation, &data);
+	data = (char *) data + offset;
+	return data;
+}
+void BufferVMA_R::unmap() const
+{
+	gState.memAlloc.unmapMemory(allocation);
+}
+
+void BufferView_R::free()
+{
+	vkDestroyBufferView(gState.device.logical, handle, nullptr);
+}
+
+void Buffer_R::createHandles()
+{
+	state.type = BufferType::VMA;
+	VmaAllocation allocation;
+	gState.memAlloc.createBuffer(state.size, state.usage, state.memProperty.vma, &handle, &allocation);
+	res = new BufferVMA_R(handle, allocation);
+	res->track(pPool);
+}
+
+void Buffer_R::detachChildResources()
+{
+	if (res)
+	{
+		res->track(gState.frame->stack);
+		res = nullptr;
+	}
+	if (viewRes)
+	{
+		viewRes->track(gState.frame->stack);
+		viewRes = nullptr;
+	}
+}
+
+bool Buffer_R::isMappable() const
+{
+	//clang-format off
+	return !(state.type == BufferType::NONE || (state.type == BufferType::VMA && state.memProperty.vma == VMA_MEMORY_USAGE_GPU_ONLY) || (state.type == BufferType::VK && !(state.memProperty.vk & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)));
+	//clang-format on
+}
+
+const Buffer_R Buffer_R::recreate()
+{
+	Buffer_R bufferCopy = *this;
+	if (state.size == newState.size && state.usage == newState.usage && state.memProperty.vma == newState.memProperty.vma)
+	{
+		return bufferCopy;
+	}
+	state = newState;
+	detachChildResources();
+	createHandles();
+	return bufferCopy;
+}
+
+
+
+void Buffer_R::update()
+{
+	const Buffer_R oldBuffer   = recreate();
+	VkDeviceSize   minDataSize = std::min(oldBuffer.getSize(), getSize());
+	minDataSize                = std::min(minDataSize, range.size);
+	void *oldData              = oldBuffer.map(0, minDataSize);
+	void *newData              = this->map(0, minDataSize);
+	std::memcpy(newData, oldData, minDataSize);
+	unmap();
+	oldBuffer.unmap();
+}
+
+
+void Buffer_R::track(IResourcePool *pPool)
+{
+	if (!pPool)
+	{
+		printVka("Null resource pool\n");
+		DEBUG_BREAK;
+		return;
+	}
+	if (viewRes)
+	{
+		viewRes->track(pPool);
+	}
+	if (res)
+	{
+		res->track(pPool);
+	}
+	Resource::track(pPool);
+}
+hash_t Buffer_R::hash() const
+{
+	return res->hash() << VKA_RESOURCE_META_DATA_HASH_SHIFT;
+}
+
+void *Buffer_R::map(uint32_t offset, uint32_t size) const
+{
+	return res->map(offset + range.offset, size);
+}
+void Buffer_R::unmap() const
+{
+	res->unmap();
+}
+
+void Buffer_R::changeSize(VkDeviceSize size)
+{
+	newState.size = size;
+}
+
+void Buffer_R::addUsage(VkBufferUsageFlags usage)
+{
+	newState.usage |= usage;
+}
+
+void Buffer_R::changeUsage(VkBufferUsageFlags usage)
+{
+	newState.usage = usage;
+}
+
+void Buffer_R::changeMemoryType(VmaMemoryUsage memProperty)
+{
+	newState.memProperty.vma = memProperty;
+}
+
+VkDeviceSize Buffer_R::getSize() const
+{
+	return state.size;
+}
+VkBufferUsageFlags Buffer_R::getUsage() const
+{
+	return state.usage;
+}
+
+VmaMemoryUsage Buffer_R::getMemoryType() const
+{
+	return state.memProperty.vma;
+}
+
+BufferRange Buffer_R::getRange() const
+{
+	return range;
+}
+
+const Buffer_R Buffer_R::getSubBuffer(BufferRange range) const
+{
+	Buffer_R subBuffer = *this;
+	subBuffer.range     = range;
+	return subBuffer;
+}
+
+const Buffer_R Buffer_R::getShallowCopy() const
+{
+	return *this;
+}
+
+Buffer_R Buffer_R::getStagingBuffer() const
+{
+	Buffer_R stagingBuffer = *this;
+	stagingBuffer.changeMemoryType(VMA_MEMORY_USAGE_CPU_ONLY);
+	stagingBuffer.addUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+	stagingBuffer.state = stagingBuffer.newState;
+	stagingBuffer.pPool = gState.frame->stack;
+	stagingBuffer.createHandles();
+	return stagingBuffer;
+}
+
+}        // namespace vka

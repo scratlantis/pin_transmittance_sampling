@@ -41,7 +41,7 @@ struct IOControlerCI
 	WindowCI getWindowCI();
 };
 
-class SwapchainImage_I;
+class SwapchainImage_R;
 class IOController
 {
   public:

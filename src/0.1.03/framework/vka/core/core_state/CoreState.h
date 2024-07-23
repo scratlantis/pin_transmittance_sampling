@@ -43,6 +43,7 @@ enum StateInitialisationBits
 	STATE_INIT_ALL_BIT             = 0x20000
 };
 
+
 class CoreState
 {
   public:
@@ -53,6 +54,9 @@ class CoreState
 	Frame          *frame;
 	MemAllocator    memAlloc;
 	CmdAllocator    cmdAlloc;
+
+	std::string shaderLog;
+
 	CoreState();
 	void                      init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *window, std::vector<IResourcePool *> pStack, IResourceCache *pCache);
 	SubmitSynchronizationInfo acquireNextSwapchainImage();
@@ -68,4 +72,4 @@ class CoreState
 	DELETE_COPY_CONSTRUCTORS(CoreState);
 };
 }
-extern vka::CoreState gState;
+

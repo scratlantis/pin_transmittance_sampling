@@ -1,7 +1,7 @@
 #include <imgui_impl_glfw.h>
 #include "GlfwWindow.h"
+#include <vka/globals.h>
 #include <vka/core/stateless/utility/macros.h>
-#include <vka/core/core_state/CoreState.h>
 
 namespace vka
 {

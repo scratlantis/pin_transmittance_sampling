@@ -1,5 +1,5 @@
 #include "CmdAllocator.h"
-#include "CoreState.h"
+#include <vka/globals.h>
 
 namespace vka
 {

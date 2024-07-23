@@ -1,5 +1,5 @@
 #include "IOControler.h"
-#include "CoreState.h"
+#include <vka/globals.h>
 #include <vka/core/stateless/vk_types/default_values.h>
 namespace vka
 {

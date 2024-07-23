@@ -252,4 +252,7 @@ const std::map<VkFormat, VulkanFormatInfo> cVkFormatTable = {
 
 const VkExtent2D cResolution4k = {3840, 2160};
 const VkExtent2D cResolution2k = {2048, 1024};
+
+const std::string cVkaShaderPath = std::string(FRAMEWORK_SRC_DIR) + "/vka/shaders/";
+
 }        // namespace vka
