@@ -55,7 +55,7 @@ class BLAS
 		createInfo.buffer = buffer.buf;
 		// Create the acceleration structure
 		ASSERT_VULKAN(vkCreateAccelerationStructureKHR(gState.device.logical, &createInfo, nullptr, &as));
-		asRes = new AccelerationStructure_R(as);
+		asRes = new AccelerationStructureVK_R(as);
 		pTracker->add(asRes);
 
 		buildScratchSize = sizeInfo.buildScratchSize;

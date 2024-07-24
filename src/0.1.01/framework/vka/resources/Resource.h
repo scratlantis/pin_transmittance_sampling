@@ -272,10 +272,10 @@ class BufferView_R : public NonUniqueResource
 	VkBufferView handle;
 };
 
-class AccelerationStructure_R : public NonUniqueResource
+class AccelerationStructureVK_R : public NonUniqueResource
 {
   public:
-	AccelerationStructure_R(VkAccelerationStructureKHR handle)
+	AccelerationStructureVK_R(VkAccelerationStructureKHR handle)
 	{
 		this->handle = handle;
 	}
