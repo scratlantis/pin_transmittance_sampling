@@ -178,4 +178,11 @@ Buffer_R Buffer_R::getStagingBuffer() const
 	return stagingBuffer;
 }
 
+VkDeviceAddress Buffer_R::getDeviceAddress() const
+{
+	VkBufferDeviceAddressInfo bufferInfo{VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
+	bufferInfo.buffer = handle;
+	return vkGetBufferDeviceAddress(gState.device.logical, &bufferInfo);
+}
+
 }        // namespace vka

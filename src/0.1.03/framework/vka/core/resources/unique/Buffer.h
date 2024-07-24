@@ -148,14 +148,15 @@ class Buffer_R : public Resource_T<VkBuffer>
 	void changeUsage(VkBufferUsageFlags usage);
 	void changeMemoryType(VmaMemoryUsage memProperty);
 
-	VkDeviceSize         getSize() const;
-	VkBufferUsageFlags   getUsage() const;
-	VmaMemoryUsage       getMemoryType() const;
+	VkDeviceSize       getSize() const;
+	VkBufferUsageFlags getUsage() const;
+	VmaMemoryUsage     getMemoryType() const;
 
-	BufferRange			 getRange() const;
-	const Buffer_R       getSubBuffer(BufferRange range) const;
-	const Buffer_R       getShallowCopy() const;
-	Buffer_R             getStagingBuffer() const;
+	BufferRange     getRange() const;
+	const Buffer_R  getSubBuffer(BufferRange range) const;
+	const Buffer_R  getShallowCopy() const;
+	Buffer_R        getStagingBuffer() const;
+	VkDeviceAddress getDeviceAddress() const;
 	
 
 	void           free(){};

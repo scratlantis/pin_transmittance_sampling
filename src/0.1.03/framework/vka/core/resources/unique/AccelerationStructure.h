@@ -24,13 +24,11 @@ class BottomLevelAS_R : public Resource_T<VkAccelerationStructureKHR>
 	Resource_T<VkAccelerationStructureKHR> *asRes  = nullptr;
 	Buffer_R                               *bufRes = nullptr;
 
-	VkDeviceSize                                          buildScratchSize = 0;
 	bool                                                  built            = false;
 	std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRange;
 	std::vector<VkAccelerationStructureGeometryKHR>       geometry;
-	VkBuildAccelerationStructureFlagsKHR                  buildFlags;
+	VkBuildAccelerationStructureFlagsKHR                  buildFlags = 0;
 
-  private:
 	BottomLevelAS_R &operator=(const BottomLevelAS_R &rhs)
 	{
 		pPool = nullptr;
@@ -38,27 +36,29 @@ class BottomLevelAS_R : public Resource_T<VkAccelerationStructureKHR>
 		asRes  = rhs.asRes;
 		bufRes = rhs.bufRes;
 
-		buildScratchSize = rhs.buildScratchSize;
 		built            = rhs.built;
 		buildRange       = rhs.buildRange;
 		geometry         = rhs.geometry;
 		buildFlags       = rhs.buildFlags;
 	};
 
+	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfo() const;
+	VkDeviceSize                                getBuildSize() const;
+
   public:
 	BottomLevelAS_R() = default;
 	BottomLevelAS_R(IResourcePool *pPool) :
 	    Resource_T<VkAccelerationStructureKHR>(VK_NULL_HANDLE)
 	{
-		bufRes = new Buffer_R(pPool, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+		bufRes = new Buffer_R(pPool, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 		Resource::track(pPool);
 	};
 
-
+	VkAccelerationStructureBuildGeometryInfoKHR                   getBuildInfo(VkAccelerationStructureKHR src, Buffer_R *scratchBuffer) const;
 	const VkAccelerationStructureGeometryKHR                     *getGeometryPtr() const;
 	uint32_t                                                      getGeometryCount() const;
 	std::vector<const VkAccelerationStructureBuildRangeInfoKHR *> getBuildRangePtrs() const;
-	VkDeviceSize                                                  getBuildScratchSize() const;
+	void                                                          configureScratchBuffer(Buffer_R *scratchBuffer) const;
 	bool                                                          isBuilt() const;
 
 	void setGeometry(std::vector<VkAccelerationStructureGeometryKHR> &geom);
@@ -74,8 +74,58 @@ class BottomLevelAS_R : public Resource_T<VkAccelerationStructureKHR>
 	void                  detachChildResources();
 	void                  recreate();
 	const BottomLevelAS_R getShallowCopy() const;
+};
 
-  
+class TopLevelAs_R : public Resource_T<VkAccelerationStructureKHR>
+{
+  protected:
+	Resource_T<VkAccelerationStructureKHR> *asRes  = nullptr;
+	Buffer_R                               *bufRes = nullptr;
+
+	bool                                                  built            = false;
+	uint32_t                                              instanceCount    = 0;
+	VkBuildAccelerationStructureFlagsKHR                  buildFlags;
+
+  private:
+	TopLevelAs_R &operator=(const TopLevelAs_R &rhs)
+	{
+		pPool = nullptr;
+
+		asRes  = rhs.asRes;
+		bufRes = rhs.bufRes;
+
+		built            = rhs.built;
+		buildFlags       = rhs.buildFlags;
+	};
+
+	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfo() const;
+	VkDeviceSize                                getBuildSize() const;
+  public:
+	TopLevelAs_R() = default;
+	TopLevelAs_R(IResourcePool *pPool) :
+	    Resource_T<VkAccelerationStructureKHR>(VK_NULL_HANDLE)
+	{
+		bufRes = new Buffer_R(pPool, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
+		Resource::track(pPool);
+	};
+
+	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfo(VkAccelerationStructureKHR src, Buffer_R *scratchBuffer) const;
+	void                                configureScratchBuffer(Buffer_R* scratchBuffer) const;
+	bool                                        isBuilt() const;
+
+	void setBuilt(bool built);
+	void setBuildFlags(VkBuildAccelerationStructureFlagsKHR flags);
+	void setInstanceCount(uint32_t count);
+
+
+	void   free(){};
+	void   track(IResourcePool *pPool) override;
+	hash_t hash() const override;
+
+	void               createHandles();
+	void               detachChildResources();
+	void               recreate();
+	const TopLevelAs_R getShallowCopy() const;
 };
 
 }
