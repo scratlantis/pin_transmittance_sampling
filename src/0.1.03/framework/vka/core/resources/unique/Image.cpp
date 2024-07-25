@@ -26,7 +26,7 @@ void Image_R::createHandles()
 	ci.initialLayout = targetInitialLayout;
 
 	res = new ImageVMA_R(handle, alloc);
-	res->track(pPool);
+	res->track(getPool());
 	if (createView)
 	{
 		VkImageViewCreateInfo viewCI;
@@ -40,7 +40,7 @@ void Image_R::createHandles()
 		}
 		VK_CHECK(vkCreateImageView(gState.device.logical, &viewCI, nullptr, &viewHandle));
 		viewRes = new ImageView_R(viewHandle);
-		viewRes->track(pPool);
+		viewRes->track(getPool());
 	}
 }
 
@@ -79,12 +79,6 @@ void Image_R::detachChildResources()
 
 void Image_R::track(IResourcePool *pPool)
 {
-	if (!pPool)
-	{
-		printVka("Null resource pool\n");
-		DEBUG_BREAK;
-		return;
-	}
 	if (viewRes)
 	{
 		viewRes->track(pPool);
@@ -93,30 +87,7 @@ void Image_R::track(IResourcePool *pPool)
 	{
 		res->track(pPool);
 	}
-
-	if (this->pPool)
-	{
-		if (this->pPool == pPool)
-		{
-			return;
-		}
-
-		if (this->pPool->remove(this))
-		{
-			this->pPool = pPool;
-			this->pPool->add(this);
-		}
-		else
-		{
-			printVka("Resource not found in assigned pool\n");
-			DEBUG_BREAK;
-		}
-	}
-	else
-	{
-		this->pPool = pPool;
-		this->pPool->add(this);
-	}
+	Resource::track(pPool);
 }
 
 void Image_R::free()

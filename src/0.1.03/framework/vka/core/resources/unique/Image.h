@@ -1,5 +1,4 @@
 #pragma once
-#include "../IDescriptor.h"
 #include "../Resource.h"
 #include <vka/core/stateless/utility/constants.h>
 #include <vma/vk_mem_alloc.h>
@@ -35,7 +34,6 @@ class Image_R : public Resource_T<VkImage>
 	Resource *res     = nullptr;
 	Resource *viewRes = nullptr;
 	bool      createView;
-	Image_R() = default;
 
   private:
 	VkImageView viewHandle = VK_NULL_HANDLE;
@@ -51,6 +49,7 @@ class Image_R : public Resource_T<VkImage>
 
 	VkImageLayout layout;
 
+	Image_R() = default;
   public:
 	VkDeviceSize getMemorySize() const
 	{
@@ -113,17 +112,15 @@ class Image_R : public Resource_T<VkImage>
 		free();
 	}
 
-  private:
-	Image_R &operator=(const Image_R &rhs)
+  public:
+	Image_R(const Image_R &rhs)
 	{
-		if (this == &rhs)
-		{
-			return *this;
-		}
 		// No ownership, no tracking
 		res     = nullptr;
 		viewRes = nullptr;
-		pPool   = nullptr;
+
+		ci = rhs.ci;
+		createView = rhs.createView;
 
 		handle     = rhs.handle;
 		viewHandle = rhs.viewHandle;
@@ -133,10 +130,8 @@ class Image_R : public Resource_T<VkImage>
 		mipLevels = rhs.mipLevels;
 		usage     = rhs.usage;
 		layout    = rhs.layout;
-		return *this;
 	}
 
-  public:
 	virtual void changeFormat(VkFormat format)
 	{
 		this->format = format;
@@ -164,6 +159,9 @@ class Image_R : public Resource_T<VkImage>
 
 class SwapchainImage_R : public Image_R
 {
+  protected:
+	SwapchainImage_R(const Image_R &rhs) :
+	    Image_R(rhs){};
   public:
 	VkImage     getHandle() const override;
 	VkImageView getViewHandle() const override;

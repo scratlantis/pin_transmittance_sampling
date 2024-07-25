@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <glm/glm.hpp>
 
 namespace vka
 {
@@ -106,3 +107,26 @@ int operator>(LHSlt<A, decltype(hashCombine_OP)> lhsof, B rhs)
 }
 
 #define HASHC < hashCombine_OP >
+
+namespace std
+{
+
+template <>
+struct hash<glm::vec3>
+{
+	size_t operator()(glm::vec3 const &type) const
+	{
+		return type.x HASHC type.y HASHC type.z;
+	}
+};
+
+template <>
+struct hash<glm::vec2>
+{
+	size_t operator()(glm::vec2 const &type) const
+	{
+		return type.x HASHC type.y;
+	};
+};
+
+}        // namespace std

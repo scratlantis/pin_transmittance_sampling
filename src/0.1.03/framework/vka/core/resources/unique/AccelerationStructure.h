@@ -26,7 +26,8 @@ class AccelerationStructure_R : public Resource_T<VkAccelerationStructureKHR>
 	bool                                    built      = false;
 	VkBuildAccelerationStructureFlagsKHR    buildFlags = 0;
 
-	AccelerationStructure_R &operator=(const AccelerationStructure_R &rhs) = delete;
+  private:
+
 
 	virtual VkAccelerationStructureBuildGeometryInfoKHR getBuildInfo() const = 0;
 	virtual VkDeviceSize                                getBuildSize() const = 0;
@@ -63,18 +64,7 @@ class BottomLevelAS_R : public AccelerationStructure_R
 	std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRange;
 	std::vector<VkAccelerationStructureGeometryKHR>       geometry;
 
-	BottomLevelAS_R &operator=(const BottomLevelAS_R &rhs)
-	{
-		pPool = nullptr;
-
-		asRes  = rhs.asRes;
-		bufRes = rhs.bufRes;
-
-		built      = rhs.built;
-		buildRange = rhs.buildRange;
-		geometry   = rhs.geometry;
-		buildFlags = rhs.buildFlags;
-	};
+	BottomLevelAS_R(const BottomLevelAS_R &rhs) = default;
 
 	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfo() const;
 	VkDeviceSize                                getBuildSize() const;
@@ -97,18 +87,10 @@ class TopLevelAs_R : public AccelerationStructure_R
 {
   protected:
 	uint32_t                             instanceCount = 0;
+	TopLevelAs_R(const TopLevelAs_R &rhs) = default;
 
   private:
-	TopLevelAs_R &operator=(const TopLevelAs_R &rhs)
-	{
-		pPool = nullptr;
 
-		asRes  = rhs.asRes;
-		bufRes = rhs.bufRes;
-
-		built      = rhs.built;
-		buildFlags = rhs.buildFlags;
-	};
 	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfo() const;
 	VkDeviceSize                                getBuildSize() const;
 	virtual VkAccelerationStructureTypeKHR      getType() const;

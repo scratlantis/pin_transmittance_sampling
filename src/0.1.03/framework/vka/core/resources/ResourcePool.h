@@ -1,11 +1,9 @@
 #pragma once
 #include "Resource.h"
 #include <unordered_set>
+#include <vka/core/resources/unique/Image.h>
 namespace vka
 {
-// Todo remove this
-class Image_R;
-class CmdBuffer_R;
 
 class ResourcePool : public IResourcePool
 {
@@ -18,10 +16,13 @@ class ResourcePool : public IResourcePool
 	bool add(Image_R *img) override;
 	bool remove(Resource *resource) override;
 	bool remove(Image_R *img) override;
-	void refreshImages(CmdBuffer_R *cmdBuf) override;
+	std::unordered_set<Image_R *>::iterator getImagesBegin() override;
+	std::unordered_set<Image_R *>::iterator getImagesEnd() override;
 	ResourcePool(){};
 	~ResourcePool(){};
 	void clear() override;
 	DELETE_COPY_CONSTRUCTORS(ResourcePool);
 };
+
+
 }        // namespace vka

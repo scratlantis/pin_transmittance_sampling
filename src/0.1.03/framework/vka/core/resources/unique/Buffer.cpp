@@ -28,11 +28,11 @@ void BufferView_R::free()
 
 void Buffer_R::createHandles()
 {
-	state.type = BufferType::VMA;
+	state.type = BufferType::VMA; // Only VMA buffers are supported for now
 	VmaAllocation allocation;
 	gState.memAlloc.createBuffer(state.size, state.usage, state.memProperty.vma, &handle, &allocation);
 	res = new BufferVMA_R(handle, allocation);
-	res->track(pPool);
+	res->track(getPool());
 }
 
 void Buffer_R::detachChildResources()
@@ -76,11 +76,9 @@ void Buffer_R::update()
 	const Buffer_R oldBuffer   = recreate();
 	VkDeviceSize   minDataSize = std::min(oldBuffer.getSize(), getSize());
 	minDataSize                = std::min(minDataSize, range.size);
-	void *oldData              = oldBuffer.map(0, minDataSize);
-	void *newData              = this->map(0, minDataSize);
-	std::memcpy(newData, oldData, minDataSize);
-	unmap();
-	oldBuffer.unmap();
+	void* data_old            = oldBuffer.map(0, minDataSize);
+	void* data_new			= this->map(0, minDataSize);
+	std::memcpy(data_new, data_old, minDataSize);
 }
 
 
@@ -107,13 +105,9 @@ hash_t Buffer_R::hash() const
 	return res->hash() << VKA_RESOURCE_META_DATA_HASH_SHIFT;
 }
 
-void *Buffer_R::map(uint32_t offset, uint32_t size) const
+void* Buffer_R::map(uint32_t offset, uint32_t size) const
 {
-	return res->map(offset + range.offset, size);
-}
-void Buffer_R::unmap() const
-{
-	res->unmap();
+	return (new BufferMapping_R(res, offset + range.offset, size))->ptr();
 }
 
 void Buffer_R::changeSize(VkDeviceSize size)
@@ -170,10 +164,11 @@ const Buffer_R Buffer_R::getShallowCopy() const
 Buffer_R Buffer_R::getStagingBuffer() const
 {
 	Buffer_R stagingBuffer = *this;
+	VKA_ASSERT(stagingBuffer.getPool() == nullptr);
+	stagingBuffer.track(gState.frame->stack);
 	stagingBuffer.changeMemoryType(VMA_MEMORY_USAGE_CPU_ONLY);
 	stagingBuffer.addUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 	stagingBuffer.state = stagingBuffer.newState;
-	stagingBuffer.pPool = gState.frame->stack;
 	stagingBuffer.createHandles();
 	return stagingBuffer;
 }
@@ -183,6 +178,22 @@ VkDeviceAddress Buffer_R::getDeviceAddress() const
 	VkBufferDeviceAddressInfo bufferInfo{VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
 	bufferInfo.buffer = handle;
 	return vkGetBufferDeviceAddress(gState.device.logical, &bufferInfo);
+}
+
+BufferMapping_R::BufferMapping_R(const Mappable_T *mappable, uint32_t offset, uint32_t size):m_mappable(mappable)
+{
+	handle = m_mappable->map(offset, size);
+	track(gState.frame->stack);
+}
+
+void BufferMapping_R::free()
+{
+	m_mappable->unmap();
+}
+
+void *BufferMapping_R::ptr() const
+{
+	return handle;
 }
 
 }        // namespace vka

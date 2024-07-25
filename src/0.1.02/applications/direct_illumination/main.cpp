@@ -54,6 +54,8 @@ std::vector<GVar *> gVars =
 		&gvar_perlin_falloff
 };
 // clang-format on
+
+
 int main()
 {
 	// Global State Initialization

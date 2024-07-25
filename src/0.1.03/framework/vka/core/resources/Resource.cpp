@@ -9,6 +9,12 @@ void Resource::garbageCollect()
 
 void Resource::track(IResourcePool *pPool)
 {
+	if (!pPool)
+	{
+		printVka("Null resource pool\n");
+		DEBUG_BREAK;
+		return;
+	}
 	if (this->pPool)
 	{
 		if (this->pPool == pPool)
@@ -32,6 +38,20 @@ void Resource::track(IResourcePool *pPool)
 		this->pPool = pPool;
 		this->pPool->add(this);
 	}
+}
+
+void Resource::untrack()
+{
+	if (this->pPool)
+	{
+		this->pPool->remove(this);
+		this->pPool = nullptr;
+	}
+}
+
+IResourcePool *Resource::getPool() const
+{
+	return pPool;
 }
 
 }        // namespace vka

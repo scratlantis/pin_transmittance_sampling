@@ -1,6 +1,5 @@
 #pragma once
 #include "../Resource.h"
-#include "../IDescriptor.h"
 #include <vma/vk_mem_alloc.h>
 
 namespace vka
@@ -68,13 +67,24 @@ struct BufferRange
 	VkDeviceSize size = VK_WHOLE_SIZE;
 };
 
+class BufferMapping_R : public Resource_T<void *>
+{
+  public:
+	BufferMapping_R(const Mappable_T *mappable, uint32_t offset, uint32_t size);
+	void  free() override;
+	void *ptr() const;
+
+  private:
+	const Mappable_T *m_mappable;
+};
+
 class Buffer_R : public Resource_T<VkBuffer>
 {
   protected:
 	Mappable_T   *res                = nullptr;
 	BufferView_R *viewRes            = nullptr;
 	bool          isMapped           = false;
-
+	Buffer_R(const Buffer_R &rhs)    = default;
   public:
 	VkBufferView viewHandle = VK_NULL_HANDLE;
 
@@ -110,29 +120,6 @@ class Buffer_R : public Resource_T<VkBuffer>
 	}
 
   private:
-	Buffer_R &operator=(const Buffer_R &rhs)
-	{
-		if (this == &rhs)
-		{
-			return *this;
-		}
-		res     = rhs.res;
-		viewRes = rhs.viewRes;
-		pPool   = nullptr;
-
-		handle     = rhs.handle;
-		viewHandle = rhs.viewHandle;
-
-		state.type        = rhs.state.type;
-		state.size        = rhs.state.size;
-		state.usage       = rhs.state.usage;
-		state.memProperty = rhs.state.memProperty;
-
-		range.offset = rhs.range.offset;
-		range.size   = rhs.range.size;
-
-		return *this;
-	}
 
 
 
@@ -140,8 +127,6 @@ class Buffer_R : public Resource_T<VkBuffer>
 	bool   isMappable() const;
 	void   track(IResourcePool *pPool) override;
 	hash_t hash() const override;
-	void  *map(uint32_t offset, uint32_t size) const;
-	void   unmap() const;
 
 	void changeSize(VkDeviceSize size);
 	void addUsage(VkBufferUsageFlags usage);
@@ -164,8 +149,7 @@ class Buffer_R : public Resource_T<VkBuffer>
 	void           detachChildResources();
 	const Buffer_R recreate();
 	void           update();
+	void* map(uint32_t offset, uint32_t size) const;
+	friend class BufferMapping;
 };
 }        // namespace vka
-
-typedef vka::Buffer_R* Buffer;
-typedef const vka::Buffer_R* ImmutableBuffer;

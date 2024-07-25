@@ -126,7 +126,6 @@ class CmdBuffer_R : public Resource_T<VkCommandBuffer>
 		renderState = {};
 		capability  = CMD_BUF_CAPABILITY_MASK_NONE;
 		stateBits   = 0;
-		this->pPool = pPool;
 		track(pPool);
 	}
 	CmdBuffer_R(IResourcePool *pPool, CmdBufferCapabitlityMask capability, VkCommandBufferUsageFlags usage, VkCommandBufferLevel level, uint32_t poolIdx) :

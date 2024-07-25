@@ -13,9 +13,18 @@ namespace vka
 {
 class Resource
 {
-  protected:
+  private:
 	IResourcePool *pPool = nullptr;
 
+  protected:
+	Resource(const Resource &other)
+	{
+		this->pPool = nullptr;
+	};
+	Resource &operator=(const Resource &other)
+	{
+		this->pPool = nullptr;
+	};
   public:
 	// required for unordered_set/unordered_map
 	virtual bool   operator==(const Resource &other) const = 0;
@@ -23,12 +32,12 @@ class Resource
 
 	virtual void free() = 0;
 	virtual void track(IResourcePool *pPool);
+	virtual void untrack();
+	virtual IResourcePool *getPool() const;
 	virtual void garbageCollect();
 
 	Resource() :
 	    pPool(nullptr){};
-	Resource(IResourcePool *pPool) :
-	    pPool(pPool){};
 	~Resource(){};
 };
 
@@ -43,8 +52,6 @@ class Resource_T : public Resource
 	    Resource(), handle(handle){};
 	Resource_T() :
 	    Resource(), handle(nullptr){};
-	Resource_T(IResourcePool *pPool, T handle) :
-	    Resource(pPool), handle(handle){};
 
 	~Resource_T(){};
 	hash_t hash() const override

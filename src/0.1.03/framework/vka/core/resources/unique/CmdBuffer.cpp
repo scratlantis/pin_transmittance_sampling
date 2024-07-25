@@ -37,7 +37,7 @@ void CmdBuffer_R::createHandles(CmdBufferCapabitlityMask capability, VkCommandBu
 	VK_CHECK(vkBeginCommandBuffer(handle, &beginInfo));
 	stateBits |= CMD_BUF_STATE_BITS_RECORDING;
 	res = new CmdBufferVK_R(handle, cmdPool);
-	res->track(pPool);
+	res->track(getPool());
 }
 hash_t CmdBuffer_R::hash() const
 {
@@ -49,12 +49,6 @@ void CmdBuffer_R::free()
 
 void CmdBuffer_R::track(IResourcePool *pPool)
 {
-	if (!pPool)
-	{
-		printVka("Null resource pool\n");
-		DEBUG_BREAK;
-		return;
-	}
 	if (res)
 	{
 		res->track(pPool);

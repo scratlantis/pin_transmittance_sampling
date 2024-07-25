@@ -140,12 +140,6 @@ void AccelerationStructure_R::setBuildFlags(VkBuildAccelerationStructureFlagsKHR
 }
 void AccelerationStructure_R::track(IResourcePool *pPool)
 {
-	if (!pPool)
-	{
-		printVka("Null resource pool\n");
-		DEBUG_BREAK;
-		return;
-	}
 	if (asRes)
 	{
 		asRes->track(pPool);
@@ -171,7 +165,7 @@ void AccelerationStructure_R::createHandles()
 	createInfo.buffer = bufRes->getHandle();
 	VK_CHECK(vkCreateAccelerationStructureKHR(gState.device.logical, &createInfo, nullptr, &handle));
 	asRes = new AccelerationStructureVK_R(handle);
-	asRes->track(pPool);
+	asRes->track(getPool());
 }
 void AccelerationStructure_R::detachChildResources()
 {
