@@ -153,5 +153,3 @@ class CmdBuffer_R : public Resource_T<VkCommandBuffer>
 	void   track(IResourcePool *pPool) override;
 };
 }        // namespace vka
-
-typedef vka::CmdBuffer_R *CmdBuf;
