@@ -1,10 +1,12 @@
 #include "ModelCache.h"
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
+#include <vka/core_interface/general_commands.h>
+#include <vka/core_interface/buffer_utility.h>
 namespace vka
 {
 
-bool loadObj(std::string path, std::vector<ObjVertex> &vertexList, std::vector<Index> &indexList, std::vector<uint32_t> &indexOffsets)
+bool loadObj(std::string path, std::vector<ObjVertex> &vertexList, std::vector<Index> &indexList, std::vector<uint32_t> &indexOffsets, uint32_t &totalIndexCount)
 {
 	tinyobj::attrib_t                vertexAttributes;
 	std::vector<tinyobj::shape_t>    shapes;
@@ -22,14 +24,14 @@ bool loadObj(std::string path, std::vector<ObjVertex> &vertexList, std::vector<I
 	std::unordered_map<ObjVertex, uint32_t> vertexMap;
 	vertexMap.reserve(vertexAttributes.vertices.size());
 	vertexList.reserve(vertexAttributes.vertices.size());
-	uint32_t indexCount = 0;
+	totalIndexCount       = 0;
 	uint32_t surfaceCount = 0;
 	for (auto &shape : shapes)
 	{
-		indexCount += shape.mesh.indices.size();
+		totalIndexCount += shape.mesh.indices.size();
 		surfaceCount++;
 	}
-	indexList.reserve(indexCount);
+	indexList.reserve(totalIndexCount);
 	indexOffsets.reserve(surfaceCount);
 	uint64_t cnt = 0;
 	for (auto &shape : shapes)
@@ -84,31 +86,31 @@ void ModelCache::clear()
 	}
 	map.clear();
 }
-/*
-ModelData ModelCache::fetch(VkaCommandBuffer cmdBuf, std::string path, void (*parse)(VkaBuffer vertexBuffer, const std::vector<ObjVertex> &vertexList, VkaBuffer indexBuffer, const std::vector<Index> &indexList))
+
+ModelData ModelCache::fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Buffer vertexBuffer, const std::vector<ObjVertex> &vertexList))
 {
 	ModelKey key{path, parse};
 	auto     it = map.find(key);
 	if (it == map.end())
 	{
 		ModelData modelData{};
-		modelData.vertexBuffer          = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-		modelData.indexBuffer           = vkaCreateBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-		modelData.surfaceBuffer         = vkaCreateBuffer(pPool);        // Only used cpu side
-		modelData.surfaceCount          = 1;                             // Only one surface for now
+		modelData.vertexBuffer          = createBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsageFlags);
+		modelData.indexBuffer           = createBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsageFlags);
 		std::string            fullPath = modelPath + path;
 		std::vector<ObjVertex> vertexList;
 		std::vector<Index>     indexList;
-		if (loadObj(fullPath, vertexList, indexList))
+		if (loadObj(fullPath, vertexList, indexList, modelData.indexOffsets, modelData.indexCount))
 		{
 			map.insert({key, modelData});
-			parse(modelData.vertexBuffer, vertexList, modelData.indexBuffer, indexList);
-			vkaCmdUpload(cmdBuf, modelData.vertexBuffer);
-			vkaCmdUpload(cmdBuf, modelData.indexBuffer);
+			parse(modelData.vertexBuffer, vertexList);
+			write(modelData.indexBuffer, indexList.data(), indexList.size()*sizeof(Index));
+			cmdUpload(cmdBuf, modelData.vertexBuffer);
+			cmdUpload(cmdBuf, modelData.indexBuffer);
+
 		}
 		return modelData;
 	}
 	return it->second;
 }
-*/
+
 }        // namespace vka

@@ -1,5 +1,5 @@
 #pragma once
-#include "Resource.h"
+#include <vka/core/resources/Resource.h>
 #include <unordered_set>
 #include <vka/core/resources/unique/Image.h>
 namespace vka

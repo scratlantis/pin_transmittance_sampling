@@ -1,7 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.h>
-#include <vka/core/core_state/IResourcePool.h>
-#include <vka/core/core_state/IResourceCache.h>
+#include <vka/core/resources/IResourcePool.h>
+#include <vka/core/resources/IResourceCache.h>
 #include <vka/core/core_state/Device.h>
 #include <vka/core/core_state/IOControler.h>
 #include <vka/core/core_state/MemAllocator.h>
@@ -58,15 +58,15 @@ class CoreState
 	std::string shaderLog;
 
 	CoreState();
-	void                      init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *window, std::vector<IResourcePool *> pStack, IResourceCache *pCache);
+	void                      init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *window);
 	SubmitSynchronizationInfo acquireNextSwapchainImage();
 	void                      presentFrame();
-	void                      nextFrame();
-	void                      destroy();
+	virtual void			  nextFrame();
+	virtual void              destroy();
 
   private:
 	std::vector<Frame> frames;
-	void               initFrames(std::vector<IResourcePool *> pStack);
+	void               initFrames();
 	void               destroyFrames();
 
 	DELETE_COPY_CONSTRUCTORS(CoreState);

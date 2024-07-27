@@ -6,7 +6,7 @@ class DescriptorSetLayout_R;
 class DescriptorSetLayoutDefinition;
 class PipelineLayout_R;
 class PipelineLayoutDefinition;
-class RasterizationPipeline;
+class RasterizationPipeline_R;
 class RasterizationPipelineDefinition;
 class ComputePipeline_R;
 class ComputePipelineDefinition;

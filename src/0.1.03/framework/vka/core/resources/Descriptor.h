@@ -1,5 +1,4 @@
 #pragma once
-#include <vka/globals.h>
 #include "unique/Buffer.h"
 #include "unique/Image.h"
 #include "cachable/Sampler.h"
@@ -21,6 +20,7 @@ class Descriptor
 	Descriptor(const SamplerDefinition samplerDef, const Image_R *image, VkShaderStageFlags shaderStage);
 	~Descriptor(){};
 
+	void       writeDescriptorInfo(VkWriteDescriptorSet &write, VkDescriptorBufferInfo *&pBufferInfo, VkDescriptorImageInfo *&pImageInfos) const;
   private:
 	VkDescriptorType			  type;
 	VkShaderStageFlags            stage;
@@ -29,6 +29,5 @@ class Descriptor
 	std::vector<const Image_R *>  images;
 	std::vector<VkSampler>        samplers;
 
-	void       writeDescriptorInfo(VkWriteDescriptorSet &write, VkDescriptorBufferInfo *&pBufferInfo, VkDescriptorImageInfo *&pImageInfos) const;
 };
 }        // namespace vka

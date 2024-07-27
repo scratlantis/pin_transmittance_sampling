@@ -71,11 +71,11 @@ class RasterizationPipelineDefinition : public ResourceIdentifier
 	hash_t hash() const override;
 };
 
-class RasterizationPipeline : public Cachable_T<VkPipeline>
+class RasterizationPipeline_R : public Cachable_T<VkPipeline>
 {
   public:
 	virtual void     free() override;
-	RasterizationPipeline(IResourceCache *pCache, RasterizationPipelineDefinition const &def);
+	RasterizationPipeline_R(IResourceCache *pCache, RasterizationPipelineDefinition const &def);
 };
 }        // namespace vka
 DECLARE_HASH(vka::RasterizationPipelineDefinition, hash)

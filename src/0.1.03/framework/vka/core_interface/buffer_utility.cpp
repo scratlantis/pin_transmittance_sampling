@@ -1,6 +1,15 @@
 #include "buffer_utility.h"
+#include <vka/globals.h>
 namespace vka
 {
+
+Buffer createStagingBuffer()
+{
+	Buffer buf = new Buffer_R(gState.frame->stack, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+	buf->changeMemoryType(VMA_MEMORY_USAGE_CPU_ONLY);
+	return buf;
+}
+
 Buffer createBuffer(IResourcePool *pPool, VkBufferUsageFlags usageFlags)
 {
 	return new Buffer_R(pPool, usageFlags);
@@ -32,12 +41,12 @@ void* writePtr(Buffer buf, uint32_t size)
 	return buf->map(0, size);
 }
 
-void write(Buffer buf, uint32_t size, const void *data)
+void write(Buffer buf, const void *data, uint32_t size)
 {
 	memcpy(writePtr(buf, size), data, size);
 }
 
-void fill(Buffer buf, uint32_t size, const void *data, uint32_t count)
+void fill(Buffer buf, const void *data, uint32_t size, uint32_t count)
 {
 	VKA_ASSERT(buf->getSize() >= size * count);
 	void *mapping = writePtr(buf, size * count);

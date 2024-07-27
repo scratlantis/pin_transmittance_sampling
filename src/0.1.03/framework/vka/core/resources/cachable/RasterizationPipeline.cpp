@@ -65,7 +65,7 @@ bool RasterizationPipelineDefinition::operator==(const RasterizationPipelineDefi
 	// clang-format on
 }
 
-void RasterizationPipeline::free()
+void RasterizationPipeline_R::free()
 {
 	vkDestroyPipeline(gState.device.logical, handle, nullptr);
 }
@@ -115,7 +115,7 @@ static VkPipelineDynamicStateCreateInfo makeDynamicStateCI(std::vector<VkDynamic
 	return ci;
 }
 
-RasterizationPipeline::RasterizationPipeline(IResourceCache *pCache, RasterizationPipelineDefinition const &def) :
+RasterizationPipeline_R::RasterizationPipeline_R(IResourceCache *pCache, RasterizationPipelineDefinition const &def) :
     Cachable_T<VkPipeline>(pCache)
 {
 	std::vector<VkViewport_OP> viewports;

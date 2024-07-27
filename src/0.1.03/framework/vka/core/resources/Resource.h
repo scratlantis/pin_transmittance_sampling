@@ -1,6 +1,6 @@
 #pragma once
-#include <vka/core/core_state/IResourceCache.h>
-#include <vka/core/core_state/IResourcePool.h>
+#include <vka/core/resources/IResourceCache.h>
+#include <vka/core/resources/IResourcePool.h>
 #include <vka/core/stateless/utility/hash.h>
 #include <vka/core/stateless/utility/compare.h>
 #include <vka/core/stateless/utility/macros.h>

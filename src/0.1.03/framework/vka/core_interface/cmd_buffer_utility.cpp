@@ -15,6 +15,13 @@ void executeImmediat(CmdBuffer cmdBuffer, VkQueue queue)
 	vkDeviceWaitIdle(gState.device.logical);
 }
 
+void executeImmediat(CmdBuffer cmdBuffer)
+{
+	cmdBuffer->end();
+	submit(cmdBuffer->getHandle(), gState.device.universalQueues[0], {});
+	vkDeviceWaitIdle(gState.device.logical);
+}
+
 void submit(std::vector<CmdBuffer> cmdBufs, VkQueue queue, const SubmitSynchronizationInfo syncInfo)
 {
 	std::vector<VkCommandBuffer> vkCmdBufs;

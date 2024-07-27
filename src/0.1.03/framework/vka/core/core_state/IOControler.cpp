@@ -46,8 +46,6 @@ void IOController::init()
 	}
 	shouldRecreateSwapchain = true;
 
-	// swapchainAttachmentPool = new ResourcePool();
-
 	updateSwapchain();
 	gState.initBits |= STATE_INIT_IO_BIT;
 }
@@ -136,11 +134,6 @@ void IOController::updateSwapchain()
 	gState.initBits |= STATE_INIT_IO_SWAPCHAIN_BIT;
 	shouldRecreateSwapchain = false;
 	swapchainWasRecreated   = true;
-
-	// if (gState.initBits & STATE_INIT_ALL_BIT)
-	//{
-	//	VKA_IMMEDIATE(swapchainAttachmentPool->refreshImages(cmdBuf));
-	// }
 }
 bool IOController::swapchainRecreated()
 {
@@ -164,8 +157,6 @@ void IOController::readInputs()
 
 void IOController::destroy()
 {
-	// swapchainAttachmentPool->clear();
-	// delete swapchainAttachmentPool;
 	vkDestroySwapchainKHR(gState.device.logical, swapchain, nullptr);
 	for (size_t i = 0; i < imageCount; i++)
 	{
@@ -173,11 +164,6 @@ void IOController::destroy()
 	}
 	vkDestroySurfaceKHR(gState.device.instance, surface, nullptr);
 	window->destroy();
-
-	// if (swapchainImage)
-	//{
-	//	delete swapchainImage;
-	// }
 }
 
 void IOController::terminateWindowManager()

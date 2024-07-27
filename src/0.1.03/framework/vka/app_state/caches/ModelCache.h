@@ -1,6 +1,7 @@
 #pragma once
 #include <vka/core/stateless/utility/macros.h>
 #include <vka/core/resources/unique/Buffer.h>
+#include <vka/core_interface/types.h>
 #include <unordered_map>
 namespace vka
 {
@@ -41,6 +42,8 @@ struct ModelData
 	Buffer_R             *vertexBuffer;
 	Buffer_R             *indexBuffer;
 	std::vector<uint32_t> indexOffsets;
+	uint32_t			  indexCount;
+
 
 	bool operator==(const ModelData &other) const
 	{
@@ -49,6 +52,14 @@ struct ModelData
 	vka::hash_t hash() const
 	{
 		return vertexBuffer HASHC indexBuffer HASHC hashVector(indexOffsets);
+	}
+
+	DrawSurface getSurface(uint32_t idx) const
+	{
+		if (idx >= indexOffsets.size() - 1)
+			return {vertexBuffer, indexBuffer, indexOffsets.back(), indexCount - indexOffsets.back()};
+		else
+			return {vertexBuffer, indexBuffer, indexOffsets[idx], indexOffsets[idx + 1] - indexOffsets[idx]};
 	}
 };
 
@@ -79,12 +90,13 @@ class ModelCache
 	std::unordered_map<ModelKey, ModelData> map;
 	std::string                             modelPath;
 	IResourcePool                          *pPool;
+	VkBufferUsageFlags                      bufferUsageFlags;
 
   public:
-	ModelCache(IResourcePool *pPool, std::string modelPath) :
-	    modelPath(modelPath), pPool(pPool)
+	ModelCache(IResourcePool *pPool, std::string modelPath, VkBufferUsageFlags bufferUsageFlags) :
+	    modelPath(modelPath), pPool(pPool), bufferUsageFlags(bufferUsageFlags)
 	{}
 	void      clear();
-	//ModelData fetch(VkaCommandBuffer cmdBuf, std::string path, void (*parse)(VkaBuffer vertexBuffer, const std::vector<ObjVertex> &vertexList, VkaBuffer indexBuffer, const std::vector<Index> &indexList));
+	ModelData fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Buffer vertexBuffer, const std::vector<ObjVertex> &vertexList));
 };
 }        // namespace vka

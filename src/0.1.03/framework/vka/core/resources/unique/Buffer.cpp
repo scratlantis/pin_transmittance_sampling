@@ -167,7 +167,7 @@ Buffer_R Buffer_R::getStagingBuffer() const
 	VKA_ASSERT(stagingBuffer.getPool() == nullptr);
 	stagingBuffer.track(gState.frame->stack);
 	stagingBuffer.changeMemoryType(VMA_MEMORY_USAGE_CPU_ONLY);
-	stagingBuffer.addUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+	stagingBuffer.changeUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 	stagingBuffer.state = stagingBuffer.newState;
 	stagingBuffer.createHandles();
 	return stagingBuffer;

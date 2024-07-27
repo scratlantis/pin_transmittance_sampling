@@ -1,8 +1,10 @@
 #include "CoreState.h"
+#include <vka/core/core_state/ResourcePool.h>
+#include <vka/core/core_state/ResourceCache.h>
 
 namespace vka
 {
-void CoreState::initFrames(std::vector<IResourcePool *> pStack)
+void CoreState::initFrames()
 {
 	VKA_CHECK(initBits & (STATE_INIT_DEVICE_BIT | STATE_INIT_IO_BIT));
 	VkSemaphoreCreateInfo semaphoreCI{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
@@ -14,7 +16,7 @@ void CoreState::initFrames(std::vector<IResourcePool *> pStack)
 		frames[i].frameIndex = i;
 		frames[i].next       = &frames[NEXT_INDEX(i, io.imageCount)];
 		frames[i].previous   = &frames[PREVIOUS_INDEX(i, io.imageCount)];
-		frames[i].stack      = pStack[i];
+		frames[i].stack      = new ResourcePool();
 		VK_CHECK(vkCreateSemaphore(device.logical, &semaphoreCI, nullptr, &frames[i].imageAvailableSemaphore));
 		VK_CHECK(vkCreateSemaphore(device.logical, &semaphoreCI, nullptr, &frames[i].renderFinishedSemaphore));
 		VK_CHECK(vkCreateFence(device.logical, &fenceCI, nullptr, &frames[i].inFlightFence));
@@ -54,7 +56,7 @@ CoreState::CoreState()
 {
 }
 
-void CoreState::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *window, std::vector<IResourcePool*> pStack, IResourceCache* pCache)
+void CoreState::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *window)
 {
 	initBits = 0;
 	window->initWindowManager();
@@ -65,11 +67,10 @@ void CoreState::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *w
 	device.selectPhysicalDevice();
 	device.createLogicalDevice();
 	io.init();
-	VKA_ASSERT(pStack.size() > io.imageCount);
-	initFrames(pStack);
+	initFrames();
 	memAlloc.init();
 	cmdAlloc.init();
-	cache = pCache;
+	cache = new ResourceCache();
 	initBits |= STATE_INIT_ALL_BIT;
 }
 SubmitSynchronizationInfo CoreState::acquireNextSwapchainImage()

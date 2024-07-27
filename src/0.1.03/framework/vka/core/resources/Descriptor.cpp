@@ -1,4 +1,5 @@
 #include "Descriptor.h"
+#include <vka/globals.h>
 
 namespace vka
 {
