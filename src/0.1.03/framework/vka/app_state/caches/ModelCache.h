@@ -31,27 +31,28 @@ struct ObjVertex
 
 struct DrawSurface
 {
-	Buffer_R *vertexBuffer;
-	Buffer_R *indexBuffer;
+	Buffer vertexBuffer;
+	Buffer indexBuffer;
 	uint32_t  offset;
 	uint32_t  count;
 };
 
 struct ModelData
 {
-	Buffer_R             *vertexBuffer;
-	Buffer_R             *indexBuffer;
+	Buffer                vertexBuffer;
+	Buffer                indexBuffer;
+	BLAS                  blas;
 	std::vector<uint32_t> indexOffsets;
-	uint32_t			  indexCount;
+	uint32_t              indexCount;
 
 
 	bool operator==(const ModelData &other) const
 	{
-		return vertexBuffer == other.vertexBuffer && indexBuffer == other.indexBuffer && cmpVector(indexOffsets, other.indexOffsets);
+		return vertexBuffer == other.vertexBuffer && indexBuffer == other.indexBuffer && cmpVector(indexOffsets, other.indexOffsets) && blas == other.blas;
 	};
 	vka::hash_t hash() const
 	{
-		return vertexBuffer HASHC indexBuffer HASHC hashVector(indexOffsets);
+		return vertexBuffer HASHC indexBuffer HASHC hashVector(indexOffsets) HASHC blas;
 	}
 
 	DrawSurface getSurface(uint32_t idx) const
@@ -97,6 +98,6 @@ class ModelCache
 	    modelPath(modelPath), pPool(pPool), bufferUsageFlags(bufferUsageFlags)
 	{}
 	void      clear();
-	ModelData fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Buffer vertexBuffer, const std::vector<ObjVertex> &vertexList));
+	ModelData fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Buffer vertexBuffer, const std::vector<ObjVertex> &vertexList), bool createAccelerationStructure = false, bool isOpaque = false);
 };
 }        // namespace vka

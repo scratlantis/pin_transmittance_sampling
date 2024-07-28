@@ -27,9 +27,10 @@ void cmdUploadImageData(CmdBuffer cmdBuf, void *data, size_t dataSize, Image dst
 void cmdCopyImage(CmdBuffer cmdBuf, Image src, VkImageLayout srcNewLayout, Image dst, VkImageLayout dstNewLayout,
                   ImageSubresourceRange srcSubRange = {0, 0, 1}, ImageSubresourceRange dstSubRange = {0, 0, 1});
 void cmdCopyImage(CmdBuffer cmdBuf, Image src, Image dst);
+
 // Acceleration Structure
-
-
+void cmdBuildAccelerationStructure(CmdBuffer cmdBuf, TLAS dst, Buffer instanceBuffer, Buffer scratchBuffer, VkAccelerationStructureKHR src = VK_NULL_HANDLE);
+void cmdBuildAccelerationStructure(CmdBuffer cmdBuf, BLAS dst, Buffer scratchBuffer, VkAccelerationStructureKHR src = VK_NULL_HANDLE);
 
 // General
 void cmdBarrier(CmdBuffer cmdBuf, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccesFlags, VkAccessFlags dstAccesFlags);

@@ -35,6 +35,7 @@ class Image_R : public Resource_T<VkImage>
 	Resource *viewRes = nullptr;
 	bool      createView;
 
+	Image_R() = default;
   private:
 	VkImageView viewHandle = VK_NULL_HANDLE;
 
@@ -49,7 +50,6 @@ class Image_R : public Resource_T<VkImage>
 
 	VkImageLayout layout;
 
-	Image_R() = default;
   public:
 	VkDeviceSize getMemorySize() const
 	{
@@ -163,6 +163,8 @@ class SwapchainImage_R : public Image_R
 	SwapchainImage_R(const Image_R &rhs) :
 	    Image_R(rhs){};
   public:
+	SwapchainImage_R() = default;
+
 	VkImage     getHandle() const override;
 	VkImageView getViewHandle() const override;
 	VkFormat    getFormat() const override;

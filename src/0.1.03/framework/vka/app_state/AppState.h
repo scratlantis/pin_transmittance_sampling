@@ -15,14 +15,16 @@ struct AppStateConfig
 
 class AppState : public CoreState
 {
+
+  public:
 	FramebufferCache *framebufferCache;
 	ModelCache       *modelCache;
 	TextureCache     *textureCache;
 	IResourcePool    *heap;
 	IResourcePool    *swapchainAttachmentPool;
-	SwapchainImage_R  *swapchainImage;
+	SwapchainImage_R *swapchainImage;
 
-  public:
+
 	AppState(){};
 	~AppState(){};
 	void init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Window *window, AppStateConfig &config);

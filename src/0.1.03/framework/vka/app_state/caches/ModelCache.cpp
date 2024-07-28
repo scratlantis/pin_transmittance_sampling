@@ -3,6 +3,7 @@
 #include "tiny_obj_loader.h"
 #include <vka/core_interface/general_commands.h>
 #include <vka/core_interface/buffer_utility.h>
+#include <vka/core_interface/acceleration_structure_utility.h>
 namespace vka
 {
 
@@ -87,15 +88,20 @@ void ModelCache::clear()
 	map.clear();
 }
 
-ModelData ModelCache::fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Buffer vertexBuffer, const std::vector<ObjVertex> &vertexList))
+ModelData ModelCache::fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Buffer vertexBuffer, const std::vector<ObjVertex> &vertexList), bool createAccelerationStructure, bool isOpaque)
 {
 	ModelKey key{path, parse};
 	auto     it = map.find(key);
 	if (it == map.end())
 	{
 		ModelData modelData{};
-		modelData.vertexBuffer          = createBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsageFlags);
-		modelData.indexBuffer           = createBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsageFlags);
+		VkBufferUsageFlags additionalBufferUsageFlags = 0;
+		if (createAccelerationStructure)
+		{
+			additionalBufferUsageFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT; 
+		}
+		modelData.vertexBuffer          = createBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsageFlags | additionalBufferUsageFlags);
+		modelData.indexBuffer           = createBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsageFlags | additionalBufferUsageFlags);
 		std::string            fullPath = modelPath + path;
 		std::vector<ObjVertex> vertexList;
 		std::vector<Index>     indexList;
@@ -106,6 +112,36 @@ ModelData ModelCache::fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Bu
 			write(modelData.indexBuffer, indexList.data(), indexList.size()*sizeof(Index));
 			cmdUpload(cmdBuf, modelData.vertexBuffer);
 			cmdUpload(cmdBuf, modelData.indexBuffer);
+
+			if (createAccelerationStructure)
+			{
+				std::vector<VkAccelerationStructureGeometryKHR>       geometry;
+				std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRange;
+				for (uint32_t i = 0; i < modelData.indexOffsets.size(); i++)
+				{
+					VkAccelerationStructureGeometryTrianglesDataKHR trianglesKHR{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR};
+					trianglesKHR.vertexFormat             = VK_FORMAT_R32G32B32_SFLOAT;
+					trianglesKHR.vertexData.deviceAddress = modelData.vertexBuffer->getDeviceAddress();
+					trianglesKHR.vertexStride             = modelData.vertexBuffer->getSize() / vertexList.size();
+					trianglesKHR.indexType                = VK_INDEX_TYPE_UINT32;
+					trianglesKHR.indexData.deviceAddress  = modelData.indexBuffer->getDeviceAddress();
+					VkAccelerationStructureGeometryKHR geometryKHR{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
+					geometryKHR.geometryType       = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+					geometryKHR.geometry.triangles = trianglesKHR;
+					geometryKHR.flags              = isOpaque ? VK_GEOMETRY_OPAQUE_BIT_KHR : 0;
+					geometry.push_back(geometryKHR);
+
+					VkAccelerationStructureBuildRangeInfoKHR rangeKHR{};
+					rangeKHR.primitiveCount  = indexList.size() / 3;
+					rangeKHR.primitiveOffset = 0;
+					rangeKHR.firstVertex     = 0;
+					rangeKHR.transformOffset = 0;
+					buildRange.push_back(rangeKHR);
+				}
+				modelData.blas = createBottomLevelAS(pPool, geometry, buildRange);
+				cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR);
+				cmdBuildAccelerationStructure(cmdBuf, modelData.blas, createStagingBuffer());
+			}
 
 		}
 		return modelData;

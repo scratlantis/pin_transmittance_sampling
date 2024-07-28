@@ -157,6 +157,29 @@ void cmdCopyImage(CmdBuffer cmdBuf, Image src, Image dst)
     cmdCopyImage(cmdBuf, src, src->getLayout(), dst, dst->getLayout());
 }
 
+// Acceleration Structure
+void cmdBuildAccelerationStructure(CmdBuffer cmdBuf, BLAS dst, Buffer scratchBuffer, VkAccelerationStructureKHR src)
+{
+    dst->configureScratchBuffer(scratchBuffer);
+	scratchBuffer->recreate();
+	VkAccelerationStructureBuildGeometryInfoKHR buildInfo = dst->getBuildInfo(src, scratchBuffer);
+    cmdClearState(cmdBuf);
+	vkCmdBuildAccelerationStructuresKHR(cmdBuf->getHandle(), 1, &buildInfo, dst->getBuildRangePtrs().data());
+	dst->setBuilt(true);
+}
+
+void cmdBuildAccelerationStructure(CmdBuffer cmdBuf, TLAS dst, Buffer instanceBuffer, Buffer scratchBuffer, VkAccelerationStructureKHR src)
+{
+    dst->setInstanceData(instanceBuffer);
+	dst->configureScratchBuffer(scratchBuffer);
+	scratchBuffer->recreate();
+	VkAccelerationStructureBuildGeometryInfoKHR buildInfo = dst->getBuildInfo(src, scratchBuffer);
+	cmdClearState(cmdBuf);
+	vkCmdBuildAccelerationStructuresKHR(cmdBuf->getHandle(), 1, &buildInfo, dst->getBuildRangePtrs().data());
+	dst->setBuilt(true);
+}
+
+
 // General
 void cmdBarrier(CmdBuffer cmdBuf, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkAccessFlags srcAccesFlags, VkAccessFlags dstAccesFlags)
 {

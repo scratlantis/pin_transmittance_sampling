@@ -26,12 +26,11 @@ class AccelerationStructure_R : public Resource_T<VkAccelerationStructureKHR>
 	bool                                    built      = false;
 	VkBuildAccelerationStructureFlagsKHR    buildFlags = 0;
 
-  private:
 
-
-	virtual VkAccelerationStructureBuildGeometryInfoKHR getBuildInfo() const = 0;
-	virtual VkDeviceSize                                getBuildSize() const = 0;
-	virtual VkAccelerationStructureTypeKHR              getType() const      = 0;
+	virtual VkAccelerationStructureBuildGeometryInfoKHR getBuildInfo(VkAccelerationStructureKHR src, Buffer_R *scratchBuffer) const;
+	virtual VkAccelerationStructureBuildGeometryInfoKHR getBuildInfoInternal() const = 0;
+	virtual VkDeviceSize                                getBuildSize() const         = 0;
+	virtual VkAccelerationStructureTypeKHR              getType() const              = 0;
 
   public:
 	AccelerationStructure_R() = default;
@@ -42,9 +41,11 @@ class AccelerationStructure_R : public Resource_T<VkAccelerationStructureKHR>
 		Resource::track(pPool);
 	};
 
-	bool                                        isBuilt() const;
-	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfo(VkAccelerationStructureKHR src, Buffer_R *scratchBuffer) const;
-	void                                        configureScratchBuffer(Buffer_R *scratchBuffer) const;
+	bool                                                                  isBuilt() const;
+	virtual std::vector<const VkAccelerationStructureBuildRangeInfoKHR *> getBuildRangePtrs() const = 0;
+	void                                                                  configureScratchBuffer(Buffer_R *scratchBuffer) const;
+	VkAccelerationStructureBuildGeometryInfoKHR                           getBuildInfo(VkAccelerationStructureKHR src, Buffer_R *scratchBuffer) const;
+
 
 	void setBuilt(bool built);
 	void setBuildFlags(VkBuildAccelerationStructureFlagsKHR flags);
@@ -66,7 +67,7 @@ class BottomLevelAS_R : public AccelerationStructure_R
 
 	BottomLevelAS_R(const BottomLevelAS_R &rhs) = default;
 
-	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfo() const;
+	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfoInternal() const;
 	VkDeviceSize                                getBuildSize() const;
 	virtual VkAccelerationStructureTypeKHR      getType() const;
 
@@ -86,20 +87,22 @@ class BottomLevelAS_R : public AccelerationStructure_R
 class TopLevelAs_R : public AccelerationStructure_R
 {
   protected:
-	uint32_t                             instanceCount = 0;
-	TopLevelAs_R(const TopLevelAs_R &rhs) = default;
+	VkAccelerationStructureBuildRangeInfoKHR buildRange = {};
+	VkAccelerationStructureGeometryKHR       buildGeom  = {};
+	TopLevelAs_R(const TopLevelAs_R &rhs)               = default;
 
   private:
-
-	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfo() const;
+	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfoInternal() const;
 	VkDeviceSize                                getBuildSize() const;
 	virtual VkAccelerationStructureTypeKHR      getType() const;
+
   public:
-	TopLevelAs_R() = default;
+	TopLevelAs_R();
 	TopLevelAs_R(IResourcePool *pPool) :
 	    AccelerationStructure_R(pPool){};
-
-	void               setInstanceCount(uint32_t count);
-	const TopLevelAs_R getShallowCopy() const;
+	void                                                                  setInstanceCount(uint32_t count);
+	void                                                                  setInstanceData(Buffer_R *instanceBuffer);
+	virtual std::vector<const VkAccelerationStructureBuildRangeInfoKHR *> getBuildRangePtrs() const;
+	const TopLevelAs_R                                                    getShallowCopy() const;
 };
 }        // namespace vka

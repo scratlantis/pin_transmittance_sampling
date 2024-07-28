@@ -45,7 +45,7 @@ const BottomLevelAS_R BottomLevelAS_R::getShallowCopy() const
 	return *this;
 }
 
-VkAccelerationStructureBuildGeometryInfoKHR BottomLevelAS_R::getBuildInfo() const
+VkAccelerationStructureBuildGeometryInfoKHR BottomLevelAS_R::getBuildInfoInternal() const
 {
 	VkAccelerationStructureBuildGeometryInfoKHR buildInfo{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR};
 	buildInfo.flags                    = buildFlags;
@@ -58,7 +58,7 @@ VkAccelerationStructureBuildGeometryInfoKHR BottomLevelAS_R::getBuildInfo() cons
 
 VkDeviceSize BottomLevelAS_R::getBuildSize() const
 {
-	VkAccelerationStructureBuildGeometryInfoKHR buildInfo = getBuildInfo();
+	VkAccelerationStructureBuildGeometryInfoKHR buildInfo = getBuildInfoInternal();
 	std::vector<uint32_t> maxPrimCount(buildRange.size());
 	for (uint32_t i = 0; i < buildRange.size(); i++)
 	{
@@ -74,40 +74,59 @@ VkAccelerationStructureTypeKHR BottomLevelAS_R::getType() const
 	return VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
 };
 
+
+
 void TopLevelAs_R::setInstanceCount(uint32_t count)
 {
-	instanceCount = count;
+	buildRange.primitiveCount = count;
+}
+
+void TopLevelAs_R::setInstanceData(Buffer_R *instanceBuffer)
+{
+	buildGeom.geometry.instances.data.deviceAddress = instanceBuffer->getDeviceAddress();
+}
+
+std::vector<const VkAccelerationStructureBuildRangeInfoKHR *> TopLevelAs_R::getBuildRangePtrs() const
+{
+	// Build Offsets info
+	std::vector<const VkAccelerationStructureBuildRangeInfoKHR *> ptrs;
+	ptrs.push_back(&buildRange);
+	return ptrs;
 }
 
 const TopLevelAs_R TopLevelAs_R::getShallowCopy() const
 {
 	return *this;
 }
-VkAccelerationStructureBuildGeometryInfoKHR TopLevelAs_R::getBuildInfo() const
+VkAccelerationStructureBuildGeometryInfoKHR TopLevelAs_R::getBuildInfoInternal() const
 {
-	VkAccelerationStructureGeometryInstancesDataKHR instancesVk{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR};
-	VkAccelerationStructureGeometryKHR              topASGeometry{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
-	topASGeometry.geometryType       = VK_GEOMETRY_TYPE_INSTANCES_KHR;
-	topASGeometry.geometry.instances = instancesVk;
 	VkAccelerationStructureBuildGeometryInfoKHR buildInfo{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR};
 	buildInfo.flags         = buildFlags;
 	buildInfo.geometryCount = 1;
-	buildInfo.pGeometries   = &topASGeometry;
+	buildInfo.pGeometries   = &buildGeom;
 	buildInfo.type          = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
 	return buildInfo;
 }
 
 VkDeviceSize TopLevelAs_R::getBuildSize() const
 {
-	VkAccelerationStructureBuildGeometryInfoKHR buildInfo = getBuildInfo();
+	VkAccelerationStructureBuildGeometryInfoKHR buildInfo = getBuildInfoInternal();
 	VkAccelerationStructureBuildSizesInfoKHR    sizeInfo{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
-	vkGetAccelerationStructureBuildSizesKHR(gState.device.logical, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo, &instanceCount, &sizeInfo);
+	vkGetAccelerationStructureBuildSizesKHR(gState.device.logical, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo, &buildRange.primitiveCount, &sizeInfo);
 	return sizeInfo.accelerationStructureSize;
 }
 
 VkAccelerationStructureTypeKHR TopLevelAs_R::getType() const
 {
 	return VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+}
+
+TopLevelAs_R::TopLevelAs_R()
+{
+	VkAccelerationStructureGeometryInstancesDataKHR instancesVk{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR};
+	buildGeom                    = {VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
+	buildGeom.geometryType       = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+	buildGeom.geometry.instances = instancesVk;
 };
 
 bool AccelerationStructure_R::isBuilt() const
@@ -116,11 +135,11 @@ bool AccelerationStructure_R::isBuilt() const
 }
 VkAccelerationStructureBuildGeometryInfoKHR AccelerationStructure_R::getBuildInfo(VkAccelerationStructureKHR src, Buffer_R *scratchBuffer) const
 {
-	VkAccelerationStructureBuildGeometryInfoKHR buildInfo = getBuildInfo();
+	VkAccelerationStructureBuildGeometryInfoKHR buildInfo = getBuildInfoInternal();
 	buildInfo.srcAccelerationStructure                    = src;
 	buildInfo.mode                                        = (src == VK_NULL_HANDLE) ? VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR : VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
 	buildInfo.dstAccelerationStructure                    = handle;
-	buildInfo.scratchData.deviceAddress                   = scratchBuffer->getDeviceAddress();
+	buildInfo.scratchData.deviceAddress                   = alignUp(scratchBuffer->getDeviceAddress(), getAccelerationStructureProperties().minAccelerationStructureScratchOffsetAlignment);
 	return buildInfo;
 }
 void AccelerationStructure_R::configureScratchBuffer(Buffer_R *scratchBuffer) const
