@@ -1,6 +1,6 @@
 #pragma once
 //#include <vka/core/core_state/CoreState.h>
-#include <vka/app_state/AppState.h>
+#include <vka/advanced_state/AdvancedState.h>
 
-extern vka::AppState    gState;
+extern vka::AdvancedState    gState;
 extern const std::string gShaderOutputDir;

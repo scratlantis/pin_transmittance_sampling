@@ -6,14 +6,14 @@
 
 namespace vka
 {
-struct AppStateConfig
+struct AdvancedStateConfig
 {
 	std::string        modelPath;
 	std::string        texturePath;
 	VkBufferUsageFlags modelUsage;
 };
 
-class AppState : public CoreState
+class AdvancedState : public CoreState
 {
 
   public:
@@ -25,9 +25,9 @@ class AppState : public CoreState
 	SwapchainImage_R *swapchainImage;
 
 
-	AppState(){};
-	~AppState(){};
-	void init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Window *window, AppStateConfig &config);
+	AdvancedState(){};
+	~AdvancedState(){};
+	void init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Window *window, AdvancedStateConfig &config);
 	void destroy() override;
 	virtual void nextFrame() override;
 };

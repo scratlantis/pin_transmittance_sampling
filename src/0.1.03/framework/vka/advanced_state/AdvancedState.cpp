@@ -1,10 +1,10 @@
-#include "AppState.h"
+#include "AdvancedState.h"
 #include <vka/core/core_state/ResourcePool.h>
-#include <vka/core_interface/cmd_buffer_utility.h>
-#include <vka/core_interface/general_commands.h>
+#include <vka/core/core_utility/cmd_buffer_utility.h>
+#include <vka/core/core_utility/general_commands.h>
 namespace vka
 {
-void AppState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Window *window, AppStateConfig &config)
+void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Window *window, AdvancedStateConfig &config)
 {
 	CoreState::init(deviceCI, ioControllerCI, window);
 	swapchainAttachmentPool = new ResourcePool();
@@ -15,7 +15,7 @@ void AppState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Window *w
 	swapchainImage          = nullptr;
 }
 
-void AppState::destroy()
+void AdvancedState::destroy()
 {
 	heap->clear();
 	swapchainAttachmentPool->clear();
@@ -31,7 +31,7 @@ void AppState::destroy()
 	CoreState::destroy();
 }
 
-void AppState::nextFrame()
+void AdvancedState::nextFrame()
 {
 	CoreState::nextFrame();
 	if (io.swapchainRecreated())

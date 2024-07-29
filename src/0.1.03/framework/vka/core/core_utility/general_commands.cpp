@@ -1,4 +1,4 @@
-#include <vka/core_interface/general_commands.h>
+#include "general_commands.h"
 #include <vka/globals.h>
 #include "buffer_utility.h"
 #include <vka/core/resources/Descriptor.h>

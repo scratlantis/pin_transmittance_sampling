@@ -1,9 +1,9 @@
 #include "ModelCache.h"
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
-#include <vka/core_interface/general_commands.h>
-#include <vka/core_interface/buffer_utility.h>
-#include <vka/core_interface/acceleration_structure_utility.h>
+#include <vka/core/core_utility/general_commands.h>
+#include <vka/core/core_utility/buffer_utility.h>
+#include <vka/core/core_utility/acceleration_structure_utility.h>
 namespace vka
 {
 

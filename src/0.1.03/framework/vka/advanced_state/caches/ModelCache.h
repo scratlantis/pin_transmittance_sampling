@@ -1,7 +1,7 @@
 #pragma once
 #include <vka/core/stateless/utility/macros.h>
 #include <vka/core/resources/unique/Buffer.h>
-#include <vka/core_interface/types.h>
+#include <vka/core/core_utility/types.h>
 #include <unordered_map>
 namespace vka
 {

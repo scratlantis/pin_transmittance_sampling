@@ -1,6 +1,6 @@
 #pragma once
 #include <unordered_map>
-#include <vka/core_interface/types.h>
+#include <vka/core/core_utility/types.h>
 namespace vka
 {
 

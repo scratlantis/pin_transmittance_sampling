@@ -1,7 +1,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "TextureCache.h"
-#include <vka/core_interface/image_utility.h>
-#include <vka/core_interface/general_commands.h>
+#include <vka/core/core_utility/image_utility.h>
+#include <vka/core/core_utility/general_commands.h>
 namespace vka
 {
 bool loadImg(std::string path, ImageData &imgData, bool useAlpha = true)

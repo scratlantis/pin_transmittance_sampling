@@ -1,5 +1,5 @@
 #pragma once
-#include <vka/core_interface/types.h>
+#include <vka/core/core_utility/types.h>
 namespace vka
 {
 void             swapBuffers(std::vector<CmdBuffer> cmdBufs);

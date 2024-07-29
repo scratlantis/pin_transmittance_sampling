@@ -1,5 +1,5 @@
 #include "misc_utility.h"
-#include <vka/core_interface/cmd_buffer_utility.h>
+#include <vka/core/core_utility/cmd_buffer_utility.h>
 #include <vka/core/stateless/vk_types/default_values.h>
 #include <vka/globals.h>
 

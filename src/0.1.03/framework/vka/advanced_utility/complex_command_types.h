@@ -1,6 +1,6 @@
 #pragma once
-#include <vka/app_state/AppState.h>
-#include <vka/core_interface/types.h>
+#include <vka/advanced_state/AdvancedState.h>
+#include <vka/core/core_utility/types.h>
 #include <vka/core/resources/cachable/RasterizationPipeline.h>
 #include <vka/core/resources/cachable/ComputePipeline.h>
 #include <vka/core/resources/Descriptor.h>
