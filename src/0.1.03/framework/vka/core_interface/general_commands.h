@@ -5,6 +5,8 @@
 
 namespace vka
 {
+#define VKA_PUSH_CONSTANT_RANGE_ALLIGNMENT 16U
+
 struct ImageSubresourceRange
 {
 	uint32_t mipLevel;
@@ -44,6 +46,7 @@ void cmdBindPipeline(CmdBuffer cmdBuf);
 void cmdPushDescriptors(CmdBuffer cmdBuf, uint32_t setIdx, std::vector<Descriptor> desc);
 
 void cmdPushConstants(CmdBuffer cmdBuf, VkShaderStageFlags shaderStage, uint32_t offset, uint32_t size, const void *data);
+void cmdPushConstants(CmdBuffer cmdBuf, const std::vector<uint32_t> &pcSizes, BufferRef pcData);
 void cmdDispatch(CmdBuffer cmdBuf, glm::uvec3 workgroups);
 void cmdBindVertexBuffers(CmdBuffer cmdBuf);
 void cmdBindIndexBuffer(CmdBuffer cmdBuf, VkDeviceSize offset);

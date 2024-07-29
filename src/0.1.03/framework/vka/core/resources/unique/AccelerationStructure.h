@@ -27,7 +27,6 @@ class AccelerationStructure_R : public Resource_T<VkAccelerationStructureKHR>
 	VkBuildAccelerationStructureFlagsKHR    buildFlags = 0;
 
 
-	virtual VkAccelerationStructureBuildGeometryInfoKHR getBuildInfo(VkAccelerationStructureKHR src, Buffer_R *scratchBuffer) const;
 	virtual VkAccelerationStructureBuildGeometryInfoKHR getBuildInfoInternal() const = 0;
 	virtual VkDeviceSize                                getBuildSize() const         = 0;
 	virtual VkAccelerationStructureTypeKHR              getType() const              = 0;

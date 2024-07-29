@@ -75,7 +75,6 @@ void Buffer_R::update()
 {
 	const Buffer_R oldBuffer   = recreate();
 	VkDeviceSize   minDataSize = std::min(oldBuffer.getSize(), getSize());
-	minDataSize                = std::min(minDataSize, range.size);
 	void* data_old            = oldBuffer.map(0, minDataSize);
 	void* data_new			= this->map(0, minDataSize);
 	std::memcpy(data_new, data_old, minDataSize);
@@ -105,9 +104,9 @@ hash_t Buffer_R::hash() const
 	return res->hash() << VKA_RESOURCE_META_DATA_HASH_SHIFT;
 }
 
-void* Buffer_R::map(uint32_t offset, uint32_t size) const
+void* Buffer_R::map(uint32_t offset, VkDeviceSize size) const
 {
-	return (new BufferMapping_R(res, offset + range.offset, size))->ptr();
+	return (new BufferMapping_R(res, offset + range.offset, std::min(size, getSize())))->ptr();
 }
 
 void Buffer_R::changeSize(VkDeviceSize size)
@@ -132,7 +131,7 @@ void Buffer_R::changeMemoryType(VmaMemoryUsage memProperty)
 
 VkDeviceSize Buffer_R::getSize() const
 {
-	return state.size;
+	return std::min(range.size, state.size);
 }
 VkBufferUsageFlags Buffer_R::getUsage() const
 {

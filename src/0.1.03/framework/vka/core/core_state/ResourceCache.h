@@ -9,7 +9,6 @@
 #include <vka/core/resources/cachable/Sampler.h>
 #include <vka/core/resources/cachable/Shader.h>
 
-#include <vka/globals.h>
 
 namespace vka
 {
@@ -26,7 +25,7 @@ class ResourceCache : public IResourceCache
 	std::unordered_map<ShaderDefinition, Shader_R>                               shaders;
 
 	template <typename Def, typename Obj, typename Handle>
-	static void fetch(std::unordered_map<Def, Obj> &map, Def const &rID, Handle &handle)
+	void fetch(std::unordered_map<Def, Obj> &map, Def const &rID, Handle &handle)
 	{
 		auto it = map.find(rID);
 		if (it != map.end())
@@ -34,14 +33,14 @@ class ResourceCache : public IResourceCache
 		else
 		{
 			printVka("Cachable created.\n");
-			Obj  obj = Obj(gState.cache, rID);        // civ
+			Obj  obj = Obj(this, rID);        // civ
 			auto ret = map.insert({rID, obj});
 			VKA_ASSERT(ret.second);
 			handle = obj.getHandle();
 		}
 	}
 	template <typename Def, typename Obj>
-	static void clear(std::unordered_map<Def, Obj> &map)
+	void clear(std::unordered_map<Def, Obj> &map)
 	{
 		auto it = map.begin();
 		for (auto it = map.begin(); it != map.end(); ++it)

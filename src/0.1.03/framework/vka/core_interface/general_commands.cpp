@@ -253,13 +253,29 @@ void cmdPushDescriptors(CmdBuffer cmdBuf, uint32_t setIdx, std::vector<Descripto
         writes[i].dstBinding      = i;
         desc[i].writeDescriptorInfo(writes[i], pBuffInfo, pImageInfo);
     }
-    pvkCmdPushDescriptorSetKHR(cmdBuf->getHandle(), cmdBuf->renderState.bindPoint, gState.cache->fetch(cmdBuf->renderState.pipelineLayoutDef), setIdx, writes.size(), writes.data());
+    pvkCmdPushDescriptorSetKHR(cmdBuf->getHandle(), cmdBuf->renderState.bindPoint, cmdBuf->renderState.pipelineLayout, setIdx, writes.size(), writes.data());
 }
 
 void cmdPushConstants(CmdBuffer cmdBuf, VkShaderStageFlags shaderStage, uint32_t offset, uint32_t size, const void *data)
 {
     VKA_ASSERT(cmdBuf->stateBits & CMD_BUF_STATE_BITS_BOUND_PIPELINE);
-    vkCmdPushConstants(cmdBuf->getHandle(), gState.cache->fetch(cmdBuf->renderState.pipelineLayoutDef), shaderStage, offset, size, data);
+	vkCmdPushConstants(cmdBuf->getHandle(), cmdBuf->renderState.pipelineLayout, shaderStage, offset, size, data);
+}
+
+void cmdPushConstants(CmdBuffer cmdBuf, const std::vector<uint32_t> &pcSizes, BufferRef pcData)
+{
+	VKA_ASSERT(cmdBuf->stateBits & CMD_BUF_STATE_BITS_BOUND_PIPELINE);
+	VKA_ASSERT(pcSizes.size() == cmdBuf->renderState.pipelineLayoutDef.pcRanges.size());
+    uint32_t readOffset  = 0;
+    uint32_t writeOffset = 0;
+	void* data = pcData->map();
+	for (size_t i = 0; i < pcSizes.size(); i++)
+	{
+		cmdPushConstants(cmdBuf, cmdBuf->renderState.pipelineLayoutDef.pcRanges[i].stageFlags, writeOffset, pcSizes[i], (char *) data + readOffset);
+		readOffset += pcSizes[i];
+		writeOffset += pcSizes[i];
+		writeOffset = alignUp(writeOffset, VKA_PUSH_CONSTANT_RANGE_ALLIGNMENT);        // align to 16 bytes just to be safe
+	}
 }
 
 void cmdDispatch(CmdBuffer cmdBuf, glm::uvec3 workgroups)

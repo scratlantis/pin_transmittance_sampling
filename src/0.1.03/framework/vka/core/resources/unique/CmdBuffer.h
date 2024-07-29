@@ -52,7 +52,6 @@ enum RenderStateActionBits
 	RENDER_STATE_ACTION_BIT_NEXT_SUBPASS       = 1 << 2,
 	RENDER_STATE_ACTION_BIT_BIND_PIPELINE      = 1 << 3,
 	RENDER_STATE_ACTION_BIT_BIND_VERTEX_BUFFER = 1 << 4,
-	RENDER_STATE_ACTION_BIT_BIND_INDEX_BUFFER  = 1 << 5,
 };
 
 class Buffer_R;
@@ -70,7 +69,8 @@ struct RenderState
 
 	// -> BindPipeline
 	VkPipeline               pipeline;
-	PipelineLayoutDefinition pipelineLayoutDef;
+	VkPipelineLayout		 pipelineLayout;
+	PipelineLayoutDefinition pipelineLayoutDef; // Must match pipelineLayout
 	VkPipelineBindPoint      bindPoint;
 
 	// -> Bind Buffers
@@ -97,10 +97,6 @@ struct RenderState
 		if (!cmpVector(vertexBuffers, other.vertexBuffers))
 		{
 			diffBits |= RENDER_STATE_ACTION_BIT_BIND_VERTEX_BUFFER;
-		}
-		if (indexBuffer != other.indexBuffer)
-		{
-			diffBits |= RENDER_STATE_ACTION_BIT_BIND_INDEX_BUFFER;
 		}
 		return diffBits;
 	}

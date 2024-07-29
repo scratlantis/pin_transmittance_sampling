@@ -128,6 +128,8 @@ class Buffer_R : public Resource_T<VkBuffer>
 	void   track(IResourcePool *pPool) override;
 	hash_t hash() const override;
 
+	void *map(uint32_t offset = 0, VkDeviceSize size = VK_WHOLE_SIZE) const;
+
 	void changeSize(VkDeviceSize size);
 	void addUsage(VkBufferUsageFlags usage);
 	void changeUsage(VkBufferUsageFlags usage);
@@ -149,7 +151,6 @@ class Buffer_R : public Resource_T<VkBuffer>
 	void           detachChildResources();
 	const Buffer_R recreate();
 	void           update();
-	void* map(uint32_t offset, uint32_t size) const;
 	friend class BufferMapping;
 };
 }        // namespace vka
