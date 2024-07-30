@@ -88,15 +88,15 @@ void ModelCache::clear()
 	map.clear();
 }
 
-ModelData ModelCache::fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Buffer vertexBuffer, const std::vector<ObjVertex> &vertexList), bool createAccelerationStructure, bool isOpaque)
+ModelData ModelCache::fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Buffer vertexBuffer, VertexDataLayout &vertexLayout, const std::vector<ObjVertex> &vertexList), uint32_t loadFlags)
 {
-	ModelKey key{path, parse};
+	ModelKey key{path, parse, loadFlags};
 	auto     it = map.find(key);
 	if (it == map.end())
 	{
 		ModelData modelData{};
 		VkBufferUsageFlags additionalBufferUsageFlags = 0;
-		if (createAccelerationStructure)
+		if (loadFlags & MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE)
 		{
 			additionalBufferUsageFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT; 
 		}
@@ -108,12 +108,12 @@ ModelData ModelCache::fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Bu
 		if (loadObj(fullPath, vertexList, indexList, modelData.indexOffsets, modelData.indexCount))
 		{
 			map.insert({key, modelData});
-			parse(modelData.vertexBuffer, vertexList);
+			parse(modelData.vertexBuffer, modelData.vertexLayout, vertexList);
 			write(modelData.indexBuffer, indexList.data(), indexList.size()*sizeof(Index));
 			cmdUpload(cmdBuf, modelData.vertexBuffer);
 			cmdUpload(cmdBuf, modelData.indexBuffer);
 
-			if (createAccelerationStructure)
+			if (loadFlags & MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE)
 			{
 				std::vector<VkAccelerationStructureGeometryKHR>       geometry;
 				std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRange;
@@ -128,7 +128,7 @@ ModelData ModelCache::fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Bu
 					VkAccelerationStructureGeometryKHR geometryKHR{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
 					geometryKHR.geometryType       = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
 					geometryKHR.geometry.triangles = trianglesKHR;
-					geometryKHR.flags              = isOpaque ? VK_GEOMETRY_OPAQUE_BIT_KHR : 0;
+					geometryKHR.flags              = (loadFlags & MODEL_LOAD_FLAG_IS_OPAQUE) ? VK_GEOMETRY_OPAQUE_BIT_KHR : 0;
 					geometry.push_back(geometryKHR);
 
 					VkAccelerationStructureBuildRangeInfoKHR rangeKHR{};

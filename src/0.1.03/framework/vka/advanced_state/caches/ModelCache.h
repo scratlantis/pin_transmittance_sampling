@@ -29,6 +29,23 @@ struct ObjVertex
 	}
 };
 
+struct VertexDataLayout
+{
+	std::vector<VkFormat> formats;
+	std::vector<uint32_t> offsets;
+	uint32_t              stride;
+
+	bool operator==(const VertexDataLayout &other) const
+	{
+		return cmpVector(formats, other.formats) && cmpVector(offsets, other.offsets) && stride == other.stride;
+	}
+
+	vka::hash_t hash() const
+	{
+		return hashVector(formats) HASHC hashVector(offsets) HASHC stride;
+	}
+};
+
 struct DrawSurface
 {
 	Buffer vertexBuffer;
@@ -37,13 +54,22 @@ struct DrawSurface
 	uint32_t  count;
 };
 
+enum ModelLoadFlagBits
+{
+	MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE = 1 << 0,
+	MODEL_LOAD_FLAG_IS_OPAQUE = 1 << 1
+};
+
 struct ModelData
 {
-	Buffer                vertexBuffer;
-	Buffer                indexBuffer;
-	BLAS                  blas;
+	Buffer                vertexBuffer = nullptr;
+	Buffer                indexBuffer  = nullptr;
+	BLAS                  blas         = nullptr;
+
+
+	VertexDataLayout	  vertexLayout;
 	std::vector<uint32_t> indexOffsets;
-	uint32_t              indexCount;
+	uint32_t              indexCount = 0;
 
 
 	bool operator==(const ModelData &other) const
@@ -66,17 +92,18 @@ struct ModelData
 
 struct ModelKey
 {
-	std::string path;
-	void       *loadFunction;
+	std::string      path;
+	void            *loadFunction;
+	uint32_t         loadFlags;
 
 	bool operator==(const ModelKey &other) const
 	{
-		return path == other.path && loadFunction == loadFunction;
+		return path == other.path && loadFunction == loadFunction && loadFlags == other.loadFlags;
 	}
 
 	vka::hash_t hash() const
 	{
-		return std::hash<std::string>()(path) ^ std::hash<void *>()(loadFunction);
+		return std::hash<std::string>()(path) ^ std::hash<void *>()(loadFunction) ^ loadFlags;
 	}
 };
 }		// namespace vka
@@ -98,6 +125,6 @@ class ModelCache
 	    modelPath(modelPath), pPool(pPool), bufferUsageFlags(bufferUsageFlags)
 	{}
 	void      clear();
-	ModelData fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Buffer vertexBuffer, const std::vector<ObjVertex> &vertexList), bool createAccelerationStructure = false, bool isOpaque = false);
+	ModelData fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Buffer vertexBuffer, VertexDataLayout &vertexLayout, const std::vector<ObjVertex> &vertexList), uint32_t loadFlags);
 };
 }        // namespace vka

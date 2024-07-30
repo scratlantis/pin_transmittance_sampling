@@ -7,31 +7,58 @@
 namespace vka
 {
 
-struct DrawCmd
+class PipelineCmd
 {
+  protected:
+	virtual RenderState getRenderState() const = 0;
+
+  public:
+	virtual void addDescriptor() const;
+	virtual void addPushConstants() const;
+	virtual void exec(CmdBuffer cmdBuf) const;
+};
+class DrawCmd : public PipelineCmd
+{
+  public:
+
+	DrawCmd();
+
 	DrawSurface                          surf;
 	RasterizationPipelineDefinition		 pipelineDef;
-	std::vector<Image>                   attachments;
-	std::vector<Descriptor>              descriptors;
-	std::vector<ClearValue>              clearValues;
-	VkRect2D_OP                          renderArea;
-	std::vector<Buffer>                  instanceBuffers;
 	uint32_t                             instanceCount;
+	VkRect2D_OP                          renderArea;
+
+	void        exec(CmdBuffer cmdBuf) const;
+  private:
+	std::vector<Image>                   attachments;
+	std::vector<ClearValue>              clearValues;
+	std::vector<Buffer>                  instanceBuffers;
+	std::vector<Descriptor>              descriptors;
 	Buffer								 pushConstantsData;
 	std::vector<uint32_t>                pushConstantsSizes;
 
-	RenderState getRenderState() const;
+	RenderState getRenderState() const; 
 };
 
- struct ComputeCmd
+class ComputeCmd : public PipelineCmd
 {
+   public:
+	 ComputeCmd() = default;
+	 ComputeCmd(uint32_t taskSize, const std::string path, std::vector<ShaderArgs> args = {});
+	 ComputeCmd(glm::uvec2 taskSize, std::string path, std::vector<ShaderArgs> args);
+	 ComputeCmd(VkExtent2D taskSize, std::string path, std::vector<ShaderArgs> args);
+	 ComputeCmd(glm::uvec3 taskSize, std::string path, std::vector<ShaderArgs> args);
 	 ComputePipelineDefinition pipelineDef;
+
+   private:
 	 std::vector<Descriptor>   descriptors;
 	 glm::uvec3                workGroupCount;
 	 Buffer                    pushConstantsData;
 	 std::vector<uint32_t>     pushConstantsSizes;
-	 RenderState          getRenderState() const;
- };
+
+	 RenderState getRenderState() const;
+	 void        exec(CmdBuffer cmdBuf) const;
+};
 
 struct RasterizationPipelineInitValues
 {
@@ -46,26 +73,19 @@ struct RasterizationPipelineInitValues
 	std::vector<VkDynamicState> dynamicStates;
 };
 
-struct VertexDataLayout
-{
-	std::vector<VkFormat> formats;
-	std::vector<uint32_t> offsets;
-	uint32_t              stride;
-};
-
 struct BlendOperation
 {
 	VkBlendFactor srcFactor;
 	VkBlendFactor dstFactor;
 	VkBlendOp     op;
+
+	static BlendOperation write()
+	{
+		return BlendOperation{VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD};
+	}
+	static BlendOperation alpha()
+	{
+		return BlendOperation{VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD};
+	}
 };
 }        // namespace vka
-
-#define VKA_BLEND_OP_WRITE                                         \
-	{                                                              \
-		VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD \
-	}
-#define VKA_BLEND_OP_ALPHA                                                              \
-	{                                                                                   \
-		VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD \
-	}

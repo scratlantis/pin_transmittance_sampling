@@ -118,6 +118,26 @@ struct ClearValue
 		}
 		// clang-format on
 	}
+
+	static ClearValue white()
+	{
+		return ClearValue(1.f, 1.f, 1.f, 1.f);
+	}
+
+	static ClearValue black()
+	{
+		return ClearValue(0.f, 0.f, 0.f, 1.f);
+	}
+
+	static ClearValue max_depth()
+	{
+		return ClearValue(0.f, 1.f);
+	}
+
+	static ClearValue none()
+	{
+		return ClearValue();
+	}
 };
 
 

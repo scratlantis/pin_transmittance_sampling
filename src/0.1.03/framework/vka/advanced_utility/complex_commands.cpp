@@ -6,22 +6,21 @@
 namespace vka
 {
 
-void cmdCompute(CmdBuffer cmdBuf, const ComputeCmd &computeCmd)
+void ComputeCmd::exec(CmdBuffer cmdBuf) const
 {
 	cmdClearState(cmdBuf);
-	cmdBuf->renderState = computeCmd.getRenderState();
+	cmdBuf->renderState = getRenderState();
 	cmdBindPipeline(cmdBuf);
-	cmdPushDescriptors(cmdBuf, 0, computeCmd.descriptors);        // only one descriptor set for now
-	cmdPushConstants(cmdBuf, computeCmd.pushConstantsSizes, computeCmd.pushConstantsData);
-	cmdDispatch(cmdBuf, computeCmd.workGroupCount);
+	cmdPushDescriptors(cmdBuf, 0, descriptors);        // only one descriptor set for now
+	cmdPushConstants(cmdBuf, pushConstantsSizes, pushConstantsData);
+	cmdDispatch(cmdBuf, workGroupCount);
 }
 
-
-void cmdDraw(CmdBuffer cmdBuf, const DrawCmd &drawCmd)
+void DrawCmd::exec(CmdBuffer cmdBuf) const
 {
-	VKA_ASSERT(drawCmd.pipelineDef.subpass == 0);
+	VKA_ASSERT(pipelineDef.subpass == 0);
 
-	RenderState newRenderState = drawCmd.getRenderState();
+	RenderState newRenderState = getRenderState();
 	uint32_t    diffBits       = cmdBuf->renderState.calculateDifferenceBits(newRenderState);
 	// End render pass if needed
 	if (diffBits & RENDER_STATE_ACTION_BIT_END_RENDER_PASS)
@@ -31,11 +30,11 @@ void cmdDraw(CmdBuffer cmdBuf, const DrawCmd &drawCmd)
 	// Assure images are in correct layout
 	if (diffBits & RENDER_STATE_ACTION_BIT_START_RENDER_PASS)
 	{
-		VKA_ASSERT(drawCmd.attachments.size() == drawCmd.pipelineDef.renderPassDefinition.attachmentDescriptions.size())
-		for (size_t i = 0; i < drawCmd.attachments.size(); i++)
+		VKA_ASSERT(attachments.size() == pipelineDef.renderPassDefinition.attachmentDescriptions.size())
+		for (size_t i = 0; i < attachments.size(); i++)
 		{
-			cmdTransitionLayout(cmdBuf, drawCmd.attachments[i], drawCmd.pipelineDef.renderPassDefinition.attachmentDescriptions[i].initialLayout);
-			drawCmd.attachments[i]->setLayout(drawCmd.pipelineDef.renderPassDefinition.attachmentDescriptions[i].finalLayout);
+			cmdTransitionLayout(cmdBuf, attachments[i], pipelineDef.renderPassDefinition.attachmentDescriptions[i].initialLayout);
+			attachments[i]->setLayout(pipelineDef.renderPassDefinition.attachmentDescriptions[i].finalLayout);
 		}
 	}
 	// Aquire new render state
@@ -51,7 +50,7 @@ void cmdDraw(CmdBuffer cmdBuf, const DrawCmd &drawCmd)
 		cmdBindPipeline(cmdBuf);
 	}
 	// for now, only one descriptor set, always rebind
-	cmdPushDescriptors(cmdBuf, 0, drawCmd.descriptors);
+	cmdPushDescriptors(cmdBuf, 0, descriptors);
 
 	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_VERTEX_BUFFER && !cmdBuf->renderState.vertexBuffers.empty())
 	{
@@ -60,13 +59,12 @@ void cmdDraw(CmdBuffer cmdBuf, const DrawCmd &drawCmd)
 
 	if (cmdBuf->renderState.indexBuffer)
 	{
-		cmdBindIndexBuffer(cmdBuf, drawCmd.surf.offset);
-		cmdDrawIndexed(cmdBuf, drawCmd.surf.count, drawCmd.instanceCount, 0, 0, 0);
+		cmdBindIndexBuffer(cmdBuf, surf.offset);
+		cmdDrawIndexed(cmdBuf, surf.count, instanceCount, 0, 0, 0);
 	}
 	else
 	{
-		cmdDraw(cmdBuf, drawCmd.surf.count, drawCmd.instanceCount, 0, 0);
+		cmdDraw(cmdBuf, surf.count, instanceCount, 0, 0);
 	}
 }
-
-}
+}        // namespace vka
