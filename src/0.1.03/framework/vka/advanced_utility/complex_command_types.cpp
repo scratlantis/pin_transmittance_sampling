@@ -1,5 +1,6 @@
 #include "complex_commands.h"
 #include "complex_command_construction.h"
+#include <vka/core/core_utility/buffer_utility.h>
 #include <vka/globals.h>
 namespace vka
 {
@@ -96,49 +97,165 @@ DrawCmd::DrawCmd()
 
 
 
-
-
-//// ComputeCmd
-//void addDescriptor(ComputeCmd &drawCmd, Descriptor *desc, VkDescriptorType type)
-//{
-//	addDescriptor(drawCmd.pipelineDef, type);
-//	drawCmd.descriptors.push_back(desc);
-//}
-//
-//// Draw Cmd
-//void addDepthAttachment(DrawCmd &drawCmd, Image depthImage, bool clear, VkBool32 enableWrite, VkCompareOp compareOp)
-//{
-//	addDepthAttachment(drawCmd.pipelineDef, depthImage, enableWrite, compareOp, clear);
-//	drawCmd.attachments.push_back(depthImage);
-//	drawCmd.clearValues.push_back(VK_CLEAR_COLOR_MAX_DEPTH);
-//}
-//
-//void addColorAttachment(DrawCmd &drawCmd, Image image, ClearValue clearValue,
-//                        VkImageLayout layoutIn, VkImageLayout layoutOut,
-//                        BlendOperation colorBlendOp, BlendOperation alphaBlendOp)
-//{
-//	addBlendColorAttachment(drawCmd.pipelineDef, image, layoutIn, layoutOut, clearValue.type != CLEAR_VALUE_NONE, colorBlendOp, alphaBlendOp);
-//	drawCmd.attachments.push_back(image);
-//	drawCmd.clearValues.push_back(clearValue);
-//}
-//void addColorAttachment(DrawCmd &drawCmd, Image image, VkImageLayout layoutOut, ClearValue clearValue = {})
-//{
-//	addWriteColorAttachment(drawCmd.pipelineDef, image, image->getLayout(), layoutOut, clearValue.type != CLEAR_VALUE_NONE);
-//	drawCmd.attachments.push_back(image);
-//	drawCmd.clearValues.push_back(clearValue);
-//}
-//
-//void addColorAttachment(DrawCmd &drawCmd, Image image, ClearValue clearValue = {})
-//{
-//	addWriteColorAttachment(drawCmd.pipelineDef, image, image->getLayout(), image->getLayout(), clearValue.type != CLEAR_VALUE_NONE);
-//	drawCmd.attachments.push_back(image);
-//	drawCmd.clearValues.push_back(clearValue);
-//}
-//
-//void addDescriptor(DrawCmd &drawCmd, IDescriptor *desc, VkDescriptorType type, VkShaderStageFlags shaderStage)
-//{
-//	addDescriptor(drawCmd.pipelineDef, shaderStage, type);
-//	drawCmd.descriptors.push_back(desc);
-//}
-
+void DrawCmd::pushDepthAttachment(Image depthImage, bool clear, VkBool32 enableWrite, VkCompareOp compareOp)
+{
+	addDepthAttachment(pipelineDef, depthImage, enableWrite, compareOp, clear);
+	attachments.push_back(depthImage);
+	clearValues.push_back(ClearValue::max_depth());
 }
+
+void DrawCmd::pushColorAttachment(Image image, ClearValue clearValue,
+                                  VkImageLayout layoutIn, VkImageLayout layoutOut,
+                                  BlendOperation colorBlendOp, BlendOperation alphaBlendOp)
+{
+	addBlendColorAttachment(pipelineDef, image, layoutIn, layoutOut, clearValue.type != CLEAR_VALUE_NONE, colorBlendOp, alphaBlendOp);
+	attachments.push_back(image);
+	clearValues.push_back(clearValue);
+}
+void DrawCmd::pushColorAttachment(Image image, VkImageLayout layoutOut, ClearValue clearValue)
+{
+	addWriteColorAttachment(pipelineDef, image, image->getLayout(), layoutOut, clearValue.type != CLEAR_VALUE_NONE);
+	attachments.push_back(image);
+	clearValues.push_back(clearValue);
+}
+
+void DrawCmd::pushColorAttachment(Image image, ClearValue clearValue)
+{
+	addWriteColorAttachment(pipelineDef, image, image->getLayout(), image->getLayout(), clearValue.type != CLEAR_VALUE_NONE);
+	attachments.push_back(image);
+	clearValues.push_back(clearValue);
+}
+
+void DrawCmd::pushDescriptor(BufferRef buffer, VkDescriptorType type, VkShaderStageFlags shaderStage)
+{
+	addDescriptor(pipelineDef, type, shaderStage);
+	descriptors.push_back(Descriptor(buffer, type, shaderStage));
+}
+void DrawCmd::pushDescriptor(Image image, VkDescriptorType type, VkShaderStageFlags shaderStage)
+{
+	addDescriptor(pipelineDef, type, shaderStage);
+	descriptors.push_back(Descriptor(image, type, shaderStage));
+}
+
+void DrawCmd::pushDescriptor(const SamplerDefinition sampler, VkShaderStageFlags shaderStage)
+{
+	addDescriptor(pipelineDef, VK_DESCRIPTOR_TYPE_SAMPLER, shaderStage);
+	descriptors.push_back(Descriptor(sampler, shaderStage));
+}
+
+void DrawCmd::pushDescriptor(const SamplerDefinition sampler, Image image, VkShaderStageFlags shaderStage)
+{
+	addDescriptor(pipelineDef, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, shaderStage);
+	descriptors.push_back(Descriptor(sampler, image, shaderStage));
+}
+
+void DrawCmd::pushDescriptor(std::vector<BufferRef> buffers, VkDescriptorType type, VkShaderStageFlags shaderStage)
+{
+	addDescriptor(pipelineDef, type, shaderStage);
+	descriptors.push_back(Descriptor(buffers, type, shaderStage));
+}
+
+void DrawCmd::pushDescriptor(std::vector<Image> images, VkDescriptorType type, VkShaderStageFlags shaderStage)
+{
+	addDescriptor(pipelineDef, type, shaderStage);
+	descriptors.push_back(Descriptor(images, type, shaderStage));
+}
+
+void DrawCmd::pushDescriptor(std::vector<SamplerDefinition> samplersDefs, VkShaderStageFlags shaderStage)
+{
+	addDescriptor(pipelineDef, VK_DESCRIPTOR_TYPE_SAMPLER, shaderStage);
+	descriptors.push_back(Descriptor(samplersDefs, shaderStage));
+}
+
+void DrawCmd::pushDescriptor(TLASRef as, VkShaderStageFlags shaderStage)
+{
+	addDescriptor(pipelineDef, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, shaderStage);
+	descriptors.push_back(Descriptor(as, shaderStage));
+}
+
+void DrawCmd::setGeometry(DrawSurface surface)
+{
+	surf = surface;
+	addInput(pipelineDef, surface.vertexLayout, VK_VERTEX_INPUT_RATE_VERTEX);
+}
+
+void DrawCmd::pushInstanceData(BufferRef buffer, VertexDataLayout layout)
+{
+	instanceBuffers.push_back(buffer);
+	addInput(pipelineDef, layout, VK_VERTEX_INPUT_RATE_INSTANCE);
+}
+
+void ComputeCmd::pushDescriptor(BufferRef buffer, VkDescriptorType type)
+{
+	addDescriptor(pipelineDef, type);
+	descriptors.push_back(Descriptor(buffer, type, VK_SHADER_STAGE_COMPUTE_BIT));
+}
+void ComputeCmd::pushDescriptor(Image image, VkDescriptorType type)
+{
+	addDescriptor(pipelineDef, type);
+	descriptors.push_back(Descriptor(image, type, VK_SHADER_STAGE_COMPUTE_BIT));
+}
+
+void ComputeCmd::pushDescriptor(const SamplerDefinition sampler)
+{
+	addDescriptor(pipelineDef, VK_DESCRIPTOR_TYPE_SAMPLER);
+	descriptors.push_back(Descriptor(sampler, VK_SHADER_STAGE_COMPUTE_BIT));
+}
+
+void ComputeCmd::pushDescriptor(const SamplerDefinition sampler, Image image)
+{
+	addDescriptor(pipelineDef, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	descriptors.push_back(Descriptor(sampler, image, VK_SHADER_STAGE_COMPUTE_BIT));
+}
+
+void ComputeCmd::pushDescriptor(std::vector<BufferRef> buffers, VkDescriptorType type)
+{
+	addDescriptor(pipelineDef, type);
+	descriptors.push_back(Descriptor(buffers, type, VK_SHADER_STAGE_COMPUTE_BIT));
+}
+
+void ComputeCmd::pushDescriptor(std::vector<Image> images, VkDescriptorType type)
+{
+	addDescriptor(pipelineDef, type);
+	descriptors.push_back(Descriptor(images, type, VK_SHADER_STAGE_COMPUTE_BIT));
+}
+
+void ComputeCmd::pushDescriptor(std::vector<SamplerDefinition> samplersDefs)
+{
+	addDescriptor(pipelineDef, VK_DESCRIPTOR_TYPE_SAMPLER);
+	descriptors.push_back(Descriptor(samplersDefs, VK_SHADER_STAGE_COMPUTE_BIT));
+}
+
+
+void ComputeCmd::pushDescriptor(TLASRef as, VkShaderStageFlags shaderStage)
+{
+	addDescriptor(pipelineDef, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);
+	descriptors.push_back(Descriptor(as, shaderStage));
+}
+
+PipelineCmd::PipelineCmd()
+{
+	pushConstantsData = nullptr;
+}
+
+void PipelineCmd::pushConstant(void *data, VkDeviceSize size)
+{
+	pushConstantsSizes.push_back(size);
+	uint32_t offset;
+	if (pushConstantsData == nullptr)
+	{
+		offset            = 0;
+		pushConstantsData = createBuffer(gState.frame->stack, 0, VMA_MEMORY_USAGE_CPU_ONLY, size);
+	}
+	else
+	{
+		offset = pushConstantsData->getSize();
+		pushConstantsData->changeSize(offset + size);
+		pushConstantsData->update();
+	}
+	void *ptr = pushConstantsData->map(offset);
+	memcpy(ptr, data, size);
+}
+
+
+}        // namespace vka

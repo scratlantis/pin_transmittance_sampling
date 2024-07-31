@@ -22,12 +22,37 @@ void DrawCmd::exec(CmdBuffer cmdBuf) const
 
 	RenderState newRenderState = getRenderState();
 	uint32_t    diffBits       = cmdBuf->renderState.calculateDifferenceBits(newRenderState);
+
+	// Fetch descriptor image layout transforms
+	std::vector<Image>         pendingTransformImages;
+	std::vector<VkImageLayout> pendingTransformLayouts;
+	for (size_t i = 0; i < descriptors.size(); i++)
+	{
+		descriptors[i].getLayoutTransforms(pendingTransformImages, pendingTransformLayouts);
+	}
+	if (!pendingTransformImages.empty() && !(diffBits & RENDER_STATE_ACTION_BIT_START_RENDER_PASS))
+	{
+		diffBits |= RENDER_STATE_ACTION_BIT_END_RENDER_PASS;
+		diffBits |= RENDER_STATE_ACTION_BIT_START_RENDER_PASS;
+		for (size_t i = 0; i < newRenderState.clearValues.size(); i++)
+		{
+			newRenderState.clearValues[i] = ClearValue::none();
+		}
+	}
+
 	// End render pass if needed
 	if (diffBits & RENDER_STATE_ACTION_BIT_END_RENDER_PASS)
 	{
 		cmdEndRenderPass(cmdBuf);
 	}
-	// Assure images are in correct layout
+
+	// Perform image layout transitions
+	// Descriptors
+	for (size_t i = 0; i < pendingTransformImages.size(); i++)
+	{
+		cmdTransitionLayout(cmdBuf, pendingTransformImages[i], pendingTransformLayouts[i]);
+	}
+	// Attachments
 	if (diffBits & RENDER_STATE_ACTION_BIT_START_RENDER_PASS)
 	{
 		VKA_ASSERT(attachments.size() == pipelineDef.renderPassDefinition.attachmentDescriptions.size())
@@ -51,6 +76,7 @@ void DrawCmd::exec(CmdBuffer cmdBuf) const
 	}
 	// for now, only one descriptor set, always rebind
 	cmdPushDescriptors(cmdBuf, 0, descriptors);
+	cmdPushConstants(cmdBuf, pushConstantsSizes, pushConstantsData);
 
 	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_VERTEX_BUFFER && !cmdBuf->renderState.vertexBuffers.empty())
 	{

@@ -74,8 +74,8 @@ struct RenderState
 	VkPipelineBindPoint      bindPoint;
 
 	// -> Bind Buffers
-	std::vector<Buffer_R *> vertexBuffers;
-	Buffer_R               *indexBuffer;
+	std::vector<const Buffer_R *> vertexBuffers;
+	Buffer_R                     *indexBuffer;
 
 	uint32_t calculateDifferenceBits(const RenderState &other) const
 	{

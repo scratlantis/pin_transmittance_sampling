@@ -203,7 +203,7 @@ void addBlendColorAttachment(RasterizationPipelineDefinition &def, Image image,
 }
 
 
-void addDescriptor(RasterizationPipelineDefinition &def, VkShaderStageFlags shaderStage, VkDescriptorType type)
+void addDescriptor(RasterizationPipelineDefinition &def, VkDescriptorType type, VkShaderStageFlags shaderStage)
 {
 	if (def.pipelineLayoutDefinition.descSetLayoutDef.empty())
 	{

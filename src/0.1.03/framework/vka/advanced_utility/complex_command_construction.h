@@ -25,7 +25,7 @@ void                            addBlendAttachmentState(RasterizationPipelineDef
 void                            addDepthAttachment(RasterizationPipelineDefinition &def, Image depthImage, VkBool32 enableWrite, VkCompareOp compareOp, bool clear);
 void                            addWriteColorAttachment(RasterizationPipelineDefinition &def, Image image, VkImageLayout layoutIn, VkImageLayout layoutOut, bool clear);
 void                            addBlendColorAttachment(RasterizationPipelineDefinition &def, Image image, VkImageLayout layoutIn, VkImageLayout layoutOut, bool clear, BlendOperation colorBlendOp, BlendOperation alphaBlendOp);
-void                            addDescriptor(RasterizationPipelineDefinition &def, VkShaderStageFlags shaderStage, VkDescriptorType type);
+void                            addDescriptor(RasterizationPipelineDefinition &def, VkDescriptorType type, VkShaderStageFlags shaderStage);
 void                            nextDescriptorSet(RasterizationPipelineDefinition &def);
 void                            addDescriptor(ComputePipelineDefinition &def, VkDescriptorType type);
 }

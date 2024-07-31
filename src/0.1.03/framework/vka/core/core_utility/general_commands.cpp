@@ -243,15 +243,24 @@ void cmdPushDescriptors(CmdBuffer cmdBuf, uint32_t setIdx, std::vector<Descripto
     VKA_ASSERT(cmdBuf->renderState.pipelineLayoutDef.descSetLayoutDef.size() > setIdx);
 
     std::vector<VkWriteDescriptorSet>   writes(VKA_COUNT(desc));
-    std::vector<VkDescriptorBufferInfo> bufferInfos(VKA_COUNT(desc));
-    std::vector<VkDescriptorImageInfo>  imageInfos(VKA_COUNT(desc));
+    uint32_t bufferInfoCount = 0;
+    uint32_t imageInfoCount  = 0;
+    uint32_t accelerationStructureWriteCount = 0;
+	for (size_t i = 0; i < writes.size(); i++)
+	{
+		desc[i].countStructures(bufferInfoCount, imageInfoCount, accelerationStructureWriteCount);
+	}
+	std::vector<VkDescriptorBufferInfo> bufferInfos(bufferInfoCount);
+	std::vector<VkDescriptorImageInfo>  imageInfos(imageInfoCount);
+	std::vector<VkWriteDescriptorSetAccelerationStructureKHR> asWrites(accelerationStructureWriteCount);
     VkDescriptorBufferInfo             *pBuffInfo  = &bufferInfos[0];
     VkDescriptorImageInfo              *pImageInfo = &imageInfos[0];
+	VkWriteDescriptorSetAccelerationStructureKHR *pAccelerationStructureWrite = &asWrites[0];
     for (size_t i = 0; i < writes.size(); i++)
     {
         writes[i]                 = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
         writes[i].dstBinding      = i;
-        desc[i].writeDescriptorInfo(writes[i], pBuffInfo, pImageInfo);
+		desc[i].writeDescriptorInfo(writes[i], pBuffInfo, pImageInfo, pAccelerationStructureWrite);
     }
     pvkCmdPushDescriptorSetKHR(cmdBuf->getHandle(), cmdBuf->renderState.bindPoint, cmdBuf->renderState.pipelineLayout, setIdx, writes.size(), writes.data());
 }

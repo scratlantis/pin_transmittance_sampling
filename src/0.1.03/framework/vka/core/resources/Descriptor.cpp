@@ -15,7 +15,7 @@ Descriptor::Descriptor(const Buffer_R *buffer, VkDescriptorType type, VkShaderSt
 	buffers = {buffer};
 	this->type = type;
 }
-Descriptor::Descriptor(const Image_R *image, VkDescriptorType type, VkShaderStageFlags shaderStage)
+Descriptor::Descriptor(Image_R *image, VkDescriptorType type, VkShaderStageFlags shaderStage)
 {
 	VKA_ASSERT(image != nullptr &&
 	           (type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
@@ -32,6 +32,14 @@ Descriptor::Descriptor(const SamplerDefinition samplerDef, VkShaderStageFlags sh
 	samplers = {gState.cache->fetch(samplerDef)};
 	type = VK_DESCRIPTOR_TYPE_SAMPLER;
 }
+Descriptor::Descriptor(const AccelerationStructure_R *accelerationStructure, VkShaderStageFlags shaderStage)
+{
+	stage = shaderStage;
+	count = 1;
+	as    = accelerationStructure->getHandle();
+	type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+
+}
 Descriptor::Descriptor(std::vector<const Buffer_R *> buffers, VkDescriptorType type, VkShaderStageFlags shaderStage)
 {
 	VKA_ASSERT(type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
@@ -43,7 +51,7 @@ Descriptor::Descriptor(std::vector<const Buffer_R *> buffers, VkDescriptorType t
 	this->stage   = shaderStage;
 	count         = buffers.size();
 }
-Descriptor::Descriptor(std::vector<const Image_R *> images, VkDescriptorType type, VkShaderStageFlags shaderStage)
+Descriptor::Descriptor(std::vector<Image_R *> images, VkDescriptorType type, VkShaderStageFlags shaderStage)
 {
 	VKA_ASSERT(type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
 	           type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
@@ -62,7 +70,7 @@ Descriptor::Descriptor(std::vector<SamplerDefinition> samplersDefs, VkShaderStag
 		samplers.push_back(gState.cache->fetch(def));
 	}
 }
-Descriptor::Descriptor(SamplerDefinition samplerDef, const Image_R *image, VkShaderStageFlags shaderStage)
+Descriptor::Descriptor(SamplerDefinition samplerDef, Image_R *image, VkShaderStageFlags shaderStage)
 {
 	VKA_ASSERT(image != nullptr);
 	stage    = shaderStage;
@@ -72,7 +80,34 @@ Descriptor::Descriptor(SamplerDefinition samplerDef, const Image_R *image, VkSha
 	type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 }
 
-void Descriptor::writeDescriptorInfo(VkWriteDescriptorSet &write, VkDescriptorBufferInfo *&pBufferInfo, VkDescriptorImageInfo *&pImageInfos) const
+bool Descriptor::getLayoutTransforms(std::vector<Image_R *> &images, std::vector<VkImageLayout> &layouts) const
+{
+	if (type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE || type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+	{
+		for (auto &image : images)
+		{
+			if (image->getLayout() != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+			{
+				images.push_back(image);
+				layouts.push_back(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			}
+		}
+	}
+	else if (type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+		{
+		for (auto &image : images)
+		{
+			if (image->getLayout() != VK_IMAGE_LAYOUT_GENERAL)
+			{
+				images.push_back(image);
+				layouts.push_back(VK_IMAGE_LAYOUT_GENERAL);
+			}
+		}
+	}
+	return false;
+}
+
+void Descriptor::writeDescriptorInfo(VkWriteDescriptorSet &write, VkDescriptorBufferInfo *&pBufferInfo, VkDescriptorImageInfo *&pImageInfos, VkWriteDescriptorSetAccelerationStructureKHR *&pAccelerationStructureWrite) const
 {
 	if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
 	{
@@ -133,6 +168,46 @@ void Descriptor::writeDescriptorInfo(VkWriteDescriptorSet &write, VkDescriptorBu
 			pImageInfos->sampler     = samplers[i];
 			pImageInfos++;
 		}
+		return;
+	    }
+	    if (type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+	    {
+		    VKA_ASSERT(as != nullptr);
+		    write.descriptorCount                                   = count;
+		    write.descriptorType                                    = type;
+		    write.pNext                                             = pAccelerationStructureWrite;
+		    pAccelerationStructureWrite->sType                      = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+		    pAccelerationStructureWrite->pNext                      = nullptr;
+		    pAccelerationStructureWrite->accelerationStructureCount = 1;
+		    pAccelerationStructureWrite->pAccelerationStructures    = &as;
+		    return;
+	}
+	printVka("Invalid descriptor type\n");
+	DEBUG_BREAK;
+}
+
+
+
+void Descriptor::countStructures(uint32_t &bufferInfoCount, uint32_t &imageInfoCount, uint32_t &accelerationStructureWriteCount) const
+{
+	if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+	{
+		bufferInfoCount += count;
+		return;
+	}
+	if (type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE || type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+	{
+		imageInfoCount += count;
+		return;
+	}
+	if (type == VK_DESCRIPTOR_TYPE_SAMPLER || type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+	{
+		imageInfoCount += count;
+		return;
+	}
+	if (type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+	{
+		accelerationStructureWriteCount += 1;
 		return;
 	}
 	printVka("Invalid descriptor type\n");

@@ -48,10 +48,11 @@ struct VertexDataLayout
 
 struct DrawSurface
 {
-	Buffer vertexBuffer;
-	Buffer indexBuffer;
-	uint32_t  offset;
-	uint32_t  count;
+	Buffer           vertexBuffer;
+	Buffer           indexBuffer;
+	uint32_t         offset;
+	uint32_t         count;
+	VertexDataLayout vertexLayout;
 };
 
 enum ModelLoadFlagBits
@@ -84,9 +85,9 @@ struct ModelData
 	DrawSurface getSurface(uint32_t idx) const
 	{
 		if (idx >= indexOffsets.size() - 1)
-			return {vertexBuffer, indexBuffer, indexOffsets.back(), indexCount - indexOffsets.back()};
+			return {vertexBuffer, indexBuffer, indexOffsets.back(), indexCount - indexOffsets.back(), vertexLayout};
 		else
-			return {vertexBuffer, indexBuffer, indexOffsets[idx], indexOffsets[idx + 1] - indexOffsets[idx]};
+			return {vertexBuffer, indexBuffer, indexOffsets[idx], indexOffsets[idx + 1] - indexOffsets[idx], vertexLayout};
 	}
 };
 

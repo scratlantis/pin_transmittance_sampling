@@ -29,7 +29,7 @@ Image createSwapchainAttachment(VkFormat format, VkImageUsageFlags usageFlags, V
 	return img;
 }
 
-Image vkaGetSwapchainImage()
+Image getSwapchainImage()
 {
 	if (gState.swapchainImage != nullptr)
 	{
