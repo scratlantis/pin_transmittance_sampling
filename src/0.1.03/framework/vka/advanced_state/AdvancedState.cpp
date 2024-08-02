@@ -13,17 +13,24 @@ void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Wind
 	modelCache              = new ModelCache(heap, config.modelPath, config.modelUsage);
 	textureCache            = new TextureCache(heap, config.texturePath);
 	swapchainImage          = nullptr;
+	imguiWrapper            = new ImGuiWrapper();
 }
 
 void AdvancedState::destroy()
 {
 	heap->clear();
 	swapchainAttachmentPool->clear();
+	if (guiEnabled)
+	{
+		imguiWrapper->destroy();
+		guiEnabled = false;
+	};
 	delete framebufferCache;
 	delete modelCache;
 	delete textureCache;
 	delete heap;
 	delete swapchainAttachmentPool;
+	delete imguiWrapper;
 	if (swapchainImage != nullptr)
 	{
 		delete swapchainImage;
@@ -49,5 +56,6 @@ void AdvancedState::nextFrame()
 			executeImmediat(cmdBuf);
 		}
 	}
+	guiRendered = false;
 }
 }        // namespace vka
