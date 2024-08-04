@@ -1,4 +1,4 @@
-#include "complex_command_construction.h"
+#include "complex_commands.h"
 #include <vka/globals.h>
 
 namespace vka
@@ -32,7 +32,7 @@ VkSubpassDependency_OP finalSubpassDependency()
 RenderPassDefinition defaultRenderPass()
 {
 	RenderPassDefinition def = {};
-	SubpassDescription subpassDescription{};
+	SubpassDescription   subpassDescription{};
 	subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	def.subpassDescriptions              = {subpassDescription};
 	def.subpassDependencies              = {initialSubpassDependency(), finalSubpassDependency()};
@@ -87,27 +87,6 @@ void nextSubpass(RenderPassDefinition &def)
 }
 
 // Rasterization Pipeline
-RasterizationPipelineDefinition defaultRasterizationPipeline(RasterizationPipelineInitValues &initValues)
-{
-	RasterizationPipelineDefinition def       = {};
-	def.flags                                 = initValues.flags;
-	def.multisampleState.sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	def.multisampleState.rasterizationSamples = initValues.sampleCount;
-	def.multisampleState.minSampleShading     = initValues.minSampleShading;
-	def.inputAssemblyState.sType              = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	def.inputAssemblyState.topology           = initValues.primitiveTopology;
-	def.tessellationState.sType               = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
-	def.rasterizationState.sType              = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	def.rasterizationState.lineWidth          = initValues.lineWidth;
-	def.depthStencilState.sType               = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	def.depthStencilState.minDepthBounds      = initValues.minDepthBounds;
-	def.depthStencilState.maxDepthBounds      = initValues.maxDepthBounds;
-	def.globalColorBlendState.logicOp         = VK_LOGIC_OP_NO_OP;
-	def.dynamicStates                         = initValues.dynamicStates;
-	def.renderPassDefinition                  = defaultRenderPass();
-	return def;
-}
-// Rasterization Pipeline
 RasterizationPipelineDefinition defaultRasterizationPipeline()
 {
 	RasterizationPipelineDefinition def       = {};
@@ -160,7 +139,7 @@ void addWriteAttachmentState(RasterizationPipelineDefinition &def)
 }
 
 void addBlendAttachmentState(RasterizationPipelineDefinition &def, BlendOperation colorBlendOp, BlendOperation alphaBlendOp,
-                                    VkColorComponentFlags colorWriteFlags = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT)
+                             VkColorComponentFlags colorWriteFlags = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT)
 {
 	VkPipelineColorBlendAttachmentState_OP attachmentBlendState{};
 	attachmentBlendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -188,20 +167,19 @@ void addDepthAttachment(RasterizationPipelineDefinition &def, Image depthImage, 
 }
 
 void addWriteColorAttachment(RasterizationPipelineDefinition &def, Image image,
-                                    VkImageLayout layoutIn, VkImageLayout layoutOut, bool clear)
+                             VkImageLayout layoutIn, VkImageLayout layoutOut, bool clear)
 {
 	addWriteAttachmentState(def);
 	addColorAttachment(def.renderPassDefinition, layoutIn, layoutOut, image->getFormat(), clear);
 }
 
 void addBlendColorAttachment(RasterizationPipelineDefinition &def, Image image,
-                                    VkImageLayout layoutIn, VkImageLayout layoutOut, bool clear,
-                                    BlendOperation colorBlendOp, BlendOperation alphaBlendOp)
+                             VkImageLayout layoutIn, VkImageLayout layoutOut, bool clear,
+                             BlendOperation colorBlendOp, BlendOperation alphaBlendOp)
 {
 	addBlendAttachmentState(def, colorBlendOp, alphaBlendOp);
 	addColorAttachment(def.renderPassDefinition, layoutIn, layoutOut, image->getFormat(), clear);
 }
-
 
 void addDescriptor(RasterizationPipelineDefinition &def, VkDescriptorType type, VkShaderStageFlags shaderStage)
 {
@@ -226,4 +204,25 @@ void addDescriptor(ComputePipelineDefinition &def, VkDescriptorType type)
 	def.pipelineLayoutDefinition.descSetLayoutDef.back().addDescriptor(VK_SHADER_STAGE_COMPUTE_BIT, type);
 }
 
+void addPushConstant(RasterizationPipelineDefinition &def, uint32_t size, VkShaderStageFlags shaderStage)
+{
+	uint32_t offset = 0;
+	for (auto &range : def.pipelineLayoutDefinition.pcRanges)
+	{
+		offset += range.size;
+		offset = alignUp(offset, VKA_PUSH_CONSTANT_RANGE_ALLIGNMENT);
+	}
+	def.pipelineLayoutDefinition.pcRanges.push_back(VkPushConstantRange_OP({shaderStage, offset, size}));
 }
+
+void addPushConstant(ComputePipelineDefinition &def, uint32_t size)
+{
+	uint32_t offset = 0;
+	for (auto &range : def.pipelineLayoutDefinition.pcRanges)
+	{
+		offset += range.size;
+		offset = alignUp(offset, VKA_PUSH_CONSTANT_RANGE_ALLIGNMENT);
+	}
+	def.pipelineLayoutDefinition.pcRanges.push_back(VkPushConstantRange_OP({VK_SHADER_STAGE_COMPUTE_BIT, offset, size}));
+}
+}        // namespace vka

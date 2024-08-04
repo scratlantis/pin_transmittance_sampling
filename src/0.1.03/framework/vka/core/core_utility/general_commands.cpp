@@ -6,11 +6,11 @@ namespace vka
 {
 void cmdClearState(CmdBuffer cmdBuf)
 {
-	if (cmdBuf->renderState.renderPass != VK_NULL_HANDLE)
+	if (cmdBuf->state.renderPass != VK_NULL_HANDLE)
 	{
-		cmdEndRenderPass(cmdBuf); // Todo
+		cmdEndRenderPass(cmdBuf);
 	}
-	cmdBuf->renderState = {};
+	cmdBuf->state.clear();
 }
 
 // Buffer
@@ -228,13 +228,13 @@ void cmdStartRenderPass(CmdBuffer cmdBuf, VkRenderPass renderpass, VkFramebuffer
 void cmdEndRenderPass(CmdBuffer cmdBuf)
 {
     vkCmdEndRenderPass(cmdBuf->getHandle());
-    cmdBuf->renderState.renderPass = VK_NULL_HANDLE;
+    cmdBuf->state.renderPass = VK_NULL_HANDLE;
 }
 
 // bind, dispatch/draw, push desc, push constants
 void cmdBindPipeline(CmdBuffer cmdBuf)
 {
-    vkCmdBindPipeline(cmdBuf->getHandle(), cmdBuf->renderState.bindPoint, cmdBuf->renderState.pipeline);
+    vkCmdBindPipeline(cmdBuf->getHandle(), cmdBuf->state.bindPoint, cmdBuf->state.pipeline);
     cmdBuf->stateBits |= CMD_BUF_STATE_BITS_BOUND_PIPELINE;
 }
 
@@ -242,7 +242,7 @@ void cmdPushDescriptors(CmdBuffer cmdBuf, uint32_t setIdx, std::vector<Descripto
 {
     LOAD_CMD_VK_DEVICE(vkCmdPushDescriptorSetKHR, gState.device.logical);
     VKA_ASSERT(cmdBuf->stateBits & CMD_BUF_STATE_BITS_BOUND_PIPELINE);
-    VKA_ASSERT(cmdBuf->renderState.pipelineLayoutDef.descSetLayoutDef.size() > setIdx);
+    VKA_ASSERT(cmdBuf->state.pipelineLayoutDef.descSetLayoutDef.size() > setIdx);
 
     std::vector<VkWriteDescriptorSet>   writes(VKA_COUNT(desc));
     uint32_t bufferInfoCount = 0;
@@ -264,24 +264,24 @@ void cmdPushDescriptors(CmdBuffer cmdBuf, uint32_t setIdx, std::vector<Descripto
         writes[i].dstBinding      = i;
 		desc[i].writeDescriptorInfo(writes[i], pBuffInfo, pImageInfo, pAccelerationStructureWrite);
     }
-    pvkCmdPushDescriptorSetKHR(cmdBuf->getHandle(), cmdBuf->renderState.bindPoint, cmdBuf->renderState.pipelineLayout, setIdx, writes.size(), writes.data());
+    pvkCmdPushDescriptorSetKHR(cmdBuf->getHandle(), cmdBuf->state.bindPoint, cmdBuf->state.pipelineLayout, setIdx, writes.size(), writes.data());
 }
 
 void cmdPushConstants(CmdBuffer cmdBuf, VkShaderStageFlags shaderStage, uint32_t offset, uint32_t size, const void *data)
 {
     VKA_ASSERT(cmdBuf->stateBits & CMD_BUF_STATE_BITS_BOUND_PIPELINE);
-	vkCmdPushConstants(cmdBuf->getHandle(), cmdBuf->renderState.pipelineLayout, shaderStage, offset, size, data);
+	vkCmdPushConstants(cmdBuf->getHandle(), cmdBuf->state.pipelineLayout, shaderStage, offset, size, data);
 }
 
 void cmdPushConstants(CmdBuffer cmdBuf, const std::vector<uint32_t> &pcSizes, const void *data)
 {
 	VKA_ASSERT(cmdBuf->stateBits & CMD_BUF_STATE_BITS_BOUND_PIPELINE);
-	VKA_ASSERT(pcSizes.size() == cmdBuf->renderState.pipelineLayoutDef.pcRanges.size());
+	VKA_ASSERT(pcSizes.size() == cmdBuf->state.pipelineLayoutDef.pcRanges.size());
     uint32_t readOffset  = 0;
     uint32_t writeOffset = 0;
 	for (size_t i = 0; i < pcSizes.size(); i++)
 	{
-		cmdPushConstants(cmdBuf, cmdBuf->renderState.pipelineLayoutDef.pcRanges[i].stageFlags, writeOffset, pcSizes[i], (char *) data + readOffset);
+		cmdPushConstants(cmdBuf, cmdBuf->state.pipelineLayoutDef.pcRanges[i].stageFlags, writeOffset, pcSizes[i], (char *) data + readOffset);
 		readOffset += pcSizes[i];
 		writeOffset += pcSizes[i];
 		writeOffset = alignUp(writeOffset, VKA_PUSH_CONSTANT_RANGE_ALLIGNMENT);        // align to 16 bytes just to be safe
@@ -297,9 +297,9 @@ void cmdDispatch(CmdBuffer cmdBuf, glm::uvec3 workgroups)
 void cmdBindVertexBuffers(CmdBuffer cmdBuf)
 {
     std::vector<VkBuffer> handels;
-    for (size_t i = 0; i < cmdBuf->renderState.vertexBuffers.size(); i++)
+    for (size_t i = 0; i < cmdBuf->state.vertexBuffers.size(); i++)
     {
-        handels.push_back(cmdBuf->renderState.vertexBuffers[i]->getHandle());
+        handels.push_back(cmdBuf->state.vertexBuffers[i]->getHandle());
     }
     std::vector<VkDeviceSize> offset(handels.size());
     vkCmdBindVertexBuffers(cmdBuf->getHandle(), 0, handels.size(), handels.data(), offset.data());
@@ -307,7 +307,7 @@ void cmdBindVertexBuffers(CmdBuffer cmdBuf)
 
 void cmdBindIndexBuffer(CmdBuffer cmdBuf, VkDeviceSize offset)
 {
-    vkCmdBindIndexBuffer(cmdBuf->getHandle(), cmdBuf->renderState.indexBuffer->getHandle(), offset, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(cmdBuf->getHandle(), cmdBuf->state.indexBuffer->getHandle(), offset, VK_INDEX_TYPE_UINT32);
 }
 
 void cmdDrawIndexed(CmdBuffer cmdBuf, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)

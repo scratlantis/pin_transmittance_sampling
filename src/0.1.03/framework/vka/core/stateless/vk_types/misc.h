@@ -64,7 +64,7 @@ struct ClearValue
 		switch (type)
 		{
 			case CLEAR_VALUE_NONE:
-				return true;
+				return other.type == CLEAR_VALUE_NONE;
 			case CLEAR_VALUE_FLOAT:
 				return value.color.float32[0] == other.value.color.float32[0] &&
 				       value.color.float32[1] == other.value.color.float32[1] &&
@@ -117,6 +117,11 @@ struct ClearValue
 				       HASHC value.depthStencil.stencil;
 		}
 		// clang-format on
+	}
+
+	bool joinable(ClearValue const &previous) const
+	{
+		return type == CLEAR_VALUE_NONE || *this == previous;
 	}
 
 	static ClearValue white()
@@ -416,6 +421,32 @@ struct VkAttachmentDescription_OP : public VkAttachmentDescription
 			HASHC stencilStoreOp
 			HASHC initialLayout
 			HASHC finalLayout;
+		// clang-format on
+	}
+	bool joinable(VkAttachmentDescription_OP const &previous) const
+	{
+		// clang-format off
+		// these attributes must match exactly
+		bool isJoinable =
+			format == previous.format
+			&& samples == previous.samples
+			&& stencilLoadOp == previous.stencilLoadOp
+			&& stencilStoreOp == previous.stencilStoreOp
+			&& finalLayout == previous.finalLayout;
+		
+
+		// load/store
+		isJoinable = isJoinable && (
+				loadOp == previous.loadOp
+				|| loadOp == VK_ATTACHMENT_LOAD_OP_LOAD && previous.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR);
+
+		// layout
+		isJoinable = isJoinable && (
+				initialLayout == previous.initialLayout
+				|| previous.finalLayout == initialLayout
+				|| initialLayout == VK_IMAGE_LAYOUT_UNDEFINED );
+
+		return isJoinable;
 		// clang-format on
 	}
 };

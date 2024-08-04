@@ -13,6 +13,7 @@ class RenderPassDefinition : public ResourceIdentifier
 	bool                                    operator==(const ResourceIdentifier &other) const override;
 	bool                                    operator==(const RenderPassDefinition &other) const;
 	hash_t                                  hash() const override;
+	bool 								    joinable(const RenderPassDefinition &other) const;
 
   protected:
 };

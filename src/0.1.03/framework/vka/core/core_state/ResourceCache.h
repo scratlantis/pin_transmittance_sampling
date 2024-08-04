@@ -32,7 +32,7 @@ class ResourceCache : public IResourceCache
 			handle = it->second.getHandle();
 		else
 		{
-			printVka("Cachable created.\n");
+			printVka("Cachable created.");
 			Obj  obj = Obj(this, rID);        // civ
 			auto ret = map.insert({rID, obj});
 			VKA_ASSERT(ret.second);

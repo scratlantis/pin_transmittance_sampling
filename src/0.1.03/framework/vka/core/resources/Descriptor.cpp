@@ -182,7 +182,7 @@ void Descriptor::writeDescriptorInfo(VkWriteDescriptorSet &write, VkDescriptorBu
 		    pAccelerationStructureWrite->pAccelerationStructures    = &as;
 		    return;
 	}
-	printVka("Invalid descriptor type\n");
+	printVka("Invalid descriptor type!");
 	DEBUG_BREAK;
 }
 
@@ -210,7 +210,7 @@ void Descriptor::countStructures(uint32_t &bufferInfoCount, uint32_t &imageInfoC
 		accelerationStructureWriteCount += 1;
 		return;
 	}
-	printVka("Invalid descriptor type\n");
+	printVka("Invalid descriptor type!");
 	DEBUG_BREAK;
 }
 }        // namespace vka

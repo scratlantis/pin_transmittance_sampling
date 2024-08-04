@@ -11,7 +11,7 @@ void Resource::track(IResourcePool *pPool)
 {
 	if (!pPool)
 	{
-		printVka("Null resource pool\n");
+		printVka("Null resource pool!");
 		DEBUG_BREAK;
 		return;
 	}
@@ -29,7 +29,7 @@ void Resource::track(IResourcePool *pPool)
 		}
 		else
 		{
-			printVka("Resource not found in assigned pool\n");
+			printVka("Resource not found in assigned pool!");
 			DEBUG_BREAK;
 		}
 	}

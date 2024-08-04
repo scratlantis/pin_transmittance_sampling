@@ -1,6 +1,7 @@
 #pragma once
 #include "../Resource.h"
 #include <vka/core/stateless/utility/constants.h>
+#include <vka/core/stateless/vk_types/misc.h>
 #include <vma/vk_mem_alloc.h>
 namespace vka
 {
@@ -49,6 +50,7 @@ class Image_R : public Resource_T<VkImage>
 	VkImageUsageFlags usage;
 
 	VkImageLayout layout;
+	ClearValue	clearValue;
 
   public:
 	VkDeviceSize getMemorySize() const
@@ -155,6 +157,19 @@ class Image_R : public Resource_T<VkImage>
 	virtual void   track(IResourcePool *pPool) override;
 	virtual void   free() override;
 	virtual hash_t hash() const override;
+	void setClearValue(ClearValue clearValue)
+	{
+		this->clearValue = clearValue;
+	}
+	void removeClearValue()
+	{
+		clearValue = ClearValue::none();
+	}
+	ClearValue getClearValue() const
+	{
+		return clearValue;
+	}
+
 };
 
 class SwapchainImage_R : public Image_R
@@ -226,5 +241,3 @@ class SwapchainImage_R : public Image_R
 };
 
 }        // namespace vka
-
-typedef vka::Image_R* Image;

@@ -85,7 +85,7 @@ void Buffer_R::track(IResourcePool *pPool)
 {
 	if (!pPool)
 	{
-		printVka("Null resource pool\n");
+		printVka("Null resource pool!");
 		DEBUG_BREAK;
 		return;
 	}

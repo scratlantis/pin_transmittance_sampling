@@ -18,13 +18,17 @@ void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Wind
 
 void AdvancedState::destroy()
 {
-	heap->clear();
+	vkDeviceWaitIdle(device.logical);
 	swapchainAttachmentPool->clear();
+	modelCache->clear();
+	textureCache->clear();
+	framebufferCache->clear();
 	if (guiEnabled)
 	{
 		imguiWrapper->destroy();
 		guiEnabled = false;
 	};
+	heap->clear();
 	delete framebufferCache;
 	delete modelCache;
 	delete textureCache;

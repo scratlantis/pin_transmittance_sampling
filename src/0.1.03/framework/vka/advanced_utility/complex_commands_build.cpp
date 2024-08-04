@@ -1,16 +1,37 @@
 #include "complex_commands.h"
-#include "complex_command_construction.h"
+#include "complex_commands_utility.h"
 #include <vka/core/core_utility/buffer_utility.h>
 #include <vka/globals.h>
 namespace vka
 {
 
 // Render state
-RenderState DrawCmd::getRenderState() const
+CmdBufferState DrawCmd::getCmdBufferState(const CmdBufferState oldState) const
 {
 
-	RenderState state;
-	state.renderPass        = gState.cache->fetch(pipelineDef.renderPassDefinition);
+	CmdBufferState state;
+	state.type              = CMD_BUFFER_STATE_RASTERIZATION;
+
+	bool joinRenderPass = oldState.type == CMD_BUFFER_STATE_RASTERIZATION;
+	joinRenderPass      = joinRenderPass && pipelineDef.renderPassDefinition.joinable(oldState.renderPassDef);
+	joinRenderPass      = joinRenderPass && clearValues.size() == oldState.clearValues.size();
+	for (size_t i = 0; i < clearValues.size(); i++)
+	{
+		joinRenderPass = joinRenderPass && clearValues[i].joinable(oldState.clearValues[i]);
+	}
+	joinRenderPass = joinRenderPass && renderArea == oldState.renderArea;
+	
+	if (joinRenderPass)
+	{
+		state.renderPassDef = oldState.renderPassDef;
+		state.renderPass    = oldState.renderPass;
+	}
+	else
+	{
+		state.renderPassDef = pipelineDef.renderPassDefinition;
+		state.renderPass    = gState.cache->fetch(pipelineDef.renderPassDefinition);
+	}
+
 	state.pipeline          = gState.cache->fetch(pipelineDef);
 	state.bindPoint         = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	state.pipelineLayoutDef = pipelineDef.pipelineLayoutDefinition;
@@ -18,14 +39,7 @@ RenderState DrawCmd::getRenderState() const
 
 	state.framebuffer = gState.framebufferCache->fetch(state.renderPass, attachments);
 	state.clearValues = clearValues;
-	if (renderArea == VkRect2D_OP{})
-	{
-		state.renderArea = VkRect2D_OP({0, 0, gState.io.extent.width, gState.io.extent.height});
-	}
-	else
-	{
-		state.renderArea = renderArea;
-	}
+	state.renderArea = renderArea;
 	if (surf.vertexBuffer)
 	{
 		state.vertexBuffers = {surf.vertexBuffer};
@@ -35,9 +49,10 @@ RenderState DrawCmd::getRenderState() const
 	return state;
 }
 
-RenderState ComputeCmd::getRenderState() const
+CmdBufferState ComputeCmd::getCmdBufferState() const
 {
-	RenderState state{};
+	CmdBufferState state{};
+	state.type              = CMD_BUFFER_STATE_COMPUTE;
 	state.pipeline          = gState.cache->fetch(pipelineDef);
 	state.bindPoint         = VK_PIPELINE_BIND_POINT_COMPUTE;
 	state.pipelineLayoutDef = pipelineDef.pipelineLayoutDefinition;
@@ -93,37 +108,41 @@ DrawCmd::DrawCmd()
 {
 	instanceCount = 1;
 	pipelineDef   = defaultRasterizationPipeline();
+	renderArea = VkRect2D_OP({0, 0, gState.io.extent.width, gState.io.extent.height});
 }
 
 
 
-void DrawCmd::pushDepthAttachment(Image depthImage, bool clear, VkBool32 enableWrite, VkCompareOp compareOp)
+void DrawCmd::pushDepthAttachment(Image depthImage, VkBool32 enableWrite, VkCompareOp compareOp)
 {
-	addDepthAttachment(pipelineDef, depthImage, enableWrite, compareOp, clear);
+	addDepthAttachment(pipelineDef, depthImage, enableWrite, compareOp, depthImage->getClearValue() != ClearValue::none());
 	attachments.push_back(depthImage);
-	clearValues.push_back(ClearValue::max_depth());
+	clearValues.push_back(depthImage->getClearValue());
+	depthImage->removeClearValue();
 }
 
-void DrawCmd::pushColorAttachment(Image image, ClearValue clearValue,
-                                  VkImageLayout layoutIn, VkImageLayout layoutOut,
+void DrawCmd::pushColorAttachment(Image image, VkImageLayout layoutOut,
                                   BlendOperation colorBlendOp, BlendOperation alphaBlendOp)
 {
-	addBlendColorAttachment(pipelineDef, image, layoutIn, layoutOut, clearValue.type != CLEAR_VALUE_NONE, colorBlendOp, alphaBlendOp);
+	addBlendColorAttachment(pipelineDef, image, image->getLayout(), layoutOut, image->getClearValue() != ClearValue::none(), colorBlendOp, alphaBlendOp);
 	attachments.push_back(image);
-	clearValues.push_back(clearValue);
+	clearValues.push_back(image->getClearValue());
+	image->removeClearValue();
 }
-void DrawCmd::pushColorAttachment(Image image, VkImageLayout layoutOut, ClearValue clearValue)
+void DrawCmd::pushColorAttachment(Image image, VkImageLayout layoutOut)
 {
-	addWriteColorAttachment(pipelineDef, image, image->getLayout(), layoutOut, clearValue.type != CLEAR_VALUE_NONE);
+	addWriteColorAttachment(pipelineDef, image, image->getLayout(), layoutOut, image->getClearValue() != ClearValue::none());
 	attachments.push_back(image);
-	clearValues.push_back(clearValue);
+	clearValues.push_back(image->getClearValue());
+	image->removeClearValue();
 }
 
-void DrawCmd::pushColorAttachment(Image image, ClearValue clearValue)
+void DrawCmd::pushColorAttachment(Image image)
 {
-	addWriteColorAttachment(pipelineDef, image, image->getLayout(), image->getLayout(), clearValue.type != CLEAR_VALUE_NONE);
+	addWriteColorAttachment(pipelineDef, image, image->getLayout(), image->getLayout(), image->getClearValue() != ClearValue::none());
 	attachments.push_back(image);
-	clearValues.push_back(clearValue);
+	clearValues.push_back(image->getClearValue());
+	image->removeClearValue();
 }
 
 void DrawCmd::pushDescriptor(BufferRef buffer, VkDescriptorType type, VkShaderStageFlags shaderStage)
@@ -236,16 +255,22 @@ void ComputeCmd::pushDescriptor(TLASRef as, VkShaderStageFlags shaderStage)
 	descriptors.push_back(Descriptor(as, shaderStage));
 }
 
-PipelineCmd::PipelineCmd()
-{
-}
-
-void PipelineCmd::pushConstant(void *data, VkDeviceSize size)
+void ComputeCmd::pushConstant(void *data, VkDeviceSize size)
 {
 	pushConstantsSizes.push_back(size);
 	pushConstantsData.resize(pushConstantsData.size() + size);
 	memcpy(pushConstantsData.data() + pushConstantsData.size() - size, data, size);
+	addPushConstant(pipelineDef, size);
 }
+
+void DrawCmd::pushConstant(void *data, VkDeviceSize size, VkShaderStageFlags stageFlags)
+{
+	pushConstantsSizes.push_back(size);
+	pushConstantsData.resize(pushConstantsData.size() + size);
+	memcpy(pushConstantsData.data() + pushConstantsData.size() - size, data, size);
+	addPushConstant(pipelineDef, size, stageFlags);
+}
+
 
 
 }        // namespace vka

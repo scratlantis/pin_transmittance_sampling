@@ -3,7 +3,7 @@
 
 layout(location = 0) out vec4 outColor;
 
-layout(push_constants, binding = 0) uniform PC
+layout(push_constant) uniform PC
 {
 	vec4 color;
 } pc;

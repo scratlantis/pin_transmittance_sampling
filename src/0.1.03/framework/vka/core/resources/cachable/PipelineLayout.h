@@ -2,6 +2,8 @@
 #include "DescriptorSetLayout.h"
 #include "../Resource.h"
 
+#define VKA_PUSH_CONSTANT_RANGE_ALLIGNMENT 16U
+
 namespace vka
 {
 class PipelineLayoutDefinition : public ResourceIdentifier

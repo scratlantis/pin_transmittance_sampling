@@ -107,6 +107,7 @@ ModelData ModelCache::fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Bu
 		std::vector<Index>     indexList;
 		if (loadObj(fullPath, vertexList, indexList, modelData.indexOffsets, modelData.indexCount))
 		{
+			printVka(("Loading model: " + path).c_str());
 			map.insert({key, modelData});
 			parse(modelData.vertexBuffer, modelData.vertexLayout, vertexList);
 			write(modelData.indexBuffer, indexList.data(), indexList.size()*sizeof(Index));

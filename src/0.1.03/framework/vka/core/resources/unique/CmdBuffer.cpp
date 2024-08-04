@@ -28,7 +28,7 @@ void CmdBuffer_R::createHandles(CmdBufferCapabitlityMask capability, VkCommandBu
 				break;
 			}
 		default:
-			printVka("Unable to allocate command buffer with capability %d, from pool index %d\n", capability, poolIdx);
+			printVka("Unable to allocate command buffer with capability %d, from pool index %d!", capability, poolIdx);
 			DEBUG_BREAK;
 			break;
 	}
@@ -56,7 +56,7 @@ void CmdBuffer_R::track(IResourcePool *pPool)
 	Resource::track(pPool);
 }
 
-std::vector<VkClearValue> RenderState::getClearValues() const
+std::vector<VkClearValue> CmdBufferState::getClearValues() const
 {
 	std::vector<VkClearValue> clearValues;
 	for (size_t i = 0; i < this->clearValues.size(); i++)

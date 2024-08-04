@@ -1,5 +1,5 @@
 #include "gui.h"
-#include <vka/advanced_utility/complex_command_construction.h>
+#include <vka/advanced_utility/complex_commands.h>
 #include <vka/advanced_utility/misc_utility.h>
 #include <vka/core/core_utility/cmd_buffer_utility.h>
 #include <vka/core/core_utility/general_commands.h>
@@ -58,12 +58,12 @@ void cmdRenderGui(CmdBuffer cmdBuf, Image target, float x, float y, float width,
 	VkRect2D_OP   renderArea  = getScissorRect(x, y, width, height);
 	VkRenderPass  renderPass  = gState.cache->fetch(gState.guiRenderPassDef);
 	VkFramebuffer framebuffer = gState.framebufferCache->fetch(renderPass, {target});
-	if (cmdBuf->renderState.framebuffer != framebuffer || cmdBuf->renderState.renderPass != renderPass || cmdBuf->renderState.renderArea != renderArea)
+	if (cmdBuf->state.framebuffer != framebuffer || cmdBuf->state.renderPass != renderPass || cmdBuf->state.renderArea != renderArea)
 	{
 		cmdClearState(cmdBuf);
-		cmdBuf->renderState.framebuffer = framebuffer;
-		cmdBuf->renderState.renderPass  = renderPass;
-		cmdBuf->renderState.renderArea  = renderArea;
+		cmdBuf->state.framebuffer = framebuffer;
+		cmdBuf->state.renderPass  = renderPass;
+		cmdBuf->state.renderArea  = renderArea;
 		cmdStartRenderPass(cmdBuf, renderPass, framebuffer, renderArea, {});
 	}
 	gState.imguiWrapper->render(cmdBuf);

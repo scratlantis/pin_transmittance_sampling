@@ -11,6 +11,31 @@ hash_t RenderPassDefinition::hash() const
 	// clang-format on
 }
 
+bool RenderPassDefinition::joinable(const RenderPassDefinition &previous) const
+{
+	if (*this == previous)
+	{
+		return true;
+	}
+	else if (
+		// clang-format off
+		subpassDescriptions.size() == 1
+		&& cmpVector(subpassDescriptions, previous.subpassDescriptions)
+		&& cmpVector(subpassDependencies, previous.subpassDependencies)
+		&& attachmentDescriptions.size() == previous.attachmentDescriptions.size()
+		// clang-format on
+	)
+	{
+		bool isJoinable = true;
+		for (size_t i = 0; i < attachmentDescriptions.size(); i++)
+		{
+			isJoinable = isJoinable && attachmentDescriptions[i].joinable(previous.attachmentDescriptions[i]);
+		}
+		return isJoinable;
+	}
+	return false;
+}
+
 DEFINE_EQUALS_OVERLOAD(RenderPassDefinition, ResourceIdentifier)
 
 bool RenderPassDefinition::operator==(const RenderPassDefinition &other) const

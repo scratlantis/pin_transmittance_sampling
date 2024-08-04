@@ -37,6 +37,8 @@ class ShaderDefinition : public ResourceIdentifier
 	std::string fileID() const;
 	std::string fileIDShort() const;
 
+	std::string fileName() const;
+
   protected:
 };
 

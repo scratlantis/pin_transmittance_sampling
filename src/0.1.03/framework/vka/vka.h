@@ -1,6 +1,6 @@
 #pragma once
 #include <vka/globals.h>
-#include <vka/advanced_utility/complex_command_types.h>
+#include <vka/advanced_utility/complex_commands.h>
 #include <vka/advanced_utility/misc_utility.h>
 #include <vka/specialized_utility/gui.h>
 #include <vka/specialized_utility/draw_2D.h>

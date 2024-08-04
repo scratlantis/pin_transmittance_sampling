@@ -42,6 +42,12 @@ std::string ShaderDefinition::fileIDShort() const
 	return id;
 }
 
+std::string ShaderDefinition::fileName() const
+{
+	std::string name = path.substr(path.find_last_of("/") + 1);
+	return name;
+}
+
 void Shader_R::free()
 {
 	vkDestroyShaderModule(gState.device.logical, handle, nullptr);
@@ -85,20 +91,18 @@ void Shader_R::compile(ShaderDefinition const &def)
 
 	cmdShaderCompile << " -o " << shader_spv_path.str() << " " << shader_src_path.str()
 	                 << " 2> " << shader_log_path.str();
-	// printVka(cmdShaderCompile.str().c_str());
 	system(cmdShaderCompile.str().c_str());
 }
 
 void Shader_R::createModule(ShaderDefinition const &def)
 {
+	printVka(("Loading shader: " + def.fileName()).c_str());
 	std::vector<char> shader_log;
 	compile(def);
 	std::stringstream shader_log_path;
 	shader_log_path << gShaderOutputDir << "/log/" << def.fileIDShort() << "_log.txt";
 	std::string shader_log_path_str = shader_log_path.str();
-	printVka("About to open file %s\n", shader_log_path_str.c_str());
 	shader_log = readFile(shader_log_path_str);
-	printVka("Succes!\n");
 	if (shader_log.size() > 0)
 	{
 		printVka("Error compiling shader '%s' : %s", def.fileIDShort().c_str(), shader_log.data());
@@ -109,7 +113,6 @@ void Shader_R::createModule(ShaderDefinition const &def)
 	std::stringstream shader_spv_path;
 	shader_spv_path << gShaderOutputDir << "/spv/" << def.fileIDShort() << ".spv";
 	std::string shader_spv_path_str = shader_spv_path.str();
-	printVka("About to open file %s\n", shader_spv_path_str.c_str());
 	std::vector<char> shaderCode;
 	try
 	{
@@ -124,10 +127,6 @@ void Shader_R::createModule(ShaderDefinition const &def)
 	{
 		printVka("Shader not found : %s", shader_spv_path_str.c_str());
 		DEBUG_BREAK
-	}
-	else
-	{
-		printVka("Succes!\n");
 	}
 	VkShaderModuleCreateInfo shaderCreateInfo{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
 	shaderCreateInfo.codeSize = shaderCode.size();

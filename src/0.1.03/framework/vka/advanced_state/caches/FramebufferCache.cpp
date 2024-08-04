@@ -24,7 +24,7 @@ VkFramebuffer FramebufferCache::fetch(VkRenderPass renderPass, std::vector<Image
 	VkFramebuffer framebuffer;
 	if (it == cache.end())
 	{
-		printVka("Framebuffer created");
+		printVka("Framebuffer created.");
 		VkFramebufferCreateInfo framebufferCI{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
 		framebufferCI.renderPass      = renderPass;
 		framebufferCI.attachmentCount = imageViews.size();

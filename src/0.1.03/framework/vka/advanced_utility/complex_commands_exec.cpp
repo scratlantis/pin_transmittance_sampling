@@ -9,17 +9,17 @@ namespace vka
 void ComputeCmd::exec(CmdBuffer cmdBuf) const
 {
 	cmdClearState(cmdBuf);
-	RenderState newRenderState;
+	CmdBufferState newState;
 	try
 	{
-		newRenderState = getRenderState();
+		newState = getCmdBufferState();
 	}
 	catch (const ShaderNotFoundException &e)
 	{
-		printVka("Shader not found: %s\n", e.what());
+		printVka("Shader not found: %s", e.what());
 		return;
 	}
-	cmdBuf->renderState = newRenderState;
+	cmdBuf->state = newState;
 	cmdBindPipeline(cmdBuf);
 	cmdPushDescriptors(cmdBuf, 0, descriptors);        // only one descriptor set for now
 	cmdPushConstants(cmdBuf, pushConstantsSizes, pushConstantsData.data());
@@ -29,17 +29,17 @@ void ComputeCmd::exec(CmdBuffer cmdBuf) const
 void DrawCmd::exec(CmdBuffer cmdBuf) const
 {
 	VKA_ASSERT(pipelineDef.subpass == 0);
-	RenderState newRenderState;
+	CmdBufferState newState;
 	try
 	{
-		newRenderState = getRenderState();
+		newState = getCmdBufferState(cmdBuf->state);
 	}
 	catch (const ShaderNotFoundException& e)
 	{
-		printVka("Shader not found: %s\n", e.what());
+		printVka("Shader not found: %s", e.what());
 		return;
 	}
-	uint32_t    diffBits       = cmdBuf->renderState.calculateDifferenceBits(newRenderState);
+	uint32_t    diffBits       = cmdBuf->state.calculateDifferenceBits(newState);
 
 	// Fetch descriptor image layout transforms
 	std::vector<Image>         pendingTransformImages;
@@ -52,9 +52,9 @@ void DrawCmd::exec(CmdBuffer cmdBuf) const
 	{
 		diffBits |= RENDER_STATE_ACTION_BIT_END_RENDER_PASS;
 		diffBits |= RENDER_STATE_ACTION_BIT_START_RENDER_PASS;
-		for (size_t i = 0; i < newRenderState.clearValues.size(); i++)
+		for (size_t i = 0; i < newState.clearValues.size(); i++)
 		{
-			newRenderState.clearValues[i] = ClearValue::none();
+			newState.clearValues[i] = ClearValue::none();
 		}
 	}
 
@@ -81,11 +81,11 @@ void DrawCmd::exec(CmdBuffer cmdBuf) const
 		}
 	}
 	// Aquire new render state
-	cmdBuf->renderState = newRenderState;
+	cmdBuf->state = newState;
 	// Start render pass if needed
 	if (diffBits & RENDER_STATE_ACTION_BIT_START_RENDER_PASS)
 	{
-		cmdStartRenderPass(cmdBuf, cmdBuf->renderState.renderPass, cmdBuf->renderState.framebuffer, cmdBuf->renderState.renderArea, cmdBuf->renderState.getClearValues());
+		cmdStartRenderPass(cmdBuf, cmdBuf->state.renderPass, cmdBuf->state.framebuffer, cmdBuf->state.renderArea, cmdBuf->state.getClearValues());
 	}
 	// Bind pipeline if needed
 	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_PIPELINE)
@@ -93,15 +93,18 @@ void DrawCmd::exec(CmdBuffer cmdBuf) const
 		cmdBindPipeline(cmdBuf);
 	}
 	// for now, only one descriptor set, always rebind
-	cmdPushDescriptors(cmdBuf, 0, descriptors);
+	if (!descriptors.empty())
+	{
+		cmdPushDescriptors(cmdBuf, 0, descriptors);
+	}
 	cmdPushConstants(cmdBuf, pushConstantsSizes, pushConstantsData.data());
 
-	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_VERTEX_BUFFER && !cmdBuf->renderState.vertexBuffers.empty())
+	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_VERTEX_BUFFER && !cmdBuf->state.vertexBuffers.empty())
 	{
 		cmdBindVertexBuffers(cmdBuf);
 	}
 
-	if (cmdBuf->renderState.indexBuffer)
+	if (cmdBuf->state.indexBuffer)
 	{
 		cmdBindIndexBuffer(cmdBuf, surf.offset);
 		cmdDrawIndexed(cmdBuf, surf.count, instanceCount, 0, 0, 0);

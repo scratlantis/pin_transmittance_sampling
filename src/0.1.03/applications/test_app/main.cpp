@@ -23,7 +23,7 @@ int main()
 		}
 		Image     swapchainImg = getSwapchainImage();
 		CmdBuffer cmdBuf       = createCmdBuffer(gState.frame->stack);
-		DrawCmd   drawCmd      = getCmdFill(swapchainImg, {1.0, 0.0, 0.0, 1.0});
+		DrawCmd   drawCmd      = getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, {1.0, 0.0, 0.0, 1.0});
 		drawCmd.exec(cmdBuf);
 		swapBuffers({cmdBuf});
 	}

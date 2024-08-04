@@ -116,7 +116,7 @@ class Cachable_T : public Resource
 		}
 		else
 		{
-			printVka("CachableResource::track() called on a resource that is already cached\n");
+			printVka("CachableResource::track() called on a resource that is already cached!");
 			DEBUG_BREAK;
 		}
 	}

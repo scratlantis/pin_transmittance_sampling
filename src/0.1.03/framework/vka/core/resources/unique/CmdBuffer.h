@@ -2,6 +2,7 @@
 #include <vka/core/stateless/vk_types/misc.h>
 #include "../Resource.h"
 #include <vka/core/resources/cachable/PipelineLayout.h>
+#include <vka/core/resources/cachable/RenderPass.h>
 namespace vka
 {
 class CmdBufferVK_R : public Resource_T<VkCommandBuffer>
@@ -56,13 +57,22 @@ enum RenderStateActionBits
 
 class Buffer_R;
 
-struct RenderState
+enum CmdBufferStateType
 {
+	CMD_BUFFER_STATE_NONE,
+	CMD_BUFFER_STATE_COMPUTE,
+	CMD_BUFFER_STATE_RASTERIZATION
+};
+
+struct CmdBufferState
+{
+	CmdBufferStateType type = CMD_BUFFER_STATE_NONE;
 	// -> RenderPassBegin
 	VkFramebuffer           framebuffer;
 	std::vector<ClearValue> clearValues;
 	VkRect2D_OP             renderArea;
 	VkRenderPass            renderPass;
+	RenderPassDefinition	renderPassDef; // Must match renderPass
 
 	// -> Subpass
 	uint32_t subpassIdx;
@@ -77,7 +87,20 @@ struct RenderState
 	std::vector<const Buffer_R *> vertexBuffers;
 	Buffer_R                     *indexBuffer;
 
-	uint32_t calculateDifferenceBits(const RenderState &other) const
+	void clear()
+	{
+		type = CMD_BUFFER_STATE_NONE;
+		renderPass = VK_NULL_HANDLE;
+		framebuffer = VK_NULL_HANDLE;
+		clearValues.clear();
+		renderArea = {};
+		pipeline = VK_NULL_HANDLE;
+		pipelineLayout = VK_NULL_HANDLE;
+		vertexBuffers.clear();
+		indexBuffer = nullptr;
+	}
+
+	uint32_t calculateDifferenceBits(const CmdBufferState &other) const
 	{
 		uint32_t diffBits = 0;
 		// todo subpasses
@@ -114,12 +137,12 @@ class CmdBuffer_R : public Resource_T<VkCommandBuffer>
 	uint32_t                 stateBits;
 	CmdBufferCapabitlityMask capability;
 
-	RenderState renderState;
+	CmdBufferState state;
 
 	CmdBuffer_R(IResourcePool *pPool) :
 	    Resource_T<VkCommandBuffer>(VK_NULL_HANDLE)
 	{
-		renderState = {};
+		state = {};
 		capability  = CMD_BUF_CAPABILITY_MASK_NONE;
 		stateBits   = 0;
 		track(pPool);

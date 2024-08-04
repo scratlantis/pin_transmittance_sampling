@@ -5,7 +5,7 @@
 
 namespace vka
 {
-#define VKA_PUSH_CONSTANT_RANGE_ALLIGNMENT 16U
+
 
 struct ImageSubresourceRange
 {
