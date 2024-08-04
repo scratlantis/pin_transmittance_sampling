@@ -39,4 +39,11 @@ Image getSwapchainImage()
 	return gState.swapchainImage;
 }
 
+void clearShaderCache()
+{
+	vkDeviceWaitIdle(gState.device.logical);
+	gState.cache->clearShaders();
+	gState.shaderLog = "";
+}
+
 }		// namespace vka

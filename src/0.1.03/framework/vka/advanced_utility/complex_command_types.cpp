@@ -176,7 +176,10 @@ void DrawCmd::pushDescriptor(TLASRef as, VkShaderStageFlags shaderStage)
 void DrawCmd::setGeometry(DrawSurface surface)
 {
 	surf = surface;
-	addInput(pipelineDef, surface.vertexLayout, VK_VERTEX_INPUT_RATE_VERTEX);
+	if (surface.vertexBuffer != nullptr)
+	{
+		addInput(pipelineDef, surface.vertexLayout, VK_VERTEX_INPUT_RATE_VERTEX);
+	}
 }
 
 void DrawCmd::pushInstanceData(BufferRef buffer, VertexDataLayout layout)
@@ -235,26 +238,13 @@ void ComputeCmd::pushDescriptor(TLASRef as, VkShaderStageFlags shaderStage)
 
 PipelineCmd::PipelineCmd()
 {
-	pushConstantsData = nullptr;
 }
 
 void PipelineCmd::pushConstant(void *data, VkDeviceSize size)
 {
 	pushConstantsSizes.push_back(size);
-	uint32_t offset;
-	if (pushConstantsData == nullptr)
-	{
-		offset            = 0;
-		pushConstantsData = createBuffer(gState.frame->stack, 0, VMA_MEMORY_USAGE_CPU_ONLY, size);
-	}
-	else
-	{
-		offset = pushConstantsData->getSize();
-		pushConstantsData->changeSize(offset + size);
-		pushConstantsData->update();
-	}
-	void *ptr = pushConstantsData->map(offset);
-	memcpy(ptr, data, size);
+	pushConstantsData.resize(pushConstantsData.size() + size);
+	memcpy(pushConstantsData.data() + pushConstantsData.size() - size, data, size);
 }
 
 

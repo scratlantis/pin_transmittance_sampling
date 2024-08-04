@@ -53,6 +53,11 @@ struct DrawSurface
 	uint32_t         offset;
 	uint32_t         count;
 	VertexDataLayout vertexLayout;
+
+	static DrawSurface screenFillingTriangle()
+	{
+		return {nullptr, nullptr, 0, 3, {}};
+	}
 };
 
 enum ModelLoadFlagBits

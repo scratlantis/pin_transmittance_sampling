@@ -147,7 +147,7 @@ void addInput(RasterizationPipelineDefinition &def, VertexDataLayout inputLayout
 	def.vertexBindingDescriptions.push_back(bindingDesc);
 }
 
-void addShader(RasterizationPipelineDefinition &def, std::string path, std::vector<ShaderArgs> args = {})
+void addShader(RasterizationPipelineDefinition &def, std::string path, std::vector<ShaderArgs> args)
 {
 	def.shaderDefinitions.push_back(ShaderDefinition(path, args));
 }

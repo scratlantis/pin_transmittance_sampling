@@ -110,7 +110,16 @@ void Shader_R::createModule(ShaderDefinition const &def)
 	shader_spv_path << gShaderOutputDir << "/spv/" << def.fileIDShort() << ".spv";
 	std::string shader_spv_path_str = shader_spv_path.str();
 	printVka("About to open file %s\n", shader_spv_path_str.c_str());
-	auto shaderCode = readFile(shader_spv_path_str.c_str());
+	std::vector<char> shaderCode;
+	try
+	{
+		shaderCode = readFile(shader_spv_path_str.c_str());
+	}
+	catch (std::runtime_error &e)
+	{
+		throw ShaderNotFoundException(shader_spv_path_str + " is no valid spv!");
+		return;
+	}
 	if (shaderCode.size() == 0)
 	{
 		printVka("Shader not found : %s", shader_spv_path_str.c_str());

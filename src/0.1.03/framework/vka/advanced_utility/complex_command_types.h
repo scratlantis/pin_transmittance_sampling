@@ -42,7 +42,7 @@ class PipelineCmd
   protected:
 
 	std::vector<Descriptor>              descriptors;
-	Buffer								 pushConstantsData = nullptr;
+	std::vector<uint8_t>				 pushConstantsData;
 	std::vector<uint32_t>                pushConstantsSizes;
   public:
 	virtual RenderState getRenderState() const = 0;

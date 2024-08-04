@@ -160,22 +160,24 @@ void cmdCopyImage(CmdBuffer cmdBuf, Image src, Image dst)
 // Acceleration Structure
 void cmdBuildAccelerationStructure(CmdBuffer cmdBuf, BLAS dst, Buffer scratchBuffer, VkAccelerationStructureKHR src)
 {
+	LOAD_CMD_VK_DEVICE(vkCmdBuildAccelerationStructuresKHR, gState.device.logical);
     dst->configureScratchBuffer(scratchBuffer);
 	scratchBuffer->recreate();
 	VkAccelerationStructureBuildGeometryInfoKHR buildInfo = dst->getBuildInfo(src, scratchBuffer);
     cmdClearState(cmdBuf);
-	vkCmdBuildAccelerationStructuresKHR(cmdBuf->getHandle(), 1, &buildInfo, dst->getBuildRangePtrs().data());
+	pvkCmdBuildAccelerationStructuresKHR(cmdBuf->getHandle(), 1, &buildInfo, dst->getBuildRangePtrs().data());
 	dst->setBuilt(true);
 }
 
 void cmdBuildAccelerationStructure(CmdBuffer cmdBuf, TLAS dst, Buffer instanceBuffer, Buffer scratchBuffer, VkAccelerationStructureKHR src)
 {
+	LOAD_CMD_VK_DEVICE(vkCmdBuildAccelerationStructuresKHR, gState.device.logical);
     dst->setInstanceData(instanceBuffer);
 	dst->configureScratchBuffer(scratchBuffer);
 	scratchBuffer->recreate();
 	VkAccelerationStructureBuildGeometryInfoKHR buildInfo = dst->getBuildInfo(src, scratchBuffer);
 	cmdClearState(cmdBuf);
-	vkCmdBuildAccelerationStructuresKHR(cmdBuf->getHandle(), 1, &buildInfo, dst->getBuildRangePtrs().data());
+	pvkCmdBuildAccelerationStructuresKHR(cmdBuf->getHandle(), 1, &buildInfo, dst->getBuildRangePtrs().data());
 	dst->setBuilt(true);
 }
 
@@ -271,13 +273,12 @@ void cmdPushConstants(CmdBuffer cmdBuf, VkShaderStageFlags shaderStage, uint32_t
 	vkCmdPushConstants(cmdBuf->getHandle(), cmdBuf->renderState.pipelineLayout, shaderStage, offset, size, data);
 }
 
-void cmdPushConstants(CmdBuffer cmdBuf, const std::vector<uint32_t> &pcSizes, BufferRef pcData)
+void cmdPushConstants(CmdBuffer cmdBuf, const std::vector<uint32_t> &pcSizes, const void *data)
 {
 	VKA_ASSERT(cmdBuf->stateBits & CMD_BUF_STATE_BITS_BOUND_PIPELINE);
 	VKA_ASSERT(pcSizes.size() == cmdBuf->renderState.pipelineLayoutDef.pcRanges.size());
     uint32_t readOffset  = 0;
     uint32_t writeOffset = 0;
-	void* data = pcData->map();
 	for (size_t i = 0; i < pcSizes.size(); i++)
 	{
 		cmdPushConstants(cmdBuf, cmdBuf->renderState.pipelineLayoutDef.pcRanges[i].stageFlags, writeOffset, pcSizes[i], (char *) data + readOffset);

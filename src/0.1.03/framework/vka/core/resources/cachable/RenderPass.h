@@ -7,7 +7,7 @@ class RenderPassDefinition : public ResourceIdentifier
 {
   public:
 	std::vector<VkAttachmentDescription_OP> attachmentDescriptions;
-	std::vector<SubpassDescription>      subpassDescriptions;
+	std::vector<SubpassDescription>			subpassDescriptions;
 	std::vector<VkSubpassDependency_OP>     subpassDependencies;
 	uint32_t                                currentSubpass = 0;
 	bool                                    operator==(const ResourceIdentifier &other) const override;

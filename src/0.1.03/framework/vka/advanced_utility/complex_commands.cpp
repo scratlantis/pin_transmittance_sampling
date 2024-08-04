@@ -9,18 +9,36 @@ namespace vka
 void ComputeCmd::exec(CmdBuffer cmdBuf) const
 {
 	cmdClearState(cmdBuf);
-	cmdBuf->renderState = getRenderState();
+	RenderState newRenderState;
+	try
+	{
+		newRenderState = getRenderState();
+	}
+	catch (const ShaderNotFoundException &e)
+	{
+		printVka("Shader not found: %s\n", e.what());
+		return;
+	}
+	cmdBuf->renderState = newRenderState;
 	cmdBindPipeline(cmdBuf);
 	cmdPushDescriptors(cmdBuf, 0, descriptors);        // only one descriptor set for now
-	cmdPushConstants(cmdBuf, pushConstantsSizes, pushConstantsData);
+	cmdPushConstants(cmdBuf, pushConstantsSizes, pushConstantsData.data());
 	cmdDispatch(cmdBuf, workGroupCount);
 }
 
 void DrawCmd::exec(CmdBuffer cmdBuf) const
 {
 	VKA_ASSERT(pipelineDef.subpass == 0);
-
-	RenderState newRenderState = getRenderState();
+	RenderState newRenderState;
+	try
+	{
+		newRenderState = getRenderState();
+	}
+	catch (const ShaderNotFoundException& e)
+	{
+		printVka("Shader not found: %s\n", e.what());
+		return;
+	}
 	uint32_t    diffBits       = cmdBuf->renderState.calculateDifferenceBits(newRenderState);
 
 	// Fetch descriptor image layout transforms
@@ -76,7 +94,7 @@ void DrawCmd::exec(CmdBuffer cmdBuf) const
 	}
 	// for now, only one descriptor set, always rebind
 	cmdPushDescriptors(cmdBuf, 0, descriptors);
-	cmdPushConstants(cmdBuf, pushConstantsSizes, pushConstantsData);
+	cmdPushConstants(cmdBuf, pushConstantsSizes, pushConstantsData.data());
 
 	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_VERTEX_BUFFER && !cmdBuf->renderState.vertexBuffers.empty())
 	{

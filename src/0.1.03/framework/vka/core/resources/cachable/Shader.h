@@ -4,6 +4,12 @@
 namespace vka
 {
 
+class ShaderNotFoundException : public std::runtime_error
+{
+  public:
+	ShaderNotFoundException(const std::string &msg) : std::runtime_error(msg){};
+};
+
 struct ShaderArgs
 {
 	std::string name;

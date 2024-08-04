@@ -17,6 +17,7 @@ inline std::vector<char> readFile(const std::string &filename)
 	{
 		std::cout << "Failed to open a file: " << filename << std::endl;
 		throw std::runtime_error("Failed to open a file!");
+		return {};
 	}
 	size_t            file_size = (size_t) file.tellg();
 	std::vector<char> file_buffer(file_size);

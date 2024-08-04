@@ -19,7 +19,7 @@ void                            nextSubpass(RenderPassDefinition &def);
 RasterizationPipelineDefinition defaultRasterizationPipeline(RasterizationPipelineInitValues &initValues);
 RasterizationPipelineDefinition defaultRasterizationPipeline();
 void                            addInput(RasterizationPipelineDefinition &def, VertexDataLayout inputLayout, VkVertexInputRate inputRate);
-void                            addShader(RasterizationPipelineDefinition &def, std::string path, std::vector<ShaderArgs> args);
+void                            addShader(RasterizationPipelineDefinition &def, std::string path, std::vector<ShaderArgs> args = {});
 void                            addWriteAttachmentState(RasterizationPipelineDefinition &def);
 void                            addBlendAttachmentState(RasterizationPipelineDefinition &def, BlendOperation colorBlendOp, BlendOperation alphaBlendOp, VkColorComponentFlags colorWriteFlags);
 void                            addDepthAttachment(RasterizationPipelineDefinition &def, Image depthImage, VkBool32 enableWrite, VkCompareOp compareOp, bool clear);

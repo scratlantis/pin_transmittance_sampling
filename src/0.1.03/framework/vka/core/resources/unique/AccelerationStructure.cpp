@@ -7,7 +7,8 @@ namespace vka
 {
 void AccelerationStructureVK_R::free()
 {
-	vkDestroyAccelerationStructureKHR(gState.device.logical, handle, nullptr);
+	LOAD_CMD_VK_DEVICE(vkDestroyAccelerationStructureKHR, gState.device.logical);
+	pvkDestroyAccelerationStructureKHR(gState.device.logical, handle, nullptr);
 }
 
 const VkAccelerationStructureGeometryKHR *BottomLevelAS_R::getGeometryPtr() const
@@ -58,6 +59,7 @@ VkAccelerationStructureBuildGeometryInfoKHR BottomLevelAS_R::getBuildInfoInterna
 
 VkDeviceSize BottomLevelAS_R::getBuildSize() const
 {
+	LOAD_CMD_VK_DEVICE(vkGetAccelerationStructureBuildSizesKHR, gState.device.logical);
 	VkAccelerationStructureBuildGeometryInfoKHR buildInfo = getBuildInfoInternal();
 	std::vector<uint32_t> maxPrimCount(buildRange.size());
 	for (uint32_t i = 0; i < buildRange.size(); i++)
@@ -65,7 +67,7 @@ VkDeviceSize BottomLevelAS_R::getBuildSize() const
 		maxPrimCount[i] = buildRange[i].primitiveCount;
 	}
 	VkAccelerationStructureBuildSizesInfoKHR sizeInfo{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
-	vkGetAccelerationStructureBuildSizesKHR(gState.device.logical, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo, maxPrimCount.data(), &sizeInfo);
+	pvkGetAccelerationStructureBuildSizesKHR(gState.device.logical, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo, maxPrimCount.data(), &sizeInfo);
 	return sizeInfo.accelerationStructureSize;
 }
 
@@ -110,9 +112,10 @@ VkAccelerationStructureBuildGeometryInfoKHR TopLevelAs_R::getBuildInfoInternal()
 
 VkDeviceSize TopLevelAs_R::getBuildSize() const
 {
+	LOAD_CMD_VK_DEVICE(vkGetAccelerationStructureBuildSizesKHR, gState.device.logical);
 	VkAccelerationStructureBuildGeometryInfoKHR buildInfo = getBuildInfoInternal();
 	VkAccelerationStructureBuildSizesInfoKHR    sizeInfo{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
-	vkGetAccelerationStructureBuildSizesKHR(gState.device.logical, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo, &buildRange.primitiveCount, &sizeInfo);
+	pvkGetAccelerationStructureBuildSizesKHR(gState.device.logical, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildInfo, &buildRange.primitiveCount, &sizeInfo);
 	return sizeInfo.accelerationStructureSize;
 }
 
@@ -175,6 +178,7 @@ hash_t AccelerationStructure_R::hash() const
 }
 void AccelerationStructure_R::createHandles()
 {
+	LOAD_CMD_VK_DEVICE(vkCreateAccelerationStructureKHR, gState.device.logical);
 	VkAccelerationStructureCreateInfoKHR createInfo{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR};
 	createInfo.type = getType();
 	createInfo.size = getBuildSize();
@@ -182,7 +186,7 @@ void AccelerationStructure_R::createHandles()
 	bufRes->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
 	bufRes->recreate();
 	createInfo.buffer = bufRes->getHandle();
-	VK_CHECK(vkCreateAccelerationStructureKHR(gState.device.logical, &createInfo, nullptr, &handle));
+	VK_CHECK(pvkCreateAccelerationStructureKHR(gState.device.logical, &createInfo, nullptr, &handle));
 	asRes = new AccelerationStructureVK_R(handle);
 	asRes->track(getPool());
 }
