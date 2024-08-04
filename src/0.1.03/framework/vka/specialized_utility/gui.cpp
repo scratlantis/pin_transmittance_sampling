@@ -66,7 +66,17 @@ void cmdRenderGui(CmdBuffer cmdBuf, Image target, float x, float y, float width,
 		cmdBuf->state.renderArea  = renderArea;
 		cmdStartRenderPass(cmdBuf, renderPass, framebuffer, renderArea, {});
 	}
+	if (gState.guiRendered == false)
+	{
+		gState.imguiWrapper->newFrame();
+		gState.guiRendered = true;
+	}
 	gState.imguiWrapper->render(cmdBuf);
+}
+
+void cmdRenderGui(CmdBuffer cmdBuf, Image target)
+{
+	cmdRenderGui(cmdBuf, target, 0.f, 0.f, 1.f, 1.f);
 }
 
 
@@ -116,6 +126,11 @@ void addGVar(GVar *gv)
 
 void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories, VkRect2D_OP viewport)
 {
+	if (!gState.guiRendered)
+	{
+		gState.imguiWrapper->newFrame();
+		gState.guiRendered = true;
+	}
 	ImGui::SetNextWindowPos({(float) viewport.offset.x, (float) viewport.offset.y});
 	ImGui::SetNextWindowSize({(float) viewport.extent.width, (float) viewport.extent.height});
 	ImGui::Begin("Gvar", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize);

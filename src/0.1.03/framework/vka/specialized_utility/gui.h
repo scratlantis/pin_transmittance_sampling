@@ -9,6 +9,8 @@ void enableGui(RenderPassDefinition rpDef, uint32_t subpassIdx);
 void enableGui();
 void cmdRenderGui(CmdBuffer cmdBuf, Image target, float x, float y, float width, float height);
 
+void cmdRenderGui(CmdBuffer cmdBuf, Image target);
+
 union GVar_Val
 {
 	bool     v_bool;
