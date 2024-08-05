@@ -21,6 +21,13 @@ int main()
 	gState.init(deviceCI, ioCI, &window, config);
 	enableGui();
 
+	// HDR Image for path tracing
+	Image ptTargetImg = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_GENERAL);
+
+
+
+
+	gState.updateSwapchainAttachments();
 	// Main Loop
 	while (!gState.io.shouldTerminate())
 	{
@@ -30,10 +37,13 @@ int main()
 		}
 		Image     swapchainImg = getSwapchainImage();
 		CmdBuffer cmdBuf       = createCmdBuffer(gState.frame->stack);
-		DrawCmd   drawCmd      = getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			{gvar_color.val.v_vec3[0], gvar_color.val.v_vec3[1], gvar_color.val.v_vec3[2], 1.0});
+		// Path tracing
+
+		// Composition
+		DrawCmd drawCmd = getCmdAdvancedCopy(ptTargetImg, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 		drawCmd.exec(cmdBuf);
 		gvar_gui::buildGui(gVars, {"Catergory 1"}, getScissorRect(0.f,0.f,0.2,1.0));
+		shader_console_gui::buildGui(getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
 		cmdRenderGui(cmdBuf, swapchainImg);
 		swapBuffers({cmdBuf});
 	}

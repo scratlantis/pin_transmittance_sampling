@@ -331,6 +331,12 @@ struct VkRect2D_OP : public VkRect2D
 		this->offset = other.offset;
 		this->extent = other.extent;
 	}
+
+	VkRect2D_OP(VkExtent2D const &extent)
+	{
+		this->offset = {0, 0};
+		this->extent = extent;
+	}
 	bool operator==(VkRect2D_OP const &other) const
 	{
 		// clang-format off
@@ -344,7 +350,7 @@ struct VkRect2D_OP : public VkRect2D
 	{
 		return offset.x > 0 && offset.y > 0 && this->extent.width > 0 && this->extent.height > 0 && offset.x + this->extent.width <= extent.width && offset.y + this->extent.height <= extent.height;
 	}
-	VkRect2D_OP operator*(Rect2D<float> const &other)
+	VkRect2D_OP operator*(Rect2D<float> const &other) const
 	{
 		// clang-format off
 		VkRect2D_OP result;
@@ -355,6 +361,23 @@ struct VkRect2D_OP : public VkRect2D
 		return result;
 		// clang-format on
 	}
+
+	static VkRect2D_OP absRegion(VkRect2D_OP const &other, Rect2D<float> const &relative)
+	{
+		return other * Rect2D<float>{relative.x, relative.y, std::min(relative.width, 1.0f - relative.x), std::min(relative.height, 1.0f - relative.y)};
+	}
+
+	static Rect2D<float> relRegion(VkRect2D_OP const &outer, VkRect2D_OP const &inner)
+	{
+		Rect2D<float> relative;
+		relative.x = (float)inner.offset.x / outer.extent.width;
+		relative.y = (float)inner.offset.y / outer.extent.height;
+		relative.width = (float)inner.extent.width / outer.extent.width;
+		relative.height = (float)inner.extent.height / outer.extent.height;
+		return relative;
+	}
+
+
 	void operator*=(Rect2D<float> const &other)
 	{
 		// clang-format off

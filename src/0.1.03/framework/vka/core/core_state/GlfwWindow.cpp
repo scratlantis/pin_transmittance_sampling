@@ -148,10 +148,12 @@ void GlfwWindow::key_callback(GLFWwindow *window, int key, int code, int action,
 		if (action == GLFW_PRESS)
 		{
 			gState.io.keyPressed[key] = true;
+			gState.io.keyPressedEvent[key] = true;
 		}
 		else if (action == GLFW_RELEASE)
 		{
 			gState.io.keyPressed[key] = false;
+			gState.io.keyReleasedEvent[key] = true;
 		}
 	}
 }

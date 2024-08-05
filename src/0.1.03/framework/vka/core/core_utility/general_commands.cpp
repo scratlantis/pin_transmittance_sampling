@@ -245,9 +245,9 @@ void cmdPushDescriptors(CmdBuffer cmdBuf, uint32_t setIdx, std::vector<Descripto
     VKA_ASSERT(cmdBuf->state.pipelineLayoutDef.descSetLayoutDef.size() > setIdx);
 
     std::vector<VkWriteDescriptorSet>   writes(VKA_COUNT(desc));
-    uint32_t bufferInfoCount = 0;
-    uint32_t imageInfoCount  = 0;
-    uint32_t accelerationStructureWriteCount = 0;
+    uint32_t bufferInfoCount = 1;
+    uint32_t imageInfoCount  = 1;
+    uint32_t accelerationStructureWriteCount = 1;
 	for (size_t i = 0; i < writes.size(); i++)
 	{
 		desc[i].countStructures(bufferInfoCount, imageInfoCount, accelerationStructureWriteCount);

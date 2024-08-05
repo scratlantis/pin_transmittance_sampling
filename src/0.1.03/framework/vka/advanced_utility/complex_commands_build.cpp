@@ -153,7 +153,14 @@ void DrawCmd::pushDescriptor(BufferRef buffer, VkDescriptorType type, VkShaderSt
 void DrawCmd::pushDescriptor(Image image, VkDescriptorType type, VkShaderStageFlags shaderStage)
 {
 	addDescriptor(pipelineDef, type, shaderStage);
-	descriptors.push_back(Descriptor(image, type, shaderStage));
+	if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+	{
+		descriptors.push_back(Descriptor(SamplerDefinition(), image, shaderStage));
+	}
+	else
+	{
+		descriptors.push_back(Descriptor(image, type, shaderStage));
+	}
 }
 
 void DrawCmd::pushDescriptor(const SamplerDefinition sampler, VkShaderStageFlags shaderStage)
@@ -212,10 +219,18 @@ void ComputeCmd::pushDescriptor(BufferRef buffer, VkDescriptorType type)
 	addDescriptor(pipelineDef, type);
 	descriptors.push_back(Descriptor(buffer, type, VK_SHADER_STAGE_COMPUTE_BIT));
 }
+
 void ComputeCmd::pushDescriptor(Image image, VkDescriptorType type)
 {
 	addDescriptor(pipelineDef, type);
-	descriptors.push_back(Descriptor(image, type, VK_SHADER_STAGE_COMPUTE_BIT));
+	if (type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+	{
+		descriptors.push_back(Descriptor(SamplerDefinition(), image, VK_SHADER_STAGE_COMPUTE_BIT));
+	}
+	else
+	{
+		descriptors.push_back(Descriptor(image, type, VK_SHADER_STAGE_COMPUTE_BIT));
+	}
 }
 
 void ComputeCmd::pushDescriptor(const SamplerDefinition sampler)

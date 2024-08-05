@@ -41,5 +41,6 @@ class AdvancedState : public CoreState
 	void         init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Window *window, AdvancedStateConfig &config);
 	void         destroy() override;
 	virtual void nextFrame() override;
+	void         updateSwapchainAttachments();
 };
 }        // namespace vka

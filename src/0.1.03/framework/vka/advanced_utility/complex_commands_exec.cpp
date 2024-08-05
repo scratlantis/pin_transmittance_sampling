@@ -97,7 +97,10 @@ void DrawCmd::exec(CmdBuffer cmdBuf) const
 	{
 		cmdPushDescriptors(cmdBuf, 0, descriptors);
 	}
-	cmdPushConstants(cmdBuf, pushConstantsSizes, pushConstantsData.data());
+	if (!pushConstantsData.empty())
+	{
+		cmdPushConstants(cmdBuf, pushConstantsSizes, pushConstantsData.data());
+	}
 
 	if (diffBits & RENDER_STATE_ACTION_BIT_BIND_VERTEX_BUFFER && !cmdBuf->state.vertexBuffers.empty())
 	{

@@ -4,6 +4,7 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 #include "macros.h"
+#include "io.h"
 namespace vka
 {
 
@@ -321,5 +322,25 @@ inline std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions(u
 		vertexInputAttributeDescriptions.push_back(attributeDescription);
 	}
 	return vertexInputAttributeDescriptions;
+}
+
+// https://www.khronos.org/opengl/wiki/Image_Load_Store#Format_qualifiers
+inline std::string getGLSLFormat(VkFormat format)
+{
+	switch (format)
+	{
+		case VK_FORMAT_R8G8B8A8_UNORM:
+			return "rgba8";
+		case VK_FORMAT_R32G32B32A32_SFLOAT:
+			return "rgba32f";
+		case VK_FORMAT_R32G32B32A32_UINT:
+			return "rgba32ui";
+			break;
+		
+		default:
+			printVka("getGLSLFormat: Unsupported format!");
+			DEBUG_BREAK;
+			break;
+	}
 }
 }        // namespace vka

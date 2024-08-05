@@ -9,4 +9,4 @@ set proceed=o
 set /p proceed=open project/rerun/exit? [o/r/e] (default - %proceed%)?:
 
 if %proceed%==r (goto start)
-if %proceed%==o (start devenv.exe .\build\VkBase.sln)
+if %proceed%==o (start devenv.exe .\build\master_thesis.sln)
