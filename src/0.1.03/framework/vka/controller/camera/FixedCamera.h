@@ -18,20 +18,7 @@ struct FixedCameraCI
 	float     scrollSpeed;
 };
 
-struct FixedCameraCI_Default : public FixedCameraCI
-{
-	FixedCameraCI_Default()
-	{
-		fixpoint    = glm::vec3(0.0f, 0.0f, 0.0f);
-		distance    = 1.0;
-		up          = glm::vec3(0.0f, 1.0f, 0.0f);
-		yaw         = 90.f;
-		pitch       = 0.0f;
-		moveSpeed   = 0.2f;
-		turnSpeed   = 0.25f;
-		scrollSpeed = 0.1f;
-	}
-};
+
 
 class FixedCamera
 {
@@ -48,7 +35,7 @@ class FixedCamera
 		worldUp       = ci.up;
 		updateRotation();
 	};
-	FixedCamera() : FixedCamera(FixedCameraCI_Default()){};
+	FixedCamera() = default;
 	~FixedCamera(){};
 	void      keyControl(float deltaTime);
 	void      mouseControl(float deltaTime);

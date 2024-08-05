@@ -43,6 +43,23 @@ Image createSwapchainAttachment(VkFormat format, VkImageUsageFlags usageFlags, V
 	return img;
 }
 
+Image createSwapchainAttachment(VkFormat format, VkImageUsageFlags usageFlags, VkImageLayout initialLayout, float widthCoef, float heightCoef)
+{
+	VkImageCreateInfo ci = ImageCreateInfo_Default(usageFlags, gState.io.extent, format);
+	ci.initialLayout     = initialLayout;
+	Image img            = new Image_R(gState.swapchainAttachmentPool, ci, true, widthCoef, heightCoef);
+	img->createHandles();
+	if (usageFlags & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+	{
+		img->setClearValue({1.f, 0});
+	}
+	else
+	{
+		img->setClearValue({0.f, 0.f, 0.f, 1.f});
+	}
+	return img;
+}
+
 Image getSwapchainImage()
 {
 	if (gState.swapchainImage != nullptr)

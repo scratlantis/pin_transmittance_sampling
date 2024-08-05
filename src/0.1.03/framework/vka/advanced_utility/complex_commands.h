@@ -99,9 +99,9 @@ class ComputeCmd
   public:
 	ComputeCmd() = default;
 	ComputeCmd(uint32_t taskSize, const std::string path, std::vector<ShaderArgs> args = {});
-	ComputeCmd(glm::uvec2 taskSize, std::string path, std::vector<ShaderArgs> args);
-	ComputeCmd(VkExtent2D taskSize, std::string path, std::vector<ShaderArgs> args);
-	ComputeCmd(glm::uvec3 taskSize, std::string path, std::vector<ShaderArgs> args);
+	ComputeCmd(glm::uvec2 taskSize, std::string path, std::vector<ShaderArgs> args = {});
+	ComputeCmd(VkExtent2D taskSize, std::string path, std::vector<ShaderArgs> args = {});
+	ComputeCmd(glm::uvec3 taskSize, std::string path, std::vector<ShaderArgs> args = {});
 
 	void pushDescriptor(BufferRef buffer, VkDescriptorType type);
 	void pushDescriptor(Image image, VkDescriptorType type);

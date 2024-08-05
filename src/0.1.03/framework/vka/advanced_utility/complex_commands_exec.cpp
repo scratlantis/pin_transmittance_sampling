@@ -19,6 +19,23 @@ void ComputeCmd::exec(CmdBuffer cmdBuf) const
 		printVka("Shader not found: %s", e.what());
 		return;
 	}
+
+	// Fetch descriptor image layout transforms
+	std::vector<Image>         pendingTransformImages;
+	std::vector<VkImageLayout> pendingTransformLayouts;
+	for (size_t i = 0; i < descriptors.size(); i++)
+	{
+		descriptors[i].getLayoutTransforms(pendingTransformImages, pendingTransformLayouts);
+	}
+
+	// Perform image layout transitions
+	// Descriptors
+	for (size_t i = 0; i < pendingTransformImages.size(); i++)
+	{
+		cmdTransitionLayout(cmdBuf, pendingTransformImages[i], pendingTransformLayouts[i]);
+	}
+
+	// Aquire new render state
 	cmdBuf->state = newState;
 	cmdBindPipeline(cmdBuf);
 	cmdPushDescriptors(cmdBuf, 0, descriptors);        // only one descriptor set for now

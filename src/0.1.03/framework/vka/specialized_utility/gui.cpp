@@ -167,6 +167,8 @@ namespace shader_console_gui
 {
 void buildGui(VkRect2D_OP viewport)
 {
+	if (gState.shaderLog == "")
+		return;
 	if (!gState.guiRendered)
 	{
 		gState.imguiWrapper->newFrame();

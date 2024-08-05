@@ -56,6 +56,7 @@ CmdBufferState ComputeCmd::getCmdBufferState() const
 	state.pipeline          = gState.cache->fetch(pipelineDef);
 	state.bindPoint         = VK_PIPELINE_BIND_POINT_COMPUTE;
 	state.pipelineLayoutDef = pipelineDef.pipelineLayoutDefinition;
+	state.pipelineLayout	= gState.cache->fetch(pipelineDef.pipelineLayoutDefinition);
 	return state;
 }
 
@@ -82,7 +83,7 @@ ComputeCmd::ComputeCmd(glm::uvec2 taskSize, std::string path, std::vector<Shader
 	pipelineDef.shaderDef                = ShaderDefinition(path, args);
 }
 
-ComputeCmd::ComputeCmd(VkExtent2D taskSize, std::string path, std::vector<ShaderArgs> args = {})
+ComputeCmd::ComputeCmd(VkExtent2D taskSize, std::string path, std::vector<ShaderArgs> args)
 {
 	glm::uvec3 workGroupSize                        = {32, 32, 1};
 	glm::uvec3 resolution                           = {taskSize.width, taskSize.height, 1};

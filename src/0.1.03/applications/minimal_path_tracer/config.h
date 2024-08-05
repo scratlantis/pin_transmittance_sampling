@@ -1,5 +1,8 @@
 #pragma once
 #include <vka/vka.h>
+#include <glm/gtc/matrix_transform.hpp>
+static const std::string shaderPath = std::string(APP_SRC_DIR) + "/shaders/";
+
 struct D3VKPTDeviceCI : vka::DeviceCI
 {
 	D3VKPTDeviceCI(std::string appName)
@@ -101,5 +104,95 @@ struct DefaultAdvancedStateConfig : vka::AdvancedStateConfig
 		texturePath = std::string(APP_SRC_DIR) + "/textures/";
 		modelUsage = 0;
 	}
-
 };
+
+struct FixedCameraCI_Default : public vka::FixedCameraCI
+{
+	FixedCameraCI_Default()
+	{
+		fixpoint    = glm::vec3(0.0f, 0.0f, 0.0f);
+		distance    = 1.0;
+		up          = glm::vec3(0.0f, 1.0f, 0.0f);
+		yaw         = 90.f;
+		pitch       = 0.0f;
+		moveSpeed   = 0.2f;
+		turnSpeed   = 0.25f;
+		scrollSpeed = 0.1f;
+	}
+};
+
+// Shader interface
+using namespace vka;
+typedef uint32_t  uint;
+typedef glm::vec2 vec2;
+typedef glm::vec3 vec3;
+typedef glm::vec4 vec4;
+typedef glm::mat4 mat4;
+#include "shaders/interface.glsl"
+
+static GLSLFrame defaultFrame(VkExtent2D extent, uint32_t frameIdx)
+{
+	GLSLFrame frame     = {extent.width, extent.height, frameIdx};
+	frame.projection    = glm::perspective(glm::radians(60.0f), (float) extent.width / (float) extent.height, 0.1f, 500.0f);
+	frame.invProjection = glm::inverse(frame.projection);
+	return frame;
+}
+
+static GLSLView cameraView(FixedCamera cam)
+{
+	GLSLView view;
+	view.mat    = cam.getViewMatrix();
+	view.invMat = glm::inverse(view.mat);
+	view.pos    = vec4(cam.getPosition(), 0.0);
+	return view;
+}
+
+static GLSLParams guiParams(std::vector<GVar*> gv)
+{
+	GLSLParams params{};
+	return params;
+}
+
+static void configShaderPrelude1(CmdBuffer cmdBuf, ComputeCmd &cmd, VkExtent2D extent, FixedCamera cam, uint32_t frameIdx, Buffer ubo_frame, Buffer ubo_view, Buffer ubo_params)
+{
+	GLSLFrame ptFrame = defaultFrame(extent, frameIdx);
+	cmdWriteCopy(cmdBuf, ubo_frame, &ptFrame, sizeof(GLSLFrame));
+	cmd.pushDescriptor(ubo_frame, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
+	GLSLView ptView = cameraView(cam);
+	cmdWriteCopy(cmdBuf, ubo_view, &ptView, sizeof(GLSLView));
+	cmd.pushDescriptor(ubo_view, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
+	cmd.pushDescriptor(ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+}
+
+static void configShaderPrelude1(CmdBuffer cmdBuf, DrawCmd &cmd, VkExtent2D extent, FixedCamera cam, uint32_t frameIdx, Buffer ubo_frame, Buffer ubo_view, Buffer ubo_params)
+{
+	GLSLFrame ptFrame = defaultFrame(extent, frameIdx);
+	cmdWriteCopy(cmdBuf, ubo_frame, &ptFrame, sizeof(GLSLFrame));
+	cmd.pushDescriptor(ubo_frame, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	GLSLView ptView = cameraView(cam);
+	cmdWriteCopy(cmdBuf, ubo_view, &ptView, sizeof(GLSLView));
+	cmd.pushDescriptor(ubo_view, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	cmd.pushDescriptor(ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+}
+
+static void configShaderPrelude2(CmdBuffer cmdBuf, ComputeCmd &cmd, VkExtent2D extent, FixedCamera cam, uint32_t frameIdx, Buffer ubo_frame, Buffer ubo_view, Buffer ubo_params)
+{
+	GLSLFrame ptFrame = defaultFrame(extent, frameIdx);
+	cmdWriteCopy(cmdBuf, ubo_frame, &ptFrame, sizeof(GLSLFrame));
+	cmd.pushDescriptor(ubo_frame, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
+	cmd.pushDescriptor(ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+}
+
+static void configShaderPrelude2(CmdBuffer cmdBuf, DrawCmd &cmd, VkExtent2D extent, FixedCamera cam, uint32_t frameIdx, Buffer ubo_frame, Buffer ubo_view, Buffer ubo_params)
+{
+	GLSLFrame ptFrame = defaultFrame(extent, frameIdx);
+	cmdWriteCopy(cmdBuf, ubo_frame, &ptFrame, sizeof(GLSLFrame));
+	cmd.pushDescriptor(ubo_frame, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	cmd.pushDescriptor(ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+}

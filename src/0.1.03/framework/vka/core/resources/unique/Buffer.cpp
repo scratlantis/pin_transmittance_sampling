@@ -155,20 +155,15 @@ const Buffer_R Buffer_R::getSubBuffer(BufferRange range) const
 	return subBuffer;
 }
 
-const Buffer_R Buffer_R::getShallowCopy() const
+Buffer_R* Buffer_R::getStagingBuffer() const
 {
-	return *this;
-}
-
-Buffer_R Buffer_R::getStagingBuffer() const
-{
-	Buffer_R stagingBuffer = *this;
-	VKA_ASSERT(stagingBuffer.getPool() == nullptr);
-	stagingBuffer.track(gState.frame->stack);
-	stagingBuffer.changeMemoryType(VMA_MEMORY_USAGE_CPU_ONLY);
-	stagingBuffer.changeUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-	stagingBuffer.state = stagingBuffer.newState;
-	stagingBuffer.createHandles();
+	Buffer_R* stagingBuffer = new Buffer_R(*this);
+	VKA_ASSERT(stagingBuffer->getPool() == nullptr);
+	stagingBuffer->track(gState.frame->stack);
+	stagingBuffer->changeMemoryType(VMA_MEMORY_USAGE_CPU_ONLY);
+	stagingBuffer->changeUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+	stagingBuffer->state = stagingBuffer->newState;
+	stagingBuffer->createHandles();
 	return stagingBuffer;
 }
 

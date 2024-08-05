@@ -95,7 +95,7 @@ bool Descriptor::getLayoutTransforms(std::vector<Image_R *> &images, std::vector
 	}
 	else if (type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
 		{
-		for (auto &image : images)
+		for (auto &image : this->images)
 		{
 			if (image->getLayout() != VK_IMAGE_LAYOUT_GENERAL)
 			{

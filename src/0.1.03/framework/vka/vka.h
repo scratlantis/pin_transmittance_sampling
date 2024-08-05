@@ -7,3 +7,6 @@
 #include <vka/core/stateless/utility/io.h>
 #include <vka/core/core_state/GlfwWindow.h>
 #include <vka/core/core_utility/cmd_buffer_utility.h>
+#include <vka/core/core_utility/buffer_utility.h>
+#include <vka/core/core_utility/general_commands.h>
+#include <vka/controller/camera/FixedCamera.h>

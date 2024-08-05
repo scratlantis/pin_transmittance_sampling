@@ -73,7 +73,10 @@ class BufferMapping_R : public Resource_T<void *>
 	BufferMapping_R(const Mappable_T *mappable, uint32_t offset, uint32_t size);
 	void  free() override;
 	void *ptr() const;
-
+	virtual ResourceType type() const
+	{
+		return RESOURCE_TYPE_MAPPAPLE;
+	}
   private:
 	const Mappable_T *m_mappable;
 };
@@ -141,8 +144,7 @@ class Buffer_R : public Resource_T<VkBuffer>
 
 	BufferRange     getRange() const;
 	const Buffer_R  getSubBuffer(BufferRange range) const;
-	const Buffer_R  getShallowCopy() const;
-	Buffer_R        getStagingBuffer() const;
+	Buffer_R*       getStagingBuffer() const;
 	VkDeviceAddress getDeviceAddress() const;
 	
 

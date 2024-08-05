@@ -35,9 +35,9 @@ void cmdWriteCopy(CmdBuffer cmdBuf, Buffer buf, void* data, VkDeviceSize size)
 	buf->addUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     buf->changeSize(size);
 	buf->recreate();
-	Buffer_R stagingBuf = buf->getStagingBuffer();
-	write(&stagingBuf, data, size);
-	cmdCopyBuffer(cmdBuf, &stagingBuf, buf);
+	Buffer stagingBuf = buf->getStagingBuffer();
+	write(stagingBuf, data, size);
+	cmdCopyBuffer(cmdBuf, stagingBuf, buf);
 }
 
 
