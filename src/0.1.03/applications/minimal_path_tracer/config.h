@@ -100,8 +100,8 @@ struct DefaultAdvancedStateConfig : vka::AdvancedStateConfig
 {
 	DefaultAdvancedStateConfig()
 	{
-		modelPath = std::string(APP_SRC_DIR) + "/models/";
-		texturePath = std::string(APP_SRC_DIR) + "/textures/";
+		modelPath   = std::string(RESOURCE_BASE_DIR) + "/models/";
+		texturePath = std::string(RESOURCE_BASE_DIR) + "/textures/";
 		modelUsage = 0;
 	}
 };
@@ -153,46 +153,93 @@ static GLSLParams guiParams(std::vector<GVar*> gv)
 	return params;
 }
 
-static void configShaderPrelude1(CmdBuffer cmdBuf, ComputeCmd &cmd, VkExtent2D extent, FixedCamera cam, uint32_t frameIdx, Buffer ubo_frame, Buffer ubo_view, Buffer ubo_params)
+class ShaderConst
 {
-	GLSLFrame ptFrame = defaultFrame(extent, frameIdx);
-	cmdWriteCopy(cmdBuf, ubo_frame, &ptFrame, sizeof(GLSLFrame));
-	cmd.pushDescriptor(ubo_frame, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+  public:
+	Buffer ubo_frame;
+	Buffer ubo_view;
+	Buffer ubo_params;
 
-	GLSLView ptView = cameraView(cam);
-	cmdWriteCopy(cmdBuf, ubo_view, &ptView, sizeof(GLSLView));
-	cmd.pushDescriptor(ubo_view, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	void alloc()
+	{
+		ubo_frame  = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(GLSLFrame));
+		ubo_view   = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(GLSLFrame));
+		ubo_params = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(GLSLParams));
+	}
 
-	cmd.pushDescriptor(ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-}
+	void free()
+	{
+		ubo_frame->garbageCollect();
+		ubo_view->garbageCollect();
+		ubo_params->garbageCollect();
+	}
 
-static void configShaderPrelude1(CmdBuffer cmdBuf, DrawCmd &cmd, VkExtent2D extent, FixedCamera cam, uint32_t frameIdx, Buffer ubo_frame, Buffer ubo_view, Buffer ubo_params)
+	void write(CmdBuffer cmdBuf, ComputeCmd &cmd, VkExtent2D extent, FixedCamera cam, uint32_t frameIdx, std::vector<GVar *> gVars)
+	{
+		GLSLFrame ptFrame = defaultFrame(extent, frameIdx);
+		cmdWriteCopy(cmdBuf, ubo_frame, &ptFrame, sizeof(GLSLFrame));
+
+		GLSLView ptView = cameraView(cam);
+		cmdWriteCopy(cmdBuf, ubo_view, &ptView, sizeof(GLSLView));
+
+		GLSLParams params = guiParams(gVars);
+		cmdWriteCopy(cmdBuf, ubo_params, &params, sizeof(GLSLParams));
+	}
+};
+
+namespace vka
 {
-	GLSLFrame ptFrame = defaultFrame(extent, frameIdx);
-	cmdWriteCopy(cmdBuf, ubo_frame, &ptFrame, sizeof(GLSLFrame));
-	cmd.pushDescriptor(ubo_frame, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	GLSLView ptView = cameraView(cam);
-	cmdWriteCopy(cmdBuf, ubo_view, &ptView, sizeof(GLSLView));
-	cmd.pushDescriptor(ubo_view, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	cmd.pushDescriptor(ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-}
-
-static void configShaderPrelude2(CmdBuffer cmdBuf, ComputeCmd &cmd, VkExtent2D extent, FixedCamera cam, uint32_t frameIdx, Buffer ubo_frame, Buffer ubo_view, Buffer ubo_params)
+template <>
+struct vertex_type<GLSLVertex>
 {
-	GLSLFrame ptFrame = defaultFrame(extent, frameIdx);
-	cmdWriteCopy(cmdBuf, ubo_frame, &ptFrame, sizeof(GLSLFrame));
-	cmd.pushDescriptor(ubo_frame, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	VertexDataLayout data_layout()
+	{
+		VertexDataLayout layout{};
+		layout.formats =
+		    {
+		        VK_FORMAT_R32G32B32_SFLOAT,
+		        VK_FORMAT_R32G32B32_SFLOAT,
+		        VK_FORMAT_R32G32_SFLOAT,
+		    };
+		layout.offsets =
+		    {
+		        offsetof(GLSLVertex, pos),
+		        offsetof(GLSLVertex, normal),
+		        offsetof(GLSLVertex, uv)};
+		layout.stride = sizeof(GLSLVertex);
+		return layout;
+	}
+	void load_obj(Buffer vertexBuffer, const std::vector<ObjVertex> &vertexList)
+	{
+		vertexBuffer->changeSize(vertexList.size() * sizeof(GLSLVertex));
+		vertexBuffer->changeMemoryType(VMA_MEMORY_USAGE_CPU_ONLY);
+		vertexBuffer->recreate();
+		GLSLVertex *vertexData = static_cast<GLSLVertex *>(vertexBuffer->map());
+		for (size_t i = 0; i < vertexList.size(); i++)
+		{
+			vertexData[i].pos    = vertexList[i].v;
+			vertexData[i].normal = vertexList[i].vn;
+			vertexData[i].uv     = vertexList[i].vt;
+		}
+	}
+};
+}		// namespace vka
 
-	cmd.pushDescriptor(ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-}
 
-static void configShaderPrelude2(CmdBuffer cmdBuf, DrawCmd &cmd, VkExtent2D extent, FixedCamera cam, uint32_t frameIdx, Buffer ubo_frame, Buffer ubo_view, Buffer ubo_params)
+namespace vka
 {
-	GLSLFrame ptFrame = defaultFrame(extent, frameIdx);
-	cmdWriteCopy(cmdBuf, ubo_frame, &ptFrame, sizeof(GLSLFrame));
-	cmd.pushDescriptor(ubo_frame, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	cmd.pushDescriptor(ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
-}
+namespace pbr
+{
+template <>
+struct material_type<GLSLMaterial>
+{
+	GLSLMaterial load_mtl(WavefrontMaterial mtl, std::unordered_map<std::string, uint32_t> &textureIndexMap, std::vector<std::string> &textureNames)
+	{
+		GLSLMaterial material{};
+		material.albedo = mtl.diffuse;
+		material.specular = mtl.specular;
+		material.roughness = mtl.roughness;
+	}
+};
+}        // namespace pbr
+}        // namespace vka

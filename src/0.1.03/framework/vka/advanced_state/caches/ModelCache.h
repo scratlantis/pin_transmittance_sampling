@@ -169,20 +169,8 @@ DECLARE_HASH(vka::ObjVertex, hash);
 
 namespace vka
 {
-
 template <typename Vertex>
-struct vertex_type
-{
-	VertexDataLayout layout()
-	{
-		return Vertex::getVertexDataLayout();
-	}
-
-	void parseObj(Buffer vertexBuffer, const std::vector<ObjVertex> &vertexList)
-	{
-		return Vertex::getVertexDataLayout();
-	}
-};
+struct vertex_type;
 
 class ModelCache
 {
@@ -212,22 +200,29 @@ class ModelCache
 			std::vector<ObjVertex>         vertexList;
 			std::vector<Index>             indexList;
 			ModelData modelData{};
+			VkBufferUsageFlags             additionalBufferUsageFlags = 0;
+			if (loadFlags & MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE)
+			{
+				additionalBufferUsageFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			}
 			printVka(("Loading model: " + path).c_str());
 			if (loadObj(fullPath, vertexList, indexList, modelData.indexCount, modelData.mtl))
 			{
-				modelData.vertexBuffer = createBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsageFlags | additionalBufferUsageFlags);
-				type.parseObj(modelData.vertexBuffer, vertexList);
-				cmdUpload(cmdBuf, modelData.vertexBuffer);
+				Buffer stagingBuffer = createStagingBuffer();
+				vertexType.load_obj(stagingBuffer, vertexList);
+				modelData.vertexBuffer = createBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | bufferUsageFlags | additionalBufferUsageFlags);
+				cmdUploadCopy(cmdBuf, stagingBuffer, modelData.vertexBuffer);
 
-				modelData.indexBuffer  = createBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsageFlags | additionalBufferUsageFlags);
-				write(modelData.indexBuffer, indexList.data(), indexList.size() * sizeof(Index));
-				cmdUpload(cmdBuf, modelData.indexBuffer);
+				modelData.indexBuffer = createBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | bufferUsageFlags | additionalBufferUsageFlags);
+				cmdWriteCopy(cmdBuf, modelData.indexBuffer, indexList.data(), indexList.size() * sizeof(Index));
 
 				if (loadFlags & MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE)
 				{
 					modelData.blas = buildAccelerationStructure(cmdBuf, modelData, loadFlags);
 				}
-				modelData.vertexLayout = vertexType.layout();
+
+				modelData.vertexLayout = vertexType.data_layout();
+
 				findAreaLights(modelData.lights, vertexList, indexList, modelData.indexCount, modelData.mtl);
 
 				map.insert({key, modelData});

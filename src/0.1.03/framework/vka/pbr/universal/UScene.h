@@ -9,13 +9,7 @@ namespace vka
 	{
 
 	template <class Material>
-	struct material_type
-	{
-		Material loadMtl(WavefrontMaterial mtl, std::unordered_map<std::string, uint32_t > & textureIndexMap, std::vector<std::string>& textureNames)
-		{
-		    return Material::loadMtl(mtl, textureIndexMap, textureNames);
-		}
-	};
+    struct material_type;
 
 	template <class Vertex, class Material>
     class USceneData

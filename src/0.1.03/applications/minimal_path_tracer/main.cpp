@@ -9,6 +9,8 @@ static std::vector<GVar *> gVars =
         &gvar_color
 };
 
+static ShaderConst sConst{};
+
 int main()
 {
 	// Global State Initialization. See config.h for more details.
@@ -26,10 +28,8 @@ int main()
 	// HDR Image for path tracing
 	Image  img_pt = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_GENERAL, 0.8, 1.0);
 	// Uniform Buffers
-	Buffer ubo_frame = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(GLSLFrame));
-	Buffer ubo_view  = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(GLSLFrame));
-	Buffer ubo_params = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(GLSLParams));
-	
+	sConst.alloc();
+
 
 	gState.updateSwapchainAttachments();
 	// Main Loop
@@ -41,17 +41,16 @@ int main()
 		}
 		CmdBuffer  cmdBuf       = createCmdBuffer(gState.frame->stack);
 		Image      swapchainImg = getSwapchainImage();
-		GLSLParams params       = guiParams(gVars);
-		cmdWriteCopy(cmdBuf, ubo_params, &params, sizeof(GLSLParams));
 
 		// Path tracing
 		{
 			ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp", {{"FORMAT1", getGLSLFormat(img_pt->getFormat())}});
-			configShaderPrelude1(cmdBuf, computeCmd, img_pt->getExtent2D(), cam, cnt, ubo_frame, ubo_view, ubo_params);
+			sConst.write(cmdBuf, computeCmd, img_pt->getExtent2D(), cam, cnt, gVars);
+			computeCmd.pushDescriptor(sConst.ubo_frame, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+			computeCmd.pushDescriptor(sConst.ubo_view, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+			computeCmd.pushDescriptor(sConst.ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 			computeCmd.pushDescriptor(img_pt, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-			/*ModelData modelData = gState.modelCache->fetch("cornell_box/cornell_box.obj", );*/
-
-
+			ModelData modelData = gState.modelCache->fetch(cmdBuf , "cornell_box/cornell_box.obj", vertex_type<GLSLVertex>(), 0);
 			computeCmd.exec(cmdBuf);
 		}
 		// Composition

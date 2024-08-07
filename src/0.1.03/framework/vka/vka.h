@@ -10,3 +10,4 @@
 #include <vka/core/core_utility/buffer_utility.h>
 #include <vka/core/core_utility/general_commands.h>
 #include <vka/controller/camera/FixedCamera.h>
+#include <vka/pbr/universal/UScene.h>

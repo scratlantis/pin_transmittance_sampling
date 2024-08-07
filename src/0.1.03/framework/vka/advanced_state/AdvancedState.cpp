@@ -20,8 +20,6 @@ void AdvancedState::destroy()
 {
 	vkDeviceWaitIdle(device.logical);
 	swapchainAttachmentPool->clear();
-	modelCache->clear();
-	textureCache->clear();
 	framebufferCache->clear();
 	if (guiEnabled)
 	{

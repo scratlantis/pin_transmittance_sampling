@@ -16,6 +16,7 @@ void cmdClearState(CmdBuffer cmdBuf)
 // Buffer
 void cmdCopyBuffer(CmdBuffer cmdBuf, BufferRef src, BufferRef dst)
 {
+    VKA_ASSERT(src->getSize() == dst->getSize());
     VkDeviceSize minDataSize = std::min(src->getSize(), dst->getSize());
     VkBufferCopy copyRegion{0, 0, minDataSize};
 	cmdClearState(cmdBuf);
@@ -38,6 +39,15 @@ void cmdWriteCopy(CmdBuffer cmdBuf, Buffer buf, void* data, VkDeviceSize size)
 	Buffer stagingBuf = buf->getStagingBuffer();
 	write(stagingBuf, data, size);
 	cmdCopyBuffer(cmdBuf, stagingBuf, buf);
+}
+
+void cmdUploadCopy(CmdBuffer cmdBuf, Buffer src, Buffer dst)
+{
+	dst->addUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+    dst->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
+	dst->changeSize(src->getSize());
+	dst->recreate();
+	cmdCopyBuffer(cmdBuf, src, dst);
 }
 
 
