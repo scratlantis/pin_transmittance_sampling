@@ -50,7 +50,7 @@ int main()
 			computeCmd.pushDescriptor(sConst.ubo_view, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 			computeCmd.pushDescriptor(sConst.ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 			computeCmd.pushDescriptor(img_pt, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-			ModelData modelData = gState.modelCache->fetch(cmdBuf , "cornell_box/cornell_box.obj", vertex_type<GLSLVertex>(), 0);
+			ModelData modelData = gState.modelCache->fetch<GLSLVertex>(cmdBuf , "cornell_box/cornell_box.obj", 0);
 			computeCmd.exec(cmdBuf);
 		}
 		// Composition

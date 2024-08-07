@@ -209,4 +209,13 @@ void AccelerationStructure_R::recreate()
 	createHandles();
 	built = false;
 }
+
+VkDeviceAddress AccelerationStructure_R::getDeviceAddress() const
+{
+	LOAD_CMD_VK_DEVICE(vkGetAccelerationStructureDeviceAddressKHR, gState.device.logical);
+	VkAccelerationStructureDeviceAddressInfoKHR addressInfo{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR};
+	addressInfo.accelerationStructure = handle;
+	return pvkGetAccelerationStructureDeviceAddressKHR(gState.device.logical, &addressInfo);
+}
+
 }        // namespace vka

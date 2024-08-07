@@ -190,8 +190,9 @@ class ModelCache
 	{}
 	void      clear();
 	template <typename Vertex>
-	ModelData fetch(CmdBuffer cmdBuf, std::string path, vertex_type<Vertex> vertexType, uint32_t loadFlags)
+	ModelData fetch(CmdBuffer cmdBuf, std::string path, uint32_t loadFlags)
 	{
+		auto vertexType = vertex_type<Vertex>();
 		ModelKey key{path, std::string(typeid(vertexType).name()), loadFlags};
 		auto     it = map.find(key);
 		if (it == map.end())

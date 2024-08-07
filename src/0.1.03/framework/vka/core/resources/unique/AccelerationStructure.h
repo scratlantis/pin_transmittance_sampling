@@ -55,7 +55,8 @@ class AccelerationStructure_R : public Resource_T<VkAccelerationStructureKHR>
 
 	void createHandles();
 	void detachChildResources();
-	void recreate();
+	void            recreate();
+	VkDeviceAddress getDeviceAddress() const;
 };
 
 class BottomLevelAS_R : public AccelerationStructure_R
