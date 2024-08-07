@@ -46,9 +46,12 @@ int main()
 
 		// Path tracing
 		{
-			ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp");
+			ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp", {{"FORMAT1", getGLSLFormat(img_pt->getFormat())}});
 			configShaderPrelude1(cmdBuf, computeCmd, img_pt->getExtent2D(), cam, cnt, ubo_frame, ubo_view, ubo_params);
 			computeCmd.pushDescriptor(img_pt, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+			/*ModelData modelData = gState.modelCache->fetch("cornell_box/cornell_box.obj", );*/
+
+
 			computeCmd.exec(cmdBuf);
 		}
 		// Composition

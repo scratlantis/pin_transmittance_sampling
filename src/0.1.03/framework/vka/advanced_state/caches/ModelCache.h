@@ -29,6 +29,49 @@ struct ObjVertex
 	}
 };
 
+struct WavefrontMaterial
+{
+	std::string name;
+
+	// Material parameters
+	glm::vec3   ambient;
+	std::string ambientMap;
+
+	glm::vec3   diffuse;
+	std::string diffuseMap;
+
+	glm::vec3   specular;
+	std::string specularMap;
+	float       specularExponent;
+
+	glm::vec3   emission;
+	std::string emissionMap;
+
+	float       roughness;
+	std::string roughnessMap;
+
+	float       metallic;
+	std::string metallicMap;
+
+	// Transparency
+	float dissolve;        // 1.0 = opaque, 0.0 = fully transparent
+	float ior;             // index of refraction
+
+	// Geometric Properties
+	std::string normalMap;
+};
+
+struct AreaLight
+{
+	// NEE select light source
+	glm::vec3 center;
+	glm::vec3 normal;
+	float importance; // Area * intensity
+
+	// Generate light ray
+	glm::vec3 v[3]; // Vertices
+};
+
 struct VertexDataLayout
 {
 	std::vector<VkFormat> formats;
@@ -68,48 +111,55 @@ enum ModelLoadFlagBits
 
 struct ModelData
 {
-	Buffer                vertexBuffer = nullptr;
-	Buffer                indexBuffer  = nullptr;
-	BLAS                  blas         = nullptr;
-
-
-	VertexDataLayout	  vertexLayout;
-	std::vector<uint32_t> indexOffsets;
-	uint32_t              indexCount = 0;
+	Buffer                         vertexBuffer = nullptr;
+	Buffer                         indexBuffer  = nullptr;
+	BLAS                           blas         = nullptr;
+	VertexDataLayout               vertexLayout;
+	std::vector<uint32_t>          indexCount;
+	std::vector<WavefrontMaterial> mtl;
+	std::vector<AreaLight>         lights;
+	
 
 
 	bool operator==(const ModelData &other) const
 	{
-		return vertexBuffer == other.vertexBuffer && indexBuffer == other.indexBuffer && cmpVector(indexOffsets, other.indexOffsets) && blas == other.blas;
+		return vertexBuffer == other.vertexBuffer && indexBuffer == other.indexBuffer && cmpVector(indexCount, other.indexCount) && blas == other.blas;
 	};
 	vka::hash_t hash() const
 	{
-		return vertexBuffer HASHC indexBuffer HASHC hashVector(indexOffsets) HASHC blas;
+		return vertexBuffer HASHC indexBuffer HASHC hashVector(indexCount) HASHC blas;
 	}
 
 	DrawSurface getSurface(uint32_t idx) const
 	{
-		if (idx >= indexOffsets.size() - 1)
-			return {vertexBuffer, indexBuffer, indexOffsets.back(), indexCount - indexOffsets.back(), vertexLayout};
-		else
-			return {vertexBuffer, indexBuffer, indexOffsets[idx], indexOffsets[idx + 1] - indexOffsets[idx], vertexLayout};
+		uint32_t offset = 0;
+		for (size_t i = 0; i < idx; i++)
+		{
+			offset += indexCount[i];
+		}
+		DrawSurface surface{};
+		surface.vertexBuffer = vertexBuffer;
+		surface.indexBuffer = indexBuffer;
+		surface.offset = offset;
+		surface.count = indexCount[idx];
+		surface.vertexLayout = vertexLayout;
 	}
 };
 
 struct ModelKey
 {
 	std::string      path;
-	void            *loadFunction;
+	std::string      type;
 	uint32_t         loadFlags;
 
 	bool operator==(const ModelKey &other) const
 	{
-		return path == other.path && loadFunction == loadFunction && loadFlags == other.loadFlags;
+		return path == other.path && type == type && loadFlags == other.loadFlags;
 	}
 
 	vka::hash_t hash() const
 	{
-		return std::hash<std::string>()(path) ^ std::hash<void *>()(loadFunction) ^ loadFlags;
+		return std::hash<std::string>()(path) ^ std::hash<std::string>()(type) ^ loadFlags;
 	}
 };
 }		// namespace vka
@@ -119,18 +169,78 @@ DECLARE_HASH(vka::ObjVertex, hash);
 
 namespace vka
 {
+
+template <typename Vertex>
+struct vertex_type
+{
+	VertexDataLayout layout()
+	{
+		return Vertex::getVertexDataLayout();
+	}
+
+	void parseObj(Buffer vertexBuffer, const std::vector<ObjVertex> &vertexList)
+	{
+		return Vertex::getVertexDataLayout();
+	}
+};
+
 class ModelCache
 {
+  private:
 	std::unordered_map<ModelKey, ModelData> map;
 	std::string                             modelPath;
 	IResourcePool                          *pPool;
 	VkBufferUsageFlags                      bufferUsageFlags;
+
+	bool loadObj(std::string path, std::vector<ObjVertex> &vertexList, std::vector<Index> &indexList, std::vector<uint32_t> &indexCountList, std::vector<WavefrontMaterial> &surfaceList) const;
+	BLAS buildAccelerationStructure(CmdBuffer cmdBuf, const ModelData &modelData, uint32_t loadFlags) const;
+	void findAreaLights(std::vector<AreaLight> &lightList, const std::vector<ObjVertex> &vertexList, const std::vector<Index> &indexList, const std::vector<uint32_t> &indexCountList, const std::vector<WavefrontMaterial> &surfaceList) const;
 
   public:
 	ModelCache(IResourcePool *pPool, std::string modelPath, VkBufferUsageFlags bufferUsageFlags) :
 	    modelPath(modelPath), pPool(pPool), bufferUsageFlags(bufferUsageFlags)
 	{}
 	void      clear();
-	ModelData fetch(CmdBuffer cmdBuf, std::string path, void (*parse)(Buffer vertexBuffer, VertexDataLayout &vertexLayout, const std::vector<ObjVertex> &vertexList), uint32_t loadFlags);
+	template <typename Vertex>
+	ModelData fetch(CmdBuffer cmdBuf, std::string path, vertex_type<Vertex> vertexType, uint32_t loadFlags)
+	{
+		ModelKey key{path, std::string(typeid(vertexType).name()), loadFlags};
+		auto     it = map.find(key);
+		if (it == map.end())
+		{
+			std::string                    fullPath = modelPath + path;
+			std::vector<ObjVertex>         vertexList;
+			std::vector<Index>             indexList;
+			ModelData modelData{};
+			printVka(("Loading model: " + path).c_str());
+			if (loadObj(fullPath, vertexList, indexList, modelData.indexCount, modelData.mtl))
+			{
+				modelData.vertexBuffer = createBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsageFlags | additionalBufferUsageFlags);
+				type.parseObj(modelData.vertexBuffer, vertexList);
+				cmdUpload(cmdBuf, modelData.vertexBuffer);
+
+				modelData.indexBuffer  = createBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsageFlags | additionalBufferUsageFlags);
+				write(modelData.indexBuffer, indexList.data(), indexList.size() * sizeof(Index));
+				cmdUpload(cmdBuf, modelData.indexBuffer);
+
+				if (loadFlags & MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE)
+				{
+					modelData.blas = buildAccelerationStructure(cmdBuf, modelData, loadFlags);
+				}
+				modelData.vertexLayout = vertexType.layout();
+				findAreaLights(modelData.lights, vertexList, indexList, modelData.indexCount, modelData.mtl);
+
+				map.insert({key, modelData});
+			}
+			else
+			{
+				printVka("Failed to load model");
+			}
+			return modelData;
+		}
+		return it->second;
+	}
+
+
 };
 }        // namespace vka
