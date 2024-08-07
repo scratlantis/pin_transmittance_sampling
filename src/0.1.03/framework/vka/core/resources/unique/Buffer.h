@@ -144,7 +144,6 @@ class Buffer_R : public Resource_T<VkBuffer>
 
 	BufferRange     getRange() const;
 	const Buffer_R  getSubBuffer(BufferRange range) const;
-	Buffer_R*       getStagingBuffer() const;
 	VkDeviceAddress getDeviceAddress() const;
 	
 

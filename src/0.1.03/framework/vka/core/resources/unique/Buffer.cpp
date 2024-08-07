@@ -155,18 +155,6 @@ const Buffer_R Buffer_R::getSubBuffer(BufferRange range) const
 	return subBuffer;
 }
 
-Buffer_R* Buffer_R::getStagingBuffer() const
-{
-	Buffer_R* stagingBuffer = new Buffer_R(*this);
-	VKA_ASSERT(stagingBuffer->getPool() == nullptr);
-	stagingBuffer->track(gState.frame->stack);
-	stagingBuffer->changeMemoryType(VMA_MEMORY_USAGE_CPU_ONLY);
-	stagingBuffer->changeUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-	stagingBuffer->state = stagingBuffer->newState;
-	stagingBuffer->createHandles();
-	return stagingBuffer;
-}
-
 VkDeviceAddress Buffer_R::getDeviceAddress() const
 {
 	VkBufferDeviceAddressInfo bufferInfo{VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO};
