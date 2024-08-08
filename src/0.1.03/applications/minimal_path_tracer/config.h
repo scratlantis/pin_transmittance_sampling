@@ -233,7 +233,7 @@ namespace pbr
 template <>
 struct material_type<GLSLMaterial>
 {
-	GLSLMaterial load_mtl(WavefrontMaterial mtl, std::unordered_map<std::string, uint32_t> &textureIndexMap, std::vector<std::string> &textureNames)
+	GLSLMaterial load_mtl(WavefrontMaterial mtl, std::unordered_map<std::string, uint32_t> &textureIndexMap)
 	{
 		GLSLMaterial material{};
 		material.albedo = mtl.diffuse;

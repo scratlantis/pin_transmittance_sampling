@@ -148,10 +148,11 @@ BufferRange Buffer_R::getRange() const
 	return range;
 }
 
-const Buffer_R Buffer_R::getSubBuffer(BufferRange range) const
+const Buffer_R *Buffer_R::getSubBuffer(BufferRange range) const
 {
-	Buffer_R subBuffer = *this;
-	subBuffer.range     = range;
+	Buffer_R *subBuffer = new Buffer_R(*this);
+	subBuffer->range	= range;
+	VKA_ASSERT(subBuffer->getPool() != nullptr);
 	return subBuffer;
 }
 

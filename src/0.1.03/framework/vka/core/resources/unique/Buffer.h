@@ -143,7 +143,7 @@ class Buffer_R : public Resource_T<VkBuffer>
 	VmaMemoryUsage     getMemoryType() const;
 
 	BufferRange     getRange() const;
-	const Buffer_R  getSubBuffer(BufferRange range) const;
+	const Buffer_R*  getSubBuffer(BufferRange range) const;
 	VkDeviceAddress getDeviceAddress() const;
 	
 

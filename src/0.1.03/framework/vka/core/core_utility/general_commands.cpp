@@ -16,9 +16,7 @@ void cmdClearState(CmdBuffer cmdBuf)
 // Buffer
 void cmdCopyBuffer(CmdBuffer cmdBuf, BufferRef src, BufferRef dst)
 {
-    VKA_ASSERT(src->getSize() == dst->getSize());
-    VkDeviceSize minDataSize = std::min(src->getSize(), dst->getSize());
-    VkBufferCopy copyRegion{0, 0, minDataSize};
+	VkBufferCopy copyRegion{src->getRange().offset, dst->getRange().offset, src->getSize()};
 	cmdClearState(cmdBuf);
     vkCmdCopyBuffer(cmdBuf->getHandle(), src->getHandle(), dst->getHandle(), 1, &copyRegion);
 }
