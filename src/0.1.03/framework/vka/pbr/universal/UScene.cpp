@@ -1,4 +1,5 @@
 #include "UScene.h"
+#include <vka/globals.h>
 
 namespace vka
 {
@@ -10,55 +11,90 @@ void USceneBuilderBase::loadEnvMap(const ImagePdfKey &key)
 	// Todo
 }
 
+void USceneBuilderBase::addModel(CmdBuffer cmdBuf, std::string path, glm::mat4 transform, uint32_t loadFlags)
+{
+	addModel(cmdBuf, gState.modelCache, path, loadFlags);
+	transformList.push_back(transform);
+}
+
 struct OffsetBufferEntry
 {
 	uint32_t vertexOffset;
 	uint32_t indexOffset;
 	uint32_t materialOffset;
-	uint32_t areaLightOffset;
+	uint32_t padding[1];
 };
+
+static_assert(sizeof(OffsetBufferEntry) == 16, "Size is not correct");
 
 USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool)
     {
 	    USceneData sceneData{};
-
 		// Create buffers
-		uint32_t totalVertexCount = 0;
-		uint32_t totalIndexCount = 0;
+	    VkDeviceSize totalVertexBufferSize  = 0;
+	    VkDeviceSize totalIndexBufferOffset = 0;
 	    uint32_t   vertexStride     = modelList[0].vertexLayout.stride;
 		for (auto &model : modelList)
 		{
-		    totalVertexCount += model.vertexBuffer->getSize() / vertexStride;
-		    totalIndexCount += model.indexBuffer->getSize() / sizeof(Index);
+		    totalVertexBufferSize += model.vertexBuffer->getSize();
+		    totalIndexBufferOffset += model.indexBuffer->getSize();
 		}
-	    sceneData.vertexBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, totalVertexCount * vertexStride);
-	    sceneData.indexBuffer  = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, totalIndexCount * sizeof(Index));
+	    sceneData.vertexBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, totalVertexBufferSize);
+	    sceneData.indexBuffer  = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, totalIndexBufferOffset);
 
 		// Copy vertex & index data
-		VkDeviceSize vertexOffsett     = 0;
+		VkDeviceSize vertexOffsett  = 0;
 	    VkDeviceSize indexOffsett  = 0;
-		for (auto& model : modelList)
-		{
-		    vertexOffsett += model.vertexBuffer->getSize() / model.vertexLayout.stride;
-		    indexOffsett += model.indexBuffer->getSize() / sizeof(Index);
+	    std::vector<OffsetBufferEntry> offsetBufferEntries(modelList.size());
+	    std::vector<AreaLight>         areaLights;
+		uint32_t materialCount = 0;
+		for (size_t i = 0; i < modelList.size(); i++)
+	    {
+		    cmdCopyBuffer(cmdBuf, modelList[i].vertexBuffer, sceneData.vertexBuffer->getSubBuffer({vertexOffsett, modelList[i].vertexBuffer->getSize()}));
+		    cmdCopyBuffer(cmdBuf, modelList[i].indexBuffer, sceneData.indexBuffer->getSubBuffer({vertexOffsett, modelList[i].indexBuffer->getSize()}));
 
-			cmdCopyBuffer(cmdBuf, model.vertexBuffer->getSubBuffer(), sceneData.vertexBuffer, model.vertexBuffer->getSize(), 0, vertexOffsett * vertexStride);
+		    offsetBufferEntries[i].vertexOffset = vertexOffsett / vertexStride;
+		    offsetBufferEntries[i].indexOffset = indexOffsett / sizeof(Index);
+		    offsetBufferEntries[i].materialOffset = materialCount;
+
+			areaLights.insert(areaLights.end(), modelList[i].lights.begin(), modelList[i].lights.end());
+
+
+			materialCount += modelList[i].mtl.size();
+		    vertexOffsett += modelList[i].vertexBuffer->getSize();
+		    indexOffsett += modelList[i].indexBuffer->getSize();
+		}
+	    sceneData.offsetBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	    cmdWriteCopy(cmdBuf, sceneData.offsetBuffer, offsetBufferEntries.data(), offsetBufferEntries.size() * sizeof(OffsetBufferEntry));
+		if (!areaLights.empty())
+		{
+		    sceneData.areaLightBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+			cmdWriteCopy(cmdBuf, sceneData.areaLightBuffer, areaLights.data(), areaLights.size() * sizeof(AreaLight));
 		}
 
-	    sceneData.offsetBuffer;
-	    sceneData.materialBuffer;
-	    sceneData.areaLightBuffer;
-	    sceneData.tlas;
-	    sceneData.textures;
-	    sceneData.envMap = envMap;
-	    sceneData.envMapPdfBuffer = envMapPdfBuffer;
+	    sceneData.materialBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	    loadMaterials(cmdBuf, sceneData.materialBuffer);
 
-	    return USceneData(); // TODO
+	    sceneData.textures.resize(textureIndexMap.size());
+		for (auto& it : textureIndexMap)
+		{
+		    sceneData.textures[it.second] = gState.textureCache->fetch(cmdBuf, it.first, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	    }
+
+	    sceneData.tlas = createTopLevelAS(pPool, modelList.size());
+
+		if (!envMapName.empty())
+		{
+			sceneData.envMap = gState.textureCache->fetch(cmdBuf, envMapName, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			sceneData.envMapPdfBuffer = pdfCache->fetch(cmdBuf, {envMapName, {16, 16}});
+		}
+
+	    return sceneData;
     }
     Buffer USceneBuilderBase::uploadInstanceData(CmdBuffer cmdBuf, IResourcePool *pPool)
     {
 	    Buffer buf = createBuffer(pPool, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
-	    std::vector<VkAccelerationStructureInstanceKHR> instances = std::vector<VkAccelerationStructureInstanceKHR>(transformList.size());
+	    std::vector<VkAccelerationStructureInstanceKHR> instances(transformList.size());
 	    for (uint32_t i = 0; i < instances.size(); i++)
         {
 		    instances[i].transform = glmToVk(transformList[i]);
@@ -82,10 +118,11 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool)
         modelList.clear();
         transformList.clear();
         indexMap.clear();
-		envMap = nullptr;
+	    envMapName = "";
     }
-    void USceneBuilderBase::destroy()
+    void USceneData::build(CmdBuffer cmdBuf, Buffer instanceBuffer)
     {
+	    cmdBuildAccelerationStructure(cmdBuf, tlas, instanceBuffer, createStagingBuffer());
     }
     }        // namespace pbr
     }        // namespace vka

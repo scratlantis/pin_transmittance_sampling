@@ -20,6 +20,7 @@ class USceneData
 	Buffer             materialBuffer;
 	Buffer             areaLightBuffer;
 	TLAS               tlas;
+
 	std::vector<Image> textures;
 	Image              envMap;
 	Buffer             envMapPdfBuffer;
@@ -32,11 +33,10 @@ class USceneData
 		materialBuffer->garbageCollect();
 		areaLightBuffer->garbageCollect();
 		tlas->garbageCollect();
-		envMapPdfBuffer->garbageCollect();
 	}
 
 	// build tlas
-	void build(Buffer instanceBuffer);
+	void build(CmdBuffer cmdBuf, Buffer instanceBuffer);
 };
 
 
@@ -49,25 +49,26 @@ class USceneBuilderBase
 	std::vector<ModelData>                    modelList;
 	std::vector<glm::mat4>                    transformList;
 	std::unordered_map<std::string, uint32_t> indexMap;
-	std::vector<Image>						  textures;
 
 
 	// Ohter data
-	Image envMap = nullptr;
-	Buffer envMapPdfBuffer = nullptr;
+	std::string envMapName;
 
-	// Caches, not cleared on reset
-	HdrImagePdfCache pdfCache;
+	HdrImagePdfCache* pdfCache;
 
 	// create material buffer
-	virtual Buffer createMaterialBuffer() = 0;
+	virtual void loadMaterials(CmdBuffer cmdBuf, Buffer buffer) = 0;
 
   public:
 	
+	USceneBuilderBase(HdrImagePdfCache* pdfCache) : pdfCache(pdfCache) {}
+
 	void loadEnvMap(const ImagePdfKey &key);
 
 	// load model
-	virtual void addModel(CmdBuffer cmdBuf, std::string path, glm::mat4 transform = glm::mat4(1.0), uint32_t loadFlags = MODEL_LOAD_FLAG_IS_OPAQUE) = 0;
+	void addModel(CmdBuffer cmdBuf, std::string path, glm::mat4 transform = glm::mat4(1.0), uint32_t loadFlags = MODEL_LOAD_FLAG_IS_OPAQUE);
+
+	virtual void addModel(CmdBuffer cmdBuf, ModelCache* pModelCache, std::string path, uint32_t loadFlags) = 0;
 
 	// copy together buffers, create tlas
 	USceneData create(CmdBuffer cmdBuf, IResourcePool *pPool);
@@ -78,18 +79,15 @@ class USceneBuilderBase
 	// set transform for model
 	void setTransform(std::string path, glm::mat4 transform);
 
-	// revert to initial state, except for caches
+	// revert to initial state
 	void reset();
-
-	// clear caches
-	void destroy();
 };
 
 template <class Vertex, class Material>
 class USceneBuilder : public USceneBuilderBase
 {
 	// create material buffer
-	virtual Buffer createMaterialBuffer()
+	virtual void loadMaterials(CmdBuffer cmdBuf, Buffer buffer) override
 	{
 		std::vector<Material> materialList;
 		for (auto& model : modelList)
@@ -99,7 +97,7 @@ class USceneBuilder : public USceneBuilderBase
 				materialList.push_back(material_type<Material>().load_mtl(mtl, textureIndexMap));
 			}
 		}
-		return nullptr;        // todo
+		cmdWriteCopy(cmdBuf, buffer, materialList.data(), materialList.size() * sizeof(Material));
 	}
 
   public:

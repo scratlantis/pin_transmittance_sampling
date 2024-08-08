@@ -18,6 +18,5 @@ namespace vka
 	    }
 	    map.clear();
     }
-
 	}		// namespace pbr
 }		// namespace vka

@@ -152,7 +152,14 @@ const Buffer_R *Buffer_R::getSubBuffer(BufferRange range) const
 {
 	Buffer_R *subBuffer = new Buffer_R(*this);
 	subBuffer->range	= range;
-	VKA_ASSERT(subBuffer->getPool() != nullptr);
+	VKA_ASSERT(subBuffer->getPool() == nullptr);
+	// Ugly hack to avoid double tracking
+	// larger structual problem, will fix in next refactor
+	subBuffer->res = nullptr;
+	subBuffer->viewRes = nullptr;
+	subBuffer->track(gState.frame->stack);
+	subBuffer->res = res;
+	subBuffer->viewRes = viewRes;
 	return subBuffer;
 }
 
