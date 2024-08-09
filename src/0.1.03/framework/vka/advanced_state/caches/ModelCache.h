@@ -106,7 +106,8 @@ struct DrawSurface
 enum ModelLoadFlagBits
 {
 	MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE = 1 << 0,
-	MODEL_LOAD_FLAG_IS_OPAQUE = 1 << 1
+	MODEL_LOAD_FLAG_IS_OPAQUE = 1 << 1,
+	MODEL_LOAD_FLAG_COPYABLE = 1 << 2
 };
 
 struct ModelData
@@ -206,9 +207,14 @@ class ModelCache
 			{
 				additionalBufferUsageFlags = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 			}
+			if (loadFlags & MODEL_LOAD_FLAG_COPYABLE)
+			{
+				additionalBufferUsageFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+			}
 			printVka(("Loading model: " + path).c_str());
 			if (loadObj(fullPath, vertexList, indexList, modelData.indexCount, modelData.mtl))
 			{
+				modelData.vertexLayout = vertexType.data_layout();
 				Buffer stagingBuffer = createStagingBuffer();
 				vertexType.load_obj(stagingBuffer, vertexList);
 				modelData.vertexBuffer = createBuffer(pPool, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | bufferUsageFlags | additionalBufferUsageFlags);
@@ -216,7 +222,7 @@ class ModelCache
 
 				modelData.indexBuffer = createBuffer(pPool, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | bufferUsageFlags | additionalBufferUsageFlags);
 				cmdWriteCopy(cmdBuf, modelData.indexBuffer, indexList.data(), indexList.size() * sizeof(Index));
-
+				cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR);
 				if (loadFlags & MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE)
 				{
 					modelData.blas = buildAccelerationStructure(cmdBuf, modelData, loadFlags);

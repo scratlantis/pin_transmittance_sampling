@@ -13,22 +13,19 @@ void USceneBuilderBase::loadEnvMap(const ImagePdfKey &key)
 
 void USceneBuilderBase::addModel(CmdBuffer cmdBuf, std::string path, glm::mat4 transform, uint32_t loadFlags)
 {
-	addModel(cmdBuf, gState.modelCache, path, loadFlags);
+	addModelInternal(cmdBuf, gState.modelCache, path, loadFlags | MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE | MODEL_LOAD_FLAG_COPYABLE);
 	transformList.push_back(transform);
 }
 
-struct OffsetBufferEntry
-{
-	uint32_t vertexOffset;
-	uint32_t indexOffset;
-	uint32_t materialOffset;
-	uint32_t padding[1];
-};
-
-static_assert(sizeof(OffsetBufferEntry) == 16, "Size is not correct");
 
 USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool)
-    {
+{
+	cmdBarrier(cmdBuf,
+	           VK_PIPELINE_STAGE_TRANSFER_BIT,
+	           VK_PIPELINE_STAGE_TRANSFER_BIT,
+	           VK_ACCESS_TRANSFER_WRITE_BIT,
+	           VK_ACCESS_TRANSFER_READ_BIT);
+
 	    USceneData sceneData{};
 		// Create buffers
 	    VkDeviceSize totalVertexBufferSize  = 0;
@@ -39,8 +36,8 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool)
 		    totalVertexBufferSize += model.vertexBuffer->getSize();
 		    totalIndexBufferOffset += model.indexBuffer->getSize();
 		}
-	    sceneData.vertexBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, totalVertexBufferSize);
-	    sceneData.indexBuffer  = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, totalIndexBufferOffset);
+	    sceneData.vertexBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, totalVertexBufferSize);
+	    sceneData.indexBuffer  = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, totalIndexBufferOffset);
 
 		// Copy vertex & index data
 		VkDeviceSize vertexOffsett  = 0;
@@ -122,6 +119,11 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool)
     }
     void USceneData::build(CmdBuffer cmdBuf, Buffer instanceBuffer)
     {
+	    cmdBarrier(cmdBuf,
+	               VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+	               VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+	               VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+	               VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR);
 	    cmdBuildAccelerationStructure(cmdBuf, tlas, instanceBuffer, createStagingBuffer());
     }
     }        // namespace pbr

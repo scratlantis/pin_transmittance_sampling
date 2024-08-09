@@ -8,6 +8,16 @@ namespace vka
 namespace pbr
 {
 
+// Struct needs to be evaluated inside the shader
+struct OffsetBufferEntry
+{
+	uint32_t vertexOffset;
+	uint32_t indexOffset;
+	uint32_t materialOffset;
+	uint32_t padding;
+};
+static_assert(sizeof(OffsetBufferEntry) == 16, "Size is not correct");
+
 template <class Material>
 struct material_type;
 
@@ -68,7 +78,7 @@ class USceneBuilderBase
 	// load model
 	void addModel(CmdBuffer cmdBuf, std::string path, glm::mat4 transform = glm::mat4(1.0), uint32_t loadFlags = MODEL_LOAD_FLAG_IS_OPAQUE);
 
-	virtual void addModel(CmdBuffer cmdBuf, ModelCache* pModelCache, std::string path, uint32_t loadFlags) = 0;
+	virtual void addModelInternal(CmdBuffer cmdBuf, ModelCache *pModelCache, std::string path, uint32_t loadFlags) = 0;
 
 	// copy together buffers, create tlas
 	USceneData create(CmdBuffer cmdBuf, IResourcePool *pPool);
@@ -86,6 +96,7 @@ class USceneBuilderBase
 template <class Vertex, class Material>
 class USceneBuilder : public USceneBuilderBase
 {
+
 	// create material buffer
 	virtual void loadMaterials(CmdBuffer cmdBuf, Buffer buffer) override
 	{
@@ -99,13 +110,17 @@ class USceneBuilder : public USceneBuilderBase
 		}
 		cmdWriteCopy(cmdBuf, buffer, materialList.data(), materialList.size() * sizeof(Material));
 	}
+	void addModelInternal(CmdBuffer cmdBuf, ModelCache *pModelCache, std::string path, uint32_t loadFlags) override
+	{
+		modelList.push_back(pModelCache->fetch<Vertex>(cmdBuf, path, loadFlags));
+	}
 
   public:
+
+	USceneBuilder(HdrImagePdfCache *pdfCache) :
+	    USceneBuilderBase(pdfCache)
+	{}
 	// load model
-	void addModel(CmdBuffer cmdBuf, std::string path, glm::mat4 transform = glm::mat4(1.0), uint32_t loadFlags = MODEL_LOAD_FLAG_IS_OPAQUE)
-	{
-		modelList.push_back(gState.modelCache->fetch<Vertex>(cmdBuf, path, loadFlags));
-	}
 
 };
 

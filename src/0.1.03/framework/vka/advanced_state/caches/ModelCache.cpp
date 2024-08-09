@@ -154,7 +154,7 @@ BLAS ModelCache::buildAccelerationStructure(CmdBuffer cmdBuf, const ModelData &m
 	}
 	BLAS blas = createBottomLevelAS(pPool, geometry, buildRange);
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR);
-	cmdBuildAccelerationStructure(cmdBuf, modelData.blas, createStagingBuffer());
+	cmdBuildAccelerationStructure(cmdBuf, blas, createStagingBuffer());
 	return blas;
 }
 

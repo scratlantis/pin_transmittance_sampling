@@ -21,6 +21,11 @@ int main()
 	gState.init(deviceCI, ioCI, &window, config);
 	enableGui();
 
+	// May be added to the global state in the future
+	HdrImagePdfCache pdfCache = HdrImagePdfCache(gState.heap);
+
+	USceneBuilder<GLSLVertex, GLSLMaterial> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial>(&pdfCache);
+
 	// Camera
 	FixedCamera cam = FixedCamera(FixedCameraCI_Default());
 
@@ -44,13 +49,27 @@ int main()
 
 		// Path tracing
 		{
+			// Config general parameters
 			ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp", {{"FORMAT1", getGLSLFormat(img_pt->getFormat())}});
 			sConst.write(cmdBuf, computeCmd, img_pt->getExtent2D(), cam, cnt, gVars);
 			computeCmd.pushDescriptor(sConst.ubo_frame, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 			computeCmd.pushDescriptor(sConst.ubo_view, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 			computeCmd.pushDescriptor(sConst.ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 			computeCmd.pushDescriptor(img_pt, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-			ModelData modelData = gState.modelCache->fetch<GLSLVertex>(cmdBuf , "cornell_box/cornell_box.obj", 0);
+
+			// Config scene
+			sceneBuilder.reset();
+			sceneBuilder.addModel(cmdBuf, "cornell_box/cornell_box.obj");
+			USceneData scene = sceneBuilder.create(cmdBuf, gState.frame->stack);
+			scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.frame->stack));
+			cmdBarrier(cmdBuf,
+				VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+			    VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+				VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR);
+			// ToDo bind descriptors
+
+			// Run path tracer
 			computeCmd.exec(cmdBuf);
 		}
 		// Composition

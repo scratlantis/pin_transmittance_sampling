@@ -3,7 +3,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 static const std::string shaderPath = std::string(APP_SRC_DIR) + "/shaders/";
 
-struct D3VKPTDeviceCI : vka::DeviceCI
+using namespace vka;
+using namespace vka::pbr;
+
+
+struct D3VKPTDeviceCI : DeviceCI
 {
 	D3VKPTDeviceCI(std::string appName)
 	{
@@ -82,7 +86,7 @@ struct D3VKPTDeviceCI : vka::DeviceCI
 	}
 };
 
-struct DefaultIOControlerCI : vka::IOControlerCI
+struct DefaultIOControlerCI : IOControlerCI
 {
 	DefaultIOControlerCI(std::string title, uint32_t width, uint32_t height)
 	{
@@ -96,7 +100,7 @@ struct DefaultIOControlerCI : vka::IOControlerCI
 	}
 };
 
-struct DefaultAdvancedStateConfig : vka::AdvancedStateConfig
+struct DefaultAdvancedStateConfig : AdvancedStateConfig
 {
 	DefaultAdvancedStateConfig()
 	{
@@ -122,7 +126,7 @@ struct FixedCameraCI_Default : public vka::FixedCameraCI
 };
 
 // Shader interface
-using namespace vka;
+
 typedef uint32_t  uint;
 typedef glm::vec2 vec2;
 typedef glm::vec3 vec3;
@@ -239,6 +243,7 @@ struct material_type<GLSLMaterial>
 		material.albedo = mtl.diffuse;
 		material.specular = mtl.specular;
 		material.roughness = mtl.roughness;
+		return material;
 	}
 };
 }        // namespace pbr
