@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include "Camera.h"
 
 namespace vka
 {
@@ -18,9 +19,7 @@ struct FixedCameraCI
 	float     scrollSpeed;
 };
 
-
-
-class FixedCamera
+class FixedCamera : public Camera
 {
   public:
 	FixedCamera(FixedCameraCI ci)
@@ -37,14 +36,14 @@ class FixedCamera
 	};
 	FixedCamera() = default;
 	~FixedCamera(){};
-	void      keyControl(float deltaTime);
-	void      mouseControl(float deltaTime);
-	glm::vec3 getPosition() const;
+	virtual void      keyControl(float deltaTime) override;
+	virtual void      mouseControl(float deltaTime) override;
+	virtual glm::vec3 getPosition() const override;
+	virtual glm::vec3 getViewDirection() const override;
+	virtual glm::mat4 getViewMatrix() const override;
+
 	glm::vec3 getFixpoint() const;
 	void      setFixpoint(glm::vec3 newFixpoint);
-	glm::vec3 getViewDirection() const;
-	glm::mat4 getViewMatrix() const;
-
   private:
 	void      updateRotation();
 	float     yaw;

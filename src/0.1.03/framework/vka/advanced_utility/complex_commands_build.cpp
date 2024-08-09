@@ -1,6 +1,7 @@
 #include "complex_commands.h"
 #include "complex_commands_utility.h"
 #include <vka/core/core_utility/buffer_utility.h>
+#include <vka/core/core_utility/general_commands.h>	
 #include <vka/globals.h>
 namespace vka
 {
@@ -44,7 +45,7 @@ CmdBufferState DrawCmd::getCmdBufferState(const CmdBufferState oldState) const
 	{
 		state.vertexBuffers = {surf.vertexBuffer};
 	}
-	state.vertexBuffers.insert(state.vertexBuffers.end(), instanceBuffers.begin(), instanceBuffers.end());
+	state.vertexBuffers.insert(state.vertexBuffers.end(), additionalVertexBuffers.begin(), additionalVertexBuffers.end());
 	state.indexBuffer = surf.indexBuffer;
 	return state;
 }
@@ -200,6 +201,13 @@ void DrawCmd::pushDescriptor(TLASRef as, VkShaderStageFlags shaderStage)
 	descriptors.push_back(Descriptor(as, shaderStage));
 }
 
+void DrawCmd::pushDescriptor(CmdBuffer cmdBuf, IResourcePool *pPool, void *data, VkDeviceSize size, VkShaderStageFlags stageFlags)
+{
+	Buffer buf = createBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+	cmdWriteCopy(cmdBuf, buf, data, size);
+	pushDescriptor(buf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stageFlags);
+}
+
 void DrawCmd::setGeometry(DrawSurface surface)
 {
 	surf = surface;
@@ -211,8 +219,14 @@ void DrawCmd::setGeometry(DrawSurface surface)
 
 void DrawCmd::pushInstanceData(BufferRef buffer, VertexDataLayout layout)
 {
-	instanceBuffers.push_back(buffer);
+	additionalVertexBuffers.push_back(buffer);
 	addInput(pipelineDef, layout, VK_VERTEX_INPUT_RATE_INSTANCE);
+}
+
+void DrawCmd::pushVertexData(BufferRef buffer, VertexDataLayout layout)
+{
+	additionalVertexBuffers.push_back(buffer);
+	addInput(pipelineDef, layout, VK_VERTEX_INPUT_RATE_VERTEX);
 }
 
 void ComputeCmd::pushDescriptor(BufferRef buffer, VkDescriptorType type)
@@ -270,7 +284,12 @@ void ComputeCmd::pushDescriptor(TLASRef as, VkShaderStageFlags shaderStage)
 	addDescriptor(pipelineDef, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);
 	descriptors.push_back(Descriptor(as, shaderStage));
 }
-
+void ComputeCmd::pushDescriptor(CmdBuffer cmdBuf, IResourcePool *pPool, void *data, VkDeviceSize size)
+{
+	Buffer buf = createBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+	cmdWriteCopy(cmdBuf, buf, data, size);
+	pushDescriptor(buf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+}
 void ComputeCmd::pushConstant(void *data, VkDeviceSize size)
 {
 	pushConstantsSizes.push_back(size);

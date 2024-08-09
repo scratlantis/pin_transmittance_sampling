@@ -145,6 +145,21 @@ struct ModelData
 		surface.count = indexCount[idx];
 		surface.vertexLayout = vertexLayout;
 	}
+
+	DrawSurface getUnifiedSurface() const
+	{
+		DrawSurface surface{};
+		surface.vertexBuffer = vertexBuffer;
+		surface.indexBuffer = indexBuffer;
+		surface.offset = 0;
+		surface.count = 0;
+		for (auto &cnt : indexCount)
+		{
+			surface.count += cnt;
+		}
+		surface.vertexLayout = vertexLayout;
+		return surface;
+	}
 };
 
 struct ModelKey

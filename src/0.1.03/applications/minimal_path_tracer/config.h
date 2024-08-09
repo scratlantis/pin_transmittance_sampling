@@ -68,6 +68,7 @@ struct D3VKPTDeviceCI : DeviceCI
 		deviceFeatures.shaderInt16              = VK_TRUE;
 		deviceFeatures.multiDrawIndirect        = VK_TRUE;
 		deviceFeatures.independentBlend         = VK_TRUE;
+		deviceFeatures.geometryShader           = VK_TRUE;
 		VkPhysicalDeviceFeatures2 features2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
 		features2.features = deviceFeatures;
 		enabledFeatures.addNode(features2);

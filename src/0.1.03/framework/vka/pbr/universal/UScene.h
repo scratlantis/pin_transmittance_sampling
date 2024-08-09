@@ -49,7 +49,10 @@ class USceneData
 	void build(CmdBuffer cmdBuf, Buffer instanceBuffer);
 };
 
-
+enum SceneLoadFlags
+{
+	SCENE_LOAD_FLAG_ALLOW_RASTERIZATION = 1 << 0,
+};
 
 class USceneBuilderBase
 {
@@ -81,9 +84,9 @@ class USceneBuilderBase
 	virtual void addModelInternal(CmdBuffer cmdBuf, ModelCache *pModelCache, std::string path, uint32_t loadFlags) = 0;
 
 	// copy together buffers, create tlas
-	USceneData create(CmdBuffer cmdBuf, IResourcePool *pPool);
+	USceneData create(CmdBuffer cmdBuf, IResourcePool *pPool, uint32_t sceneLoadFlags);
 
-	// crate and upload instance buffer
+	// create and upload instance buffer
 	Buffer uploadInstanceData(CmdBuffer cmdBuf, IResourcePool *pPool);
 
 	// set transform for model

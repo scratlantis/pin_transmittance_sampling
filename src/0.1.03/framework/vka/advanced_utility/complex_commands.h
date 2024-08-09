@@ -69,10 +69,12 @@ class DrawCmd
 	void pushDescriptor(std::vector<Image> images, VkDescriptorType type, VkShaderStageFlags shaderStage);
 	void pushDescriptor(std::vector<SamplerDefinition> samplersDefs, VkShaderStageFlags shaderStage);
 	void pushDescriptor(TLASRef as, VkShaderStageFlags shaderStage);
+	void pushDescriptor(CmdBuffer cmdBuf, IResourcePool *pPool, void *data, VkDeviceSize size, VkShaderStageFlags stageFlags);
 	void pushConstant(void *data, VkDeviceSize size, VkShaderStageFlags stageFlags);
 
 	void setGeometry(DrawSurface surface);
 	void pushInstanceData(BufferRef buffer, VertexDataLayout layout);
+	void pushVertexData(BufferRef buffer, VertexDataLayout layout);
 
 
 	void exec(CmdBuffer cmdBuf) const;
@@ -89,7 +91,7 @@ class DrawCmd
   private:
 	std::vector<Image>      attachments;
 	std::vector<ClearValue> clearValues;
-	std::vector<BufferRef>  instanceBuffers;
+	std::vector<BufferRef>  additionalVertexBuffers;
 
 	CmdBufferState getCmdBufferState(const CmdBufferState oldState) const;
 };
@@ -111,6 +113,7 @@ class ComputeCmd
 	void pushDescriptor(std::vector<BufferRef> buffers, VkDescriptorType type);
 	void pushDescriptor(std::vector<SamplerDefinition> samplersDefs);
 	void pushDescriptor(TLASRef as, VkShaderStageFlags shaderStage);
+	void pushDescriptor(CmdBuffer cmdBuf, IResourcePool *pPool, void *data, VkDeviceSize size);
 	void pushConstant(void *data, VkDeviceSize size);
 
 	void exec(CmdBuffer cmdBuf) const;
