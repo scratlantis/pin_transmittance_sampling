@@ -1,10 +1,20 @@
 #version 460
 #extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_query : enable
+
+#include "../vka_structs.glsl"
 #include "../interface.glsl"
 #include "../template.glsl"
+
 COMPUTE_SHADER_ID_IN
-SHADER_BLOCK_FRAME_VIEW_PARAMS(0)
-layout(binding = 3, FORMAT1) uniform image2D colorOut;
+// Constants
+SHADER_BLOCK_3_FRAME_VIEW_PARAMS(0)
+// Target
+layout(binding = 3, FORMAT1) writeonly uniform image2D colorOut;
+// Scene data
+SHADER_BLOCK_9_USCENE(4)
+
 void main()
 {
 	COMPUTE_SHADER_CHECK_ID_FRAME

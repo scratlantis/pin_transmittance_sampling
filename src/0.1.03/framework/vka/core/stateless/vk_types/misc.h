@@ -27,6 +27,15 @@ struct ClearValue
 		type = CLEAR_VALUE_NONE;
 	}
 
+	ClearValue( glm::vec4 color )
+	{
+		type                   = CLEAR_VALUE_FLOAT;
+		value.color.float32[0] = color.r;
+		value.color.float32[1] = color.g;
+		value.color.float32[2] = color.b;
+		value.color.float32[3] = color.a;
+	}
+
 	ClearValue(float r, float g, float b, float a)
 	{
 		type                   = CLEAR_VALUE_FLOAT;
@@ -959,7 +968,43 @@ struct VkViewport_OP : public VkViewport
 		// clang-format on
 	}
 };
+
+class VkExtent2D_OP : public VkExtent2D
+{
+	public:
+	VkExtent2D_OP() = default;
+	VkExtent2D_OP(uint32_t width, uint32_t height)
+	{
+		this->width  = width;
+		this->height = height;
+	}
+	VkExtent2D_OP(VkExtent2D const &other)
+	{
+		this->width  = other.width;
+		this->height = other.height;
+	}
+	bool operator==(VkExtent2D_OP const &other) const
+	{
+		// clang-format off
+		return width == other.width
+			&& height == other.height;
+		// clang-format on
+	}
+	bool operator!=(VkExtent2D_OP const &other) const
+	{
+		return !(*this == other);
+	}
+	bool hash() const
+	{
+		// clang-format off
+		return width
+			HASHC height;
+		// clang-format on
+	}
+};
+
 }        // namespace vka
+DECLARE_HASH(vka::VkExtent2D_OP, hash)
 DECLARE_HASH(vka::PipelineMultisampleStateCreateInfo_OP, hash)
 DECLARE_HASH(vka::SubpassDescription, hash)
 DECLARE_HASH(vka::VkRect2D_OP, hash)

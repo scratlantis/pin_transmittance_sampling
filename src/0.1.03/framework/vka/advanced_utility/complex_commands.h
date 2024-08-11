@@ -112,7 +112,7 @@ class ComputeCmd
 	void pushDescriptor(std::vector<Image> images, VkDescriptorType type);
 	void pushDescriptor(std::vector<BufferRef> buffers, VkDescriptorType type);
 	void pushDescriptor(std::vector<SamplerDefinition> samplersDefs);
-	void pushDescriptor(TLASRef as, VkShaderStageFlags shaderStage);
+	void pushDescriptor(TLASRef as);
 	void pushDescriptor(CmdBuffer cmdBuf, IResourcePool *pPool, void *data, VkDeviceSize size);
 	void pushConstant(void *data, VkDeviceSize size);
 

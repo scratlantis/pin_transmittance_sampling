@@ -3,7 +3,7 @@
 #define FORMAT1 rgba32f
 #endif
 
-#define SHADER_BLOCK_FRAME_VIEW_PARAMS(OFFSET)							 \
+#define SHADER_BLOCK_3_FRAME_VIEW_PARAMS(OFFSET)							 \
 layout(binding = OFFSET) uniform FRAME									 \
 {																		 \
 	GLSLFrame frame;													 \
@@ -17,7 +17,7 @@ layout(binding = OFFSET + 2) uniform PARAMS								 \
 	GLSLParams params;													 \
 };
 
-#define SHADER_BLOCK_FRAME_PARAMS										 \
+#define SHADER_BLOCK_2_FRAME_PARAMS										 \
 layout(binding = OFFSET) uniform FRAME									 \
 {																		 \
 	Frame frame;														 \
@@ -26,6 +26,30 @@ layout(binding = OFFSET + 1) uniform PARAMS								 \
 {																		 \
 	GlobalParams params;												 \
 };
+
+#define SHADER_BLOCK_9_USCENE(OFFSET)										 \
+layout(binding = OFFSET + 0) readonly buffer VERTICES { GLSLVertex vertices[]; }; \
+layout(binding = OFFSET + 1) readonly buffer INDICES { uint indices[]; }; \
+layout(binding = OFFSET + 2) readonly buffer OFFSETS { VKAOffsetBufferEntry offsets[]; }; \
+layout(binding = OFFSET + 3) readonly buffer MATERIALS { GLSLMaterial materials[]; }; \
+layout(binding = OFFSET + 4) readonly buffer AREA_LIGHTS { VKAAreaLight areaLights[]; }; \
+layout(binding = OFFSET + 5) uniform accelerationStructureEXT as; \
+layout(binding = OFFSET + 6) uniform sampler smp; \
+layout(binding = OFFSET + 7) uniform texture2D tex[]; \
+layout(binding = OFFSET + 8) uniform sampler2D envMap;
+
+
+// Geometry
+//layout(binding = 4) readonly buffer VERTICES { GLSLVertex vertices[]; };
+//layout(binding = 5) readonly buffer INDICES { uint indices[]; };
+//layout(binding = 6) readonly buffer OFFSETS { VKAOffsetBufferEntry offsets[]; };
+//layout(binding = 7) readonly buffer MATERIALS { GLSLMaterial materials[]; };
+//layout(binding = 8) readonly buffer AREA_LIGHTS { VKAAreaLight areaLights[]; };
+//layout(binding = 9) uniform accelerationStructureEXT as;
+//// Textures
+//layout(binding = 10) uniform sampler smp;
+//layout(binding = 11) uniform texture2D tex[];
+//layout(binding = 12) uniform sampler2D envMap;
 
 #define COMPUTE_SHADER_CHECK_ID_FRAME									 \
 ivec2 gID = ivec2(gl_GlobalInvocationID.xy);							 \

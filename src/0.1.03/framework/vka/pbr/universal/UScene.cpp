@@ -1,5 +1,6 @@
 #include "UScene.h"
 #include <vka/globals.h>
+#include <vka/specialized_utility/draw_2D.h>
 
 namespace vka
 {
@@ -33,6 +34,10 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uin
 		additinalIndexBufferUsage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 	}
 	USceneData sceneData{};
+	// May be to set false bellow
+	sceneData.info.useAreaLight = true;
+	sceneData.info.useEnvMap = true;
+	sceneData.info.useTextures = true;
 	// Create buffers
 	VkDeviceSize totalVertexBufferSize  = 0;
 	VkDeviceSize totalIndexBufferOffset = 0;
@@ -73,6 +78,11 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uin
 		sceneData.areaLightBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 		cmdWriteCopy(cmdBuf, sceneData.areaLightBuffer, areaLights.data(), areaLights.size() * sizeof(AreaLight));
 	}
+	else
+	{
+		sceneData.info.useAreaLight = false;
+		sceneData.areaLightBuffer    = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(AreaLight));
+	}
 
 	sceneData.materialBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	loadMaterials(cmdBuf, sceneData.materialBuffer);
@@ -82,13 +92,23 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uin
 	{
 		sceneData.textures[it.second] = gState.textureCache->fetch(cmdBuf, it.first, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
-
+	if (sceneData.textures.empty())
+	{
+		sceneData.info.useTextures = false;
+		sceneData.textures.push_back(cmdCreateDummyTexture(cmdBuf, pPool));
+	}
 	sceneData.tlas = createTopLevelAS(pPool, modelList.size());
 
 	if (!envMapName.empty())
 	{
 		sceneData.envMap          = gState.textureCache->fetch(cmdBuf, envMapName, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		sceneData.envMapPdfBuffer = pdfCache->fetch(cmdBuf, {envMapName, {16, 16}});
+	}
+	else
+	{
+		sceneData.info.useEnvMap  = false;
+		sceneData.envMap          = cmdCreateDummyTexture(cmdBuf, pPool);
+		sceneData.envMapPdfBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 16);
 	}
 
 	return sceneData;

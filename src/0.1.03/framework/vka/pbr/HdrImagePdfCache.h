@@ -20,7 +20,7 @@ struct ImagePdfKey
 		return std::hash<std::string>()(name) ^ subdivisions.x ^ subdivisions.y;
 	}
 };
-}
+}        // namespace pbr
 }        // namespace vka
 DECLARE_HASH(vka::pbr::ImagePdfKey, hash);
 

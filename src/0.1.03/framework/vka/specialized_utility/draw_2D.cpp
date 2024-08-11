@@ -1,8 +1,18 @@
 #include "draw_2D.h"
 #include <vka/advanced_utility/complex_commands.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vka/globals.h>
 namespace vka
 {
+
+void cmdFill(CmdBuffer cmdBuf, Image dst, VkImageLayout dstLayout, glm::vec4 color)
+{
+	RenderPassDefinition rpDef = defaultRenderPass();
+	addColorAttachment(rpDef, VK_IMAGE_LAYOUT_UNDEFINED, dstLayout, dst->getFormat(), true);
+	VkRenderPass rp = gState.cache->fetch(rpDef);
+	cmdStartRenderPass(cmdBuf, rp, gState.framebufferCache->fetch(rp, {dst}), VkRect2D_OP(dst->getExtent2D()), {ClearValue(color).value});
+	cmdEndRenderPass(cmdBuf);
+}
 
 DrawCmd getCmdFill(Image dst, glm::vec4 color)
 {
@@ -42,6 +52,18 @@ DrawCmd getCmdAdvancedCopy(Image src, Image dst, VkImageLayout dstLayout, VkRect
 DrawCmd getCmdAdvancedCopy(Image src, Image dst, VkImageLayout dstLayout)
 {
 	return getCmdAdvancedCopy(src, dst, dstLayout, VkRect2D_OP(src->getExtent2D()), VkRect2D_OP(dst->getExtent2D()));
+}
+
+Image cmdCreateDummyTexture(CmdBuffer cmdBuf, IResourcePool* pPool, VkExtent2D extent, VkFormat format, glm::vec4 color)
+{
+	Image img = createImage(pPool, format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, extent);
+	cmdFill(cmdBuf, img, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, color);
+	return img;
+}
+
+Image cmdCreateDummyTexture(CmdBuffer cmdBuf, IResourcePool *pPool, VkExtent2D extent)
+{
+	return cmdCreateDummyTexture(cmdBuf, pPool, extent, VK_FORMAT_R8G8B8A8_UNORM, glm::vec4(0.0));
 }
 
 } // namespace vka

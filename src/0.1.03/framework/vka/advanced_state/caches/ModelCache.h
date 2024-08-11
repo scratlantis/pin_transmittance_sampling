@@ -61,16 +61,33 @@ struct WavefrontMaterial
 	std::string normalMap;
 };
 
+// Shader struct, respect alignment rules (https://registry.khronos.org/OpenGL/extensions/ARB/ARB_uniform_buffer_object.txt)
 struct AreaLight
 {
 	// NEE select light source
 	glm::vec3 center;
+	uint32_t  padding1[1];
+
 	glm::vec3 normal;
+	uint32_t  padding2[1];
+
+	glm::vec3 v0; // Vertices
+	uint32_t  padding3[1];
+
+	glm::vec3 v1; // Vertices
+	uint32_t  padding4[1];
+
+	glm::vec3 v2; // Vertices
 	float importance; // Area * intensity
 
-	// Generate light ray
-	glm::vec3 v[3]; // Vertices
 };
+static_assert(offsetof(AreaLight, normal) == 1 * 16, "Offset is not correct");
+static_assert(offsetof(AreaLight, v0) == 2 * 16, "Offset is not correct");
+static_assert(offsetof(AreaLight, v1) == 3 * 16, "Offset is not correct");
+static_assert(offsetof(AreaLight, v2) == 4 * 16, "Offset is not correct");
+static_assert(offsetof(AreaLight, importance) == 4 * 16 + 3 * 4, "Offset is not correct");
+static_assert(sizeof(AreaLight) == 5 * 16, "Size is not correct");
+
 
 struct VertexDataLayout
 {

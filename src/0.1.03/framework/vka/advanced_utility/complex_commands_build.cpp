@@ -279,10 +279,10 @@ void ComputeCmd::pushDescriptor(std::vector<SamplerDefinition> samplersDefs)
 }
 
 
-void ComputeCmd::pushDescriptor(TLASRef as, VkShaderStageFlags shaderStage)
+void ComputeCmd::pushDescriptor(TLASRef as)
 {
 	addDescriptor(pipelineDef, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);
-	descriptors.push_back(Descriptor(as, shaderStage));
+	descriptors.push_back(Descriptor(as, VK_SHADER_STAGE_COMPUTE_BIT));
 }
 void ComputeCmd::pushDescriptor(CmdBuffer cmdBuf, IResourcePool *pPool, void *data, VkDeviceSize size)
 {

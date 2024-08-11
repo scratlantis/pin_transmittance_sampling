@@ -171,11 +171,11 @@ void ModelCache::findAreaLights(std::vector<AreaLight> &lightList, const std::ve
 			for (size_t i = indexOffset; i < indexOffset + indexCountList[i]; i += 3)
 			{
 				AreaLight light{};
-				light.v[0]       = vertexList[indexList[i]].v;
-				light.v[1]       = vertexList[indexList[i + 1]].v;
-				light.v[2]       = vertexList[indexList[i + 2]].v;
-				glm::vec3 normal = glm::normalize(glm::cross(light.v[1] - light.v[0], light.v[2] - light.v[0]));
-				light.center     = (light.v[0] + light.v[1] + light.v[2]) / 3.0f;
+				light.v0       = vertexList[indexList[i]].v;
+				light.v1       = vertexList[indexList[i + 1]].v;
+				light.v2       = vertexList[indexList[i + 2]].v;
+				glm::vec3 normal = glm::normalize(glm::cross(light.v1 - light.v0, light.v2 - light.v0));
+				light.center     = (light.v0 + light.v1 + light.v2) / 3.0f;
 				light.normal     = glm::normalize(normal);
 				light.importance = glm::length(emission * normal);
 				lightList.push_back(light);

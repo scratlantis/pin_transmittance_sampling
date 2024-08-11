@@ -8,7 +8,7 @@ namespace vka
 namespace pbr
 {
 
-// Struct needs to be evaluated inside the shader
+// Shader struct, respect alignment rules (https://registry.khronos.org/OpenGL/extensions/ARB/ARB_uniform_buffer_object.txt)
 struct OffsetBufferEntry
 {
 	uint32_t vertexOffset;
@@ -16,10 +16,19 @@ struct OffsetBufferEntry
 	uint32_t materialOffset;
 	uint32_t padding;
 };
+static_assert(offsetof(OffsetBufferEntry, indexOffset) == 1 * 4, "Offset is not correct");
+static_assert(offsetof(OffsetBufferEntry, materialOffset) == 2 * 4, "Offset is not correct");
 static_assert(sizeof(OffsetBufferEntry) == 16, "Size is not correct");
 
 template <class Material>
 struct material_type;
+
+struct USceneInfo
+{
+	bool useAreaLight = false;
+	bool useEnvMap    = false;
+	bool useTextures  = false;
+};
 
 class USceneData
 {
@@ -34,6 +43,8 @@ class USceneData
 	std::vector<Image> textures;
 	Image              envMap;
 	Buffer             envMapPdfBuffer;
+
+	USceneInfo info;
 
 	void garbageCollect()
 	{

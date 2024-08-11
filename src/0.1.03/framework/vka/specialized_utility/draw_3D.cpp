@@ -1,6 +1,7 @@
 #include "draw_3D.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <vka/core/core_common.h>
+#include <vka/globals.h>
 namespace vka
 {
 // expects position as VK_FORMAT_R32G32B32A32_SFLOAT in 0st place
@@ -22,6 +23,9 @@ void cmdShowTriangles(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, ModelDa
 	{
 		drawCmd.pushColorAttachment(dst, dstLayout);
 	}
+	Image depthBuffer = gState.depthBufferCache->fetch(dst->getExtent2D());
+	depthBuffer->setClearValue(ClearValue(1.0f, 0));
+	drawCmd.pushDepthAttachment(depthBuffer, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 	drawCmd.renderArea.extent = dst->getExtent2D();
 	addShader(drawCmd.pipelineDef, cVkaShaderPath + "matrix_vec4_mult.vert");
 	addShader(drawCmd.pipelineDef, cVkaShaderPath + "assign_random_color.geom");

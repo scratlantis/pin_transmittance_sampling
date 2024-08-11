@@ -42,7 +42,7 @@ int main()
 	sceneBuilder.reset();
 	sceneBuilder.addModel(cmdBuf, "cornell_box/cornell_box.obj", glm::scale(glm::mat4(1.0),vec3(0.1)));
 	USceneData scene = sceneBuilder.create(cmdBuf, gState.heap, SCENE_LOAD_FLAG_ALLOW_RASTERIZATION);
-	scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
+	/*scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));*/
 	executeImmediat(cmdBuf);
 
 	// Main Loop
@@ -61,18 +61,26 @@ int main()
 		Image      swapchainImg = getSwapchainImage();
 		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.2, 0.2, 0.2, 1.0)).exec(cmdBuf);
 		// Path tracing
-		if (0)
+		if (1)
 		{
+			scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.frame->stack));
 			// Config general parameters
 			ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp", {{"FORMAT1", getGLSLFormat(img_pt->getFormat())}});
 			sConst.write(cmdBuf, computeCmd, img_pt->getExtent2D(), cam, cnt, gVars);
-			computeCmd.pushDescriptor(sConst.ubo_frame, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			computeCmd.pushDescriptor(sConst.ubo_view, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-			computeCmd.pushDescriptor(sConst.ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
+			// Bind Constants
+			bind_block_3(computeCmd, sConst);
+
+			// Bind Target
 			computeCmd.pushDescriptor(img_pt, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+
+			// Bind Scene
+			bind_block_9(computeCmd, scene);
+
 			computeCmd.exec(cmdBuf);
 
 		}
+		else
 		{
 			img_pt->setClearValue(ClearValue(0.0f, 0.0f, 0.0f, 1.0f));
 			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_pt, scene.vertexBuffer, scene.indexBuffer, &cam, 0.1);

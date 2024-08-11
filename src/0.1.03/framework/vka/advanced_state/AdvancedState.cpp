@@ -14,6 +14,7 @@ void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Wind
 	textureCache            = new TextureCache(heap, config.texturePath);
 	swapchainImage          = nullptr;
 	imguiWrapper            = new ImGuiWrapper();
+	depthBufferCache        = new DepthBufferCache(heap);
 }
 
 void AdvancedState::destroy()
@@ -33,6 +34,7 @@ void AdvancedState::destroy()
 	delete heap;
 	delete swapchainAttachmentPool;
 	delete imguiWrapper;
+	delete depthBufferCache;
 	if (swapchainImage != nullptr)
 	{
 		delete swapchainImage;
