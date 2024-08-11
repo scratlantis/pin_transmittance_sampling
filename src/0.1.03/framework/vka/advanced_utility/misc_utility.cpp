@@ -78,4 +78,10 @@ void clearShaderCache()
 	gState.shaderLog = "";
 }
 
+void waitIdle()
+{
+	printVka("Waiting for device idle");
+	vkDeviceWaitIdle(gState.device.logical);
+}
+
 }		// namespace vka

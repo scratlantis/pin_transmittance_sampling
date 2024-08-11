@@ -215,6 +215,18 @@ void GlfwWindow::mouse_button_callback(GLFWwindow *window, int button, int actio
 			gState.io.mouse.leftPressed = false;
 		}
 	}
+	else if (button == GLFW_MOUSE_BUTTON_MIDDLE)
+	{
+		gState.io.mouse.middleEvent = true;
+		if (action == GLFW_PRESS)
+		{
+			gState.io.mouse.middlePressed = true;
+		}
+		else if (action == GLFW_RELEASE)
+		{
+			gState.io.mouse.middlePressed = false;
+		}
+	}
 }
 
 void GlfwWindow::mouse_scroll_callback(GLFWwindow *window, double xoffset, double yoffset)

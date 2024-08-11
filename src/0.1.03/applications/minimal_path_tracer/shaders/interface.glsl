@@ -4,12 +4,12 @@
 
 struct GLSLFrame
 {
+	mat4 projection;
+	mat4 invProjection;
 	uint width;
 	uint height;
 	uint idx;
 	uint padding[1];
-	mat4 projection;
-	mat4 invProjection;
 };
 
 struct GLSLView

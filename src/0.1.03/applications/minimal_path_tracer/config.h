@@ -137,7 +137,10 @@ typedef glm::mat4 mat4;
 
 static GLSLFrame defaultFrame(VkExtent2D extent, uint32_t frameIdx)
 {
-	GLSLFrame frame     = {extent.width, extent.height, frameIdx};
+	GLSLFrame frame;
+	frame.idx      = frameIdx;
+	frame.width		 = extent.width;
+	frame.height		 = extent.height;
 	frame.projection    = glm::perspective(glm::radians(60.0f), (float) extent.width / (float) extent.height, 0.1f, 500.0f);
 	frame.invProjection = glm::inverse(frame.projection);
 	return frame;
@@ -212,6 +215,24 @@ void bind_block_9(ComputeCmd &cmd, const USceneData &uScene)
 
 
 }
+
+struct ModelInfo
+{
+	std::string path;
+	glm::vec3   offset;
+	float       scale;
+	float       yRotation;
+
+	glm::mat4 getObjToWorldMatrix()
+	{
+		glm::mat4 objToWorld = glm::mat4(1.0f);
+		objToWorld           = glm::translate(objToWorld, offset);
+		objToWorld           = glm::rotate(objToWorld, glm::radians(yRotation), glm::vec3(0.0f, 1.0f, 0.0f));
+		objToWorld           = glm::scale(objToWorld, glm::vec3(scale));
+		return objToWorld;
+	};
+};
+
 
 namespace vka
 {

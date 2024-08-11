@@ -1,4 +1,7 @@
 
+#ifndef VKA_STRUCTS_H
+#define VKA_STRUCTS_H
+
 struct VKAOffsetBufferEntry
 {
 	uint vertexOffset;
@@ -26,3 +29,5 @@ struct VKAAreaLight
 	float importance; // Area * intensity
 
 };
+
+#endif // VKA_STRUCTS_H

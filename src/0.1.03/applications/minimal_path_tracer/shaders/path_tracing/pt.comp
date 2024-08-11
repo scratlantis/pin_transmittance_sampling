@@ -3,8 +3,7 @@
 #extension GL_EXT_ray_tracing : enable
 #extension GL_EXT_ray_query : enable
 
-#include "../vka_structs.glsl"
-#include "../interface.glsl"
+#include "pt_common.glsl"
 #include "../template.glsl"
 
 COMPUTE_SHADER_ID_IN
@@ -15,8 +14,49 @@ layout(binding = 3, FORMAT1) writeonly uniform image2D colorOut;
 // Scene data
 SHADER_BLOCK_9_USCENE(4)
 
+struct HitData
+{
+	uint instanceCustomID;
+	uint geometryID;
+	uint primitiveID;
+	vec3 barycentrics;
+	float t;
+	mat4x3 objToWorld;
+};
+
+bool trace(Ray ray, inout HitData hData)
+{
+	rayQueryEXT rq;
+	rayQueryInitializeEXT(rq, as, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, ray.origin, ray.tmin, ray.direction, ray.tmax);
+	while(rayQueryProceedEXT(rq)){}
+	if(rayQueryGetIntersectionTypeEXT(rq, true) == gl_RayQueryCommittedIntersectionTriangleEXT)
+	{
+		hData.instanceCustomID = rayQueryGetIntersectionInstanceCustomIndexEXT(rq, true);
+		hData.geometryID = rayQueryGetIntersectionGeometryIndexEXT(rq, true);
+		hData.primitiveID = rayQueryGetIntersectionPrimitiveIndexEXT(rq, true);
+		hData.barycentrics.xy = rayQueryGetIntersectionBarycentricsEXT(rq, true);
+		hData.barycentrics.z = 1.0 - hData.barycentrics.x - hData.barycentrics.y;
+		hData.t = rayQueryGetIntersectionTEXT(rq, true);
+		hData.objToWorld = rayQueryGetIntersectionObjectToWorldEXT(rq, true);
+		return true;
+	}
+	return false;
+}
+
+
 void main()
 {
 	COMPUTE_SHADER_CHECK_ID_FRAME
-	imageStore(colorOut, gID.xy, vec4(0.5, 0.0, 0.0, 1.0));
+
+	Ray ray = genPrimaryRay(frame, view, gl_GlobalInvocationID.xy);
+	HitData hData;
+	bool hit = trace(ray, hData);
+	if(hit)
+	{
+		imageStore(colorOut, gID.xy, vec4(0.5, 0.0, 0.0, 1.0));
+	}
+	else
+	{
+		imageStore(colorOut, gID.xy, vec4(0.0, 0.0, 0.0, 1.0));
+	}
 }

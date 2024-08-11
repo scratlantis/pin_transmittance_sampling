@@ -3,13 +3,19 @@ AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 
 // Gui variable
-static GVar                gvar_color = {"color", {1.0, 0.0, 0.0}, GVAR_VEC3, 0};
+static GVar                gvar_model = {"Model", 0, GVAR_ENUM, 0, {"Cornell Box"}};
 static std::vector<GVar *> gVars =
     {
-        &gvar_color
+        // clang-format off
+        &gvar_model
+        // clang-format on
 };
 
 static ShaderConst sConst{};
+
+
+ModelInfo cornellBox = {"cornell_box/cornell_box.obj", vec3(0,0.2,-0.3), 0.1, 180.0};
+std::vector<ModelInfo> models = {cornellBox};
 
 int main()
 {
@@ -34,17 +40,11 @@ int main()
 	Image img_pt = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 0.8, 1.0);
 	// Uniform Buffers
 	sConst.alloc();
-
-
 	gState.updateSwapchainAttachments();
 
-	CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
-	sceneBuilder.reset();
-	sceneBuilder.addModel(cmdBuf, "cornell_box/cornell_box.obj", glm::scale(glm::mat4(1.0),vec3(0.1)));
-	USceneData scene = sceneBuilder.create(cmdBuf, gState.heap, SCENE_LOAD_FLAG_ALLOW_RASTERIZATION);
-	/*scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));*/
-	executeImmediat(cmdBuf);
-
+	uint32_t modelIndexLastFrame = 0;
+	USceneData scene;
+	ModelInfo  model;
 	// Main Loop
 	for (uint cnt = 0; !gState.io.shouldTerminate(); cnt++)
 	{
@@ -52,21 +52,38 @@ int main()
 		{
 			clearShaderCache();
 		}
+		if (gState.io.keyPressedEvent[GLFW_KEY_T])
+		{
+			cam = FixedCamera(FixedCameraCI_Default());
+		}
+		if (modelIndexLastFrame != gvar_model.val.v_uint || cnt == 0)
+		{
+			modelIndexLastFrame = gvar_model.val.v_uint;
+			model = models[modelIndexLastFrame];
+			CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
+			sceneBuilder.reset();
+			sceneBuilder.addModel(cmdBuf, model.path, model.getObjToWorldMatrix());
+			scene = sceneBuilder.create(cmdBuf, gState.heap, SCENE_LOAD_FLAG_ALLOW_RASTERIZATION);
+			scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
+			executeImmediat(cmdBuf);
+		}
 		cam.keyControl(0.016);
 		if (gState.io.mouse.rightPressed)
 		{
 			cam.mouseControl(0.016);
 		}
+
+
 		CmdBuffer  cmdBuf       = createCmdBuffer(gState.frame->stack);
 		Image      swapchainImg = getSwapchainImage();
 		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.2, 0.2, 0.2, 1.0)).exec(cmdBuf);
 		// Path tracing
-		if (1)
+		if (!gState.io.mouse.middlePressed)
 		{
-			scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.frame->stack));
 			// Config general parameters
 			ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp", {{"FORMAT1", getGLSLFormat(img_pt->getFormat())}});
 			sConst.write(cmdBuf, computeCmd, img_pt->getExtent2D(), cam, cnt, gVars);
+			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
 			// Bind Constants
 			bind_block_3(computeCmd, sConst);
@@ -83,7 +100,7 @@ int main()
 		else
 		{
 			img_pt->setClearValue(ClearValue(0.0f, 0.0f, 0.0f, 1.0f));
-			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_pt, scene.vertexBuffer, scene.indexBuffer, &cam, 0.1);
+			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_pt, scene.vertexBuffer, scene.indexBuffer, &cam, model.getObjToWorldMatrix());
 		}
 		// Composition
 		{

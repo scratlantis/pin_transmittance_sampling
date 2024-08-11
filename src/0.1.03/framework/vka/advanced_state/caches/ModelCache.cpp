@@ -48,7 +48,7 @@ bool ModelCache::loadObj(std::string path, std::vector<ObjVertex> &vertexList, s
 			objVertex.v =
 			    glm::vec3(
 			        vertexAttributes.vertices[index.vertex_index * 3],
-			        vertexAttributes.vertices[index.vertex_index * 3 + 1],
+			        -vertexAttributes.vertices[index.vertex_index * 3 + 1], // inv y coord
 			        vertexAttributes.vertices[index.vertex_index * 3 + 2]);
 			if (index.texcoord_index >= 0)
 				objVertex.vt =

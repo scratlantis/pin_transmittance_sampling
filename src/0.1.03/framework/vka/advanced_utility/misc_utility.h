@@ -8,4 +8,6 @@ Image            createSwapchainAttachment(VkFormat format, VkImageUsageFlags us
 Image            createSwapchainAttachment(VkFormat format, VkImageUsageFlags usageFlags, VkImageLayout initialLayout, float widthCoef, float heightCoef);
 Image            getSwapchainImage();
 void             clearShaderCache();
+void             waitIdle();
+
 }		// namespace vka
