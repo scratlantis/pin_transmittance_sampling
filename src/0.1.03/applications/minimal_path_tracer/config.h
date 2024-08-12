@@ -286,6 +286,8 @@ struct material_type<GLSLMaterial>
 		material.albedo = mtl.diffuse;
 		material.specular = mtl.specular;
 		material.roughness = mtl.roughness;
+		material.emission = mtl.emission;
+		material.f0 = 0.1; // How do we get this?
 		return material;
 	}
 };

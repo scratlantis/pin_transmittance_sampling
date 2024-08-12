@@ -145,7 +145,7 @@ BLAS ModelCache::buildAccelerationStructure(CmdBuffer cmdBuf, const ModelData &m
 
 		VkAccelerationStructureBuildRangeInfoKHR rangeKHR{};
 		rangeKHR.primitiveCount  = modelData.indexCount[i] / 3;
-		rangeKHR.primitiveOffset = offset;
+		rangeKHR.primitiveOffset = offset * sizeof(Index);
 		rangeKHR.firstVertex     = 0;
 		rangeKHR.transformOffset = 0;
 		buildRange.push_back(rangeKHR);

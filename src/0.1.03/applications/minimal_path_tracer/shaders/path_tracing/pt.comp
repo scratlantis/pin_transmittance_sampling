@@ -20,14 +20,13 @@ struct HitData
 	uint geometryID;
 	uint primitiveID;
 	vec3 barycentrics;
-	float t;
 	mat4x3 objToWorld;
 };
 
-bool trace(Ray ray, inout HitData hData)
+float trace(Ray ray, inout HitData hData)
 {
 	rayQueryEXT rq;
-	rayQueryInitializeEXT(rq, as, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF, ray.origin, ray.tmin, ray.direction, ray.tmax);
+	rayQueryInitializeEXT(rq, as, gl_RayFlagsOpaqueEXT, 0xFF, ray.origin, ray.tmin, ray.direction, ray.tmax);
 	while(rayQueryProceedEXT(rq)){}
 	if(rayQueryGetIntersectionTypeEXT(rq, true) == gl_RayQueryCommittedIntersectionTriangleEXT)
 	{
@@ -36,27 +35,109 @@ bool trace(Ray ray, inout HitData hData)
 		hData.primitiveID = rayQueryGetIntersectionPrimitiveIndexEXT(rq, true);
 		hData.barycentrics.xy = rayQueryGetIntersectionBarycentricsEXT(rq, true);
 		hData.barycentrics.z = 1.0 - hData.barycentrics.x - hData.barycentrics.y;
-		hData.t = rayQueryGetIntersectionTEXT(rq, true);
 		hData.objToWorld = rayQueryGetIntersectionObjectToWorldEXT(rq, true);
-		return true;
+		return rayQueryGetIntersectionTEXT(rq, true);
 	}
-	return false;
+	return MAX_FLOAT;
+}
+
+
+struct MaterialData
+{
+	vec3 albedo;
+	vec3 specular;
+	vec3 emission;
+	float roughness;
+	float f0;
+};
+
+// Return tangent frame
+void evalHit(inout MaterialData matData, inout mat4x3 tangentFrame, HitData hitData)
+{
+	VKAOffsetBufferEntry offset = offsets[hitData.instanceCustomID];
+	uint indexOffset = offset.indexOffset + hitData.primitiveID * 3;
+	GLSLVertex v0 = vertices[indices[indexOffset    ] + offset.vertexOffset];
+	GLSLVertex v1 = vertices[indices[indexOffset + 1] + offset.vertexOffset];
+	GLSLVertex v2 = vertices[indices[indexOffset + 2] + offset.vertexOffset];
+	vec2 uv = mat3x2(v0.uv, v1.uv, v2.uv) * hitData.barycentrics;
+
+	// Material
+	GLSLMaterial mat = materials[offset.materialOffset + hitData.geometryID];
+	// Add texture reads later
+	matData.albedo = mat.albedo;
+	matData.specular = mat.specular;
+	matData.emission = mat.emission;
+	matData.roughness = mat.roughness;
+	matData.f0 = mat.f0;
+
+	// Compute tangent frame
+	vec3 localPos = mat3(v0.pos, v1.pos, v2.pos) * hitData.barycentrics;
+	vec3 localGeometricNormal = normalize(mat3(v0.normal, v1.normal, v2.normal) * hitData.barycentrics);
+	vec3 worldPos = hitData.objToWorld * vec4(localPos, 1.0);
+	vec3 worldNormal = hitData.objToWorld * vec4(localGeometricNormal, 0.0);
+	tangentFrame = tangentFrameFromPosNormal(worldPos,worldNormal);
 }
 
 
 void main()
 {
 	COMPUTE_SHADER_CHECK_ID_FRAME
+	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width;
+	Ray ray = genPrimaryRay(frame, view, gl_GlobalInvocationID.xy, seed);
+	HitData hitData;
+	MaterialData matData;
+	mat4x3 tangentFrame;
+	vec3 totalIllumination = vec3(0.0);
+	float pdf = 1.0;
 
-	Ray ray = genPrimaryRay(frame, view, gl_GlobalInvocationID.xy);
-	HitData hData;
-	bool hit = trace(ray, hData);
-	if(hit)
+	//for(uint i = 0; i < MAX_BOUNCES; i++)
+	for(uint i = 0; i < 1; i++)
 	{
-		imageStore(colorOut, gID.xy, vec4(0.5, 0.0, 0.0, 1.0));
+		float t = trace(ray, hitData);
+		if( t == MAX_FLOAT )
+		{
+			totalIllumination += vec3(1.0) / pdf;
+			break;
+		}
+
+		evalHit(matData, tangentFrame, hitData);
+		//totalIllumination += matData.emission / pdf;
+		ray = reflectLampertDiffuse(tangentFrame, seed, pdf);
+
+
+
+
+
+
+		VKAOffsetBufferEntry offset = offsets[hitData.instanceCustomID];
+		uint indexOffset = offset.indexOffset + hitData.primitiveID * 3;
+		GLSLVertex v0 = vertices[indices[indexOffset    ] + offset.vertexOffset];
+		GLSLVertex v1 = vertices[indices[indexOffset + 1] + offset.vertexOffset];
+		GLSLVertex v2 = vertices[indices[indexOffset + 2] + offset.vertexOffset];
+		vec2 uv = mat3x2(v0.uv, v1.uv, v2.uv) * hitData.barycentrics;
+
+		// Material
+		GLSLMaterial mat = materials[offset.materialOffset + hitData.geometryID];
+		// Add texture reads later
+		matData.albedo = mat.albedo;
+		matData.specular = mat.specular;
+		matData.emission = mat.emission;
+		matData.roughness = mat.roughness;
+		matData.f0 = mat.f0;
+
+		// Compute tangent frame
+		vec3 localPos = mat3(v0.pos, v1.pos, v2.pos) * hitData.barycentrics;
+		vec3 localGeometricNormal = normalize(mat3(v0.normal, v1.normal, v2.normal) * hitData.barycentrics);
+		vec3 worldPos = hitData.objToWorld * vec4(localPos, 1.0);
+		vec3 worldNormal = hitData.objToWorld * vec4(localGeometricNormal, 0.0);
+
+
+
+
+		totalIllumination += (localGeometricNormal);
+
+
 	}
-	else
-	{
-		imageStore(colorOut, gID.xy, vec4(0.0, 0.0, 0.0, 1.0));
-	}
+
+	imageStore(colorOut, gID.xy, vec4(totalIllumination, 1.0));
 }

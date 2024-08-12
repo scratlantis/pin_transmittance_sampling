@@ -58,6 +58,11 @@ int main()
 		}
 		if (modelIndexLastFrame != gvar_model.val.v_uint || cnt == 0)
 		{
+			if (cnt != 0)
+			{
+				scene.garbageCollect();
+			}
+
 			modelIndexLastFrame = gvar_model.val.v_uint;
 			model = models[modelIndexLastFrame];
 			CmdBuffer cmdBuf = createCmdBuffer(gState.heap);

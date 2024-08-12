@@ -2,6 +2,8 @@
 #include "../interface.glsl"
 #include "../random.glsl"
 #include "../vka_structs.glsl"
+#include "sampling.glsl"
+#include "pt_math.glsl"
 
 #ifndef PT_COMMON_H
 #define PT_COMMON_H
@@ -14,10 +16,10 @@ struct Ray
 	float tmax;
 };
 
-Ray genPrimaryRay(GLSLFrame frame, GLSLView view, uvec2 pixel)
+Ray genPrimaryRay(GLSLFrame frame, GLSLView view, uvec2 pixel, inout uint seed)
 {
 	Ray ray;
-	const vec2 pixelCenter = vec2(gl_GlobalInvocationID.xy) + vec2(0.5);
+	const vec2 pixelCenter = vec2(gl_GlobalInvocationID.xy) + vec2(unormNext(seed), unormNext(seed));
 	const vec2 pixelUV = pixelCenter / vec2(frame.width, frame.height);
 	const vec2 d = pixelUV * 2.0 - 1.0;
 	ray.origin = (view.invMat * vec4(0,0,0,1)).xyz;
@@ -27,5 +29,56 @@ Ray genPrimaryRay(GLSLFrame frame, GLSLView view, uvec2 pixel)
 	ray.tmax = 10000.0;
 	return ray;
 }
+
+Ray reflectLampertDiffuse(mat4x3 tangentFrame, inout uint seed, out float pdf)
+{
+	vec3 localDir = sampleCosineWeightedHemisphere(vec2(unormNext(seed), unormNext(seed)));
+	pdf = sampleCosineWeightedHemispherePdf(localDir);
+	Ray ray;
+	ray.direction = tangentFrame * vec4(localDir,0.0);
+	ray.origin = tangentFrame[3].xyz;
+	ray.tmin = 0.01;
+	ray.tmax = 10000.0;
+	return ray;
+
+}
+
+struct ShadingData
+{
+	vec3	view;				//V
+	vec3	normal;				//N
+	vec3	halfWayVector;		//H
+	vec3	lightVector;		//L
+
+	vec3	worldPos;
+
+	vec3	specular_color;
+	vec3	diffuse_color;
+	vec3	ambient_color;
+	vec3	gui_color;
+
+    float   alpha;
+
+	
+	vec3	fresnel_0;			// Color of specular reflection at 0 degree
+    float   fresnel_0_scalar;
+	float	roughness;
+
+	float	dotNV;
+	float	dotLH;
+	float	dotNH;
+	float	dotNL;
+	
+	//float	PI;
+	float	metalicity;
+	vec3	diffuse_albedo;
+	vec3	emissive;
+
+	vec3	surfaceNormal;
+	mat3	TNB;
+	vec3	coverage;
+};
+
+
 
 #endif

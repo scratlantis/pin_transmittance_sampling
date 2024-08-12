@@ -3,6 +3,10 @@
 #define FORMAT1 rgba32f
 #endif
 
+#ifndef MAX_BOUNCES
+#define MAX_BOUNCES 3
+#endif
+
 #define SHADER_BLOCK_3_FRAME_VIEW_PARAMS(OFFSET)							 \
 layout(binding = OFFSET) uniform FRAME									 \
 {																		 \
@@ -39,17 +43,13 @@ layout(binding = OFFSET + 7) uniform texture2D tex[]; \
 layout(binding = OFFSET + 8) uniform sampler2D envMap;
 
 
-// Geometry
-//layout(binding = 4) readonly buffer VERTICES { GLSLVertex vertices[]; };
-//layout(binding = 5) readonly buffer INDICES { uint indices[]; };
-//layout(binding = 6) readonly buffer OFFSETS { VKAOffsetBufferEntry offsets[]; };
-//layout(binding = 7) readonly buffer MATERIALS { GLSLMaterial materials[]; };
-//layout(binding = 8) readonly buffer AREA_LIGHTS { VKAAreaLight areaLights[]; };
-//layout(binding = 9) uniform accelerationStructureEXT as;
-//// Textures
-//layout(binding = 10) uniform sampler smp;
-//layout(binding = 11) uniform texture2D tex[];
-//layout(binding = 12) uniform sampler2D envMap;
+
+
+
+
+
+
+
 
 #define COMPUTE_SHADER_CHECK_ID_FRAME									 \
 ivec2 gID = ivec2(gl_GlobalInvocationID.xy);							 \

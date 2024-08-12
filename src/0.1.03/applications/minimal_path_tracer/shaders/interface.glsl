@@ -45,8 +45,12 @@ struct GLSLMaterial
 	vec3 specular;
 	uint padding_1[1];
 
+	vec3 emission;
+	uint padding_2[1];
+
 	float roughness;
-	uint padding_2[3];
+	float f0; //  0.16 reflectance^2
+	uint padding_3[2];
 };
 
 #endif // INTERFACE_H
