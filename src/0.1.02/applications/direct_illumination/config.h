@@ -7,9 +7,9 @@ static const std::string newShaderPath  = std::string(APP_SRC_DIR) + "/newShader
 static const std::string modelPath   = std::string(RESOURCE_BASE_DIR) + "/models/";
 static const std::string texturePath = std::string(RESOURCE_BASE_DIR) + "/textures/";
 
-struct D3VKPTDeviceCI : vka::DeviceCI
+struct DefaultDeviceCI : vka::DeviceCI
 {
-	D3VKPTDeviceCI(std::string appName)
+	DefaultDeviceCI(std::string appName)
 	{
 		applicationName     = appName;
 		universalQueueCount = 1;

@@ -73,7 +73,7 @@ void evalHit(inout MaterialData matData, inout mat4x3 tangentFrame, HitData hitD
 void main()
 {
 	COMPUTE_SHADER_CHECK_ID_FRAME
-	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width;
+	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width + frame.width*frame.height*frame.idx;
 	HitData hitData;
 	MaterialData matData;
 	mat4x3 tangentFrame;

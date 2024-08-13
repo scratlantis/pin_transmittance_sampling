@@ -59,7 +59,7 @@ std::vector<GVar *> gVars =
 int main()
 {
 	// Global State Initialization
-	DeviceCI      deviceCI = D3VKPTDeviceCI(APP_NAME);
+	DeviceCI      deviceCI = DefaultDeviceCI(APP_NAME);
 	IOControlerCI ioCI     = DefaultIOControlerCI(APP_NAME, 1000, 700);
 	GlfwWindow    window   = GlfwWindow();
 	gState.init(deviceCI, ioCI, &window);

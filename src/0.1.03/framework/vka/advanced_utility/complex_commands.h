@@ -21,6 +21,15 @@ struct BlendOperation
 	{
 		return BlendOperation{VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD};
 	}
+	static BlendOperation add()
+	{
+		return BlendOperation{VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
+	}
+
+	bool operator== (const BlendOperation &other) const
+	{
+		return srcFactor == other.srcFactor && dstFactor == other.dstFactor && op == other.op;
+	}
 };
 
 struct AttachmentLayoutDescription

@@ -7,8 +7,8 @@ namespace vka
 	  public:
 		Camera(){};
 		~Camera(){};
-		virtual void      keyControl(float deltaTime)   = 0;
-		virtual void      mouseControl(float deltaTime) = 0;
+		virtual bool      keyControl(float deltaTime)   = 0;
+	    virtual bool      mouseControl(float deltaTime) = 0;
 		virtual glm::vec3 getPosition() const           = 0;
 		virtual glm::vec3 getViewDirection() const      = 0;
 		virtual glm::mat4 getViewMatrix() const         = 0;

@@ -53,43 +53,4 @@ Ray reflectLampertDiffuse(MaterialData material, mat4x3 tangentFrame, inout uint
 	return ray;
 
 }
-
-struct ShadingData
-{
-	vec3	view;				//V
-	vec3	normal;				//N
-	vec3	halfWayVector;		//H
-	vec3	lightVector;		//L
-
-	vec3	worldPos;
-
-	vec3	specular_color;
-	vec3	diffuse_color;
-	vec3	ambient_color;
-	vec3	gui_color;
-
-    float   alpha;
-
-	
-	vec3	fresnel_0;			// Color of specular reflection at 0 degree
-    float   fresnel_0_scalar;
-	float	roughness;
-
-	float	dotNV;
-	float	dotLH;
-	float	dotNH;
-	float	dotNL;
-	
-	//float	PI;
-	float	metalicity;
-	vec3	diffuse_albedo;
-	vec3	emissive;
-
-	vec3	surfaceNormal;
-	mat3	TNB;
-	vec3	coverage;
-};
-
-
-
 #endif

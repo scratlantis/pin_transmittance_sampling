@@ -1,4 +1,8 @@
 #include "config.h"
+#include "utility.h"
+#include "shader_interface.h"
+
+// State and output dir must be defined in the main file
 AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 
@@ -20,7 +24,7 @@ std::vector<ModelInfo> models = {cornellBox};
 int main()
 {
 	// Global State Initialization. See config.h for more details.
-	DeviceCI            deviceCI = D3VKPTDeviceCI(APP_NAME);
+	DeviceCI            deviceCI = DefaultDeviceCI(APP_NAME);
 	IOControlerCI       ioCI     = DefaultIOControlerCI(APP_NAME, 1000, 700);
 	GlfwWindow          window   = GlfwWindow();
 	AdvancedStateConfig config   = DefaultAdvancedStateConfig();
@@ -33,14 +37,15 @@ int main()
 	USceneBuilder<GLSLVertex, GLSLMaterial> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial>(&pdfCache);
 
 	// Camera
-	FixedCamera cam = FixedCamera(FixedCameraCI_Default());
+	FixedCamera cam = FixedCamera(DefaultFixedCameraCI());
 
 	// Persistent Resources:
-	// HDR Image for path tracing
+	// HDR Images for path tracing
 	Image img_pt = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 0.8, 1.0);
+	Image img_pt_accumulation = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 0.8, 1.0);
+	gState.updateSwapchainAttachments();
 	// Uniform Buffers
 	sConst.alloc();
-	gState.updateSwapchainAttachments();
 
 	uint32_t modelIndexLastFrame = 0;
 	USceneData scene;
@@ -54,7 +59,7 @@ int main()
 		}
 		if (gState.io.keyPressedEvent[GLFW_KEY_T])
 		{
-			cam = FixedCamera(FixedCameraCI_Default());
+			cam = FixedCamera(DefaultFixedCameraCI());
 		}
 		if (modelIndexLastFrame != gvar_model.val.v_uint || cnt == 0)
 		{
@@ -72,15 +77,20 @@ int main()
 			scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
 			executeImmediat(cmdBuf);
 		}
-		cam.keyControl(0.016);
+		
+		bool viewHasChanged = cam.keyControl(0.016);
 		if (gState.io.mouse.rightPressed)
 		{
-			cam.mouseControl(0.016);
+			viewHasChanged = viewHasChanged || cam.mouseControl(0.016);
 		}
-
-
+		
 		CmdBuffer  cmdBuf       = createCmdBuffer(gState.frame->stack);
 		Image      swapchainImg = getSwapchainImage();
+		if (viewHasChanged)
+		{
+			cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0));
+		}
+
 		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.2, 0.2, 0.2, 1.0)).exec(cmdBuf);
 		// Path tracing
 		if (!gState.io.mouse.middlePressed)
@@ -100,18 +110,22 @@ int main()
 			bind_block_10(computeCmd, scene);
 
 			computeCmd.exec(cmdBuf);
-
+			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+			getCmdAccumulate(img_pt, img_pt_accumulation, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
+			getCmdNormalize(img_pt_accumulation, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			                VkRect2D_OP(img_pt_accumulation->getExtent2D()), getScissorRect(0.2f, 0.f, 0.8f, 1.0f))
+			    .exec(cmdBuf);
 		}
+		// Rasterization for debugging
 		else
 		{
 			img_pt->setClearValue(ClearValue(0.0f, 0.0f, 0.0f, 1.0f));
 			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_pt, scene.vertexBuffer, scene.indexBuffer, &cam, model.getObjToWorldMatrix());
+			getCmdAdvancedCopy(img_pt, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			                VkRect2D_OP(img_pt->getExtent2D()), getScissorRect(0.2f, 0.f, 0.8f, 1.0f)).exec(cmdBuf);
 		}
-		// Composition
+		// Add gui
 		{
-			DrawCmd drawCmd = getCmdAdvancedCopy(img_pt, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			                                     VkRect2D_OP(img_pt->getExtent2D()), getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
-			drawCmd.exec(cmdBuf);
 			gvar_gui::buildGui(gVars, {"Catergory 1"}, getScissorRect(0.f,0.f,0.2,1.0));
 			shader_console_gui::buildGui(getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
 			cmdRenderGui(cmdBuf, swapchainImg);

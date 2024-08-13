@@ -14,7 +14,7 @@ std::vector<GVar *> gVars =
 int main()
 {
 	// Global State Initialization. See config.h for more details.
-	DeviceCI            deviceCI = D3VKPTDeviceCI(APP_NAME);
+	DeviceCI            deviceCI = DefaultDeviceCI(APP_NAME);
 	IOControlerCI       ioCI     = DefaultIOControlerCI(APP_NAME, 1000, 700);
 	GlfwWindow          window   = GlfwWindow();
 	AdvancedStateConfig config   = DefaultAdvancedStateConfig();
