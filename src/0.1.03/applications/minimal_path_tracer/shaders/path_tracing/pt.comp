@@ -12,7 +12,7 @@ SHADER_BLOCK_3_FRAME_VIEW_PARAMS(0)
 // Target
 layout(binding = 3, FORMAT1) writeonly uniform image2D colorOut;
 // Scene data
-SHADER_BLOCK_9_USCENE(4)
+SHADER_BLOCK_10_USCENE(4)
 
 struct HitData
 {
@@ -33,8 +33,8 @@ float trace(Ray ray, inout HitData hData)
 		hData.instanceCustomID = rayQueryGetIntersectionInstanceCustomIndexEXT(rq, true);
 		hData.geometryID = rayQueryGetIntersectionGeometryIndexEXT(rq, true);
 		hData.primitiveID = rayQueryGetIntersectionPrimitiveIndexEXT(rq, true);
-		hData.barycentrics.xy = rayQueryGetIntersectionBarycentricsEXT(rq, true);
-		hData.barycentrics.z = 1.0 - hData.barycentrics.x - hData.barycentrics.y;
+		hData.barycentrics.yz = rayQueryGetIntersectionBarycentricsEXT(rq, true);
+		hData.barycentrics.x = 1.0 - hData.barycentrics.y - hData.barycentrics.z;
 		hData.objToWorld = rayQueryGetIntersectionObjectToWorldEXT(rq, true);
 		return rayQueryGetIntersectionTEXT(rq, true);
 	}
@@ -42,27 +42,18 @@ float trace(Ray ray, inout HitData hData)
 }
 
 
-struct MaterialData
-{
-	vec3 albedo;
-	vec3 specular;
-	vec3 emission;
-	float roughness;
-	float f0;
-};
-
 // Return tangent frame
 void evalHit(inout MaterialData matData, inout mat4x3 tangentFrame, HitData hitData)
 {
-	VKAOffsetBufferEntry offset = offsets[hitData.instanceCustomID];
-	uint indexOffset = offset.indexOffset + hitData.primitiveID * 3;
-	GLSLVertex v0 = vertices[indices[indexOffset    ] + offset.vertexOffset];
-	GLSLVertex v1 = vertices[indices[indexOffset + 1] + offset.vertexOffset];
-	GLSLVertex v2 = vertices[indices[indexOffset + 2] + offset.vertexOffset];
+	VKAModelDataOffset modelOffset = modelOffsets[hitData.instanceCustomID];
+	uint firstIndex = surfaceIndexOffsets[modelOffset.firstSurface + hitData.geometryID] + hitData.primitiveID * 3;
+	GLSLVertex v0 = vertices[indices[firstIndex    ] + modelOffset.firstVertex];
+	GLSLVertex v1 = vertices[indices[firstIndex + 1] + modelOffset.firstVertex];
+	GLSLVertex v2 = vertices[indices[firstIndex + 2] + modelOffset.firstVertex];
 	vec2 uv = mat3x2(v0.uv, v1.uv, v2.uv) * hitData.barycentrics;
 
 	// Material
-	GLSLMaterial mat = materials[offset.materialOffset + hitData.geometryID];
+	GLSLMaterial mat = materials[modelOffset.firstSurface + hitData.geometryID];
 	// Add texture reads later
 	matData.albedo = mat.albedo;
 	matData.specular = mat.specular;
@@ -83,61 +74,32 @@ void main()
 {
 	COMPUTE_SHADER_CHECK_ID_FRAME
 	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width;
-	Ray ray = genPrimaryRay(frame, view, gl_GlobalInvocationID.xy, seed);
 	HitData hitData;
 	MaterialData matData;
 	mat4x3 tangentFrame;
 	vec3 totalIllumination = vec3(0.0);
-	float pdf = 1.0;
 
-	//for(uint i = 0; i < MAX_BOUNCES; i++)
-	for(uint i = 0; i < 1; i++)
+
+	for(uint j = 0; j < SAMPLE_COUNT; j++)
 	{
-		float t = trace(ray, hitData);
-		if( t == MAX_FLOAT )
+		float pdf = 1.0;
+		vec3 weight = vec3(1.0);
+		Ray ray = genPrimaryRay(frame, view, gl_GlobalInvocationID.xy, seed);
+
+		for(uint i = 0; i < MAX_BOUNCES; i++)
 		{
-			totalIllumination += vec3(1.0) / pdf;
-			break;
+			float t = trace(ray, hitData);
+			if( t == MAX_FLOAT )
+			{
+				totalIllumination += vec3(1.0) * weight / pdf;
+				break;
+			}
+
+			evalHit(matData, tangentFrame, hitData);
+			totalIllumination += matData.emission * weight / pdf;
+			ray = reflectLampertDiffuse(matData, tangentFrame, seed, pdf, weight);
 		}
-
-		evalHit(matData, tangentFrame, hitData);
-		//totalIllumination += matData.emission / pdf;
-		ray = reflectLampertDiffuse(tangentFrame, seed, pdf);
-
-
-
-
-
-
-		VKAOffsetBufferEntry offset = offsets[hitData.instanceCustomID];
-		uint indexOffset = offset.indexOffset + hitData.primitiveID * 3;
-		GLSLVertex v0 = vertices[indices[indexOffset    ] + offset.vertexOffset];
-		GLSLVertex v1 = vertices[indices[indexOffset + 1] + offset.vertexOffset];
-		GLSLVertex v2 = vertices[indices[indexOffset + 2] + offset.vertexOffset];
-		vec2 uv = mat3x2(v0.uv, v1.uv, v2.uv) * hitData.barycentrics;
-
-		// Material
-		GLSLMaterial mat = materials[offset.materialOffset + hitData.geometryID];
-		// Add texture reads later
-		matData.albedo = mat.albedo;
-		matData.specular = mat.specular;
-		matData.emission = mat.emission;
-		matData.roughness = mat.roughness;
-		matData.f0 = mat.f0;
-
-		// Compute tangent frame
-		vec3 localPos = mat3(v0.pos, v1.pos, v2.pos) * hitData.barycentrics;
-		vec3 localGeometricNormal = normalize(mat3(v0.normal, v1.normal, v2.normal) * hitData.barycentrics);
-		vec3 worldPos = hitData.objToWorld * vec4(localPos, 1.0);
-		vec3 worldNormal = hitData.objToWorld * vec4(localGeometricNormal, 0.0);
-
-
-
-
-		totalIllumination += (localGeometricNormal);
-
-
 	}
-
+	totalIllumination /= float(SAMPLE_COUNT);
 	imageStore(colorOut, gID.xy, vec4(totalIllumination, 1.0));
 }

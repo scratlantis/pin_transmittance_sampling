@@ -9,16 +9,13 @@ namespace pbr
 {
 
 // Shader struct, respect alignment rules (https://registry.khronos.org/OpenGL/extensions/ARB/ARB_uniform_buffer_object.txt)
-struct OffsetBufferEntry
+struct ModelDataOffset
 {
-	uint32_t vertexOffset;
-	uint32_t indexOffset;
-	uint32_t materialOffset;
-	uint32_t padding;
+	uint32_t firstVertex;
+	uint32_t firstSurface;
 };
-static_assert(offsetof(OffsetBufferEntry, indexOffset) == 1 * 4, "Offset is not correct");
-static_assert(offsetof(OffsetBufferEntry, materialOffset) == 2 * 4, "Offset is not correct");
-static_assert(sizeof(OffsetBufferEntry) == 16, "Size is not correct");
+static_assert(offsetof(ModelDataOffset, firstSurface) == 1 * 4, "Offset is not correct");
+static_assert(sizeof(ModelDataOffset) == 8, "Size is not correct");
 
 template <class Material>
 struct material_type;
@@ -35,7 +32,8 @@ class USceneData
   public:
 	Buffer             vertexBuffer;
 	Buffer             indexBuffer;
-	Buffer             offsetBuffer;
+	Buffer             modelOffsetBuffer;
+	Buffer             surfaceOffsetBuffer;
 	Buffer             materialBuffer;
 	Buffer             areaLightBuffer;
 	TLAS               tlas;
@@ -50,7 +48,8 @@ class USceneData
 	{
 		vertexBuffer->garbageCollect();
 		indexBuffer->garbageCollect();
-		offsetBuffer->garbageCollect();
+		modelOffsetBuffer->garbageCollect();
+		surfaceOffsetBuffer->garbageCollect();
 		materialBuffer->garbageCollect();
 		areaLightBuffer->garbageCollect();
 		tlas->garbageCollect();

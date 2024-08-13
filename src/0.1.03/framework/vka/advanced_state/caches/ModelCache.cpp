@@ -59,7 +59,7 @@ bool ModelCache::loadObj(std::string path, std::vector<ObjVertex> &vertexList, s
 				objVertex.vn =
 				    glm::vec3(
 				        vertexAttributes.normals[index.normal_index * 3],
-				        vertexAttributes.normals[index.normal_index * 3 + 1],
+				        -vertexAttributes.normals[index.normal_index * 3 + 1], // inv y coord
 				        vertexAttributes.normals[index.normal_index * 3 + 2]);
 			auto it = vertexMap.insert({objVertex, cnt});
 			// New vertex
@@ -168,12 +168,12 @@ void ModelCache::findAreaLights(std::vector<AreaLight> &lightList, const std::ve
 		float              emission = surface.emission.x + surface.emission.y + surface.emission.z;
 		if (emission > 0)
 		{
-			for (size_t i = indexOffset; i < indexOffset + indexCountList[i]; i += 3)
+			for (size_t j = indexOffset; j < indexOffset + indexCountList[i]; j += 3)
 			{
 				AreaLight light{};
-				light.v0       = vertexList[indexList[i]].v;
-				light.v1       = vertexList[indexList[i + 1]].v;
-				light.v2       = vertexList[indexList[i + 2]].v;
+				light.v0       = vertexList[indexList[j]].v;
+				light.v1       = vertexList[indexList[j + 1]].v;
+				light.v2       = vertexList[indexList[j + 2]].v;
 				glm::vec3 normal = glm::normalize(glm::cross(light.v1 - light.v0, light.v2 - light.v0));
 				light.center     = (light.v0 + light.v1 + light.v2) / 3.0f;
 				light.normal     = glm::normalize(normal);

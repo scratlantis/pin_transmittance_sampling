@@ -2,12 +2,10 @@
 #ifndef VKA_STRUCTS_H
 #define VKA_STRUCTS_H
 
-struct VKAOffsetBufferEntry
+struct VKAModelDataOffset
 {
-	uint vertexOffset;
-	uint indexOffset;
-	uint materialOffset;
-	uint padding;
+	uint firstVertex;
+	uint firstSurface;
 };
 
 struct VKAAreaLight

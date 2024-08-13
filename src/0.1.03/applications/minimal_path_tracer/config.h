@@ -201,11 +201,12 @@ void bind_block_3(ComputeCmd &cmd, const ShaderConst &sConst)
 	cmd.pushDescriptor(sConst.ubo_view, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	cmd.pushDescriptor(sConst.ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 }
-void bind_block_9(ComputeCmd &cmd, const USceneData &uScene)
+void bind_block_10(ComputeCmd &cmd, const USceneData &uScene)
 {
 	cmd.pushDescriptor(uScene.vertexBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(uScene.indexBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	cmd.pushDescriptor(uScene.offsetBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(uScene.modelOffsetBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(uScene.surfaceOffsetBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(uScene.materialBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(uScene.areaLightBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(uScene.tlas);

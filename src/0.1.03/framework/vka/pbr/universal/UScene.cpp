@@ -50,29 +50,46 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uin
 	sceneData.vertexBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | additinalVertexBufferUsage, VMA_MEMORY_USAGE_GPU_ONLY, totalVertexBufferSize);
 	sceneData.indexBuffer  = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | additinalIndexBufferUsage, VMA_MEMORY_USAGE_GPU_ONLY, totalIndexBufferOffset);
 
-	// Copy vertex & index data
+	// Copy vertex & index data and store offsets
 	VkDeviceSize                   vertexOffsett = 0;
 	VkDeviceSize                   indexOffsett  = 0;
-	std::vector<OffsetBufferEntry> offsetBufferEntries(modelList.size());
+	uint32_t                       surfaceCount = 0;
+	std::vector<ModelDataOffset>   modelDataOffset(modelList.size());
 	std::vector<AreaLight>         areaLights;
-	uint32_t                       materialCount = 0;
+	std::vector<uint32_t>		   indexCounts;
 	for (size_t i = 0; i < modelList.size(); i++)
 	{
 		cmdCopyBuffer(cmdBuf, modelList[i].vertexBuffer, sceneData.vertexBuffer->getSubBuffer({vertexOffsett, modelList[i].vertexBuffer->getSize()}));
-		cmdCopyBuffer(cmdBuf, modelList[i].indexBuffer, sceneData.indexBuffer->getSubBuffer({vertexOffsett, modelList[i].indexBuffer->getSize()}));
+		cmdCopyBuffer(cmdBuf, modelList[i].indexBuffer, sceneData.indexBuffer->getSubBuffer({indexOffsett, modelList[i].indexBuffer->getSize()}));
 
-		offsetBufferEntries[i].vertexOffset   = vertexOffsett / vertexStride;
-		offsetBufferEntries[i].indexOffset    = indexOffsett / sizeof(Index);
-		offsetBufferEntries[i].materialOffset = materialCount;
+		modelDataOffset[i].firstVertex   = vertexOffsett / vertexStride;
+		modelDataOffset[i].firstSurface = surfaceCount;
+		indexCounts.insert(indexCounts.end(), modelList[i].indexCount.begin(), modelList[i].indexCount.end());
 
 		areaLights.insert(areaLights.end(), modelList[i].lights.begin(), modelList[i].lights.end());
 
-		materialCount += modelList[i].mtl.size();
+		surfaceCount += modelList[i].indexCount.size();
 		vertexOffsett += modelList[i].vertexBuffer->getSize();
 		indexOffsett += modelList[i].indexBuffer->getSize();
 	}
-	sceneData.offsetBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-	cmdWriteCopy(cmdBuf, sceneData.offsetBuffer, offsetBufferEntries.data(), offsetBufferEntries.size() * sizeof(OffsetBufferEntry));
+
+	// Per model offesets
+	sceneData.modelOffsetBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	cmdWriteCopy(cmdBuf, sceneData.modelOffsetBuffer, modelDataOffset.data(), modelDataOffset.size() * sizeof(ModelDataOffset));
+
+	std::vector<uint32_t> firstSurfaceIndex(indexCounts.size());
+	uint32_t sum = 0;
+	for (size_t i = 0; i < indexCounts.size(); i++)
+	{
+		firstSurfaceIndex[i] = sum;
+		sum += indexCounts[i];
+	}
+
+	// Per surface offset
+	sceneData.surfaceOffsetBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	cmdWriteCopy(cmdBuf, sceneData.surfaceOffsetBuffer, firstSurfaceIndex.data(), firstSurfaceIndex.size() * sizeof(uint32_t));
+
+
 	if (!areaLights.empty())
 	{
 		sceneData.areaLightBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);

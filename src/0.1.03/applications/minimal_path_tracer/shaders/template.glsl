@@ -3,9 +3,6 @@
 #define FORMAT1 rgba32f
 #endif
 
-#ifndef MAX_BOUNCES
-#define MAX_BOUNCES 3
-#endif
 
 #define SHADER_BLOCK_3_FRAME_VIEW_PARAMS(OFFSET)							 \
 layout(binding = OFFSET) uniform FRAME									 \
@@ -31,16 +28,17 @@ layout(binding = OFFSET + 1) uniform PARAMS								 \
 	GlobalParams params;												 \
 };
 
-#define SHADER_BLOCK_9_USCENE(OFFSET)										 \
+#define SHADER_BLOCK_10_USCENE(OFFSET)										 \
 layout(binding = OFFSET + 0) readonly buffer VERTICES { GLSLVertex vertices[]; }; \
 layout(binding = OFFSET + 1) readonly buffer INDICES { uint indices[]; }; \
-layout(binding = OFFSET + 2) readonly buffer OFFSETS { VKAOffsetBufferEntry offsets[]; }; \
-layout(binding = OFFSET + 3) readonly buffer MATERIALS { GLSLMaterial materials[]; }; \
-layout(binding = OFFSET + 4) readonly buffer AREA_LIGHTS { VKAAreaLight areaLights[]; }; \
-layout(binding = OFFSET + 5) uniform accelerationStructureEXT as; \
-layout(binding = OFFSET + 6) uniform sampler smp; \
-layout(binding = OFFSET + 7) uniform texture2D tex[]; \
-layout(binding = OFFSET + 8) uniform sampler2D envMap;
+layout(binding = OFFSET + 2) readonly buffer MODEL_OFFSETS { VKAModelDataOffset modelOffsets[]; }; \
+layout(binding = OFFSET + 3) readonly buffer SURFACE_OFFSETS { uint surfaceIndexOffsets[]; }; \
+layout(binding = OFFSET + 4) readonly buffer MATERIALS { GLSLMaterial materials[]; }; \
+layout(binding = OFFSET + 5) readonly buffer AREA_LIGHTS { VKAAreaLight areaLights[]; }; \
+layout(binding = OFFSET + 6) uniform accelerationStructureEXT as; \
+layout(binding = OFFSET + 7) uniform sampler smp; \
+layout(binding = OFFSET + 8) uniform texture2D tex[]; \
+layout(binding = OFFSET + 9) uniform sampler2D envMap;
 
 
 

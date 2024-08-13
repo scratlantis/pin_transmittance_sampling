@@ -2,6 +2,7 @@
 #include "../interface.glsl"
 #include "../random.glsl"
 #include "../vka_structs.glsl"
+#include "pt_params.glsl"
 #include "sampling.glsl"
 #include "pt_math.glsl"
 
@@ -16,6 +17,15 @@ struct Ray
 	float tmax;
 };
 
+struct MaterialData
+{
+	vec3 albedo;
+	vec3 specular;
+	vec3 emission;
+	float roughness;
+	float f0;
+};
+
 Ray genPrimaryRay(GLSLFrame frame, GLSLView view, uvec2 pixel, inout uint seed)
 {
 	Ray ray;
@@ -25,20 +35,21 @@ Ray genPrimaryRay(GLSLFrame frame, GLSLView view, uvec2 pixel, inout uint seed)
 	ray.origin = (view.invMat * vec4(0,0,0,1)).xyz;
 	vec4 target = frame.invProjection * vec4(d.x, d.y, 1, 1) ;
 	ray.direction = (view.invMat*vec4(normalize(target.xyz), 0)).xyz ;
-	ray.tmin = 0.001;
-	ray.tmax = 10000.0;
+	ray.tmin = TMIN;
+	ray.tmax = TMAX;
 	return ray;
 }
 
-Ray reflectLampertDiffuse(mat4x3 tangentFrame, inout uint seed, out float pdf)
+Ray reflectLampertDiffuse(MaterialData material, mat4x3 tangentFrame, inout uint seed, inout float pdf, inout vec3 weight)
 {
 	vec3 localDir = sampleCosineWeightedHemisphere(vec2(unormNext(seed), unormNext(seed)));
-	pdf = sampleCosineWeightedHemispherePdf(localDir);
+	pdf *= pdfCosineWeightedHemisphere(localDir);
+	weight *= evalCosineWeightedHemisphere(material.albedo);
 	Ray ray;
 	ray.direction = tangentFrame * vec4(localDir,0.0);
 	ray.origin = tangentFrame[3].xyz;
-	ray.tmin = 0.01;
-	ray.tmax = 10000.0;
+	ray.tmin = TMIN;
+	ray.tmax = TMAX;
 	return ray;
 
 }

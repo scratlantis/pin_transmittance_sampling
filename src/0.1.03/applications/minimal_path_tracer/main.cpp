@@ -97,7 +97,7 @@ int main()
 			computeCmd.pushDescriptor(img_pt, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
 			// Bind Scene
-			bind_block_9(computeCmd, scene);
+			bind_block_10(computeCmd, scene);
 
 			computeCmd.exec(cmdBuf);
 
