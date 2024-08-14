@@ -104,6 +104,16 @@ ComputeCmd::ComputeCmd(glm::uvec3 taskSize, std::string path, std::vector<Shader
 	pipelineDef.shaderDef                = ShaderDefinition(path, args);
 }
 
+ComputeCmd::ComputeCmd(VkExtent3D taskSize, std::string path, std::vector<ShaderArgs> args)
+{
+	glm::uvec3 workGroupSize             = {8, 8, 8};
+	glm::uvec3 resolution                = glm::uvec3(taskSize.width, taskSize.height, taskSize.depth);
+	workGroupCount                       = getWorkGroupCount(workGroupSize, resolution);
+	pipelineDef.specialisationEntrySizes = glm3VectorSizes();
+	pipelineDef.specializationData       = getByteVector(workGroupSize);
+	pipelineDef.shaderDef                = ShaderDefinition(path, args);
+}
+
 
 
 DrawCmd::DrawCmd()

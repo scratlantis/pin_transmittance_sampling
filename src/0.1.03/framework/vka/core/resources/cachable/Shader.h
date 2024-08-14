@@ -15,6 +15,12 @@ struct ShaderArgs
 	std::string name;
 	std::string value;
 
+	ShaderArgs() = default;
+	ShaderArgs(std::string name, std::string value) : name(name), value(value){};
+	ShaderArgs(std::string name, uint32_t value) :
+	    name(name), value(std::to_string(value)){};
+
+
 	bool operator==(const ShaderArgs &other) const
 	{
 		return name == other.name && value == other.value;
