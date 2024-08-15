@@ -12,12 +12,16 @@ enum GuiCategories
 	PERLIN_NOISE_SETTINGS = 1
 };
 
-static GVar gvar_model = {"Model", 0, GVAR_ENUM, GENERAL, {"Cornell Box"}};
-static GVar gvar_perlin_scale0{"scale 0", 0.5f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
-static GVar gvar_perlin_scale1{"scale 1", 0.5f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
-static GVar gvar_perlin_frequency0{"frequency 0", 0.5f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
-static GVar gvar_perlin_frequency1{"frequency 1", 0.5f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
-static GVar gvar_perlin_falloff{"Falloff", false, GVAR_BOOL, PERLIN_NOISE_SETTINGS};
+extern GVar     gvar_model;
+extern GVar     gvar_perlin_scale0;
+extern GVar     gvar_perlin_scale1;
+extern GVar     gvar_perlin_frequency0;
+extern GVar     gvar_perlin_frequency1;
+extern GVar     gvar_perlin_falloff;
+extern GVar     gvar_medium_albedo_r;
+extern GVar     gvar_medium_albedo_g;
+extern GVar     gvar_medium_albedo_b;
+
 
 struct DefaultDeviceCI : DeviceCI
 {
@@ -141,6 +145,7 @@ struct DefaultFixedCameraCI : public vka::FixedCameraCI
 struct Params
 {
 	glm::mat4 initialMediumMatrix;
+	glm::vec3 initialMediumAlbedo;
 	glm::uint volumeResolution;
 };
 
@@ -151,6 +156,7 @@ struct DefaultParams : public Params
 		initialMediumMatrix  = glm::mat4(1.0f);
 		initialMediumMatrix  = glm::translate(initialMediumMatrix, glm::vec3(-0.2,-0.2,-0.2));
 		initialMediumMatrix  = glm::scale(initialMediumMatrix, glm::vec3(0.3));
-		volumeResolution = 256;
+		initialMediumAlbedo  = glm::vec3(1.0);
+		volumeResolution = 64;
 	}
 };

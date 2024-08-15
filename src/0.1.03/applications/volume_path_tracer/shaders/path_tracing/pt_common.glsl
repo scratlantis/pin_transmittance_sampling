@@ -46,11 +46,24 @@ Ray reflectLampertDiffuse(MaterialData material, mat4x3 tangentFrame, inout uint
 	pdf *= pdfCosineWeightedHemisphere(localDir);
 	weight *= evalCosineWeightedHemisphere(material.albedo);
 	Ray ray;
-	ray.direction = tangentFrame * vec4(localDir,0.0);
+	ray.direction = normalize(tangentFrame * vec4(localDir,0.0));
 	ray.origin = tangentFrame[3].xyz;
 	ray.tmin = TMIN;
 	ray.tmax = TMAX;
 	return ray;
-
 }
+
+Ray scatterUniform(vec3 albedo, vec3 pos, inout uint seed, inout float pdf, inout vec3 weight)
+{
+	vec3 dir = sampleUniformSphere(vec2(unormNext(seed), unormNext(seed)));
+	pdf *= pdfUniformSphere();
+	weight *= evalUniformSphere(albedo);
+	Ray ray;
+	ray.direction = normalize(dir);
+	ray.origin = pos;
+	ray.tmin = TMIN;
+	ray.tmax = TMAX;
+	return ray;
+}
+
 #endif

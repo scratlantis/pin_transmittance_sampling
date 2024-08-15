@@ -4,7 +4,7 @@
 class VolumeGenerationStrategy
 {
   public:
-	virtual Image generateVolumeGrid(CmdBuffer cmdBuf, uint32_t gridResolution) = 0;
+	virtual Image generateVolumeGrid(CmdBuffer cmdBuf, Image volume) = 0;
 };
 class PinDistributionStrategy
 {
@@ -48,7 +48,7 @@ class Medium
 
 	void build(CmdBuffer cmdBuf)
 	{
-		volumeGrid       = volGenerator->generateVolumeGrid(cmdBuf, volumeGridResolution);
+		volGenerator->generateVolumeGrid(cmdBuf, volumeGrid);
 		/*pins             = pinGenerator->generatePins(cmdBuf, numPins);
 		pinTransmittance = transmittanceEncoder->computeTransmittance(cmdBuf, pins, numPins);
 		pinGrid          = pinGridGenerator->generatePinGrid(cmdBuf, pins, numPins);*/

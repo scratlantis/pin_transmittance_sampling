@@ -4,6 +4,7 @@
 
 #define PI		3.141592
 #define INV_PI  0.318310
+#define INV_4PI  0.079577
 
 
 #define MAX_FLOAT intBitsToFloat(2139095039)

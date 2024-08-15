@@ -3,9 +3,8 @@
 #include "../shader_interface.h"
 using namespace vka;
 
-Image PerlinVolume::generateVolumeGrid(CmdBuffer cmdBuf, uint32_t gridResolution)
+Image PerlinVolume::generateVolumeGrid(CmdBuffer cmdBuf, Image volume)
 {
-	Image volume = createImage(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VkExtent3D{gridResolution, gridResolution, gridResolution});
 	cmdTransitionLayout(cmdBuf, volume, VK_IMAGE_LAYOUT_GENERAL);
 	ComputeCmd cmd = ComputeCmd(volume->getExtent(), shaderPath + "medium/perlin_volume.comp");
 	struct PushStruct
@@ -17,7 +16,8 @@ Image PerlinVolume::generateVolumeGrid(CmdBuffer cmdBuf, uint32_t gridResolution
 		float perlinScale1;
 		uint   perlinFalloff;
 	} pc;
-	pc.resolution       = gridResolution;
+	VKA_ASSERT(volume->getExtent().width == volume->getExtent().height && volume->getExtent().width == volume->getExtent().depth);
+	pc.resolution       = volume->getExtent().width;
 	pc.perlinFalloff	= gvar_perlin_falloff.val.v_uint;
 	pc.perlinFrequency0 = gvar_perlin_frequency0.val.v_float;
 	pc.perlinScale0     = gvar_perlin_scale0.val.v_float;

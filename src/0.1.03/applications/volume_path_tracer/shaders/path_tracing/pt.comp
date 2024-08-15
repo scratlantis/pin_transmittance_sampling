@@ -21,7 +21,7 @@ struct PushStruct
 
 layout(push_constant) uniform PUSH_CONSTANTS {PushStruct pc;};
 layout(binding = 14) uniform sampler3D volSmp;
-layout(binding = 15) uniform VOLUME_MATRIX { GLSLMediumInstance volInst;};
+layout(binding = 15) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
 
 
 struct HitData
@@ -51,29 +51,78 @@ float trace(Ray ray, inout HitData hData)
 	return MAX_FLOAT;
 }
 
-struct HitDataMedium
-{
-	vec3 entryPos;
-	vec3 exitPos;
-};
 
-float traceMediumConservative(Ray ray, inout HitDataMedium hData)
+float traceMediumConservative(Ray ray)
 {
 	vec3 localOrigin = (volInst.invMat * vec4(ray.origin, 1.0)).xyz;
 	vec3 localDir = (volInst.invMat * vec4(ray.direction, 0.0)).xyz;
-	bool intersect = unitCubeIntersection(localOrigin, localDir, hData.entryPos, hData.exitPos);
-	if(intersect && distance(hData.entryPos, hData.exitPos) > distance(localOrigin, hData.exitPos)) 
+	vec3 localEntry, localExit;
+
+	bool intersect = unitCubeIntersection(localOrigin, localDir, localEntry, localExit);
+	if(intersect && distance(localEntry, localExit) > distance(localOrigin, localExit)) 
 	{
 		return 0.0; // Inside Cube
 	}
 	else if(intersect)
 	{
 	    // Intersect Cube
-		vec3 worldEntryPos = (volInst.mat * vec4(hData.entryPos, 1.0)).xyz;
+		vec3 worldEntryPos = (volInst.mat * vec4(localEntry, 1.0)).xyz;
 		return distance(ray.origin, worldEntryPos);
 	}
 	return MAX_FLOAT; // Miss Cube
 }
+
+
+
+// return step size
+float rayMarcheMedium(vec3 origin, vec3 direction, inout uint seed)
+{
+	float rng = unormNext(seed);
+	const float max_steps = sqrt(3.0) * 2.0 / AVERAGE_RAY_MARCHE_STEP_SIZE;
+	float t = 0.0;
+	float transmittance = 1.0;
+	for(uint i = 0; i < max_steps; i++)
+	{
+		float stepSize = AVERAGE_RAY_MARCHE_STEP_SIZE + (0.5 - rng) * AVERAGE_RAY_MARCHE_STEP_SIZE;
+		t += stepSize;
+		vec3 pos = origin + direction * t;
+
+		// Clamp to unit cube
+		vec3 clampedPos = clamp(pos, 0.0, 1.0);
+		float deltaClamped = distance(clampedPos,pos);
+		t -= deltaClamped;
+		pos = origin + direction * t;
+
+		// Sample density
+		float density = texture(volSmp, pos).r;
+		transmittance *= exp(-density * stepSize);
+
+		// Decide if we should stop
+		if(transmittance < rng)
+		{
+			return t;
+		}
+		if(deltaClamped > 0)
+		{
+			return MAX_FLOAT; // Hit the boundary without scattering
+		}
+	}
+	return MAX_FLOAT;
+}
+
+float traceMedium(Ray ray, float tEntry, inout uint seed)
+{
+	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + tEntry * ray.direction, 1.0)).xyz;
+	vec3 localDir = (volInst.invMat * vec4(ray.direction, 0.0)).xyz;
+	float tLocal = rayMarcheMedium(localOrigin, localDir, seed);
+	if(tLocal == MAX_FLOAT)
+	{
+		return MAX_FLOAT;
+	}
+	vec3 worldHitPos = (volInst.mat * vec4(localOrigin + tLocal * localDir, 1.0)).xyz;
+	return distance(ray.origin, worldHitPos);
+}
+
 
 
 // Return tangent frame
@@ -109,7 +158,6 @@ void main()
 	COMPUTE_SHADER_CHECK_ID_FRAME
 	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width + frame.width*frame.height*frame.idx;
 	HitData hitData;
-	HitDataMedium mediumHitData;
 	MaterialData matData;
 	mat4x3 tangentFrame;
 	vec3 totalIllumination = vec3(0.0);
@@ -124,25 +172,39 @@ void main()
 		for(uint i = 0; i < MAX_BOUNCES; i++)
 		{
 			float tGeom = trace(ray, hitData);
-			float tMedium = traceMediumConservative(ray, mediumHitData);
-			float t = min(tGeom, tMedium);
-			if( t == MAX_FLOAT )
-			{
-				totalIllumination += vec3(0.4) * weight / pdf;
-				break;
-			}
-
+			float tMedium = traceMediumConservative(ray);
 			if(tGeom < tMedium)
 			{
 				evalHit(matData, tangentFrame, hitData);
 				totalIllumination += matData.emission * weight / pdf;
 				ray = reflectLampertDiffuse(matData, tangentFrame, seed, pdf, weight);
 			}
-			else
+			else if( tMedium == MAX_FLOAT )
 			{
-				totalIllumination += 1.5*vec3(0.7,0.4,1.0) * weight / pdf;
+				totalIllumination += vec3(0.4) * weight / pdf;
 				break;
 			}
+			else
+			{
+				tMedium = traceMedium(ray, tMedium, seed);
+				if(tGeom < tMedium)
+				{
+					evalHit(matData, tangentFrame, hitData);
+					totalIllumination += 10.0*matData.emission * weight / pdf;
+					ray = reflectLampertDiffuse(matData, tangentFrame, seed, pdf, weight);
+				}
+				else if( tMedium == MAX_FLOAT )
+				{
+					totalIllumination += vec3(0.4) * weight / pdf;
+					break;
+				}
+				else
+				{
+					ray = scatterUniform(volInst.albedo, ray.origin + tMedium * ray.direction, seed, pdf, weight);
+				}
+			}
+
+
 		}
 	}
 	totalIllumination /= float(SAMPLE_COUNT);

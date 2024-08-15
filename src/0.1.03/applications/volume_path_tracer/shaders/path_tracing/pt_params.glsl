@@ -13,3 +13,7 @@
 #ifndef TMAX
 #define TMAX 1000.0
 #endif
+
+#ifndef AVERAGE_RAY_MARCHE_STEP_SIZE
+#define AVERAGE_RAY_MARCHE_STEP_SIZE 0.2
+#endif

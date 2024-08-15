@@ -136,23 +136,25 @@ void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories, VkR
 	ImGui::Begin("Gvar", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize);
 	std::sort(gvar.begin(), gvar.end(), [](GVar *a, GVar *b) { return a->sortId < b->sortId; });
 	uint32_t currentCategory = 0;
+	bool categoryOpen = false;
 	for (uint32_t i = 0; i < gvar.size(); i++)
 	{
 		GVar *gv = gvar[i];
 		if (i == 0 || currentCategory != gv->sortId)
 		{
 			ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+			std::string name;
+			if (categories.size() > gv->sortId)
+			{
+				name = categories[gv->sortId];
+			}
+			else
+			{
+				name = "Unknown_" + gv->sortId;
+			}
+			categoryOpen = ImGui::CollapsingHeader(name.c_str());
 		}
-		std::string name;
-		if (categories.size() > gv->sortId)
-		{
-			name = categories[gv->sortId];
-		}
-		else
-		{
-			name = "Unknown_" + gv->sortId;
-		}
-		if (ImGui::CollapsingHeader(name.c_str()))
+		if (categoryOpen)
 		{
 			ImGui::PushItemWidth(ImGui::GetWindowSize().x * 0.3);
 			addGVar(gv);

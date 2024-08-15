@@ -9,7 +9,18 @@ AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 
 // Gui variable
-static std::vector<GVar *> gVars =
+
+GVar gvar_model = {"Model", 0, GVAR_ENUM, GENERAL, {"Cornell Box"}};
+GVar gvar_perlin_scale0{"scale 0", 0.5f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
+GVar gvar_perlin_scale1{"scale 1", 0.5f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
+GVar gvar_perlin_frequency0{"frequency 0", 0.5f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
+GVar gvar_perlin_frequency1{"frequency 1", 0.5f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
+GVar gvar_perlin_falloff{"Falloff", false, GVAR_BOOL, PERLIN_NOISE_SETTINGS};
+GVar gvar_medium_albedo_r{"Mdeium Albedo R", 1.0f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
+GVar gvar_medium_albedo_g{"Mdeium Albedo G", 1.0f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
+GVar gvar_medium_albedo_b{"Mdeium Albedo B", 1.0f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
+
+std::vector<GVar *> gVars =
 {
         // clang-format off
         &gvar_model,
@@ -17,7 +28,10 @@ static std::vector<GVar *> gVars =
 		&gvar_perlin_frequency1,
 		&gvar_perlin_scale0,
 		&gvar_perlin_scale1,
-		&gvar_perlin_falloff
+		&gvar_perlin_falloff,
+		&gvar_medium_albedo_r,
+		&gvar_medium_albedo_g,
+		&gvar_medium_albedo_b
         // clang-format on
 };
 
@@ -57,7 +71,14 @@ int main()
 	uint32_t modelIndexLastFrame = 0;
 	USceneData scene;
 	ModelInfo  model;
+
 	Medium	    medium = Medium();
+	medium.volumeGridResolution = params.volumeResolution;
+	medium.volGenerator         = new PerlinVolume();
+	medium.volumeGrid           = createImage(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VkExtent3D{medium.volumeGridResolution, medium.volumeGridResolution, medium.volumeGridResolution});
+
+
+
 	Buffer      mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 
@@ -83,14 +104,14 @@ int main()
 			model = models[modelIndexLastFrame];
 			CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
 
-			// Medium
 			GLSLMediumInstance mediumInstance{};
-			mediumInstance.mat = params.initialMediumMatrix;
+			mediumInstance.mat    = params.initialMediumMatrix;
 			mediumInstance.invMat = glm::inverse(mediumInstance.mat);
+			mediumInstance.albedo = vec3(gvar_medium_albedo_r.val.v_float, gvar_medium_albedo_g.val.v_float, gvar_medium_albedo_b.val.v_float);
 			cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
-			medium.volumeGridResolution = params.volumeResolution;
-			medium.volGenerator = new PerlinVolume();
 			medium.build(cmdBuf);
+			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+			cmdImageMemoryBarrier(cmdBuf, medium.volumeGrid, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 			// Solid Geometry
 			sceneBuilder.reset();
@@ -108,10 +129,23 @@ int main()
 		
 		CmdBuffer  cmdBuf       = createCmdBuffer(gState.frame->stack);
 		Image      swapchainImg = getSwapchainImage();
-		if (viewHasChanged)
+		if (viewHasChanged || gState.io.mouse.leftPressed)
 		{
 			cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0));
 		}
+
+		if (gState.io.mouse.leftPressed)
+		{
+			GLSLMediumInstance mediumInstance{};
+			mediumInstance.mat    = params.initialMediumMatrix;
+			mediumInstance.invMat = glm::inverse(mediumInstance.mat);
+			mediumInstance.albedo = vec3(gvar_medium_albedo_r.val.v_float, gvar_medium_albedo_g.val.v_float, gvar_medium_albedo_b.val.v_float);
+			cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
+			medium.build(cmdBuf);
+			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+			cmdImageMemoryBarrier(cmdBuf, medium.volumeGrid, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		}
+
 
 		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.2, 0.2, 0.2, 1.0)).exec(cmdBuf);
 		// Path tracing
