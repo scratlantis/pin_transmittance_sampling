@@ -134,18 +134,6 @@ int main()
 			cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0));
 		}
 
-		if (gState.io.mouse.leftPressed)
-		{
-			GLSLMediumInstance mediumInstance{};
-			mediumInstance.mat    = params.initialMediumMatrix;
-			mediumInstance.invMat = glm::inverse(mediumInstance.mat);
-			mediumInstance.albedo = vec3(gvar_medium_albedo_r.val.v_float, gvar_medium_albedo_g.val.v_float, gvar_medium_albedo_b.val.v_float);
-			cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
-			medium.build(cmdBuf);
-			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-			cmdImageMemoryBarrier(cmdBuf, medium.volumeGrid, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		}
-
 
 		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.2, 0.2, 0.2, 1.0)).exec(cmdBuf);
 		// Path tracing
@@ -197,6 +185,20 @@ int main()
 			shader_console_gui::buildGui(getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
 			cmdRenderGui(cmdBuf, swapchainImg);
 		}
+
+		// Update Medium
+		if (gState.io.mouse.leftPressed || gState.io.mouse.leftEvent)
+		{
+			GLSLMediumInstance mediumInstance{};
+			mediumInstance.mat    = params.initialMediumMatrix;
+			mediumInstance.invMat = glm::inverse(mediumInstance.mat);
+			mediumInstance.albedo = vec3(gvar_medium_albedo_r.val.v_float, gvar_medium_albedo_g.val.v_float, gvar_medium_albedo_b.val.v_float);
+			cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
+			medium.build(cmdBuf);
+			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+			cmdImageMemoryBarrier(cmdBuf, medium.volumeGrid, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		}
+
 		swapBuffers({cmdBuf});
 	}
 	gState.destroy();

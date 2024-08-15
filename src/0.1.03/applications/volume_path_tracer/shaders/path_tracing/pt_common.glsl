@@ -43,8 +43,9 @@ Ray genPrimaryRay(GLSLFrame frame, GLSLView view, uvec2 pixel, inout uint seed)
 Ray reflectLampertDiffuse(MaterialData material, mat4x3 tangentFrame, inout uint seed, inout float pdf, inout vec3 weight)
 {
 	vec3 localDir = sampleCosineWeightedHemisphere(vec2(unormNext(seed), unormNext(seed)));
-	pdf *= pdfCosineWeightedHemisphere(localDir);
-	weight *= evalCosineWeightedHemisphere(material.albedo);
+	// pdf = cos(theta) / PI
+	// weight = albedo / PI * cos(theta)
+	weight *= material.albedo;
 	Ray ray;
 	ray.direction = normalize(tangentFrame * vec4(localDir,0.0));
 	ray.origin = tangentFrame[3].xyz;
@@ -56,8 +57,9 @@ Ray reflectLampertDiffuse(MaterialData material, mat4x3 tangentFrame, inout uint
 Ray scatterUniform(vec3 albedo, vec3 pos, inout uint seed, inout float pdf, inout vec3 weight)
 {
 	vec3 dir = sampleUniformSphere(vec2(unormNext(seed), unormNext(seed)));
-	pdf *= pdfUniformSphere();
-	weight *= evalUniformSphere(albedo);
+	// pdf = 1 / (4 * PI)
+	// weight = albedo / (4 * PI)
+	weight *= albedo;
 	Ray ray;
 	ray.direction = normalize(dir);
 	ray.origin = pos;

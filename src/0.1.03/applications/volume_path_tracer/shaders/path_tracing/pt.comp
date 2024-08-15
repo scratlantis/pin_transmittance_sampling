@@ -51,47 +51,58 @@ float trace(Ray ray, inout HitData hData)
 	return MAX_FLOAT;
 }
 
+struct Range
+{
+	float rMin;
+	float rMax;
+};
 
-float traceMediumConservative(Ray ray)
+Range traceMediumConservative(Ray ray)
 {
 	vec3 localOrigin = (volInst.invMat * vec4(ray.origin, 1.0)).xyz;
 	vec3 localDir = (volInst.invMat * vec4(ray.direction, 0.0)).xyz;
 	vec3 localEntry, localExit;
-
+	Range range;
 	bool intersect = unitCubeIntersection(localOrigin, localDir, localEntry, localExit);
 	if(intersect && distance(localEntry, localExit) > distance(localOrigin, localExit)) 
 	{
-		return 0.0; // Inside Cube
+		// Inside Cube
+		vec3 worldExitPos = (volInst.mat * vec4(localExit, 1.0)).xyz;
+		range.rMin = 0.0;
+		range.rMax = distance(ray.origin, worldExitPos);
 	}
 	else if(intersect)
 	{
 	    // Intersect Cube
 		vec3 worldEntryPos = (volInst.mat * vec4(localEntry, 1.0)).xyz;
-		return distance(ray.origin, worldEntryPos);
+		vec3 worldExitPos = (volInst.mat * vec4(localExit, 1.0)).xyz;
+		range.rMin = distance(ray.origin, worldEntryPos);
+		range.rMax = distance(ray.origin, worldExitPos);
 	}
-	return MAX_FLOAT; // Miss Cube
+	else
+	{
+		range.rMin = MAX_FLOAT;
+		range.rMax = MAX_FLOAT;
+	}
+	return range; // Miss Cube
 }
 
 
 
 // return step size
-float rayMarcheMedium(vec3 origin, vec3 direction, inout uint seed)
+float rayMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
 {
 	float rng = unormNext(seed);
 	const float max_steps = sqrt(3.0) * 2.0 / AVERAGE_RAY_MARCHE_STEP_SIZE;
 	float t = 0.0;
 	float transmittance = 1.0;
+	float stepSize = AVERAGE_RAY_MARCHE_STEP_SIZE * unormNext(seed);
+	stepSize = min(stepSize, maxLenght);
+
 	for(uint i = 0; i < max_steps; i++)
 	{
-		float stepSize = AVERAGE_RAY_MARCHE_STEP_SIZE + (0.5 - rng) * AVERAGE_RAY_MARCHE_STEP_SIZE;
 		t += stepSize;
-		vec3 pos = origin + direction * t;
-
-		// Clamp to unit cube
-		vec3 clampedPos = clamp(pos, 0.0, 1.0);
-		float deltaClamped = distance(clampedPos,pos);
-		t -= deltaClamped;
-		pos = origin + direction * t;
+		vec3 pos = origin + direction * (t-stepSize*unormNext(seed));
 
 		// Sample density
 		float density = texture(volSmp, pos).r;
@@ -102,19 +113,24 @@ float rayMarcheMedium(vec3 origin, vec3 direction, inout uint seed)
 		{
 			return t;
 		}
-		if(deltaClamped > 0)
+
+		stepSize = min(AVERAGE_RAY_MARCHE_STEP_SIZE, maxLenght - t);
+		if( stepSize < EPSILON)
 		{
-			return MAX_FLOAT; // Hit the boundary without scattering
+			return MAX_FLOAT;
 		}
 	}
 	return MAX_FLOAT;
 }
 
-float traceMedium(Ray ray, float tEntry, inout uint seed)
+
+float traceMedium(Ray ray, Range range, inout uint seed)
 {
-	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + tEntry * ray.direction, 1.0)).xyz;
-	vec3 localDir = (volInst.invMat * vec4(ray.direction, 0.0)).xyz;
-	float tLocal = rayMarcheMedium(localOrigin, localDir, seed);
+	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
+	vec3 localExit = (volInst.invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
+	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
+	float localTMax = distance(localOrigin, localExit);
+	float tLocal = rayMarcheMedium(localOrigin, localDir, localTMax, seed);
 	if(tLocal == MAX_FLOAT)
 	{
 		return MAX_FLOAT;
@@ -140,7 +156,7 @@ void evalHit(inout MaterialData matData, inout mat4x3 tangentFrame, HitData hitD
 	// Add texture reads later
 	matData.albedo = mat.albedo;
 	matData.specular = mat.specular;
-	matData.emission = mat.emission;
+	matData.emission = 20.0 * mat.emission;
 	matData.roughness = mat.roughness;
 	matData.f0 = mat.f0;
 
@@ -148,7 +164,7 @@ void evalHit(inout MaterialData matData, inout mat4x3 tangentFrame, HitData hitD
 	vec3 localPos = mat3(v0.pos, v1.pos, v2.pos) * hitData.barycentrics;
 	vec3 localGeometricNormal = normalize(mat3(v0.normal, v1.normal, v2.normal) * hitData.barycentrics);
 	vec3 worldPos = hitData.objToWorld * vec4(localPos, 1.0);
-	vec3 worldNormal = hitData.objToWorld * vec4(localGeometricNormal, 0.0);
+	vec3 worldNormal = normalize(hitData.objToWorld * vec4(localGeometricNormal, 0.0));
 	tangentFrame = tangentFrameFromPosNormal(worldPos,worldNormal);
 }
 
@@ -162,7 +178,7 @@ void main()
 	mat4x3 tangentFrame;
 	vec3 totalIllumination = vec3(0.0);
 
-
+	
 	for(uint j = 0; j < SAMPLE_COUNT; j++)
 	{
 		float pdf = 1.0;
@@ -172,30 +188,32 @@ void main()
 		for(uint i = 0; i < MAX_BOUNCES; i++)
 		{
 			float tGeom = trace(ray, hitData);
-			float tMedium = traceMediumConservative(ray);
-			if(tGeom < tMedium)
+			float tMedium = MAX_FLOAT;
+			Range rMedium = traceMediumConservative(ray);
+			rMedium.rMax = min(rMedium.rMax, tGeom);
+			if(tGeom < rMedium.rMin)
 			{
 				evalHit(matData, tangentFrame, hitData);
 				totalIllumination += matData.emission * weight / pdf;
 				ray = reflectLampertDiffuse(matData, tangentFrame, seed, pdf, weight);
 			}
-			else if( tMedium == MAX_FLOAT )
+			else if( rMedium.rMin == MAX_FLOAT )
 			{
-				totalIllumination += vec3(0.4) * weight / pdf;
+				totalIllumination += vec3(0.3) * weight / pdf;
 				break;
 			}
 			else
 			{
-				tMedium = traceMedium(ray, tMedium, seed);
+				tMedium = traceMedium(ray, rMedium, seed);
 				if(tGeom < tMedium)
 				{
 					evalHit(matData, tangentFrame, hitData);
-					totalIllumination += 10.0*matData.emission * weight / pdf;
+					totalIllumination += matData.emission * weight / pdf;
 					ray = reflectLampertDiffuse(matData, tangentFrame, seed, pdf, weight);
 				}
 				else if( tMedium == MAX_FLOAT )
 				{
-					totalIllumination += vec3(0.4) * weight / pdf;
+					totalIllumination += vec3(0.3) * weight / pdf;
 					break;
 				}
 				else
@@ -203,8 +221,6 @@ void main()
 					ray = scatterUniform(volInst.albedo, ray.origin + tMedium * ray.direction, seed, pdf, weight);
 				}
 			}
-
-
 		}
 	}
 	totalIllumination /= float(SAMPLE_COUNT);

@@ -91,7 +91,7 @@ bool FixedCamera::mouseControl(float deltaTime)
 	}
 	updateRotation();
 
-	return xChange != 0 && yChange != 0;
+	return xChange != 0 || yChange != 0;
 }
 
 glm::vec3 FixedCamera::getPosition() const

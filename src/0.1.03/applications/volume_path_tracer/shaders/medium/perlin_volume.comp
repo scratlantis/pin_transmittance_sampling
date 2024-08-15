@@ -24,13 +24,17 @@ void main()
 		return;
 	}
 	vec3 pos = vec3(gID) / float(pc.resolution);
-	float density0 = pc.perlinScale0 * 200.0 * max( 0.0,(perlinNoise(pos*pc.perlinFrequency0*20.0)) );
-	float density1 = pc.perlinScale1 * 200.0 * max( 0.0,(perlinNoise(pos*pc.perlinFrequency1*20.0)) );
+	float density0 = exp(pc.perlinScale0 * 10.0) * max( 0.0,(perlinNoise(pos*pc.perlinFrequency0*20.0)) );
+	float density1 = exp(pc.perlinScale1 * 10.0) * max( 0.0,(perlinNoise(pos*pc.perlinFrequency1*20.0)) );
 	float density = density0 + density1;
+	float distanceToLowerBound = min(min(pos.x, pos.y), pos.z);
+	float distanceToUpperBound = 1.0 - max(max(pos.x, pos.y), pos.z);
+	float distanceToBound = min(distanceToLowerBound, distanceToUpperBound);
 	if(pc.perlinFalloff == 1)
 	{
-		density*= max(0,sin(0.5-distance(pos, vec3(0.5))));
+		density*= clamp(sin(distanceToBound), 0.0, 1.0);
 	}
+	density = max(0.0, density);
 	imageStore(volumeData, gID, vec4(density));
 
 }
