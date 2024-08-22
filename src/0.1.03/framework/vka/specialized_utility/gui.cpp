@@ -113,11 +113,14 @@ void addGVar(GVar *gv)
 			ImGui::Text(gv->path.c_str(), gv->val.v_float);
 			break;
 		case GVAR_ENUM:
-			for (size_t i = 0; i < gv->enumVal.size(); i++)
+			for (size_t i = 0; i < gv->set.list.size(); i++)
 			{
-				ss << gv->enumVal[i] << '\0';
+				ss << gv->set.list[i] << '\0';
 			}
 			ImGui::Combo(gv->path.c_str(), &gv->val.v_int, ss.str().c_str(), 5);
+			break;
+		case GVAR_UINT_RANGE:
+			ImGui::SliderScalar(gv->path.c_str(), ImGuiDataType_U32, &gv->val.v_uint, &gv->set.range.min.v_uint, &gv->set.range.max.v_uint);
 			break;
 		default:
 			break;

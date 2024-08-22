@@ -35,6 +35,7 @@ void main()
 		density*= clamp(sin(distanceToBound), 0.0, 1.0);
 	}
 	density = max(0.0, density);
+	
 	imageStore(volumeData, gID, vec4(density));
 
 }

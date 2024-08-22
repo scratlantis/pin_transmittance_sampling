@@ -21,7 +21,7 @@ extern GVar     gvar_perlin_falloff;
 extern GVar     gvar_medium_albedo_r;
 extern GVar     gvar_medium_albedo_g;
 extern GVar     gvar_medium_albedo_b;
-
+extern GVar     gvar_image_resolution;
 
 struct DefaultDeviceCI : DeviceCI
 {

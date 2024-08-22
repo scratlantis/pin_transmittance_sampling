@@ -1,9 +1,9 @@
 #ifndef MAX_BOUNCES
-#define MAX_BOUNCES 6
+#define MAX_BOUNCES 16
 #endif
 
 #ifndef SAMPLE_COUNT
-#define SAMPLE_COUNT 16
+#define SAMPLE_COUNT 4
 #endif
 
 #ifndef TMIN

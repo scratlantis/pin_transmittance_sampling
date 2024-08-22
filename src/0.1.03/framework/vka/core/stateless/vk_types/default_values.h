@@ -40,13 +40,10 @@ struct ImageCreateInfo_Default : public VkImageCreateInfo
 		this->pQueueFamilyIndices   = nullptr;
 		this->initialLayout         = VK_IMAGE_LAYOUT_PREINITIALIZED;
 	}
-};
 
-struct ImageCreateInfo3D_Default : public VkImageCreateInfo
-{
-	ImageCreateInfo3D_Default(VkImageUsageFlags usageFlags, VkExtent3D extent, VkFormat format)
+	ImageCreateInfo_Default(VkImageUsageFlags usageFlags, VkExtent3D extent, VkFormat format)
 	{
-		std::memset(this, 0, sizeof(ImageCreateInfo3D_Default));
+		std::memset(this, 0, sizeof(ImageCreateInfo_Default));
 		this->sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		this->pNext                 = nullptr;
 		this->flags                 = 0;
@@ -64,6 +61,7 @@ struct ImageCreateInfo3D_Default : public VkImageCreateInfo
 		this->initialLayout         = VK_IMAGE_LAYOUT_PREINITIALIZED;
 	}
 };
+
 
 struct SamplerCreateInfo_Default : public VkSamplerCreateInfo
 {

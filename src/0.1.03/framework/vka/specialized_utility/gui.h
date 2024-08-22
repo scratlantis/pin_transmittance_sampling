@@ -26,10 +26,12 @@ union GVar_Val
 	GVar_Val(uint32_t i)
 	{
 		v_uint = i;
+		v_int = static_cast<int>(i);
 	}
 	GVar_Val(int i)
 	{
 		v_int = i;
+		v_uint = static_cast<uint32_t>(i);
 	}
 	GVar_Val(float f)
 	{
@@ -51,7 +53,30 @@ union GVar_Val
 	};
 };
 
-typedef std::vector<std::string> GVar_Enum_t;
+struct GVar_Range
+{
+	GVar_Val min;
+	GVar_Val max;
+};
+
+//typedef std::vector<std::string> GVar_Enum_t;
+
+struct GVar_Set
+{
+	GVar_Range range;
+	std::vector<std::string> list;
+	GVar_Set() :
+	    range({0, 0})
+	{
+	}
+	GVar_Set(std::vector<std::string> li) :
+	    list(li), range({ 0, 0 })
+	{
+	}
+	GVar_Set(GVar_Val l, GVar_Val r) : range({ l, r })
+	{
+	}
+};
 
 // Type
 enum GVar_Type
@@ -65,6 +90,7 @@ enum GVar_Type
 	GVAR_VEC3,
 	GVAR_DISPLAY_VALUE,
 	GVAR_ENUM,
+	GVAR_UINT_RANGE
 };
 
 struct GVar
@@ -73,7 +99,34 @@ struct GVar
 	GVar_Val    val;
 	GVar_Type   type;
 	uint32_t    sortId;
-	GVar_Enum_t enumVal;
+	GVar_Set	set;
+
+	GVar(std::string p, GVar_Val v, GVar_Type t, uint32_t s) :
+	    path(p),
+	    val(v),
+	    type(t),
+	    sortId(s)
+	{
+	}
+
+	GVar(std::string p, GVar_Val v, GVar_Type t, uint32_t s, GVar_Set aSet) :
+	    path(p),
+	    val(v),
+	    type(t),
+	    sortId(s),
+	    set(aSet)
+	{
+	}
+
+	GVar(std::string p, GVar_Val v, GVar_Type t, uint32_t s, std::vector<std::string> list) :
+	    path(p),
+	    val(v),
+	    type(t),
+	    sortId(s),
+	    set( {list} )
+	{
+	}
+
 };
 
 namespace gvar_gui
