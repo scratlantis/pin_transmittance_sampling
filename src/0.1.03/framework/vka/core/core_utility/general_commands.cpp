@@ -29,7 +29,7 @@ void cmdUpload(CmdBuffer cmdBuf, Buffer buf)
 	cmdCopyBuffer(cmdBuf, &localBuf, buf);
 }
 
-void cmdWriteCopy(CmdBuffer cmdBuf, Buffer buf, void* data, VkDeviceSize size)
+void cmdWriteCopy(CmdBuffer cmdBuf, Buffer buf, const void* data, VkDeviceSize size)
 {
 	buf->addUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT);
     buf->changeSize(size);

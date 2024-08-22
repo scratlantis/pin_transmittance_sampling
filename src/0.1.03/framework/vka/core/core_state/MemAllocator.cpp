@@ -85,7 +85,7 @@ void MemAllocator::createBuffer(
     VmaAllocation     *alloc)
 {
 	VkBufferCreateInfo bufferInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-	bufferInfo.size               = deviceSize;
+	bufferInfo.size               = deviceSize + 4; // seems to be a bug in vma, it doesn't allocate the correct size
 	bufferInfo.usage              = vkBufferUsageFlags;
 
 	VmaAllocationCreateInfo vmaAllocationCreateInfo = {};

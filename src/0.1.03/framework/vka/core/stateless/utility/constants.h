@@ -1,6 +1,10 @@
 #pragma once
 #include <map>
 #include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
+#include <string>
+#include <vector>
+
 namespace vka
 {
 
@@ -254,5 +258,10 @@ const VkExtent2D cResolution4k = {3840, 2160};
 const VkExtent2D cResolution2k = {2048, 1024};
 
 const std::string cVkaShaderPath = std::string(FRAMEWORK_SRC_DIR) + "/vka/shaders/";
+
+extern const std::vector<glm::vec3> cCubeVertecies;
+extern const std::vector<uint32_t> cCubeTriangleIndices;
+extern const std::vector<uint32_t> cCubeLineIndices;
+
 
 }        // namespace vka

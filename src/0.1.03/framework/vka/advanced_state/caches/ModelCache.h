@@ -106,6 +106,9 @@ struct VertexDataLayout
 	}
 };
 
+
+
+
 struct DrawSurface
 {
 	Buffer           vertexBuffer;
@@ -204,6 +207,26 @@ namespace vka
 {
 template <typename Vertex>
 struct vertex_type;
+
+template <>
+struct vertex_type<glm::vec3>
+{
+	VertexDataLayout data_layout()
+	{
+		VertexDataLayout layout{};
+		layout.formats =
+		    {
+		        VK_FORMAT_R32G32B32_SFLOAT};
+		layout.offsets =
+		    {
+		        0};
+		layout.stride = sizeof(glm::vec3);
+		return layout;
+	}
+};
+
+
+
 
 class ModelCache
 {

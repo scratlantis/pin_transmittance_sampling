@@ -72,6 +72,8 @@ int main()
 	Buffer      mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 
+	/*Buffer cubeVertexBuffer, cubeIndexBuffer;*/
+
 	// Main Loop
 	for (uint cnt = 0; !gState.io.shouldTerminate(); cnt++)
 	{
@@ -93,6 +95,17 @@ int main()
 			modelIndexLastFrame = gvar_model.val.v_uint;
 			model = models[modelIndexLastFrame];
 			CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
+
+
+			//cubeVertexBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(glm::vec3) * 8);
+			//// cmdWriteCopy(cmdBuf, vertexBuffer, cCubeVertecies.data(), sizeof(glm::vec3) * cCubeVertecies.size());
+			//Buffer stagingBuf = createStagingBuffer();
+			//write(stagingBuf, cCubeVertecies.data(), sizeof(glm::vec3) * 8);
+			//cmdCopyBuffer(cmdBuf, stagingBuf, cubeVertexBuffer);
+
+			//cubeIndexBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+			//cmdWriteCopy(cmdBuf, cubeIndexBuffer, cCubeTriangleIndices.data(), sizeof(uint32_t) * cCubeTriangleIndices.size());
+			//cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT);
 
 			// Solid Geometry
 			sceneBuilder.reset();
@@ -135,7 +148,7 @@ int main()
 
 		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 		// Path tracing
-		if (!gState.io.mouse.middlePressed)
+		if (gState.io.mouse.middlePressed)
 		{
 			// Config general parameters
 			ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp", {{"FORMAT1", getGLSLFormat(img_pt->getFormat())}});
@@ -144,7 +157,7 @@ int main()
 
 			// Bind Constants
 			bind_block_3(computeCmd, sConst);
-
+			
 			// Bind Target
 			computeCmd.pushDescriptor(img_pt, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
@@ -173,7 +186,8 @@ int main()
 		else
 		{
 			img_pt->setClearValue(ClearValue(0.0f, 0.0f, 0.0f, 1.0f));
-			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_pt, scene.vertexBuffer, scene.indexBuffer, &cam, model.getObjToWorldMatrix());
+			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_pt, scene.vertexBuffer, scene.indexBuffer, &cam, model.getObjToWorldMatrix(), true);
+			cmdShowBoxFrame(cmdBuf, gState.frame->stack, img_pt, &cam, mediumInstance.mat, false, vec4(0.0, 0.0, 1.0, 1.0));
 			getCmdAdvancedCopy(img_pt, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			                VkRect2D_OP(img_pt->getExtent2D()), getScissorRect(0.2f, 0.f, 0.8f, 1.0f)).exec(cmdBuf);
 		}
