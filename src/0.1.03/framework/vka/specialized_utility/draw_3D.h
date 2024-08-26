@@ -4,6 +4,7 @@
 namespace vka
 {
 void cmdShowTriangles(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, ModelData model, Camera *cam, glm::mat4 objToWorld, bool clearDepth, VkImageLayout dstLayout = VK_IMAGE_LAYOUT_UNDEFINED);
+void cmdShowAlbedo(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, ModelData model, Camera *cam, glm::mat4 objToWorld, bool clearDepth, VkImageLayout dstLayout = VK_IMAGE_LAYOUT_UNDEFINED);
 template<class Vertex>
 void cmdShowTriangles(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer vertexBuffer, Buffer indexBuffer, Camera *cam, glm::mat4 objToWorld, bool clearDepth, VkImageLayout dstLayout = VK_IMAGE_LAYOUT_UNDEFINED)
 {

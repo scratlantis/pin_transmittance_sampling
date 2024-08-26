@@ -315,7 +315,7 @@ void cmdBindVertexBuffers(CmdBuffer cmdBuf)
 
 void cmdBindIndexBuffer(CmdBuffer cmdBuf, VkDeviceSize offset)
 {
-    vkCmdBindIndexBuffer(cmdBuf->getHandle(), cmdBuf->state.indexBuffer->getHandle(), offset, VK_INDEX_TYPE_UINT32);
+	vkCmdBindIndexBuffer(cmdBuf->getHandle(), cmdBuf->state.indexBuffer->getHandle(), offset * 4, VK_INDEX_TYPE_UINT32);
 }
 
 void cmdDrawIndexed(CmdBuffer cmdBuf, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)

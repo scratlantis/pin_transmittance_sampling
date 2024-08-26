@@ -60,7 +60,7 @@ void PerlinVolume::generateVolumeGrid(CmdBuffer cmdBuf, Image volume)
 	cmd.exec(cmdBuf);
 }
 
-GVar gvar_pin_count{"Pin count", 1000, GVAR_UINT_RANGE, PIN_SETTINGS, {100, 10000}};
+GVar gvar_pin_count{"Pin count", 10000, GVAR_UINT_RANGE, PIN_SETTINGS, {1000, 100000}};
 
 bool UniformPinGenerator::requiresUpdate()
 {
@@ -110,7 +110,7 @@ void ArrayTransmittanceEncoder::computeTransmittance(CmdBuffer cmdBuf, BufferRef
 	cmd.exec(cmdBuf);
 }
 
-GVar gvar_pin_count_per_grid_cell{"Pins per grid cell", 16, GVAR_UINT_RANGE, PIN_SETTINGS, {1, 64}};
+GVar gvar_pin_count_per_grid_cell{"Pins per grid cell", 64, GVAR_UINT_RANGE, PIN_SETTINGS, {16, 128}};
 GVar gvar_pin_grid_size{"Pin grid size", 16, GVAR_UINT_RANGE, PIN_SETTINGS, {4, 32}};
 
 bool PinGridGenerator::requiresUpdate()

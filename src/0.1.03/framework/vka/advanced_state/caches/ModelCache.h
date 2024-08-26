@@ -164,6 +164,7 @@ struct ModelData
 		surface.offset = offset;
 		surface.count = indexCount[idx];
 		surface.vertexLayout = vertexLayout;
+		return surface;
 	}
 
 	DrawSurface getUnifiedSurface() const

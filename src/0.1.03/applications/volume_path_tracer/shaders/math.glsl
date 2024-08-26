@@ -65,11 +65,11 @@ uint flatten(uvec3 idx, uint size)
 	return  idx.x + idx.y*size + idx.z*size*size;
 }
 
-vec3 sphericalToCartesian(float theta, float phi)
+vec3 sphericalToCartesian(float phi, float theta)
 {
 	return vec3(sin(phi)*cos(theta), sin(phi)*sin(theta), cos(phi));
 }
-
+// civ
 vec2 cartesianToSpherical(vec3 v)
 {
 	return vec2(atan(v.y, v.x), acos(v.z));

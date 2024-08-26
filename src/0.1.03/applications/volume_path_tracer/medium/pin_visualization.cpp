@@ -9,8 +9,8 @@ GVar gvar_cursor_pos_x{"Pin Cursor X", 0.5f, GVAR_UNORM, VISUALIZATION_SETTINGS}
 GVar gvar_cursor_pos_y{"Pin Cursor Y", 0.5f, GVAR_UNORM, VISUALIZATION_SETTINGS};
 GVar gvar_cursor_pos_z{"Pin Cursor Z", 0.5f, GVAR_UNORM, VISUALIZATION_SETTINGS};
 
-GVar gvar_cursor_dir_phi{"Pin Cursor phi", 0.5f, GVAR_FLOAT_RANGE, VISUALIZATION_SETTINGS, {0.0f, 1.f * glm::pi<float>()}};
-GVar gvar_cursor_dir_theta{"Pin Cursor theta", 0.5f, GVAR_FLOAT_RANGE, VISUALIZATION_SETTINGS, {0.0f, 2.f * glm::pi<float>()}};
+GVar gvar_cursor_dir_phi{"Pin Cursor phi", 0.0f, GVAR_FLOAT_RANGE, VISUALIZATION_SETTINGS, {0.0f, 1.f * glm::pi<float>()}};
+GVar gvar_cursor_dir_theta{"Pin Cursor theta", 0.0f, GVAR_FLOAT_RANGE, VISUALIZATION_SETTINGS, {0.0f, 2.f * glm::pi<float>()}};
 
 
 void PinStateManager::writeGridPinState(CmdBuffer cmdBuf)
@@ -73,7 +73,7 @@ void PinStateManager::update(CmdBuffer cmdBuf, MediumBuildTasks buildTasks)
 	}
 	
 	glm::vec3 newCursorPos = glm::vec3(gvar_cursor_pos_x.val.v_float, gvar_cursor_pos_y.val.v_float, gvar_cursor_pos_z.val.v_float);
-	glm::vec2 newCursorDir = glm::vec2(gvar_cursor_dir_theta.val.v_float, gvar_cursor_dir_phi.val.v_float);
+	glm::vec2 newCursorDir = glm::vec2(gvar_cursor_dir_phi.val.v_float, gvar_cursor_dir_theta.val.v_float);
 
 	if (buildTasks.buildPinBuffer || buildTasks.buildPinGrid || glm::distance(newCursorPos, cursorPos) > 0.001f || glm::distance(newCursorDir, cursorDirection) > 0.001f)
 	{
@@ -124,8 +124,8 @@ void cmdVisualizePins(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer 
 		float alpha_0;
 		float alpha_1;
 	} pc;
-	pc.alpha_0 = 0.3 / std::log10f(gvar_pin_count.val.v_uint);
-	pc.alpha_1 = 0.3 / std::log10f(gvar_pin_count.val.v_uint);
+	pc.alpha_0 = 0.3 / std::sqrt(0.01 * gvar_pin_count.val.v_uint);
+	pc.alpha_1 = 0.3 / std::sqrt(0.01 * gvar_pin_count.val.v_uint);
 	drawCmd.pushConstant(&pc, sizeof(PushStruct), VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	DrawCmd drawOpaque = drawCmd;

@@ -22,28 +22,30 @@ layout(push_constant) uniform PC {PushStruct pc;};
 void main()
 {
 
+	//vec3 direction = normalize(sphericalToCartesian(pc.cursorDir.x, pc.cursorDir.y));
 	vec3 direction = normalize(sphericalToCartesian(pc.cursorDir.x, pc.cursorDir.y));
+	//direction = vec3(0.0,0.0,1.0);
 	vec3 origin = clamp(vec3(0.0),vec3(0.9999), pc.cursorPos);
 	uvec3 gridId = uvec3(origin*float(pc.gridSize));
 	uint cellIdx = flatten(gridId, uvec3(pc.gridSize)) * pc.pinCountPerGridCell;
 
-	float minDot = 1.0;
-	uint minIdx = 0;
+	float maxDot = 0.0;
+	uint maxDotIdx = 0;
 	for(uint i = 0; i < pc.pinCountPerGridCell; i++)
 	{
 		GLSLPinGridEntry gridEntry = grid[cellIdx + i];
 		float dotVal = abs(dot(pinDirection(gridEntry.pin), direction));
-		if(dotVal < minDot)
+		if(dotVal > maxDot)
 		{
-			minDot = dotVal;
-			minIdx = gridEntry.idx;
+			maxDot = dotVal;
+			maxDotIdx = gridEntry.idx;
 		}
 
 
 		uint pinIdx = gridEntry.idx;
 		pinState[pinIdx] = PIN_STATE_FLAGS_CELL_SELECTED | pinState[pinIdx];
 	}
-	pinState[minIdx] = PIN_STATE_FLAGS_PIN_SELECTED | pinState[minIdx];
+	pinState[maxDotIdx] = PIN_STATE_FLAGS_PIN_SELECTED | pinState[maxDotIdx];
 }
 
 

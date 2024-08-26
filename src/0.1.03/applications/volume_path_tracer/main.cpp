@@ -43,7 +43,12 @@ std::vector<GVar *> gVars =
 
 static ShaderConst sConst{};
 
-ModelInfo cornellBox = {"cornell_box/cornell_box.obj", vec3(0,0.2,-0.3), 0.1, 180.0};
+ModelInfo cornellBox = {"cornell_box/cornell_box.obj", vec3(0,0.2,-0.3), 0.1, vec3(0.0,180.0,0.0)};
+
+ModelInfo cursor = {"arrow_cursor/arrow_cursor.obj", vec3(0.0, 0.0, 0.0), 0.05, vec3(0.0, 0.0, 0.0)};
+
+
+
 std::vector<ModelInfo> models = {cornellBox};
 Medium                 medium     = Medium();
 PerlinVolume           perlinVolume  = PerlinVolume();
@@ -87,6 +92,11 @@ int main()
 	Buffer      mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	bool debugView = false;
+
+	CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
+	ModelData cursorModel = gState.modelCache->fetch<GLSLVertex>(cmdBuf, cursor.path, 0);
+	executeImmediat(cmdBuf);
+
 
 	// Main Loop
 	for (uint cnt = 0; !gState.io.shouldTerminate(); cnt++)
@@ -198,7 +208,13 @@ int main()
 			img_pt->setClearValue(ClearValue(0.0f, 0.0f, 0.0f, 1.0f));
 			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_pt, scene.vertexBuffer, scene.indexBuffer, &cam, model.getObjToWorldMatrix(), true);
 			cmdShowBoxFrame(cmdBuf, gState.frame->stack, img_pt, &cam, mediumInstance.mat, false, vec4(0.0, 0.0, 1.0, 1.0));
-			//cmdShowLines<glm::vec3>(cmdBuf, gState.frame->stack, img_pt, medium.pins, nullptr, &cam, mediumInstance.mat, false, vec4(1.0, 0.0, 0.0, 0.1));
+
+
+			glm::mat4 cursorMatrix = glm::translate(glm::mat4(1.0), vec3(gvar_cursor_pos_x.val.v_float, gvar_cursor_pos_y.val.v_float, gvar_cursor_pos_z.val.v_float));
+			cursorMatrix = glm::rotate(cursorMatrix, gvar_cursor_dir_theta.val.v_float, vec3(0.0, 0.0, 1.0));
+			cursorMatrix = glm::rotate(cursorMatrix, gvar_cursor_dir_phi.val.v_float, vec3(0.0, 1.0, 0.0));
+			cursorMatrix           = mediumInstance.mat * cursorMatrix * cursor.getObjToWorldMatrix();
+			cmdShowAlbedo(cmdBuf, gState.frame->stack, img_pt, cursorModel, &cam, cursorMatrix, false);
 			cmdVisualizePins(cmdBuf, gState.frame->stack, img_pt, medium.pins, pinStateManager.pinState, &cam, mediumInstance.mat, false, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 			getCmdAdvancedCopy(img_pt, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
