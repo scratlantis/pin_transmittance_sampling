@@ -122,6 +122,9 @@ void addGVar(GVar *gv)
 		case GVAR_UINT_RANGE:
 			ImGui::SliderScalar(gv->path.c_str(), ImGuiDataType_U32, &gv->val.v_uint, &gv->set.range.min.v_uint, &gv->set.range.max.v_uint);
 			break;
+		case GVAR_FLOAT_RANGE:
+			ImGui::SliderScalar(gv->path.c_str(), ImGuiDataType_Float, &gv->val.v_float, &gv->set.range.min.v_float, &gv->set.range.max.v_float);
+			break;
 		default:
 			break;
 	}

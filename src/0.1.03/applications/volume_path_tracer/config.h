@@ -9,7 +9,9 @@ using namespace vka::pbr;
 enum GuiCategories
 {
 	GENERAL = 0,
-	PERLIN_NOISE_SETTINGS = 1
+	PERLIN_NOISE_SETTINGS = 1,
+	PIN_SETTINGS = 2,
+	VISUALIZATION_SETTINGS = 3,
 };
 
 extern GVar     gvar_model;
@@ -22,6 +24,17 @@ extern GVar     gvar_medium_albedo_r;
 extern GVar     gvar_medium_albedo_g;
 extern GVar     gvar_medium_albedo_b;
 extern GVar     gvar_image_resolution;
+extern GVar     gvar_pin_count;
+extern GVar     gvar_pin_transmittance_value_count;
+extern GVar     gvar_pin_count_per_grid_cell;
+extern GVar     gvar_pin_grid_size;
+extern GVar     gvar_cursor_pos_x;
+extern GVar     gvar_cursor_pos_y;
+extern GVar     gvar_cursor_pos_z;
+extern GVar     gvar_cursor_dir_phi;
+extern GVar     gvar_cursor_dir_theta;
+
+
 
 struct DefaultDeviceCI : DeviceCI
 {

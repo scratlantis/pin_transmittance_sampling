@@ -25,7 +25,7 @@ class PinTransmittanceStorageStrategy
 {
   public:
 	virtual bool requiresUpdate()                                                                        = 0;
-	virtual void computeTransmittance(CmdBuffer cmdBuf, BufferRef pinBuffer, Buffer transmittanceBuffer) = 0;
+	virtual void computeTransmittance(CmdBuffer cmdBuf, BufferRef pinBuffer, Image volume, Buffer transmittanceBuffer) = 0;
 };
 class PinGridGenerationStrategy
 {
@@ -43,7 +43,7 @@ struct MediumBuildInfo
 
 	bool isValid()
 	{
-		return volGenerator;        // && pinGenerator && transmittanceEncoder && pinGridGenerator;
+		return volGenerator && pinGenerator && transmittanceEncoder && pinGridGenerator;
 	};
 
 	MediumBuildTasks update(const MediumBuildInfo &other)
@@ -73,12 +73,10 @@ struct MediumBuildInfo
 		VKA_ASSERT(isValid());
 
 		tasks.buildVolumeGrid          = tasks.buildVolumeGrid || volGenerator->requiresUpdate();
-		return tasks;
-
 		tasks.buildPinBuffer           = tasks.buildPinBuffer || pinGenerator->requiresUpdate();
 		tasks.buildTransmittanceBuffer = tasks.buildTransmittanceBuffer || tasks.buildVolumeGrid || tasks.buildPinBuffer || transmittanceEncoder->requiresUpdate();
 		tasks.buildPinGrid             = tasks.buildPinGrid || tasks.buildPinBuffer || pinGridGenerator->requiresUpdate();
-
+		return tasks;
 	}
 };
 
@@ -94,7 +92,7 @@ class Medium
 	Buffer pinGrid          = nullptr;
 
 
-	void update(CmdBuffer cmdBuf, MediumBuildInfo buildInfo)
+	MediumBuildTasks update(CmdBuffer cmdBuf, MediumBuildInfo buildInfo)
 	{
 		// Create resources if they don't exist
 		if (!volumeGrid)
@@ -103,7 +101,8 @@ class Medium
 		}
 		if (!pins)
 		{
-			pins = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+			pins = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+			
 		}
 		if (!pinTransmittance)
 		{
@@ -122,13 +121,12 @@ class Medium
 		{
 			currentBuildInfo.volGenerator->generateVolumeGrid(cmdBuf, volumeGrid);
 		}
-		return;
 
 		if (tasks.buildPinBuffer)
 		{
 			currentBuildInfo.pinGenerator->generatePins(cmdBuf, pins);
+			setDebugMarker(pins, "Pins");
 		}
-
 		if ((tasks.buildPinBuffer || tasks.buildVolumeGrid) && (tasks.buildTransmittanceBuffer || tasks.buildPinGrid))
 		{
 			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
@@ -136,13 +134,16 @@ class Medium
 
 		if (tasks.buildTransmittanceBuffer)
 		{
-			currentBuildInfo.transmittanceEncoder->computeTransmittance(cmdBuf, pins, pinTransmittance);
+			currentBuildInfo.transmittanceEncoder->computeTransmittance(cmdBuf, pins, volumeGrid, pinTransmittance);
 		}
 
 		if (tasks.buildPinGrid)
 		{
-			pinGrid = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+			currentBuildInfo.pinGridGenerator->generatePinGrid(cmdBuf, pins, pinGrid);
+			setDebugMarker(pinGrid, "PinGrid");
 		}
+
+		return tasks;
 	}
   private:
 

@@ -56,7 +56,7 @@ void cmdShowLines(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, ModelData m
 		depthBuffer->setClearValue(ClearValue(1.0f, 0));
 	}
 
-	if (color.a = 1.0)
+	if (color.a == 1.0)
 	{
 		drawCmd.pushColorAttachment(dst, finalLayout);
 		drawCmd.pushDepthAttachment(depthBuffer, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);

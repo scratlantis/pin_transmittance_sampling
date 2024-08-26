@@ -1,0 +1,50 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "../random.glsl"
+#include "../medium/pins_common.glsl"
+#include "pin_state_flags.glsl"
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+layout(binding = 0) buffer PIN_STATE {uint pinState[];};
+layout(binding = 1) readonly buffer PIN_GRID {GLSLPinGridEntry grid[];};
+
+struct PushStruct
+{
+	uint    gridSize;
+	uint    pinCountPerGridCell;
+	vec2	cursorDir;
+	vec3	cursorPos;
+};
+
+layout(push_constant) uniform PC {PushStruct pc;};
+
+void main()
+{
+
+	vec3 direction = normalize(sphericalToCartesian(pc.cursorDir.x, pc.cursorDir.y));
+	vec3 origin = clamp(vec3(0.0),vec3(0.9999), pc.cursorPos);
+	uvec3 gridId = uvec3(origin*float(pc.gridSize));
+	uint cellIdx = flatten(gridId, uvec3(pc.gridSize)) * pc.pinCountPerGridCell;
+
+	float minDot = 1.0;
+	uint minIdx = 0;
+	for(uint i = 0; i < pc.pinCountPerGridCell; i++)
+	{
+		GLSLPinGridEntry gridEntry = grid[cellIdx + i];
+		float dotVal = abs(dot(pinDirection(gridEntry.pin), direction));
+		if(dotVal < minDot)
+		{
+			minDot = dotVal;
+			minIdx = gridEntry.idx;
+		}
+
+
+		uint pinIdx = gridEntry.idx;
+		pinState[pinIdx] = PIN_STATE_FLAGS_CELL_SELECTED | pinState[pinIdx];
+	}
+	pinState[minIdx] = PIN_STATE_FLAGS_PIN_SELECTED | pinState[minIdx];
+}
+
+
+

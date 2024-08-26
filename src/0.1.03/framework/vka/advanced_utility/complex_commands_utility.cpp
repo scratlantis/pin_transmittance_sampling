@@ -110,10 +110,15 @@ RasterizationPipelineDefinition defaultRasterizationPipeline()
 void addInput(RasterizationPipelineDefinition &def, VertexDataLayout inputLayout, VkVertexInputRate inputRate)
 {
 	VKA_ASSERT(inputLayout.formats.size() == inputLayout.offsets.size());
+	uint32_t locationOffset = 0;
+	if (!def.vertexAttributeDescriptions.empty())
+	{
+		locationOffset = 1 + def.vertexAttributeDescriptions.back().location;
+	}
 	for (size_t i = 0; i < inputLayout.formats.size(); i++)
 	{
 		VkVertexInputAttributeDescription_OP attributeDesc{};
-		attributeDesc.location = i;
+		attributeDesc.location = locationOffset + i;
 		attributeDesc.binding  = def.vertexBindingDescriptions.size();
 		attributeDesc.format   = inputLayout.formats[i];
 		attributeDesc.offset   = inputLayout.offsets[i];

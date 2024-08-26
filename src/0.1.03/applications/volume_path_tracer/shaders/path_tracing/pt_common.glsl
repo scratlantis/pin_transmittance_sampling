@@ -4,7 +4,7 @@
 #include "../vka_structs.glsl"
 #include "pt_params.glsl"
 #include "sampling.glsl"
-#include "pt_math.glsl"
+#include "../math.glsl"
 
 #ifndef PT_COMMON_H
 #define PT_COMMON_H

@@ -60,4 +60,83 @@ void PerlinVolume::generateVolumeGrid(CmdBuffer cmdBuf, Image volume)
 	cmd.exec(cmdBuf);
 }
 
+GVar gvar_pin_count{"Pin count", 1000, GVAR_UINT_RANGE, PIN_SETTINGS, {100, 10000}};
 
+bool UniformPinGenerator::requiresUpdate()
+{
+	return gvar_pin_count.val.v_uint != pinCount;
+}
+
+void UniformPinGenerator::generatePins(CmdBuffer cmdBuf, Buffer pinBuffer)
+{
+	pinCount = gvar_pin_count.val.v_uint;
+	pinBuffer->changeSize(pinCount * sizeof(GLSLPin));
+	pinBuffer->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
+
+	pinBuffer->addUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	pinBuffer->recreate();
+
+	ComputeCmd cmd = ComputeCmd(pinCount, shaderPath + "medium/gen_uniform_pins.comp");
+	cmd.pushDescriptor(pinBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushConstant(&pinCount, sizeof(uint32_t));
+	cmd.exec(cmdBuf);
+}
+
+GVar gvar_pin_transmittance_value_count{"Transmittance Value Count", 10, GVAR_UINT_RANGE, PIN_SETTINGS, {1, 20}};
+
+bool ArrayTransmittanceEncoder::requiresUpdate()
+{
+	return transmittanceValueCount != gvar_pin_transmittance_value_count.val.v_uint;
+}
+
+void ArrayTransmittanceEncoder::computeTransmittance(CmdBuffer cmdBuf, BufferRef pinBuffer, Image volume, Buffer transmittanceBuffer)
+{
+	transmittanceValueCount = gvar_pin_transmittance_value_count.val.v_uint;
+	transmittanceBuffer->changeSize(gvar_pin_count.val.v_uint * gvar_pin_transmittance_value_count.val.v_uint * sizeof(float));
+	transmittanceBuffer->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
+	transmittanceBuffer->recreate();
+	ComputeCmd cmd = ComputeCmd(gvar_pin_count.val.v_uint, shaderPath + "medium/compute_transmittance_array.comp");
+	cmd.pushDescriptor(pinBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(transmittanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(volume, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	struct PushStruct
+	{
+		uint32_t pinCount;
+		uint32_t perPinValueCount;
+	} pc;
+	pc.pinCount = gvar_pin_count.val.v_uint;
+	pc.perPinValueCount = transmittanceValueCount;
+	cmd.pushConstant(&pc, sizeof(PushStruct));
+	cmd.exec(cmdBuf);
+}
+
+GVar gvar_pin_count_per_grid_cell{"Pins per grid cell", 16, GVAR_UINT_RANGE, PIN_SETTINGS, {1, 64}};
+GVar gvar_pin_grid_size{"Pin grid size", 16, GVAR_UINT_RANGE, PIN_SETTINGS, {4, 32}};
+
+bool PinGridGenerator::requiresUpdate()
+{
+	return gridSize != gvar_pin_grid_size.val.v_uint || pinCountPerGridCell != gvar_pin_count_per_grid_cell.val.v_uint;
+}
+
+void PinGridGenerator::generatePinGrid(CmdBuffer cmdBuf, BufferRef pinBuffer, Buffer pinGridBuffer)
+{
+	gridSize = gvar_pin_grid_size.val.v_uint;
+	pinCountPerGridCell = gvar_pin_count_per_grid_cell.val.v_uint;
+	pinGridBuffer->changeSize(gridSize * gridSize * gridSize * pinCountPerGridCell * sizeof(GLSLPinGridEntry));
+	pinGridBuffer->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
+	pinGridBuffer->recreate();
+	ComputeCmd cmd = ComputeCmd(glm::uvec3(gridSize), shaderPath + "medium/fill_pin_grid_greedy.comp");
+	cmd.pushDescriptor(pinBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pinGridBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	struct PushStruct
+	{
+		uint32_t pinCount;
+		uint32_t pinCountPerGridCell;
+		uint32_t gridSize;
+	} pc;
+	pc.pinCount            = gvar_pin_count.val.v_uint;
+	pc.pinCountPerGridCell = pinCountPerGridCell;
+	pc.gridSize            = gridSize;
+	cmd.pushConstant(&pc, sizeof(PushStruct));
+	cmd.exec(cmdBuf);
+}

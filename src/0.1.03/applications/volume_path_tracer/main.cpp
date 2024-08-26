@@ -3,6 +3,7 @@
 #include "shader_interface.h"
 #include "medium/Medium.h"
 #include "medium/strategies.h"
+#include "medium/pin_visualization.h"
 
 // State and output dir must be defined in the main file
 AdvancedState     gState;
@@ -27,7 +28,16 @@ std::vector<GVar *> gVars =
 		&gvar_medium_albedo_r,
 		&gvar_medium_albedo_g,
 		&gvar_medium_albedo_b,
-		&gvar_image_resolution
+		&gvar_image_resolution,
+		&gvar_pin_count,
+		&gvar_pin_transmittance_value_count,
+		&gvar_pin_count_per_grid_cell,
+		&gvar_pin_grid_size,
+		&gvar_cursor_pos_x,
+		&gvar_cursor_pos_y,
+		&gvar_cursor_pos_z,
+		&gvar_cursor_dir_phi,
+		&gvar_cursor_dir_theta,
         // clang-format on
 };
 
@@ -37,6 +47,11 @@ ModelInfo cornellBox = {"cornell_box/cornell_box.obj", vec3(0,0.2,-0.3), 0.1, 18
 std::vector<ModelInfo> models = {cornellBox};
 Medium                 medium     = Medium();
 PerlinVolume           perlinVolume  = PerlinVolume();
+UniformPinGenerator    pinGenerator = UniformPinGenerator();
+ArrayTransmittanceEncoder transmittanceEncoder = ArrayTransmittanceEncoder();
+PinGridGenerator pinGridGenerator = PinGridGenerator();
+PinStateManager pinStateManager = PinStateManager(&medium);
+
 int main()
 {
 	// Global State Initialization. See config.h for more details.
@@ -71,8 +86,7 @@ int main()
 
 	Buffer      mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-
-	/*Buffer cubeVertexBuffer, cubeIndexBuffer;*/
+	bool debugView = false;
 
 	// Main Loop
 	for (uint cnt = 0; !gState.io.shouldTerminate(); cnt++)
@@ -96,17 +110,6 @@ int main()
 			model = models[modelIndexLastFrame];
 			CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
 
-
-			//cubeVertexBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(glm::vec3) * 8);
-			//// cmdWriteCopy(cmdBuf, vertexBuffer, cCubeVertecies.data(), sizeof(glm::vec3) * cCubeVertecies.size());
-			//Buffer stagingBuf = createStagingBuffer();
-			//write(stagingBuf, cCubeVertecies.data(), sizeof(glm::vec3) * 8);
-			//cmdCopyBuffer(cmdBuf, stagingBuf, cubeVertexBuffer);
-
-			//cubeIndexBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-			//cmdWriteCopy(cmdBuf, cubeIndexBuffer, cCubeTriangleIndices.data(), sizeof(uint32_t) * cCubeTriangleIndices.size());
-			//cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT);
-
 			// Solid Geometry
 			sceneBuilder.reset();
 			sceneBuilder.addModel(cmdBuf, model.path, model.getObjToWorldMatrix());
@@ -124,6 +127,10 @@ int main()
 		CmdBuffer  cmdBuf       = createCmdBuffer(gState.frame->stack);
 		Image      swapchainImg = getSwapchainImage();
 
+		if (gState.io.mouse.middleEvent && gState.io.mouse.middlePressed)
+		{
+			debugView = !debugView;
+		};
 
 
 		GLSLMediumInstance mediumInstance{};
@@ -133,8 +140,11 @@ int main()
 		cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
 		MediumBuildInfo buildInfo{};
 		buildInfo.volGenerator = &perlinVolume;
-		medium.update(cmdBuf, buildInfo);
-
+		buildInfo.pinGenerator = &pinGenerator;
+		buildInfo.transmittanceEncoder = &transmittanceEncoder;
+		buildInfo.pinGridGenerator = &pinGridGenerator;
+		MediumBuildTasks buildTasks = medium.update(cmdBuf, buildInfo);
+		pinStateManager.update(cmdBuf, buildTasks);
 
 
 		if (viewHasChanged || gState.io.mouse.leftPressed)
@@ -148,7 +158,7 @@ int main()
 
 		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 		// Path tracing
-		if (gState.io.mouse.middlePressed)
+		if (!debugView)
 		{
 			// Config general parameters
 			ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp", {{"FORMAT1", getGLSLFormat(img_pt->getFormat())}});
@@ -188,28 +198,18 @@ int main()
 			img_pt->setClearValue(ClearValue(0.0f, 0.0f, 0.0f, 1.0f));
 			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_pt, scene.vertexBuffer, scene.indexBuffer, &cam, model.getObjToWorldMatrix(), true);
 			cmdShowBoxFrame(cmdBuf, gState.frame->stack, img_pt, &cam, mediumInstance.mat, false, vec4(0.0, 0.0, 1.0, 1.0));
+			//cmdShowLines<glm::vec3>(cmdBuf, gState.frame->stack, img_pt, medium.pins, nullptr, &cam, mediumInstance.mat, false, vec4(1.0, 0.0, 0.0, 0.1));
+			cmdVisualizePins(cmdBuf, gState.frame->stack, img_pt, medium.pins, pinStateManager.pinState, &cam, mediumInstance.mat, false, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
 			getCmdAdvancedCopy(img_pt, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			                VkRect2D_OP(img_pt->getExtent2D()), getScissorRect(0.2f, 0.f, 0.8f, 1.0f)).exec(cmdBuf);
 		}
 		// Add gui
 		{
-			gvar_gui::buildGui(gVars, {"General", "Perlin Noise"}, getScissorRect(0.f, 0.f, 0.2, 1.0));
+			gvar_gui::buildGui(gVars, {"General", "Noise Function", "Pin Settings"}, getScissorRect(0.f, 0.f, 0.2, 1.0));
 			shader_console_gui::buildGui(getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
 			cmdRenderGui(cmdBuf, swapchainImg);
 		}
-
-		// Update Medium
-		//if (gState.io.mouse.leftPressed || gState.io.mouse.leftEvent)
-		//{
-		//	GLSLMediumInstance mediumInstance{};
-		//	mediumInstance.mat    = params.initialMediumMatrix;
-		//	mediumInstance.invMat = glm::inverse(mediumInstance.mat);
-		//	mediumInstance.albedo = vec3(gvar_medium_albedo_r.val.v_float, gvar_medium_albedo_g.val.v_float, gvar_medium_albedo_b.val.v_float);
-		//	cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
-		//	medium.update(cmdBuf);
-		//	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-		//	cmdImageMemoryBarrier(cmdBuf, medium.volumeGrid, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		//}
 
 		swapBuffers({cmdBuf});
 	}

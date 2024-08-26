@@ -1,0 +1,41 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "../random.glsl"
+#include "pins_common.glsl"
+
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+layout(binding = 0) readonly buffer PINS {GLSLPin pins[];};
+layout(binding = 1) writeonly buffer PIN_TRANSMITTANCE {float transmittance[];};
+layout(binding = 2) uniform sampler3D volSmp;
+struct PushStruct
+{
+	uint   pinCount;
+	uint   perPinValueCount;
+};
+layout(push_constant) uniform PC {PushStruct pc;};
+
+void main()
+{
+	uint gID = gl_GlobalInvocationID.x;
+	if (gID >= pc.pinCount)
+	{
+		return;
+	}
+	GLSLPin pin = pins[gID];
+	vec3 origin = pinOrigin(pin);
+	vec3 destination = pinDestination(pin);
+	vec3 direction = normalize(destination - origin);
+	float pinLenght = length(destination - origin);
+	float stepSize = pinLenght / float(pc.perPinValueCount);
+
+	float densitySum = 0.0f;
+	for(uint i = 0; i < pc.perPinValueCount; i++)
+	{
+		vec3 samplePoint = origin + (stepSize * (0.5 + float(i))) * direction;
+		float density = texture(volSmp, samplePoint).r;
+		densitySum += density*stepSize;
+		transmittance[gID * pc.perPinValueCount + i] = exp(-densitySum);
+	}
+}

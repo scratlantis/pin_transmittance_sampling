@@ -11,7 +11,14 @@ void cmdShowTriangles(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer 
 	modelData.vertexBuffer = vertexBuffer;
 	modelData.indexBuffer  = indexBuffer;
 	modelData.vertexLayout = vertex_type<Vertex>().data_layout();
-	modelData.indexCount = {static_cast<uint32_t>(indexBuffer->getSize()) / sizeof(Index)};
+	if (indexBuffer)
+	{
+		modelData.indexCount = {static_cast<uint32_t>(indexBuffer->getSize()) / sizeof(Index)};
+	}
+	else
+	{
+		modelData.indexCount = {static_cast<uint32_t>(vertexBuffer->getSize()) / modelData.vertexLayout.stride};
+	}
 	cmdShowTriangles(cmdBuf, pPool, dst, modelData, cam, objToWorld, clearDepth, dstLayout);
 }
 
@@ -25,7 +32,14 @@ void cmdShowLines(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer vert
 	modelData.vertexBuffer = vertexBuffer;
 	modelData.indexBuffer  = indexBuffer;
 	modelData.vertexLayout = vertex_type<Vertex>().data_layout();
-	modelData.indexCount   = {static_cast<uint32_t>(indexBuffer->getSize()) / sizeof(Index)};
+	if (indexBuffer)
+	{
+		modelData.indexCount   = {static_cast<uint32_t>(indexBuffer->getSize()) / sizeof(Index)};
+	}
+	else
+	{
+		modelData.indexCount = {static_cast<uint32_t>(vertexBuffer->getSize()) / modelData.vertexLayout.stride};
+	}
 	cmdShowLines(cmdBuf, pPool, dst, modelData, cam, objToWorld, clearDepth, color, dstLayout);
 }
 void cmdShowBoxFrame(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Camera *cam, glm::mat4 objToWorld, bool clearDepth, glm::vec4 color, VkImageLayout dstLayout = VK_IMAGE_LAYOUT_UNDEFINED);

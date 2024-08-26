@@ -61,4 +61,19 @@ struct GLSLMediumInstance
 	uint padding[1];
 };
 
+// use vec2 so struct can be alligned to 8 bytes
+struct GLSLPin
+{
+	vec2 ax_ay;
+	vec2 az_bx;
+	vec2 by_bz;
+};
+
+struct GLSLPinGridEntry
+{
+	GLSLPin pin; // 24 bytes
+	uint idx; // 4 bytes
+	uint padding[1]; // 4 bytes
+};
+
 #endif // INTERFACE_H

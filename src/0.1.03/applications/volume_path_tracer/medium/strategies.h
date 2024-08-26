@@ -13,3 +13,29 @@ class PerlinVolume : public VolumeGenerationStrategy
 	bool requiresUpdate() override;
 	void generateVolumeGrid(CmdBuffer cmdBuf, Image volume) override;
 };
+
+class UniformPinGenerator : public PinDistributionStrategy
+{
+	uint32_t pinCount;
+  public:
+	bool requiresUpdate() override;
+	void generatePins(CmdBuffer cmdBuf, Buffer pinBuffer) override;
+};
+
+class ArrayTransmittanceEncoder : public PinTransmittanceStorageStrategy
+{
+	uint32_t transmittanceValueCount;
+  public:
+	bool requiresUpdate() override;
+	void computeTransmittance(CmdBuffer cmdBuf, BufferRef pinBuffer, Image volume, Buffer transmittanceBuffer) override;
+};
+
+
+class PinGridGenerator : public PinGridGenerationStrategy
+{
+	uint32_t gridSize;
+	uint32_t pinCountPerGridCell;
+  public:
+	bool requiresUpdate() override;
+	void generatePinGrid(CmdBuffer cmdBuf, BufferRef pinBuffer, Buffer pinGridBuffer) override;
+};
