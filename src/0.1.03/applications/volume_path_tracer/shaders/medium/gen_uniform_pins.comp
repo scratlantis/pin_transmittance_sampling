@@ -22,6 +22,6 @@ void main()
 	}
 	vec3 direction = normalize(random3D(gID + 1)-vec3(0.5));
 	vec3 origin = random3D(gID + pc.pinCount + 1);
-	GLSLPin pin = pinFromOriginAndDirection(origin, direction);
+	GLSLPin pin = getPinFromOriginAndDirection(origin, direction);
 	pins[gID] = pin;
 }

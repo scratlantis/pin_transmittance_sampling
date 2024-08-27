@@ -75,4 +75,17 @@ vec2 cartesianToSpherical(vec3 v)
 	return vec2(atan(v.y, v.x), acos(v.z));
 }
 
+vec2 projectRaySegment(vec3 targetBegin, vec3 targetEnd, vec3 srcBegin, vec3 srcEnd)
+{
+	vec2 sampleLocation;
+	vec3 dirTarget = normalize(targetEnd - targetBegin);
+	float distTarget = distance(targetEnd, targetBegin);
+	vec3 deltaBeginBegin = srcBegin-targetBegin;
+	sampleLocation.x = dot(deltaBeginBegin, dirTarget)/distTarget;
+	vec3 deltaEndBegin = srcEnd-targetBegin;
+	sampleLocation.y = dot(deltaEndBegin, dirTarget)/distTarget;
+	return sampleLocation;
+
+}
+
 #endif

@@ -6,22 +6,22 @@
 
 
 
-vec3 pinOrigin(GLSLPin pin)
+vec3 getPinOrigin(GLSLPin pin)
 {
 	return vec3(pin.ax_ay, pin.az_bx.x);
 }
 
-vec3 pinDestination(GLSLPin pin)
+vec3 getPinDestination(GLSLPin pin)
 {
 	return vec3(pin.az_bx.y, pin.by_bz);
 }
 
-vec3 pinDirection(GLSLPin pin)
+vec3 getPinDirection(GLSLPin pin)
 {
-	return normalize(pinDestination(pin) - pinOrigin(pin));
+	return normalize(getPinDestination(pin) - getPinOrigin(pin));
 }
 
-GLSLPin pinFromOriginAndDirection(vec3 origin, vec3 direction)
+GLSLPin getPinFromOriginAndDirection(vec3 origin, vec3 direction)
 {
 	vec3 entry, exit;
 	unitCubeIntersection(origin, direction, entry, exit);

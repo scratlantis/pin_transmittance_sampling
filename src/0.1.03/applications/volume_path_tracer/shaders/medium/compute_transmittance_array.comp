@@ -24,8 +24,8 @@ void main()
 		return;
 	}
 	GLSLPin pin = pins[gID];
-	vec3 origin = pinOrigin(pin);
-	vec3 destination = pinDestination(pin);
+	vec3 origin = getPinOrigin(pin);
+	vec3 destination = getPinDestination(pin);
 	vec3 direction = normalize(destination - origin);
 	float pinLenght = length(destination - origin);
 	float stepSize = pinLenght / float(pc.perPinValueCount);

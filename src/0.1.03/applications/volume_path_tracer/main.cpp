@@ -171,9 +171,12 @@ int main()
 		if (!debugView)
 		{
 			// Config general parameters
-			ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp", {{"FORMAT1", getGLSLFormat(img_pt->getFormat())}});
+			ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp",
+			                                   {
+			                                       {"FORMAT1", getGLSLFormat(img_pt->getFormat())},
+			                                       {"USE_PINS", ""},
+			                                   });
 			sConst.write(cmdBuf, computeCmd, img_pt->getExtent2D(), cam, cnt, gVars);
-			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
 			// Bind Constants
 			bind_block_3(computeCmd, sConst);
@@ -189,12 +192,25 @@ int main()
 			struct PushStruct
 			{
 				uint volRes;
+				uint pinGridSize;
+				uint pinCountPerGridCell;
+				uint pinTransmittanceValueCount;
 			} pc;
 			pc.volRes = gvar_image_resolution.val.v_uint;
+			pc.pinGridSize = gvar_pin_grid_size.val.v_uint;
+			pc.pinCountPerGridCell = gvar_pin_count_per_grid_cell.val.v_uint;
+			pc.pinTransmittanceValueCount = gvar_pin_transmittance_value_count.val.v_uint;
 			computeCmd.pushConstant(&pc, sizeof(PushStruct));
 			computeCmd.pushDescriptor(medium.volumeGrid, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 			computeCmd.pushDescriptor(mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
+			// Pins
+			{
+				computeCmd.pushDescriptor(medium.pinGrid, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+				computeCmd.pushDescriptor(medium.pinTransmittance, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+			}
+
+			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 			computeCmd.exec(cmdBuf);
 			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 			getCmdAccumulate(img_pt, img_pt_accumulation, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);

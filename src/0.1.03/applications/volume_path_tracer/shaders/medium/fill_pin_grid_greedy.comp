@@ -38,7 +38,7 @@ void main()
 		{
 			gridEntry.idx = (pinBaseIdx + pinsTried) % pc.pinCount;
 			gridEntry.pin = pins[gridEntry.idx];
-			if(unitCubeIntersection(pinOrigin(gridEntry.pin)*scale + offset, pinDirection(gridEntry.pin), entry, exit))
+			if(unitCubeIntersection(getPinOrigin(gridEntry.pin)*scale + offset, getPinDirection(gridEntry.pin), entry, exit))
 			{
 				break;
 			}

@@ -34,7 +34,7 @@ void main()
 	for(uint i = 0; i < pc.pinCountPerGridCell; i++)
 	{
 		GLSLPinGridEntry gridEntry = grid[cellIdx + i];
-		float dotVal = abs(dot(pinDirection(gridEntry.pin), direction));
+		float dotVal = abs(dot(getPinDirection(gridEntry.pin), direction));
 		if(dotVal > maxDot)
 		{
 			maxDot = dotVal;
