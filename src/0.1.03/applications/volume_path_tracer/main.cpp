@@ -2,8 +2,10 @@
 #include "utility.h"
 #include "shader_interface.h"
 #include "medium/Medium.h"
-#include "medium/strategies.h"
-#include "medium/pin_visualization.h"
+#include "medium/medium_strategies.h"
+#include "visualization/pin_visualization.h"
+#include "path_tracing/ComparativePathTracer.h"
+#include "path_tracing/pt_strategies.h"
 
 // State and output dir must be defined in the main file
 AdvancedState     gState;
@@ -43,19 +45,19 @@ std::vector<GVar *> gVars =
 
 static ShaderConst sConst{};
 
-ModelInfo cornellBox = {"cornell_box/cornell_box.obj", vec3(0,0.2,-0.3), 0.1, vec3(0.0,180.0,0.0)};
-
+// Models
 ModelInfo cursor = {"arrow_cursor/arrow_cursor.obj", vec3(0.0, 0.0, 0.0), 0.05, vec3(0.0, 0.0, 0.0)};
-
-
-
-std::vector<ModelInfo> models = {cornellBox};
-Medium                 medium     = Medium();
-PerlinVolume           perlinVolume  = PerlinVolume();
-UniformPinGenerator    pinGenerator = UniformPinGenerator();
+ModelInfo cornellBox = {"cornell_box/cornell_box.obj", vec3(0,0.2,-0.3), 0.1, vec3(0.0,180.0,0.0)};
+std::vector<ModelInfo>    models               = {cornellBox};
+// Medium Strategies
+PerlinVolume              perlinVolume         = PerlinVolume();
+UniformPinGenerator       pinGenerator         = UniformPinGenerator();
 ArrayTransmittanceEncoder transmittanceEncoder = ArrayTransmittanceEncoder();
-PinGridGenerator pinGridGenerator = PinGridGenerator();
-PinStateManager pinStateManager = PinStateManager(&medium);
+PinGridGenerator          pinGridGenerator     = PinGridGenerator();
+// Path Trace Strategies
+ReferencePathTracer 	 referencePathTracer  = ReferencePathTracer();
+PinPathTracer 			 pinPathTracer 		 = PinPathTracer();
+
 
 int main()
 {
@@ -74,6 +76,20 @@ int main()
 	HdrImagePdfCache pdfCache = HdrImagePdfCache(gState.heap);
 	USceneBuilder<GLSLVertex, GLSLMaterial> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial>(&pdfCache);
 
+	// Medium
+	Medium          medium          = Medium();
+	Buffer      mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	PinStateManager pinStateManager = PinStateManager(&medium);
+
+	// Scene
+	FixedCamera cam = FixedCamera(DefaultFixedCameraCI());
+	uint32_t modelIndexLastFrame = 0;
+	USceneData scene;
+	ModelInfo  model;
+
+	// Path Tracer
+	ComparativePathTracer pathTracer = ComparativePathTracer(0.8, 1.0);
+
 
 	// Persistent Resources:
 	// HDR Images for path tracing
@@ -83,20 +99,13 @@ int main()
 	// Uniform Buffers
 	sConst.alloc();
 
-	// Scene
-	FixedCamera cam = FixedCamera(DefaultFixedCameraCI());
-	uint32_t modelIndexLastFrame = 0;
-	USceneData scene;
-	ModelInfo  model;
-
-	Buffer      mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-
-	bool debugView = false;
-
+	// Load static models
 	CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
 	ModelData cursorModel = gState.modelCache->fetch<GLSLVertex>(cmdBuf, cursor.path, 0);
 	executeImmediat(cmdBuf);
 
+
+	bool debugView = false;
 
 	// Main Loop
 	for (uint cnt = 0; !gState.io.shouldTerminate(); cnt++)
@@ -105,11 +114,11 @@ int main()
 		{
 			clearShaderCache();
 		}
-		if (gState.io.keyPressedEvent[GLFW_KEY_T])
+		if (gState.io.keyPressedEvent[GLFW_KEY_T]) // Reset camera
 		{
 			cam = FixedCamera(DefaultFixedCameraCI());
 		}
-		if (modelIndexLastFrame != gvar_model.val.v_uint || cnt == 0)
+		if (modelIndexLastFrame != gvar_model.val.v_uint || cnt == 0) // Load Scene
 		{
 			if (cnt != 0)
 			{
@@ -142,7 +151,7 @@ int main()
 			debugView = !debugView;
 		};
 
-
+		// Update medium
 		GLSLMediumInstance mediumInstance{};
 		mediumInstance.mat    = params.initialMediumMatrix;
 		mediumInstance.invMat = glm::inverse(mediumInstance.mat);
@@ -154,9 +163,13 @@ int main()
 		buildInfo.transmittanceEncoder = &transmittanceEncoder;
 		buildInfo.pinGridGenerator = &pinGridGenerator;
 		MediumBuildTasks buildTasks = medium.update(cmdBuf, buildInfo);
-		pinStateManager.update(cmdBuf, buildTasks);
 
+		if (buildTasks.buildPinGrid || pinStateManager.requiresUpdate())
+		{
+			pinStateManager.update(cmdBuf);
+		}
 
+		// Reset accumulation
 		if (viewHasChanged || gState.io.mouse.leftPressed)
 		{
 			cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0));
@@ -170,53 +183,65 @@ int main()
 		// Path tracing
 		if (!debugView)
 		{
-			// Config general parameters
-			ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp",
-			                                   {
-			                                       {"FORMAT1", getGLSLFormat(img_pt->getFormat())},
-			                                       {"USE_PINS", ""},
-			                                   });
-			sConst.write(cmdBuf, computeCmd, img_pt->getExtent2D(), cam, cnt, gVars);
-
-			// Bind Constants
-			bind_block_3(computeCmd, sConst);
-			
-			// Bind Target
-			computeCmd.pushDescriptor(img_pt, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-
-
-			// Bind Scene
-			bind_block_10(computeCmd, scene);
-
-			// Bind Medium
-			struct PushStruct
+			if (0)
 			{
-				uint volRes;
-				uint pinGridSize;
-				uint pinCountPerGridCell;
-				uint pinTransmittanceValueCount;
-			} pc;
-			pc.volRes = gvar_image_resolution.val.v_uint;
-			pc.pinGridSize = gvar_pin_grid_size.val.v_uint;
-			pc.pinCountPerGridCell = gvar_pin_count_per_grid_cell.val.v_uint;
-			pc.pinTransmittanceValueCount = gvar_pin_transmittance_value_count.val.v_uint;
-			computeCmd.pushConstant(&pc, sizeof(PushStruct));
-			computeCmd.pushDescriptor(medium.volumeGrid, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-			computeCmd.pushDescriptor(mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+				// Config general parameters
+				ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp",
+				                                   {
+				                                       {"FORMAT1", getGLSLFormat(img_pt->getFormat())},
+				                                       {"USE_PINS", ""},
+				                                   });
+				sConst.write(cmdBuf, computeCmd, img_pt->getExtent2D(), cam, cnt, gVars);
 
-			// Pins
-			{
-				computeCmd.pushDescriptor(medium.pinGrid, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-				computeCmd.pushDescriptor(medium.pinTransmittance, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+				// Bind Constants
+				bind_block_3(computeCmd, sConst);
+
+				// Bind Target
+				computeCmd.pushDescriptor(img_pt, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+
+				// Bind Scene
+				bind_block_10(computeCmd, scene);
+
+				// Bind Medium
+				struct PushStruct
+				{
+					uint volRes;
+					uint pinGridSize;
+					uint pinCountPerGridCell;
+					uint pinTransmittanceValueCount;
+				} pc;
+				pc.volRes                     = gvar_image_resolution.val.v_uint;
+				pc.pinGridSize                = gvar_pin_grid_size.val.v_uint;
+				pc.pinCountPerGridCell        = gvar_pin_count_per_grid_cell.val.v_uint;
+				pc.pinTransmittanceValueCount = gvar_pin_transmittance_value_count.val.v_uint;
+				computeCmd.pushConstant(&pc, sizeof(PushStruct));
+				computeCmd.pushDescriptor(medium.volumeGrid, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+				computeCmd.pushDescriptor(mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
+				// Pins
+				{
+					computeCmd.pushDescriptor(medium.pinGrid, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+					computeCmd.pushDescriptor(medium.pinTransmittance, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+				}
+
+				cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+				computeCmd.exec(cmdBuf);
+				cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+				getCmdAccumulate(img_pt, img_pt_accumulation, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
+				getCmdNormalize(img_pt_accumulation, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				                VkRect2D_OP(img_pt_accumulation->getExtent2D()), getScissorRect(0.2f, 0.f, 0.8f, 1.0f))
+				    .exec(cmdBuf);
 			}
-
-			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-			computeCmd.exec(cmdBuf);
-			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-			getCmdAccumulate(img_pt, img_pt_accumulation, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
-			getCmdNormalize(img_pt_accumulation, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			                VkRect2D_OP(img_pt_accumulation->getExtent2D()), getScissorRect(0.2f, 0.f, 0.8f, 1.0f))
-			    .exec(cmdBuf);
+			else
+			{
+				RenderInfo renderInfo = RenderInfo();
+				renderInfo.frameIdx             = cnt;
+				renderInfo.pCamera              = &cam;
+				renderInfo.pMediun              = &medium;
+				renderInfo.mediumInstanceBuffer = mediumInstanceBuffer;
+				renderInfo.pSceneData           = &scene;
+				pathTracer.renderSplitView(cmdBuf, &referencePathTracer, &pinPathTracer, swapchainImg, 0.5, getScissorRect(0.2f, 0.f, 0.8f, 1.0f), renderInfo);
+			}
 		}
 		// Rasterization for debugging
 		else

@@ -1,6 +1,6 @@
-#include "strategies.h"
 #include "../config.h"
 #include "../shader_interface.h"
+#include "medium_strategies.h"
 using namespace vka;
 
 
@@ -140,3 +140,5 @@ void PinGridGenerator::generatePinGrid(CmdBuffer cmdBuf, BufferRef pinBuffer, Bu
 	cmd.pushConstant(&pc, sizeof(PushStruct));
 	cmd.exec(cmdBuf);
 }
+
+

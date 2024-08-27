@@ -1,7 +1,6 @@
 #include <vka/vka.h>
 #include "config.h"
 #include "pin_visualization.h"
-#include "Medium.h"
 
 
 
@@ -65,29 +64,34 @@ void PinStateManager::resetPinState(CmdBuffer cmdBuf)
 	cmdFillBuffer(cmdBuf, pinState, 0);
 }
 
-void PinStateManager::update(CmdBuffer cmdBuf, MediumBuildTasks buildTasks)
+void PinStateManager::update(CmdBuffer cmdBuf)
 {
 	if (!pinState)
 	{
 		pinState = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	}
 	
+	resetPinState(cmdBuf);
+	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+	writeGridPinState(cmdBuf);
+	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+	cursorPos = glm::vec3(gvar_cursor_pos_x.val.v_float, gvar_cursor_pos_y.val.v_float, gvar_cursor_pos_z.val.v_float);
+	cursorDirection = glm::vec2(gvar_cursor_dir_phi.val.v_float, gvar_cursor_dir_theta.val.v_float);
+
+	writeCursorPinState(cmdBuf);
+	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT);
+
+}
+
+bool PinStateManager::requiresUpdate()
+{
 	glm::vec3 newCursorPos = glm::vec3(gvar_cursor_pos_x.val.v_float, gvar_cursor_pos_y.val.v_float, gvar_cursor_pos_z.val.v_float);
 	glm::vec2 newCursorDir = glm::vec2(gvar_cursor_dir_phi.val.v_float, gvar_cursor_dir_theta.val.v_float);
 
-	if (buildTasks.buildPinBuffer || buildTasks.buildPinGrid || glm::distance(newCursorPos, cursorPos) > 0.001f || glm::distance(newCursorDir, cursorDirection) > 0.001f)
-	{
-		resetPinState(cmdBuf);
-		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-		writeGridPinState(cmdBuf);
-		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-
-		cursorPos = newCursorPos;
-		cursorDirection = newCursorDir;
-		writeCursorPinState(cmdBuf);
-		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT);
-	}
+	return glm::distance(newCursorPos, cursorPos) > 0.001f || glm::distance(newCursorDir, cursorDirection) > 0.001f;
 }
+
 
 void cmdVisualizePins(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer pinBuffer, Buffer pinState, Camera *cam, glm::mat4 objToWorld, bool clearDepth, VkImageLayout dstLayout)
 {
