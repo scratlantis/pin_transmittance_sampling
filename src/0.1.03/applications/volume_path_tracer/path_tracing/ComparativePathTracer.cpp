@@ -18,8 +18,6 @@ void ComparativePathTracer::clearAccumulationTargets(CmdBuffer cmdBuf)
 
 void ComparativePathTracer::renderSplitView(CmdBuffer cmdBuf, PathTraceStrategy *pStrategieA, PathTraceStrategy *pStrategieB, Image target, float splittCoef, VkRect2D_OP targetArea, const RenderInfo &renderInfo)
 {
-	clearAccumulationTargets(cmdBuf);
-
 	// Render
 	pStrategieA->trace(cmdBuf, localTargetA, renderInfo);
 	pStrategieB->trace(cmdBuf, localTargetB, renderInfo);
@@ -50,7 +48,18 @@ void ComparativePathTracer::renderSplitView(CmdBuffer cmdBuf, PathTraceStrategy 
 	dstAreaB.extent.width -= 1;
 	dstAreaB.offset.x += 1;
 
-	getCmdNormalize(localAccumulationTargetA, target, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, srcAreaA, dstAreaA).exec(cmdBuf);
-	getCmdNormalize(localAccumulationTargetB, target, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, srcAreaB, dstAreaB).exec(cmdBuf);
+	if (dstAreaB.extent.width == 0 || srcAreaB.extent.width == 0)
+	{
+		getCmdNormalize(localAccumulationTargetA, target, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, srcAreaA, dstAreaA).exec(cmdBuf);
+	}
+	else if (dstAreaA.extent.width > 0 && srcAreaA.extent.width > 0)
+	{
+		getCmdNormalize(localAccumulationTargetA, target, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, srcAreaA, dstAreaA).exec(cmdBuf);
+		getCmdNormalize(localAccumulationTargetB, target, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, srcAreaB, dstAreaB).exec(cmdBuf);
+	}
+	else
+	{
+		getCmdNormalize(localAccumulationTargetB, target, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, srcAreaB, dstAreaB).exec(cmdBuf);
+	}
 }
 

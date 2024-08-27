@@ -36,6 +36,8 @@ extern GVar     gvar_cursor_dir_theta;
 
 
 
+
+
 struct DefaultDeviceCI : DeviceCI
 {
 	DefaultDeviceCI(std::string appName)

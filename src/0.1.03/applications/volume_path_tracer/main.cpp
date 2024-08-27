@@ -43,7 +43,7 @@ std::vector<GVar *> gVars =
         // clang-format on
 };
 
-static ShaderConst sConst{};
+ShaderConst sConst{};
 
 // Models
 ModelInfo cursor = {"arrow_cursor/arrow_cursor.obj", vec3(0.0, 0.0, 0.0), 0.05, vec3(0.0, 0.0, 0.0)};
@@ -106,6 +106,8 @@ int main()
 
 
 	bool debugView = false;
+
+	float splitCoef = 0.5;
 
 	// Main Loop
 	for (uint cnt = 0; !gState.io.shouldTerminate(); cnt++)
@@ -170,9 +172,14 @@ int main()
 		}
 
 		// Reset accumulation
-		if (viewHasChanged || gState.io.mouse.leftPressed)
+		if (cnt == 1 || viewHasChanged || gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && gState.io.mouse.pos.x < 0.2 * gState.io.extent.width)
 		{
-			cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0));
+			pathTracer.clearAccumulationTargets(cmdBuf);
+		}
+
+		if (gState.io.mouse.leftPressed && gState.io.mouse.pos.x > 0.2 * gState.io.extent.width)
+		{
+			splitCoef = glm::clamp<float>(splitCoef + gState.io.mouse.change.x / (0.8f * gState.io.extent.width), 0.0, 1.0);
 		}
 
 
@@ -183,65 +190,13 @@ int main()
 		// Path tracing
 		if (!debugView)
 		{
-			if (0)
-			{
-				// Config general parameters
-				ComputeCmd computeCmd = ComputeCmd(img_pt->getExtent2D(), shaderPath + "path_tracing/pt.comp",
-				                                   {
-				                                       {"FORMAT1", getGLSLFormat(img_pt->getFormat())},
-				                                       {"USE_PINS", ""},
-				                                   });
-				sConst.write(cmdBuf, computeCmd, img_pt->getExtent2D(), cam, cnt, gVars);
-
-				// Bind Constants
-				bind_block_3(computeCmd, sConst);
-
-				// Bind Target
-				computeCmd.pushDescriptor(img_pt, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-
-				// Bind Scene
-				bind_block_10(computeCmd, scene);
-
-				// Bind Medium
-				struct PushStruct
-				{
-					uint volRes;
-					uint pinGridSize;
-					uint pinCountPerGridCell;
-					uint pinTransmittanceValueCount;
-				} pc;
-				pc.volRes                     = gvar_image_resolution.val.v_uint;
-				pc.pinGridSize                = gvar_pin_grid_size.val.v_uint;
-				pc.pinCountPerGridCell        = gvar_pin_count_per_grid_cell.val.v_uint;
-				pc.pinTransmittanceValueCount = gvar_pin_transmittance_value_count.val.v_uint;
-				computeCmd.pushConstant(&pc, sizeof(PushStruct));
-				computeCmd.pushDescriptor(medium.volumeGrid, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-				computeCmd.pushDescriptor(mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-
-				// Pins
-				{
-					computeCmd.pushDescriptor(medium.pinGrid, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-					computeCmd.pushDescriptor(medium.pinTransmittance, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-				}
-
-				cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-				computeCmd.exec(cmdBuf);
-				cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-				getCmdAccumulate(img_pt, img_pt_accumulation, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
-				getCmdNormalize(img_pt_accumulation, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-				                VkRect2D_OP(img_pt_accumulation->getExtent2D()), getScissorRect(0.2f, 0.f, 0.8f, 1.0f))
-				    .exec(cmdBuf);
-			}
-			else
-			{
-				RenderInfo renderInfo = RenderInfo();
-				renderInfo.frameIdx             = cnt;
-				renderInfo.pCamera              = &cam;
-				renderInfo.pMediun              = &medium;
-				renderInfo.mediumInstanceBuffer = mediumInstanceBuffer;
-				renderInfo.pSceneData           = &scene;
-				pathTracer.renderSplitView(cmdBuf, &referencePathTracer, &pinPathTracer, swapchainImg, 0.5, getScissorRect(0.2f, 0.f, 0.8f, 1.0f), renderInfo);
-			}
+			RenderInfo renderInfo           = RenderInfo();
+			renderInfo.frameIdx             = cnt;
+			renderInfo.pCamera              = &cam;
+			renderInfo.pMediun              = &medium;
+			renderInfo.mediumInstanceBuffer = mediumInstanceBuffer;
+			renderInfo.pSceneData           = &scene;
+			pathTracer.renderSplitView(cmdBuf, &referencePathTracer, &pinPathTracer, swapchainImg, splitCoef, getScissorRect(0.2f, 0.f, 0.8f, 1.0f), renderInfo);
 		}
 		// Rasterization for debugging
 		else

@@ -3,7 +3,7 @@
 #endif
 
 #ifndef SAMPLE_COUNT
-#define SAMPLE_COUNT 4
+#define SAMPLE_COUNT 2
 #endif
 
 #ifndef TMIN

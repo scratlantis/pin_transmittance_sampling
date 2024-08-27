@@ -1,6 +1,9 @@
 #pragma once
 #include <vka/vka.h>
 
+
+extern std::vector<GVar *> gVars;
+
 typedef uint32_t  uint;
 typedef glm::vec2 vec2;
 typedef glm::vec3 vec3;
@@ -19,12 +22,12 @@ static GLSLFrame defaultFrame(VkExtent2D extent, uint32_t frameIdx)
 	return frame;
 }
 
-static GLSLView cameraView(FixedCamera cam)
+static GLSLView cameraView(Camera* cam)
 {
 	GLSLView view;
-	view.mat    = cam.getViewMatrix();
+	view.mat    = cam->getViewMatrix();
 	view.invMat = glm::inverse(view.mat);
-	view.pos    = vec4(cam.getPosition(), 0.0);
+	view.pos    = vec4(cam->getPosition(), 0.0);
 	return view;
 }
 
@@ -56,7 +59,7 @@ class ShaderConst
 		ubo_params->garbageCollect();
 	}
 
-	void write(CmdBuffer cmdBuf, ComputeCmd &cmd, VkExtent2D extent, FixedCamera cam, uint32_t frameIdx, std::vector<GVar *> gVars)
+	void write(CmdBuffer cmdBuf, ComputeCmd &cmd, VkExtent2D extent, Camera* cam, uint32_t frameIdx)
 	{
 		GLSLFrame ptFrame = defaultFrame(extent, frameIdx);
 		cmdWriteCopy(cmdBuf, ubo_frame, &ptFrame, sizeof(GLSLFrame));
@@ -68,6 +71,8 @@ class ShaderConst
 		cmdWriteCopy(cmdBuf, ubo_params, &params, sizeof(GLSLParams));
 	}
 };
+
+extern ShaderConst sConst;
 
 // see template.glsl
 
