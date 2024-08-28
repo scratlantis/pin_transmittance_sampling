@@ -10,13 +10,16 @@ ComparativePathTracer::ComparativePathTracer(float relativeWidth, float relative
 }
 
 
-void ComparativePathTracer::clearAccumulationTargets(CmdBuffer cmdBuf)
+void ComparativePathTracer::reset(CmdBuffer cmdBuf, PathTraceStrategy *pStrategieA, PathTraceStrategy *pStrategieB)
 {
 	cmdFill(cmdBuf, localAccumulationTargetA, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0));
 	cmdFill(cmdBuf, localAccumulationTargetB, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0));
+
+	this->pStrategieA = pStrategieA;
+	this->pStrategieB = pStrategieB;
 }
 
-void ComparativePathTracer::renderSplitView(CmdBuffer cmdBuf, PathTraceStrategy *pStrategieA, PathTraceStrategy *pStrategieB, Image target, float splittCoef, VkRect2D_OP targetArea, const RenderInfo &renderInfo)
+void ComparativePathTracer::render(CmdBuffer cmdBuf, const RenderInfo &renderInfo)
 {
 	// Render
 	pStrategieA->trace(cmdBuf, localTargetA, renderInfo);
@@ -28,9 +31,11 @@ void ComparativePathTracer::renderSplitView(CmdBuffer cmdBuf, PathTraceStrategy 
 	getCmdAccumulate(localTargetA, localAccumulationTargetA, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
 	getCmdAccumulate(localTargetB, localAccumulationTargetB, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
 
-
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+}
 
+void ComparativePathTracer::showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea)
+{
 	VkRect2D_OP srcAreaA = VkRect2D_OP(localAccumulationTargetA->getExtent2D());
 	srcAreaA.extent.width *= splittCoef;
 	VkRect2D_OP srcAreaB = VkRect2D_OP(localAccumulationTargetB->getExtent2D());
@@ -61,5 +66,12 @@ void ComparativePathTracer::renderSplitView(CmdBuffer cmdBuf, PathTraceStrategy 
 	{
 		getCmdNormalize(localAccumulationTargetB, target, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, srcAreaB, dstAreaB).exec(cmdBuf);
 	}
+}
+
+void ComparativePathTracer::showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea)
+{
+	getCmdNormalizeDiff(localAccumulationTargetA, localAccumulationTargetB, target,
+	                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VkRect2D_OP(localAccumulationTargetA->getExtent2D()), targetArea)
+	    .exec(cmdBuf);
 }
 

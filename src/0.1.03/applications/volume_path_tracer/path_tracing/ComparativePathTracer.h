@@ -32,13 +32,16 @@ class ComparativePathTracer
 
 	ShaderConst shaderConst{};
 
+	PathTraceStrategy *pStrategieA;
+	PathTraceStrategy *pStrategieB;
 
   public:
 	ComparativePathTracer() = default;
 	~ComparativePathTracer() = default;
 
-	void clearAccumulationTargets(CmdBuffer cmdBuf);
-	void renderSplitView(CmdBuffer cmdBuf, PathTraceStrategy *pStrategieA, PathTraceStrategy *pStrategieB, Image target,
-	                     float splittCoef, VkRect2D_OP targetArea, const RenderInfo &renderInfo);
+	void reset(CmdBuffer cmdBuf, PathTraceStrategy *pStrategieA, PathTraceStrategy *pStrategieB);
+	void render(CmdBuffer cmdBuf, const RenderInfo &renderInfo);
+	void showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea);
+	void showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
 	ComparativePathTracer(float relativeWidth, float relativeHeight);
 };

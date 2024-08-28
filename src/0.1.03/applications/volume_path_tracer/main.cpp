@@ -59,6 +59,14 @@ ReferencePathTracer 	 referencePathTracer  = ReferencePathTracer();
 PinPathTracer 			 pinPathTracer 		 = PinPathTracer();
 
 
+enum ViewType
+{
+	VIEW_TYPE_SPLIT,
+	VIEW_TYPE_DIFF
+};
+
+const uint32_t viewTypeCount = 2;
+
 int main()
 {
 	// Global State Initialization. See config.h for more details.
@@ -84,6 +92,7 @@ int main()
 	// Scene
 	FixedCamera cam = FixedCamera(DefaultFixedCameraCI());
 	uint32_t modelIndexLastFrame = 0;
+	uint32_t viewType = 0;
 	USceneData scene;
 	ModelInfo  model;
 
@@ -103,7 +112,6 @@ int main()
 	CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
 	ModelData cursorModel = gState.modelCache->fetch<GLSLVertex>(cmdBuf, cursor.path, 0);
 	executeImmediat(cmdBuf);
-
 
 	bool debugView = false;
 
@@ -138,20 +146,27 @@ int main()
 			scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
 			executeImmediat(cmdBuf);
 		}
-		
 		bool viewHasChanged = cam.keyControl(0.016);
 		if (gState.io.mouse.rightPressed)
 		{
 			viewHasChanged = viewHasChanged || cam.mouseControl(0.016);
 		}
-		
-		CmdBuffer  cmdBuf       = createCmdBuffer(gState.frame->stack);
-		Image      swapchainImg = getSwapchainImage();
-
 		if (gState.io.mouse.middleEvent && gState.io.mouse.middlePressed)
 		{
 			debugView = !debugView;
 		};
+		if (gState.io.keyPressedEvent[GLFW_KEY_E])
+		{
+			viewType = (viewType + 1) % viewTypeCount;
+		}
+		if (gState.io.keyPressedEvent[GLFW_KEY_Q])
+		{
+			viewType = (viewTypeCount + viewType - 1) % viewTypeCount;
+		}
+		
+		CmdBuffer  cmdBuf       = createCmdBuffer(gState.frame->stack);
+		Image      swapchainImg = getSwapchainImage();
+
 
 		// Update medium
 		GLSLMediumInstance mediumInstance{};
@@ -172,9 +187,9 @@ int main()
 		}
 
 		// Reset accumulation
-		if (cnt == 1 || viewHasChanged || gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && gState.io.mouse.pos.x < 0.2 * gState.io.extent.width)
+		if ( cnt <= 1 || viewHasChanged || gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && gState.io.mouse.pos.x < 0.2 * gState.io.extent.width)
 		{
-			pathTracer.clearAccumulationTargets(cmdBuf);
+			pathTracer.reset(cmdBuf, &referencePathTracer, &pinPathTracer);
 		}
 
 		if (gState.io.mouse.leftPressed && gState.io.mouse.pos.x > 0.2 * gState.io.extent.width)
@@ -196,7 +211,20 @@ int main()
 			renderInfo.pMediun              = &medium;
 			renderInfo.mediumInstanceBuffer = mediumInstanceBuffer;
 			renderInfo.pSceneData           = &scene;
-			pathTracer.renderSplitView(cmdBuf, &referencePathTracer, &pinPathTracer, swapchainImg, splitCoef, getScissorRect(0.2f, 0.f, 0.8f, 1.0f), renderInfo);
+			pathTracer.render(cmdBuf, renderInfo);
+
+			switch (viewType)
+			{
+				case VIEW_TYPE_SPLIT:
+					pathTracer.showSplitView(cmdBuf, swapchainImg, splitCoef, getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
+					break;
+				case VIEW_TYPE_DIFF:
+					pathTracer.showDiff(cmdBuf, swapchainImg, getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
+					break;
+				default:
+					break;
+			}
+			
 		}
 		// Rasterization for debugging
 		else

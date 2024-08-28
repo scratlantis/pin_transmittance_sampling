@@ -14,4 +14,5 @@ Image   cmdCreateDummyTexture(CmdBuffer cmdBuf, IResourcePool *pPool, VkExtent2D
 DrawCmd getCmdAccumulate(Image src, Image dst, VkImageLayout dstLayout);
 DrawCmd getCmdAccumulate(Image src, Image dst, VkImageLayout dstLayout, VkRect2D_OP srcArea, VkRect2D_OP dstArea);
 DrawCmd getCmdNormalize(Image src, Image dst, VkImageLayout dstLayout, VkRect2D_OP srcArea, VkRect2D_OP dstArea);
+DrawCmd getCmdNormalizeDiff(Image srcA, Image srcB, Image dst, VkImageLayout dstLayout, VkRect2D_OP srcArea, VkRect2D_OP dstArea);
 } // namespace vka

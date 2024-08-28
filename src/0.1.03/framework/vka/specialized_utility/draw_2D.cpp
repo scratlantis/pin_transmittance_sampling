@@ -111,4 +111,21 @@ DrawCmd getCmdNormalize(Image src, Image dst, VkImageLayout dstLayout, VkRect2D_
 	addShader(drawCmd.pipelineDef, cVkaShaderPath + "normalizeImg.frag");
 	return drawCmd;
 }
+
+DrawCmd getCmdNormalizeDiff(Image srcA, Image srcB, Image dst, VkImageLayout dstLayout, VkRect2D_OP srcArea, VkRect2D_OP dstArea)
+{
+	DrawCmd drawCmd = DrawCmd();
+	drawCmd.setGeometry(DrawSurface::screenFillingTriangle());
+	drawCmd.pushColorAttachment(dst, dstLayout);
+	drawCmd.pushDescriptor(srcA, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	drawCmd.pushDescriptor(srcB, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
+	VKA_ASSERT(srcA->getExtent2D().width == srcB->getExtent2D().width && srcA->getExtent2D().height == srcB->getExtent2D().height);
+	Rect2D<float> region = VkRect2D_OP::relRegion(VkRect2D_OP(srcA->getExtent2D()), srcArea);
+	drawCmd.pushConstant(&region, sizeof(Rect2D<float>), VK_SHADER_STAGE_FRAGMENT_BIT);
+	drawCmd.renderArea = dstArea;
+	addShader(drawCmd.pipelineDef, cVkaShaderPath + "fill_texture.vert");
+	addShader(drawCmd.pipelineDef, cVkaShaderPath + "normalizeDiff.frag");
+	return drawCmd;
+}
+
 }        // namespace vka
