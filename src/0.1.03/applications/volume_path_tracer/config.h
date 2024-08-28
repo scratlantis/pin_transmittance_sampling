@@ -12,6 +12,7 @@ enum GuiCategories
 	PERLIN_NOISE_SETTINGS = 1,
 	PIN_SETTINGS = 2,
 	VISUALIZATION_SETTINGS = 3,
+	METRICS = 4,
 };
 
 extern GVar     gvar_model;

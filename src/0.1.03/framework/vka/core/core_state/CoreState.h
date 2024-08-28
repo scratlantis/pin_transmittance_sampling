@@ -65,11 +65,12 @@ class CoreState
 	virtual void              destroy();
 
   private:
-	std::vector<Frame> frames;
 	void               initFrames();
 	void               destroyFrames();
 
 	DELETE_COPY_CONSTRUCTORS(CoreState);
+  protected:
+	std::vector<Frame> frames;
 };
 }
 

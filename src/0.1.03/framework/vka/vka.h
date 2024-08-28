@@ -5,6 +5,7 @@
 #include <vka/specialized_utility/gui.h>
 #include <vka/specialized_utility/draw_2D.h>
 #include <vka/specialized_utility/draw_3D.h>
+#include <vka/specialized_utility/image_metrics.h>
 #include <vka/core/stateless/utility/io.h>
 #include <vka/core/core_state/GlfwWindow.h>
 #include <vka/core/core_utility/cmd_buffer_utility.h>

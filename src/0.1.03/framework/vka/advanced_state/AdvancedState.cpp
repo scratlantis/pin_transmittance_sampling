@@ -27,6 +27,10 @@ void AdvancedState::destroy()
 		imguiWrapper->destroy();
 		guiEnabled = false;
 	};
+	for (auto &frame : frames)
+	{
+		frame.stack->clear();
+	}
 	heap->clear();
 	delete framebufferCache;
 	delete modelCache;

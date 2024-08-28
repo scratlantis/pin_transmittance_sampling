@@ -7,6 +7,10 @@ ComparativePathTracer::ComparativePathTracer(float relativeWidth, float relative
 	localAccumulationTargetA = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, relativeWidth, relativeHeight);
 	localAccumulationTargetB = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, relativeWidth, relativeHeight);
 	gState.updateSwapchainAttachments();
+
+	mseRes    = MSEComputeResources(VK_FORMAT_R32G32B32A32_SFLOAT, gState.heap);
+	mseBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_ONLY, sizeof(float));
+
 }
 
 
@@ -73,5 +77,13 @@ void ComparativePathTracer::showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP
 	getCmdNormalizeDiff(localAccumulationTargetA, localAccumulationTargetB, target,
 	                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VkRect2D_OP(localAccumulationTargetA->getExtent2D()), targetArea)
 	    .exec(cmdBuf);
+}
+
+float ComparativePathTracer::computeMSE(CmdBuffer cmdBuf)
+{
+	cmdComputeMSE(cmdBuf, localAccumulationTargetA, localAccumulationTargetB, mseBuffer, &mseRes);
+	//float* data = static_cast<float *>(mseBuffer->map());
+	float *data = static_cast<float *>(mseBuffer->map());
+	return *data;
 }
 

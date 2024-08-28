@@ -15,6 +15,7 @@ const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 
 GVar gvar_model = {"Model", 0, GVAR_ENUM, GENERAL, {"Cornell Box"}};
 GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, PERLIN_NOISE_SETTINGS, {16, 128}};
+GVar gvar_mse{"MSE: %.4f", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
 
 
 
@@ -40,6 +41,7 @@ std::vector<GVar *> gVars =
 		&gvar_cursor_pos_z,
 		&gvar_cursor_dir_phi,
 		&gvar_cursor_dir_theta,
+		&gvar_mse,
         // clang-format on
 };
 
@@ -98,6 +100,11 @@ int main()
 
 	// Path Tracer
 	ComparativePathTracer pathTracer = ComparativePathTracer(0.8, 1.0);
+
+
+	Buffer mseBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
+
+
 
 
 	// Persistent Resources:
@@ -224,6 +231,9 @@ int main()
 				default:
 					break;
 			}
+
+			// Compute MSE
+			//gvar_mse.val.v_float = pathTracer.computeMSE(cmdBuf);
 			
 		}
 		// Rasterization for debugging
@@ -246,7 +256,7 @@ int main()
 		}
 		// Add gui
 		{
-			gvar_gui::buildGui(gVars, {"General", "Noise Function", "Pin Settings"}, getScissorRect(0.f, 0.f, 0.2, 1.0));
+			gvar_gui::buildGui(gVars, {"General", "Noise Function", "Pins", "Visualization", "Metrics"}, getScissorRect(0.f, 0.f, 0.2, 1.0));
 			shader_console_gui::buildGui(getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
 			cmdRenderGui(cmdBuf, swapchainImg);
 		}

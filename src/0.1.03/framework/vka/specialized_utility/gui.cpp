@@ -111,6 +111,7 @@ void addGVar(GVar *gv)
 			break;
 		case GVAR_DISPLAY_VALUE:
 			ImGui::Text(gv->path.c_str(), gv->val.v_float);
+			//ImGui::Text(gv->path.c_str(),1.0);
 			break;
 		case GVAR_ENUM:
 			for (size_t i = 0; i < gv->set.list.size(); i++)
