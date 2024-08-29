@@ -334,7 +334,7 @@ void main()
 			}
 			else if( rMedium.rMin == MAX_FLOAT )
 			{
-				totalIllumination += vec3(0.3) * weight / pdf;
+				totalIllumination += vec3(0.4) * weight / pdf;
 				break;
 			}
 			else
@@ -348,7 +348,7 @@ void main()
 				}
 				else if( tMedium == MAX_FLOAT )
 				{
-					totalIllumination += vec3(0.3) * weight / pdf;
+					totalIllumination += vec3(0.4) * weight / pdf;
 					break;
 				}
 				else

@@ -55,8 +55,7 @@ void main()
 
 	for(uint i = 0; i < inputCount; i++)
 	{
-		//BUFFER_TYPE val = buf_in[i + gID * segmentSize];
-		BUFFER_TYPE val = buf_in[26];
+		BUFFER_TYPE val = buf_in[i + gID * segmentSize];
 		sum += val*denominator;
 	}
 

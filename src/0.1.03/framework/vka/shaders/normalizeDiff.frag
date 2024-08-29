@@ -31,10 +31,6 @@ void main()
 	vec4 colorB = texture(smpB,inUV*vec2(pc.width, pc.height)+vec2(pc.x,pc.y));
 
 
-	//outColor.a = 1.0;
-	//outColor.rgb = abs(colorA.rgb-colorB.rgb);
-	//return;
-
 	if(colorA.a == 0.0)
 	{
 		colorA.xyz = vec3(0.0);
@@ -43,7 +39,7 @@ void main()
 	{
 		colorA.xyz = colorA.xyz / colorA.a;
 	}
-
+	
 	if(colorB.a == 0.0)
 	{
 		colorB.xyz = vec3(0.0);
@@ -58,9 +54,11 @@ void main()
 	outColor.a = 1.0;
 	#if(DIFF_OP == DIFF_OP_COMPONENT_SUM_DIFF)
 	outColor.rgb = vec3(0.5 + -(colorA.r - colorB.r + colorA.g - colorB.g + colorA.b - colorB.b));
+	//outColor.rgb = colorA.rgb;
 	#elif(DIFF_OP == DIFF_OP_PER_COMPONENT_SQUARED_DIFF_SUM)
 	vec3 diff = colorA.rgb - colorB.rgb;
 	diff = diff * diff;
 	outColor.rgb = vec3(diff.x + diff.y + diff.z);
 	#endif
+	//outColor.rgb = vec3(colorB.r);
 }

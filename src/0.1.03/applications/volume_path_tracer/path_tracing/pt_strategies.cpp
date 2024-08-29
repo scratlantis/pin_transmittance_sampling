@@ -43,6 +43,8 @@ void ReferencePathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const Rende
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	computeCmd.exec(cmdBuf);
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+	//cmdFill(cmdBuf, localTarget, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(1.0));
 }
 
 void PinPathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo)

@@ -24,7 +24,21 @@ namespace vka
 		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
 
 		cmdCopyBuffer(cmdBuf, pMSEResources->mse, dst);
-	    //cmdFillBuffer(cmdBuf, dst, static_cast<uint32_t>(1.0f));
-	    //cmdFillBuffer(cmdBuf, dst, 1);
 	}
-}
+
+	void cmdComputeMSE2(CmdBuffer cmdBuf, Buffer dst, Image target, MSEComputeResources *pMSEResources)
+    {
+	    pMSEResources->update(target->getExtent2D());
+	    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+	    getCmdReduceVertical(target, pMSEResources->verticalAverage, 1, REDUCE_OP_AVERAGE).exec(cmdBuf);
+
+	    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+	    getCmdReduce(pMSEResources->verticalAverage, pMSEResources->mse, target->getExtent2D().height, REDUCE_OP_AVERAGE, REDUCE_VALUE_TYPE_FLOAT).exec(cmdBuf);
+
+	    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+
+	    cmdCopyBuffer(cmdBuf, pMSEResources->mse, dst);
+    }
+    }

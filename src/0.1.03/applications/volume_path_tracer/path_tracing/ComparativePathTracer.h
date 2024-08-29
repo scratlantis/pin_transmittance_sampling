@@ -24,6 +24,7 @@ class PathTraceStrategy
 class ComparativePathTracer
 {
 
+  public:
 	Image localTargetA;
 	Image localTargetB;
 
@@ -39,7 +40,6 @@ class ComparativePathTracer
 	MSEComputeResources mseRes;
 	Buffer              mseBuffer;
 
-  public:
 	ComparativePathTracer() = default;
 	~ComparativePathTracer() = default;
 
@@ -48,5 +48,6 @@ class ComparativePathTracer
 	void showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea);
 	void showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
 	float computeMSE(CmdBuffer cmdBuf);
+	float computeMSE2(CmdBuffer cmdBuf, Image target);
 	ComparativePathTracer(float relativeWidth, float relativeHeight);
 };

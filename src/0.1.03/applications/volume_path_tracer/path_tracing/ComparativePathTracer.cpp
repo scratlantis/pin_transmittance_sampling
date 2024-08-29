@@ -87,3 +87,11 @@ float ComparativePathTracer::computeMSE(CmdBuffer cmdBuf)
 	return *data;
 }
 
+float ComparativePathTracer::computeMSE2(CmdBuffer cmdBuf, Image target)
+{
+	cmdComputeMSE2(cmdBuf, mseBuffer, target, &mseRes);
+	// float* data = static_cast<float *>(mseBuffer->map());
+	float *data = static_cast<float *>(mseBuffer->map());
+	return *data;
+}
+

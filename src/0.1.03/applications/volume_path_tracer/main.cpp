@@ -15,7 +15,7 @@ const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 
 GVar gvar_model = {"Model", 0, GVAR_ENUM, GENERAL, {"Cornell Box"}};
 GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, PERLIN_NOISE_SETTINGS, {16, 128}};
-GVar gvar_mse{"MSE: %.4f", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
+GVar gvar_mse{"MSE : %.8f E-3", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
 
 
 
@@ -110,6 +110,7 @@ int main()
 	// Persistent Resources:
 	// HDR Images for path tracing
 	Image img_pt = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 0.8, 1.0);
+	Image img_debug = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL);
 	Image img_pt_accumulation = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 0.8, 1.0);
 	gState.updateSwapchainAttachments();
 	// Uniform Buffers
@@ -233,7 +234,13 @@ int main()
 			}
 
 			// Compute MSE
-			//gvar_mse.val.v_float = pathTracer.computeMSE(cmdBuf);
+			gvar_mse.val.v_float = 1000.0*pathTracer.computeMSE(cmdBuf);
+
+			//pathTracer.showDiff(cmdBuf, img_debug, getScissorRect(0.0f, 0.f, 1.0f, 1.0f));
+			//getCmdAdvancedCopy(img_debug, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			//                    VkRect2D_OP(img_debug->getExtent2D()), getScissorRect(0.2f, 0.f, 0.8f, 1.0f)).exec(cmdBuf);
+			//gvar_mse.val.v_float = pathTracer.computeMSE2(cmdBuf, img_debug);
+
 			
 		}
 		// Rasterization for debugging
