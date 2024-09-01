@@ -48,6 +48,5 @@ class ComparativePathTracer
 	void showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea);
 	void showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
 	float computeMSE(CmdBuffer cmdBuf);
-	float computeMSE2(CmdBuffer cmdBuf, Image target);
 	ComparativePathTracer(float relativeWidth, float relativeHeight);
 };

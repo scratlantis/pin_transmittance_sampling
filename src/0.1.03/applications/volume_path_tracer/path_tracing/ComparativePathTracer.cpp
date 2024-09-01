@@ -82,15 +82,6 @@ void ComparativePathTracer::showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP
 float ComparativePathTracer::computeMSE(CmdBuffer cmdBuf)
 {
 	cmdComputeMSE(cmdBuf, localAccumulationTargetA, localAccumulationTargetB, mseBuffer, &mseRes);
-	//float* data = static_cast<float *>(mseBuffer->map());
-	float *data = static_cast<float *>(mseBuffer->map());
-	return *data;
-}
-
-float ComparativePathTracer::computeMSE2(CmdBuffer cmdBuf, Image target)
-{
-	cmdComputeMSE2(cmdBuf, mseBuffer, target, &mseRes);
-	// float* data = static_cast<float *>(mseBuffer->map());
 	float *data = static_cast<float *>(mseBuffer->map());
 	return *data;
 }
