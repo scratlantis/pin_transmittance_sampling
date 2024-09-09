@@ -54,6 +54,16 @@ Ray reflectLampertDiffuse(MaterialData material, mat4x3 tangentFrame, inout uint
 	return ray;
 }
 
+vec3 lampertBRDF(vec3 Kd)
+{
+	return Kd / PI;
+}
+
+vec3 uniformScatterBSDF(vec3 Kd)
+{
+	return Kd / (4 * PI);
+}
+
 Ray scatterUniform(vec3 albedo, vec3 pos, inout uint seed, inout float pdf, inout vec3 weight)
 {
 	vec3 dir = sampleUniformSphere(vec2(unormNext(seed), unormNext(seed)));
@@ -67,5 +77,17 @@ Ray scatterUniform(vec3 albedo, vec3 pos, inout uint seed, inout float pdf, inou
 	ray.tmax = TMAX;
 	return ray;
 }
+
+
+vec3 sampleAreaLight(mat4x3 tangentFrame, VKAAreaLight light, inout uint seed, out float localPdf)
+{
+	vec2 xi = vec2(unormNext(seed), unormNext(seed));
+	vec2 bary = sampleTriangleBarycentrics(xi);
+	vec3 samplePos = bary.x * light.v0 + bary.y * light.v1 + (1.0 - bary.x - bary.y) * light.v2;
+	vec3 sampleDir = normalize(samplePos - tangentFrame[3]);
+	localPdf = distanceSquared(samplePos,tangentFrame[3]) / (triangleArea(light.v0, light.v1, light.v2) * absDot(light.normal, -sampleDir));
+	return samplePos;
+}
+
 
 #endif

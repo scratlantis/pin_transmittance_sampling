@@ -59,8 +59,8 @@ DrawCmd getCmdImageToImage(Image src, Image dst, VkImageLayout dstLayout, VkRect
 		drawCmd.pushColorAttachment(dst, dstLayout, colorBlendOp, alphaBlendOp);
 	}
 	drawCmd.pushDescriptor(src, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT);
-	//Rect2D<float> region = VkRect2D_OP::relRegion(dstArea, srcArea);
-	Rect2D<float> region = VkRect2D_OP::relRegion(srcArea, dstArea);
+	Rect2D<float> region = VkRect2D_OP::relRegion(dstArea, srcArea);
+	//Rect2D<float> region = VkRect2D_OP::relRegion(srcArea, dstArea);
 	drawCmd.pushConstant(&region, sizeof(Rect2D<float>), VK_SHADER_STAGE_FRAGMENT_BIT);
 	drawCmd.renderArea = dstArea;
 	addShader(drawCmd.pipelineDef, cVkaShaderPath + "fill_texture.vert");

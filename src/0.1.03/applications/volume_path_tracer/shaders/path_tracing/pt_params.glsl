@@ -19,3 +19,7 @@
 #endif
 
 #define PIN_MODE_FLAG_INDIRECT 0x1
+
+#ifndef AREA_LIGHT_COUNT
+#define AREA_LIGHT_COUNT 2
+#endif

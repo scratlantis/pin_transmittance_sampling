@@ -27,6 +27,13 @@ struct USceneInfo
 	bool useTextures  = false;
 };
 
+struct USceneInstanceData
+{
+	Buffer modelTransformBuffer;
+	Buffer tlasInstanceBuffer;
+};
+
+
 class USceneData
 {
   public:
@@ -36,7 +43,11 @@ class USceneData
 	Buffer             surfaceOffsetBuffer;
 	Buffer             materialBuffer;
 	Buffer             areaLightBuffer;
+
+
+	Buffer modelTransformBuffer;
 	TLAS               tlas;
+
 
 	std::vector<Image> textures;
 	Image              envMap;
@@ -56,7 +67,7 @@ class USceneData
 	}
 
 	// build tlas
-	void build(CmdBuffer cmdBuf, Buffer instanceBuffer);
+	void build(CmdBuffer cmdBuf, USceneInstanceData instanceBuffer);
 };
 
 enum SceneLoadFlags
@@ -97,7 +108,7 @@ class USceneBuilderBase
 	USceneData create(CmdBuffer cmdBuf, IResourcePool *pPool, uint32_t sceneLoadFlags);
 
 	// create and upload instance buffer
-	Buffer uploadInstanceData(CmdBuffer cmdBuf, IResourcePool *pPool);
+	USceneInstanceData uploadInstanceData(CmdBuffer cmdBuf, IResourcePool *pPool);
 
 	// set transform for model
 	void setTransform(std::string path, glm::mat4 transform);

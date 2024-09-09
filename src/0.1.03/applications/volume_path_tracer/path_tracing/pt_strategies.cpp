@@ -16,7 +16,7 @@ void ReferencePathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const Rende
 	computeCmd.pushDescriptor(localTarget, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
 	// Bind Scene
-	bind_block_10(computeCmd, *renderInfo.pSceneData);
+	bind_block_11(computeCmd, *renderInfo.pSceneData);
 
 	// Bind Medium
 	struct PushStruct
@@ -64,7 +64,7 @@ void PinPathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo 
 	computeCmd.pushDescriptor(localTarget, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
 	// Bind Scene
-	bind_block_10(computeCmd, *renderInfo.pSceneData);
+	bind_block_11(computeCmd, *renderInfo.pSceneData);
 
 	// Bind Medium
 	struct PushStruct

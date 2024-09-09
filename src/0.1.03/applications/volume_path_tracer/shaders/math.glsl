@@ -88,4 +88,22 @@ vec2 projectRaySegment(vec3 targetBegin, vec3 targetEnd, vec3 srcBegin, vec3 src
 
 }
 
+float triangleArea(vec3 a, vec3 b, vec3 c)
+{
+	vec3 ab = b - a;
+	vec3 ac = c - a;
+	return 0.5 * length(cross(ab, ac));
+}
+
+float distanceSquared(vec3 a, vec3 b)
+{
+	vec3 d = a - b;
+	return dot(d, d);
+}
+
+float absDot(vec3 a, vec3 b)
+{
+	return abs(dot(a, b));
+}
+
 #endif

@@ -12,7 +12,7 @@ struct VKAAreaLight
 {
 	// NEE select light source
 	vec3  center;
-	uint  padding1[1];
+	uint  modelIndex;
 
 	vec3  normal;
 	uint  padding2[1];
@@ -24,7 +24,7 @@ struct VKAAreaLight
 	uint  padding4[1];
 
 	vec3  v2;
-	float importance; // Area * intensity
+	float intensity; // Area * intensity
 
 };
 
