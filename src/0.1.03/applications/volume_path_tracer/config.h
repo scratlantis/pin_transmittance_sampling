@@ -34,6 +34,8 @@ extern GVar     gvar_cursor_pos_y;
 extern GVar     gvar_cursor_pos_z;
 extern GVar     gvar_cursor_dir_phi;
 extern GVar     gvar_cursor_dir_theta;
+extern GVar     gvar_min_pin_bounce;
+extern GVar     gvar_max_bounce;
 
 
 
@@ -170,9 +172,9 @@ struct DefaultParams : public Params
 	DefaultParams()
 	{
 		initialMediumMatrix  = glm::mat4(1.0f);
-		//initialMediumMatrix  = glm::translate(initialMediumMatrix, glm::vec3(-0.2,-0.2,-0.2));
-		initialMediumMatrix  = glm::translate(initialMediumMatrix, glm::vec3(-0.2,-0.2,-0.4));
-		initialMediumMatrix  = glm::scale(initialMediumMatrix, glm::vec3(0.32));
+		initialMediumMatrix  = glm::translate(initialMediumMatrix, glm::vec3(-0.2,-0.2,-0.2));
+		//initialMediumMatrix  = glm::translate(initialMediumMatrix, glm::vec3(-0.2,-0.2,-0.4));
+		initialMediumMatrix  = glm::scale(initialMediumMatrix, glm::vec3(0.3));
 		initialMediumAlbedo  = glm::vec3(1.0);
 		volumeResolution = 64;
 	}

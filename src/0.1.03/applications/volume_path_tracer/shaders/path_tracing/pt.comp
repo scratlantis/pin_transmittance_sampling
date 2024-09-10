@@ -28,19 +28,19 @@ layout(binding = 15) uniform sampler3D volSmp;
 layout(binding = 16) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
 
 #ifdef USE_PINS
+
 layout(binding = 17) readonly buffer PIN_GRID {GLSLPinGridEntry pinGrid[];};
 layout(binding = 18) readonly buffer PIN_TRANSMITTANCE { float pinTransmittance[];};
-
-
-
 #ifndef PIN_MODE
-#define PIN_MODE PIN_MODE_FLAG_INDIRECT
-#endif
+#define PIN_MODE PIN_MODE_FLAG_DIRECT
 #endif
 
-#ifndef PIN_MODE
+#else
+
+#undef PIN_MODE
 #define PIN_MODE 0
 #endif
+
 
 #define PATH_TERMINATED_ZERO 0
 #define PATH_TERMINATED_INFINITY 1
@@ -173,10 +173,15 @@ float samplePin(vec3 origin, vec3 destination, GLSLPinGridEntry gridEntry)
 
 	vec2 sampleValue = mix(leftSampleValue, rightSampleValue, uv);
 	float cumulativDensity = abs(sampleValue.x - sampleValue.y);
-	cumulativDensity*=distance(pinOrigin, pinDestination);
-	cumulativDensity /= min(dot(pinDirection, direction), 0.01);
-	float transmittance = exp(-cumulativDensity);
 
+	float coef = distance(origin, destination)/distance(pinOrigin, pinDestination);
+	cumulativDensity *= coef;
+	//cumulativDensity = exp(-cumulativDensity);
+
+	//cumulativDensity*=distance(pinOrigin, pinDestination);//civ
+	//cumulativDensity /= min(dot(pinDirection, direction), 0.01);
+
+	float transmittance = exp(-cumulativDensity);
 	return transmittance;
 }
 
@@ -213,6 +218,14 @@ float pinMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint s
 	}
 	return MAX_FLOAT;
 }
+
+float pinEvalTransmittance(vec3 origin, vec3 direction, float segmentLenght, inout uint seed)
+{
+	vec3 destination = origin + direction * segmentLenght;
+	GLSLPinGridEntry pinGridEntry = selectPin(origin, direction, segmentLenght, seed);
+	return samplePin(origin, destination, pinGridEntry);
+}
+
 #endif
 
 // return step size
@@ -348,7 +361,20 @@ float traceMediumTransmittance(Ray ray, Range range, inout uint seed, uint bounc
 	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
 	float localTMax = distance(localOrigin, localExit);
 
-	float transmittance = rayMarcheMediumTransmittance(localOrigin, localDir, localTMax, seed);
+	float transmittance;
+	#if((PIN_MODE & PIN_MODE_FLAG_DIRECT) != 0)
+	if(bounce >= MIN_PIN_BOUNCE)
+	{
+		transmittance = pinEvalTransmittance(localOrigin, localDir, localTMax, seed);
+	}
+	else
+	{
+		transmittance = rayMarcheMediumTransmittance(localOrigin, localDir, localTMax, seed);
+	}
+	#else
+	transmittance = rayMarcheMediumTransmittance(localOrigin, localDir, localTMax, seed);
+	#endif
+
 	return transmittance;
 }
 
@@ -484,13 +510,14 @@ uint nextBounce(
 	return PATH_TERMINATED_ZERO;
 }
 
+
 #ifndef OLD_NO_DIRECT_ILLUM
 void main()
 {
 	COMPUTE_SHADER_CHECK_ID_FRAME
 	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width + frame.width*frame.height*frame.idx;
 	vec3 totalIllumination = vec3(0.0);
-	imageStore(colorOut, gID.xy, vec4(vec3(0.0), 1.0));return;
+	
 	for(uint j = 0; j < SAMPLE_COUNT; j++)
 	{
 		float pdf = 1.0;
@@ -507,7 +534,8 @@ void main()
 			mat4x3 tangentFrame;
 
 			uint pathState = nextBounce(ray, seed, pdf, weight, hitData, matData, tangentFrame, i);
-			uint localSeed = 42;
+
+
 			if(pathState == PATH_TERMINATED_ZERO)
 			{
 				break;
@@ -523,18 +551,19 @@ void main()
 				if(i == 0)
 				{
 					Le = matData.emission;
-					//Le = abs(tangentFrame[3]);
 				}
-				//Le = vec3(0.2);
-
 				vec3 wi;
 				vec3 Li = sampleDirectIllum(ray.origin, wi, seed, i);
 				vec3 brdf = lampertBRDF(matData.albedo);
 				float cosTheta = max(0.0, dot(tangentFrame[2], wi));
 				vec3 Lo = Le + brdf * Li * cosTheta;
-			
+
 				totalIllumination += coef * Lo;
-				//totalIllumination += coef*Le;
+				//totalIllumination +=  matData.emission * coef;
+
+
+
+
 			}
 			else if(pathState == PATH_MEDIUM_SCATTER)
 			{
@@ -553,7 +582,6 @@ void main()
 	imageStore(colorOut, gID.xy, vec4(totalIllumination, 1.0));
 }
 #else
-
 void main()
 {
 	COMPUTE_SHADER_CHECK_ID_FRAME
@@ -601,7 +629,7 @@ void main()
 				vec3 Lo = Le + brdf * Li * cosTheta;
 
 				//totalIllumination += coef * Lo;
-				//totalIllumination +=  matData.emission * coef;
+				totalIllumination +=  matData.emission * coef;
 
 
 

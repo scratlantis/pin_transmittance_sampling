@@ -20,11 +20,18 @@
 #endif
 
 #define PIN_MODE_FLAG_INDIRECT 0x1
+#define PIN_MODE_FLAG_DIRECT 0x2
+
+#ifndef MIN_PIN_BOUNCE
+#define MIN_PIN_BOUNCE 1
+#endif
+
 
 #ifndef AREA_LIGHT_COUNT
 #define AREA_LIGHT_COUNT 2
 #endif
 
 #ifndef BACKGROUND_LIGHTING
-#define BACKGROUND_LIGHTING (vec3(1.0, 0.8, 0.2) * 3.0)
+//#define BACKGROUND_LIGHTING (vec3(1.0, 0.8, 0.2) * 3.0)
+#define BACKGROUND_LIGHTING (vec3(1.0, 1.0, 1.0) * 0.2)
 #endif

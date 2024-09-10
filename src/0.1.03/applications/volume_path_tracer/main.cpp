@@ -13,7 +13,7 @@ const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 
 // Gui variable
 
-GVar gvar_model = {"Model", 1, GVAR_ENUM, GENERAL, std::vector<std::string>{"Cornell Box", "Sponza"}};
+GVar gvar_model = {"Model", 0, GVAR_ENUM, GENERAL, std::vector<std::string>{"Cornell Box", "Sponza"}};
 GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, PERLIN_NOISE_SETTINGS, {16, 128}};
 GVar gvar_mse{"MSE : %.8f E-3", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
 
@@ -42,6 +42,8 @@ std::vector<GVar *> gVars =
 		&gvar_cursor_dir_phi,
 		&gvar_cursor_dir_theta,
 		&gvar_mse,
+		&gvar_min_pin_bounce,
+		&gvar_max_bounce,
         // clang-format on
 };
 
@@ -199,8 +201,8 @@ int main()
 		// Reset accumulation
 		if ( cnt <= 1 || viewHasChanged || gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && gState.io.mouse.pos.x < 0.2 * gState.io.extent.width)
 		{
-			//pathTracer.reset(cmdBuf, &referencePathTracer, &pinPathTracer);
-			pathTracer.reset(cmdBuf, &referencePathTracer, &oldReferencePathTracer);
+			pathTracer.reset(cmdBuf, &referencePathTracer, &pinPathTracer);
+			//pathTracer.reset(cmdBuf, &referencePathTracer, &oldReferencePathTracer);
 			//pathTracer.reset(cmdBuf, &referencePathTracer, &referencePathTracer);
 		}
 
