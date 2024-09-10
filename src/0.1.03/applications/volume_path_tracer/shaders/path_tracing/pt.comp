@@ -301,6 +301,7 @@ void evalHit(inout MaterialData matData, inout mat4x3 tangentFrame, HitData hitD
 	GLSLMaterial mat = materials[modelOffset.firstSurface + hitData.geometryID];
 	// Add texture reads later
 	matData.albedo = mat.albedo;
+	//matData.albedo = vec3(0.5);
 	matData.specular = mat.specular;
 	matData.emission = 20.0 * mat.emission;
 	matData.roughness = mat.roughness;
@@ -354,7 +355,7 @@ float traceMediumTransmittance(Ray ray, Range range, inout uint seed, uint bounc
 
 
 
-VKAAreaLight selectAreaLight(mat4x3 tangentFrame, inout uint seed, out float localPdf)
+VKAAreaLight selectAreaLight(inout uint seed, out float localPdf)
 {
 	VKAAreaLight areaLight;
 	uint lightIdx = uint(AREA_LIGHT_COUNT * unormNext(seed));
@@ -364,22 +365,25 @@ VKAAreaLight selectAreaLight(mat4x3 tangentFrame, inout uint seed, out float loc
 	areaLight.v0 = vec3(transform*vec4(areaLight.v0, 1.0));
 	areaLight.v1 = vec3(transform*vec4(areaLight.v1, 1.0));
 	areaLight.v2 = vec3(transform*vec4(areaLight.v2, 1.0));
-	areaLight.normal = vec3(transform*vec4(areaLight.normal, 0.0));
-	return areaLights[lightIdx];
+	areaLight.normal = normalize(vec3(transform*vec4(areaLight.normal, 0.0)));
+	return areaLight;
 }
 
-Ray genDirectIllumRay(mat4x3 tangentFrame, inout uint seed, out float localPdf, out vec3 localWeight)
+Ray genDirectIllumRay(vec3 pos, inout uint seed, out float localPdf, out vec3 localWeight)
 {
 	float selectionPDF, samplePDF;
-	VKAAreaLight areaLight = selectAreaLight(tangentFrame, seed, selectionPDF);
-	vec3 samplePos  = sampleAreaLight(tangentFrame, areaLight, seed, samplePDF);
+	VKAAreaLight areaLight = selectAreaLight(seed, selectionPDF);
+	vec3 samplePos  = sampleAreaLight(pos, areaLight, seed, samplePDF);
+
+
 	localPdf = selectionPDF * samplePDF;
-	localWeight = vec3(areaLight.intensity);
+
+	localWeight = vec3(areaLight.intensity * 10.0);
 	Ray ray;
-	ray.origin = tangentFrame[3];
+	ray.origin = pos;
 	ray.direction = normalize(samplePos-ray.origin);
 	ray.tmin = TMIN;
-	ray.tmax = TMAX;
+	ray.tmax = distance(samplePos, ray.origin)-TMIN;
 	return ray;
 }
 
@@ -421,11 +425,11 @@ float traceTransmittance(Ray ray, inout uint seed, uint bounce)
 	return geomTransmittance * mediumTransmittance;
 }
 
-vec3 sampleDirectIllum(mat4x3 tangentFrame, inout vec3 direction, inout uint seed, uint bounce)
+vec3 sampleDirectIllum(vec3 pos, inout vec3 direction, inout uint seed, uint bounce)
 {
 	float localPdf;
 	vec3 localWeight;
-	Ray ray = genDirectIllumRay(tangentFrame, seed, localPdf, localWeight);
+	Ray ray = genDirectIllumRay(pos, seed, localPdf, localWeight);
 	direction = ray.direction;
 	if(localPdf < EPSILON)
 	{
@@ -447,6 +451,7 @@ uint nextBounce(
 	float tMedium = MAX_FLOAT;
 	Range rMedium = traceMediumConservative(ray);
 	rMedium.rMax = min(rMedium.rMax, tGeom);
+	//rMedium.rMin = MAX_FLOAT;//debug
 	if(tGeom < rMedium.rMin)
 	{
 		evalHit(matData, tangentFrame, hitData);
@@ -479,18 +484,88 @@ uint nextBounce(
 	return PATH_TERMINATED_ZERO;
 }
 
+#ifndef OLD_NO_DIRECT_ILLUM
 void main()
 {
 	COMPUTE_SHADER_CHECK_ID_FRAME
 	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width + frame.width*frame.height*frame.idx;
 	vec3 totalIllumination = vec3(0.0);
-	uint N = 0; // Number of light paths
+	imageStore(colorOut, gID.xy, vec4(vec3(0.0), 1.0));return;
+	for(uint j = 0; j < SAMPLE_COUNT; j++)
+	{
+		float pdf = 1.0;
+		vec3 weight = vec3(1.0);
+		Ray ray = genPrimaryRay(frame, view, gl_GlobalInvocationID.xy, seed);
+
+
+		for(uint i = 0; i < MAX_BOUNCES; i++)
+		{
+			vec3 coef = weight / pdf;
+
+			HitData hitData;
+			MaterialData matData;
+			mat4x3 tangentFrame;
+
+			uint pathState = nextBounce(ray, seed, pdf, weight, hitData, matData, tangentFrame, i);
+			uint localSeed = 42;
+			if(pathState == PATH_TERMINATED_ZERO)
+			{
+				break;
+			}
+			else if(pathState == PATH_TERMINATED_INFINITY)
+			{
+				totalIllumination += BACKGROUND_LIGHTING * coef; // Replace with envmap
+				break;
+			}
+			else if(pathState == PATH_SURFACE_SCATTER) 
+			{
+				vec3 Le = vec3(0.0); // Emission from light sources collected via NEE
+				if(i == 0)
+				{
+					Le = matData.emission;
+					//Le = abs(tangentFrame[3]);
+				}
+				//Le = vec3(0.2);
+
+				vec3 wi;
+				vec3 Li = sampleDirectIllum(ray.origin, wi, seed, i);
+				vec3 brdf = lampertBRDF(matData.albedo);
+				float cosTheta = max(0.0, dot(tangentFrame[2], wi));
+				vec3 Lo = Le + brdf * Li * cosTheta;
+			
+				totalIllumination += coef * Lo;
+				//totalIllumination += coef*Le;
+			}
+			else if(pathState == PATH_MEDIUM_SCATTER)
+			{
+				vec3 Le = vec3(0.0); // No emission from medium
+				vec3 wi;
+				vec3 Li = sampleDirectIllum(ray.origin, wi, seed, i);
+				vec3 volumeBSDF = uniformScatterBSDF(volInst.albedo);
+				vec3 Lo = Le + volumeBSDF * Li;
+				totalIllumination += coef * Lo;
+			}
+		}
+	}
+
+	totalIllumination /= float(SAMPLE_COUNT);
+
+	imageStore(colorOut, gID.xy, vec4(totalIllumination, 1.0));
+}
+#else
+
+void main()
+{
+	COMPUTE_SHADER_CHECK_ID_FRAME
+	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width + frame.width*frame.height*frame.idx;
+	vec3 totalIllumination = vec3(0.0);
 	
 	for(uint j = 0; j < SAMPLE_COUNT; j++)
 	{
 		float pdf = 1.0;
 		vec3 weight = vec3(1.0);
 		Ray ray = genPrimaryRay(frame, view, gl_GlobalInvocationID.xy, seed);
+
 
 		for(uint i = 0; i < MAX_BOUNCES; i++)
 		{
@@ -502,108 +577,50 @@ void main()
 
 			uint pathState = nextBounce(ray, seed, pdf, weight, hitData, matData, tangentFrame, i);
 
+
 			if(pathState == PATH_TERMINATED_ZERO)
 			{
 				break;
 			}
 			else if(pathState == PATH_TERMINATED_INFINITY)
 			{
-				totalIllumination += vec3(0.4) * coef; // Replace with envmap
-				N++;
+				totalIllumination += BACKGROUND_LIGHTING * coef; // Replace with envmap
 				break;
 			}
 			else if(pathState == PATH_SURFACE_SCATTER) 
 			{
 				vec3 Le = vec3(0.0); // Emission from light sources collected via NEE
+				if(i == 0)
+				{
+					Le = matData.emission;
+				}
 				vec3 wi;
-				vec3 Li = sampleDirectIllum(tangentFrame, wi, seed, i);
+				vec3 Li = sampleDirectIllum(ray.origin, wi, seed, i);
 				vec3 brdf = lampertBRDF(matData.albedo);
 				float cosTheta = max(0.0, dot(tangentFrame[2], wi));
 				vec3 Lo = Le + brdf * Li * cosTheta;
 
-				totalIllumination += coef * Lo;
-				N++;
+				//totalIllumination += coef * Lo;
+				//totalIllumination +=  matData.emission * coef;
+
+
+
+
 			}
 			else if(pathState == PATH_MEDIUM_SCATTER)
 			{
 				vec3 Le = vec3(0.0); // No emission from medium
 				vec3 wi;
-				vec3 Li = sampleDirectIllum(tangentFrame, wi, seed, i);
+				vec3 Li = sampleDirectIllum(ray.origin, wi, seed, i);
 				vec3 volumeBSDF = uniformScatterBSDF(volInst.albedo);
 				vec3 Lo = Le + volumeBSDF * Li;
-
-				totalIllumination += coef * Lo;
-				N++;
+				//totalIllumination += coef * Lo;
 			}
 		}
 	}
-	if(N > 1)
-	{
-		totalIllumination /= float(N);
-	}
-	imageStore(colorOut, gID.xy, vec4(totalIllumination, 1.0));
-}
 
-
-
-
-
-/*
-void main()
-{
-	COMPUTE_SHADER_CHECK_ID_FRAME
-	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width + frame.width*frame.height*frame.idx;
-	HitData hitData;
-	MaterialData matData;
-	mat4x3 tangentFrame;
-	vec3 totalIllumination = vec3(0.0);
-
-	
-	for(uint j = 0; j < SAMPLE_COUNT; j++)
-	{
-		float pdf = 1.0;
-		vec3 weight = vec3(1.0);
-		Ray ray = genPrimaryRay(frame, view, gl_GlobalInvocationID.xy, seed);
-
-		for(uint i = 0; i < MAX_BOUNCES; i++)
-		{
-			float tGeom = traceGeometry(ray, hitData);
-			float tMedium = MAX_FLOAT;
-			Range rMedium = traceMediumConservative(ray);
-			rMedium.rMax = min(rMedium.rMax, tGeom);
-			if(tGeom < rMedium.rMin)
-			{
-				evalHit(matData, tangentFrame, hitData);
-				totalIllumination += matData.emission * weight / pdf;
-				ray = reflectLampertDiffuse(matData, tangentFrame, seed, pdf, weight);
-			}
-			else if( rMedium.rMin == MAX_FLOAT )
-			{
-				totalIllumination += vec3(0.4) * weight / pdf;
-				break;
-			}
-			else
-			{
-				tMedium = traceMedium(ray, rMedium, seed, i);
-				if(tGeom < tMedium)
-				{
-					evalHit(matData, tangentFrame, hitData);
-					totalIllumination += matData.emission * weight / pdf;
-					ray = reflectLampertDiffuse(matData, tangentFrame, seed, pdf, weight);
-				}
-				else if( tMedium == MAX_FLOAT )
-				{
-					totalIllumination += vec3(0.4) * weight / pdf;
-					break;
-				}
-				else
-				{
-					ray = scatterUniform(volInst.albedo, ray.origin + tMedium * ray.direction, seed, pdf, weight);
-				}
-			}
-		}
-	}
 	totalIllumination /= float(SAMPLE_COUNT);
+
 	imageStore(colorOut, gID.xy, vec4(totalIllumination, 1.0));
 }
-*/
+#endif

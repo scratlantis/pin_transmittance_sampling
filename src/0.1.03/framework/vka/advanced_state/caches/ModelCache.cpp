@@ -85,7 +85,7 @@ bool ModelCache::loadObj(std::string path, std::vector<ObjVertex> &vertexList, s
 		VKA_ASSERT(!shape.mesh.material_ids.empty());
 		uint32_t matId = shape.mesh.material_ids[0];
 		
-		IF_VALIDATION(
+		/*IF_VALIDATION(
 		bool multiMat = false;
 		for (auto &id : shape.mesh.material_ids) {
 			if (id != matId)
@@ -93,8 +93,17 @@ bool ModelCache::loadObj(std::string path, std::vector<ObjVertex> &vertexList, s
 				multiMat = true;
 				break;
 			}
-		})
-		VKA_ASSERT(!multiMat);
+		})*/
+		/*bool multiMat = false;
+		for (auto &id : shape.mesh.material_ids)
+		{
+			if (id != matId)
+			{
+				multiMat = true;
+				break;
+			}
+		}
+		VKA_ASSERT(!multiMat);*/
 
 		WavefrontMaterial surface{};
 		if (matId != -1)
@@ -117,6 +126,10 @@ bool ModelCache::loadObj(std::string path, std::vector<ObjVertex> &vertexList, s
 			surface.dissolve         = mat.dissolve;
 			surface.ior              = mat.ior;
 			surface.normalMap        = mat.normal_texname;
+		}
+		else
+		{
+			surface.diffuse          = glm::vec3(0.5);
 		}
 		surfaceList.push_back(surface);
 	}

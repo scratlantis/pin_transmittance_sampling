@@ -57,17 +57,25 @@ void ComparativePathTracer::showSplitView(CmdBuffer cmdBuf, Image target, float 
 	dstAreaB.extent.width -= 1;
 	dstAreaB.offset.x += 1;
 
+	
+
 	if (dstAreaB.extent.width == 0 || srcAreaB.extent.width == 0)
 	{
 		getCmdNormalize(localAccumulationTargetA, target, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, srcAreaA, dstAreaA).exec(cmdBuf);
 	}
 	else if (dstAreaA.extent.width > 0 && srcAreaA.extent.width > 0)
 	{
+		srcAreaA.extent.width -= 1;
+		srcAreaB.extent.width -= 1;
+		srcAreaB.offset.x += 1;
+
 		getCmdNormalize(localAccumulationTargetA, target, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, srcAreaA, dstAreaA).exec(cmdBuf);
 		getCmdNormalize(localAccumulationTargetB, target, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, srcAreaB, dstAreaB).exec(cmdBuf);
 	}
 	else
 	{
+		srcAreaB.extent.width -= 1;
+		srcAreaB.offset.x += 1;
 		getCmdNormalize(localAccumulationTargetB, target, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, srcAreaB, dstAreaB).exec(cmdBuf);
 	}
 }

@@ -1,9 +1,10 @@
 #ifndef MAX_BOUNCES
-#define MAX_BOUNCES 16
+#define MAX_BOUNCES 8
+//#define MAX_BOUNCES 2
 #endif
 
 #ifndef SAMPLE_COUNT
-#define SAMPLE_COUNT 2
+#define SAMPLE_COUNT 1
 #endif
 
 #ifndef TMIN
@@ -22,4 +23,8 @@
 
 #ifndef AREA_LIGHT_COUNT
 #define AREA_LIGHT_COUNT 2
+#endif
+
+#ifndef BACKGROUND_LIGHTING
+#define BACKGROUND_LIGHTING (vec3(1.0, 0.8, 0.2) * 3.0)
 #endif

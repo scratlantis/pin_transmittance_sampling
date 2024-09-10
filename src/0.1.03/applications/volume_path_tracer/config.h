@@ -170,8 +170,9 @@ struct DefaultParams : public Params
 	DefaultParams()
 	{
 		initialMediumMatrix  = glm::mat4(1.0f);
-		initialMediumMatrix  = glm::translate(initialMediumMatrix, glm::vec3(-0.2,-0.2,-0.2));
-		initialMediumMatrix  = glm::scale(initialMediumMatrix, glm::vec3(0.3));
+		//initialMediumMatrix  = glm::translate(initialMediumMatrix, glm::vec3(-0.2,-0.2,-0.2));
+		initialMediumMatrix  = glm::translate(initialMediumMatrix, glm::vec3(-0.2,-0.2,-0.4));
+		initialMediumMatrix  = glm::scale(initialMediumMatrix, glm::vec3(0.32));
 		initialMediumAlbedo  = glm::vec3(1.0);
 		volumeResolution = 64;
 	}

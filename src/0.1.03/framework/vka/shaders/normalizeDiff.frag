@@ -54,6 +54,7 @@ void main()
 	outColor.a = 1.0;
 	#if(DIFF_OP == DIFF_OP_COMPONENT_SUM_DIFF)
 	outColor.rgb = vec3(0.5 + -(colorA.r - colorB.r + colorA.g - colorB.g + colorA.b - colorB.b));
+	outColor.rgb = vec3(distance(colorA, colorB))*1.0;
 	//outColor.rgb = colorA.rgb;
 	#elif(DIFF_OP == DIFF_OP_PER_COMPONENT_SQUARED_DIFF_SUM)
 	vec3 diff = colorA.rgb - colorB.rgb;

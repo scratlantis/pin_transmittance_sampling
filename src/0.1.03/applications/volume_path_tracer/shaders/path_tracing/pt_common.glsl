@@ -79,13 +79,15 @@ Ray scatterUniform(vec3 albedo, vec3 pos, inout uint seed, inout float pdf, inou
 }
 
 
-vec3 sampleAreaLight(mat4x3 tangentFrame, VKAAreaLight light, inout uint seed, out float localPdf)
+vec3 sampleAreaLight(vec3 pos, VKAAreaLight light, inout uint seed, out float localPdf)
 {
 	vec2 xi = vec2(unormNext(seed), unormNext(seed));
 	vec2 bary = sampleTriangleBarycentrics(xi);
 	vec3 samplePos = bary.x * light.v0 + bary.y * light.v1 + (1.0 - bary.x - bary.y) * light.v2;
-	vec3 sampleDir = normalize(samplePos - tangentFrame[3]);
-	localPdf = distanceSquared(samplePos,tangentFrame[3]) / (triangleArea(light.v0, light.v1, light.v2) * absDot(light.normal, -sampleDir));
+	vec3 sampleDir = normalize(samplePos - pos);
+	float dist = distance(samplePos, pos);
+	//dist = clamp(dist, 0.005, 100.0);
+	localPdf = dist*dist / (triangleArea(light.v0, light.v1, light.v2) * absDot(light.normal, -sampleDir));
 	return samplePos;
 }
 

@@ -13,7 +13,7 @@ const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 
 // Gui variable
 
-GVar gvar_model = {"Model", 0, GVAR_ENUM, GENERAL, {"Cornell Box"}};
+GVar gvar_model = {"Model", 1, GVAR_ENUM, GENERAL, std::vector<std::string>{"Cornell Box", "Sponza"}};
 GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, PERLIN_NOISE_SETTINGS, {16, 128}};
 GVar gvar_mse{"MSE : %.8f E-3", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
 
@@ -50,7 +50,8 @@ ShaderConst sConst{};
 // Models
 ModelInfo cursor = {"arrow_cursor/arrow_cursor.obj", vec3(0.0, 0.0, 0.0), 0.05, vec3(0.0, 0.0, 0.0)};
 ModelInfo cornellBox = {"cornell_box/cornell_box.obj", vec3(0,0.2,-0.3), 0.1, vec3(0.0,180.0,0.0)};
-std::vector<ModelInfo>    models               = {cornellBox};
+ModelInfo sponza = {"sponza/sponza_v2.obj", vec3(0.0,0.2,-0.3), 0.1, vec3(0.0,180.0,0.0)};
+std::vector<ModelInfo> models     = {cornellBox, sponza};
 // Medium Strategies
 PerlinVolume              perlinVolume         = PerlinVolume();
 UniformPinGenerator       pinGenerator         = UniformPinGenerator();
@@ -58,6 +59,7 @@ ArrayTransmittanceEncoder transmittanceEncoder = ArrayTransmittanceEncoder();
 PinGridGenerator          pinGridGenerator     = PinGridGenerator();
 // Path Trace Strategies
 ReferencePathTracer 	 referencePathTracer  = ReferencePathTracer();
+OldReferencePathTracer oldReferencePathTracer = OldReferencePathTracer();
 PinPathTracer 			 pinPathTracer 		 = PinPathTracer();
 
 
@@ -197,7 +199,9 @@ int main()
 		// Reset accumulation
 		if ( cnt <= 1 || viewHasChanged || gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && gState.io.mouse.pos.x < 0.2 * gState.io.extent.width)
 		{
-			pathTracer.reset(cmdBuf, &referencePathTracer, &pinPathTracer);
+			//pathTracer.reset(cmdBuf, &referencePathTracer, &pinPathTracer);
+			pathTracer.reset(cmdBuf, &referencePathTracer, &oldReferencePathTracer);
+			//pathTracer.reset(cmdBuf, &referencePathTracer, &referencePathTracer);
 		}
 
 		if (gState.io.mouse.leftPressed && gState.io.mouse.pos.x > 0.2 * gState.io.extent.width)
@@ -235,13 +239,6 @@ int main()
 
 			// Compute MSE
 			gvar_mse.val.v_float = 1000.0*pathTracer.computeMSE(cmdBuf);
-
-			//pathTracer.showDiff(cmdBuf, img_debug, getScissorRect(0.0f, 0.f, 1.0f, 1.0f));
-			//getCmdAdvancedCopy(img_debug, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			//                    VkRect2D_OP(img_debug->getExtent2D()), getScissorRect(0.2f, 0.f, 0.8f, 1.0f)).exec(cmdBuf);
-			//gvar_mse.val.v_float = pathTracer.computeMSE2(cmdBuf, img_debug);
-
-			
 		}
 		// Rasterization for debugging
 		else
