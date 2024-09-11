@@ -110,7 +110,7 @@ void ArrayTransmittanceEncoder::computeTransmittance(CmdBuffer cmdBuf, BufferRef
 	cmd.exec(cmdBuf);
 }
 
-GVar gvar_pin_count_per_grid_cell{"Pins per grid cell", 64, GVAR_UINT_RANGE, PIN_SETTINGS, {16, 128}};
+GVar gvar_pin_count_per_grid_cell{"Pins per grid cell", 64, GVAR_UINT_RANGE, PIN_SETTINGS, {1, 128}};
 GVar gvar_pin_grid_size{"Pin grid size", 16, GVAR_UINT_RANGE, PIN_SETTINGS, {4, 32}};
 
 bool PinGridGenerator::requiresUpdate()

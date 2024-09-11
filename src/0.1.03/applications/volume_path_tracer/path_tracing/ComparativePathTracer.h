@@ -2,6 +2,7 @@
 #include "config.h"
 #include "medium/Medium.h"
 #include "shader_interface.h"
+#include "TimeQueryManager.h"
 
 struct RenderInfo
 {
@@ -40,6 +41,9 @@ class ComparativePathTracer
 	MSEComputeResources mseRes;
 	Buffer              mseBuffer;
 
+	TimeQueryManager tqManager;
+	bool timeQueryFinished = true;
+
 	ComparativePathTracer() = default;
 	~ComparativePathTracer() = default;
 
@@ -49,4 +53,5 @@ class ComparativePathTracer
 	void showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
 	float computeMSE(CmdBuffer cmdBuf);
 	ComparativePathTracer(float relativeWidth, float relativeHeight);
+	void destroy();
 };

@@ -2,6 +2,7 @@
 
 GVar gvar_min_pin_bounce{"Min pin bounce", 1, GVAR_UINT_RANGE, PIN_SETTINGS, {0, 16}};
 GVar gvar_max_bounce{"Max bounces", 8, GVAR_UINT_RANGE, PIN_SETTINGS, {1, 16}};
+GVar gvar_raymarche_step_size{"Raymarche step size", 0.1f, GVAR_FLOAT_RANGE, PIN_SETTINGS, {0.05f, 0.3f}};
 
 void ReferencePathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo)
 {
@@ -10,6 +11,7 @@ void ReferencePathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const Rende
 	                                   {
 	                                       {"FORMAT1", getGLSLFormat(localTarget->getFormat())},
 	                                       {"MAX_BOUNCES", gvar_max_bounce.val.v_uint},
+										   {"AVERAGE_RAY_MARCHE_STEP_SIZE", std::to_string(gvar_raymarche_step_size.val.v_float)},
 	                                   });
 
 	sConst.write(cmdBuf, computeCmd, localTarget->getExtent2D(), renderInfo.pCamera, renderInfo.frameIdx);
@@ -61,6 +63,8 @@ void PinPathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo 
 	                                       {"MAX_BOUNCES", gvar_max_bounce.val.v_uint},
 	                                       {"MIN_PIN_BOUNCE", gvar_min_pin_bounce.val.v_uint},
 	                                       {"PIN_MODE", "PIN_MODE_FLAG_DIRECT"},
+	                                       {"PIN_COUNT_PER_GRID_CELL", gvar_pin_count_per_grid_cell.val.v_uint},
+	                                       {"AVERAGE_RAY_MARCHE_STEP_SIZE",  std::to_string(gvar_raymarche_step_size.val.v_float)},
 	                                   });
 
 	sConst.write(cmdBuf, computeCmd, localTarget->getExtent2D(), renderInfo.pCamera, renderInfo.frameIdx);

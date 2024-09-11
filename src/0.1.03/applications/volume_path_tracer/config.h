@@ -36,6 +36,14 @@ extern GVar     gvar_cursor_dir_phi;
 extern GVar     gvar_cursor_dir_theta;
 extern GVar     gvar_min_pin_bounce;
 extern GVar     gvar_max_bounce;
+extern GVar     gvar_timing_left;
+extern GVar     gvar_timing_right;
+extern GVar     gvar_raymarche_step_size;
+extern GVar     gvar_medium_x;
+extern GVar     gvar_medium_y;
+extern GVar     gvar_medium_z;
+extern GVar     gvar_medium_rot_y;
+extern GVar     gvar_medium_scale;
 
 
 

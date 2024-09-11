@@ -14,7 +14,7 @@ const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 // Gui variable
 
 GVar gvar_model = {"Model", 0, GVAR_ENUM, GENERAL, std::vector<std::string>{"Cornell Box", "Sponza"}};
-GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, PERLIN_NOISE_SETTINGS, {16, 128}};
+GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, PERLIN_NOISE_SETTINGS, {16, 256}};
 GVar gvar_mse{"MSE : %.8f E-3", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
 
 
@@ -44,6 +44,14 @@ std::vector<GVar *> gVars =
 		&gvar_mse,
 		&gvar_min_pin_bounce,
 		&gvar_max_bounce,
+		&gvar_timing_left,
+		&gvar_timing_right,
+		&gvar_raymarche_step_size,
+		&gvar_medium_x,
+		&gvar_medium_y,
+		&gvar_medium_z,
+		&gvar_medium_rot_y,
+		&gvar_medium_scale,
         // clang-format on
 };
 
@@ -182,7 +190,11 @@ int main()
 
 		// Update medium
 		GLSLMediumInstance mediumInstance{};
-		mediumInstance.mat    = params.initialMediumMatrix;
+		mediumInstance.mat = glm::mat4(1.0f);
+		mediumInstance.mat = glm::rotate(mediumInstance.mat, glm::radians(gvar_medium_rot_y.val.v_float), glm::vec3(0.0f, 0.0f, 1.0f));
+		mediumInstance.mat = glm::scale(mediumInstance.mat, glm::vec3(gvar_medium_scale.val.v_float));
+		mediumInstance.mat = glm::translate(mediumInstance.mat, glm::vec3(gvar_medium_x.val.v_float, gvar_medium_y.val.v_float, gvar_medium_z.val.v_float));
+
 		mediumInstance.invMat = glm::inverse(mediumInstance.mat);
 		mediumInstance.albedo = vec3(gvar_medium_albedo_r.val.v_float, gvar_medium_albedo_g.val.v_float, gvar_medium_albedo_b.val.v_float);
 		cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
@@ -269,5 +281,7 @@ int main()
 
 		swapBuffers({cmdBuf});
 	}
+	vkDeviceWaitIdle(gState.device.logical);
+	pathTracer.destroy();
 	gState.destroy();
 }

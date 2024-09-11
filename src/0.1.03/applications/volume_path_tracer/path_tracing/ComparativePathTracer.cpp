@@ -11,6 +11,12 @@ ComparativePathTracer::ComparativePathTracer(float relativeWidth, float relative
 	mseRes    = MSEComputeResources(VK_FORMAT_R32G32B32A32_SFLOAT, gState.heap);
 	mseBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_ONLY, sizeof(float));
 
+	tqManager = TimeQueryManager({TQ_PATH_TRACER_A, TQ_PATH_TRACER_B});
+}
+
+void ComparativePathTracer::destroy()
+{
+	tqManager.destroy();
 }
 
 
@@ -23,11 +29,36 @@ void ComparativePathTracer::reset(CmdBuffer cmdBuf, PathTraceStrategy *pStrategi
 	this->pStrategieB = pStrategieB;
 }
 
+GVar gvar_timing_left{"Timing left : %.8f ms", 0.0f, GVAR_DISPLAY_VALUE, METRICS};
+GVar gvar_timing_right{"Timing right : %.8f ms", 0.0f, GVAR_DISPLAY_VALUE, METRICS};
+
 void ComparativePathTracer::render(CmdBuffer cmdBuf, const RenderInfo &renderInfo)
 {
+	
 	// Render
-	pStrategieA->trace(cmdBuf, localTargetA, renderInfo);
-	pStrategieB->trace(cmdBuf, localTargetB, renderInfo);
+
+	if (timeQueryFinished)
+	{
+		tqManager.cmdResetQueryPool(cmdBuf);
+
+		tqManager.startTiming(cmdBuf, TQ_PATH_TRACER_A, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+		pStrategieA->trace(cmdBuf, localTargetA, renderInfo);
+		tqManager.endTiming(cmdBuf, TQ_PATH_TRACER_A, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+
+		tqManager.startTiming(cmdBuf, TQ_PATH_TRACER_B, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+		pStrategieB->trace(cmdBuf, localTargetB, renderInfo);
+		tqManager.endTiming(cmdBuf, TQ_PATH_TRACER_B, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+	}
+	else
+	{
+		pStrategieA->trace(cmdBuf, localTargetA, renderInfo);
+		pStrategieB->trace(cmdBuf, localTargetB, renderInfo);
+	}
+
+	timeQueryFinished = tqManager.updateTimings();
+
+	gvar_timing_left.val.v_float = tqManager.timings[TQ_PATH_TRACER_A];
+	gvar_timing_right.val.v_float = tqManager.timings[TQ_PATH_TRACER_B];
 
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 

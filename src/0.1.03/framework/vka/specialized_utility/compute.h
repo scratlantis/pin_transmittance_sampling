@@ -5,7 +5,8 @@ namespace vka
 
 enum ReduceOperation
 {
-	REDUCE_OP_AVERAGE
+	REDUCE_OP_AVERAGE,
+	REDUCE_OP_IMAGE_PDF
 };
 
 enum ReduceValueType
@@ -20,4 +21,5 @@ ComputeCmd getCmdReduceVertical(Image src, Buffer dst, uint32_t segmentCount, Re
 
 ComputeCmd getCmdReduce(Buffer src, Buffer dst, uint32_t segmentCount, ReduceOperation op, ReduceValueType type);
 
+ComputeCmd getCmdDownSample(Image src, Image dst, ReduceOperation op);
 }        // namespace vka

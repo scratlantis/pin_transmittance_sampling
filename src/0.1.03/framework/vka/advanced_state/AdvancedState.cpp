@@ -15,6 +15,7 @@ void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Wind
 	swapchainImage          = nullptr;
 	imguiWrapper            = new ImGuiWrapper();
 	depthBufferCache        = new DepthBufferCache(heap);
+	dataCache 				= new DataCache();
 }
 
 void AdvancedState::destroy()
@@ -22,6 +23,8 @@ void AdvancedState::destroy()
 	vkDeviceWaitIdle(device.logical);
 	swapchainAttachmentPool->clear();
 	framebufferCache->clear();
+	modelCache->clear();
+	dataCache->clear();
 	if (guiEnabled)
 	{
 		imguiWrapper->destroy();

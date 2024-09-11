@@ -4,6 +4,7 @@
 #include "caches/ModelCache.h"
 #include "caches/TextureCache.h"
 #include "caches/DepthBufferCache.h"
+#include "caches/DataCache.h"
 #include <vka/core/core_state/CoreState.h>
 #include <vka/core/resources/cachable/RenderPass.h>
 
@@ -24,6 +25,7 @@ class AdvancedState : public CoreState
 	ModelCache       *modelCache;
 	TextureCache     *textureCache;
 	DepthBufferCache *depthBufferCache;
+	DataCache		 *dataCache;
 
 	IResourcePool *heap;
 

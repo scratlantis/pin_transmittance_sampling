@@ -35,6 +35,9 @@ layout(binding = 18) readonly buffer PIN_TRANSMITTANCE { float pinTransmittance[
 #define PIN_MODE PIN_MODE_FLAG_DIRECT
 #endif
 
+#ifndef PIN_COUNT_PER_GRID_CELL
+#define PIN_COUNT_PER_GRID_CELL 4
+#endif
 #else
 
 #undef PIN_MODE
@@ -122,7 +125,7 @@ GLSLPinGridEntry selectPin(vec3 origin, vec3 direction, float maxLenght, inout u
 
 	float maxDot = 0.0;
 	GLSLPinGridEntry maxDotPin;
-	for(uint i = 0; i < pc.pinCountPerGridCell; i++)
+	for(uint i = 0; i < PIN_COUNT_PER_GRID_CELL; i++)
 	{
 		GLSLPinGridEntry gridEntry = pinGrid[cellIdx + i];
 		float dotVal = abs(dot(getPinDirection(gridEntry.pin), direction));
@@ -134,6 +137,18 @@ GLSLPinGridEntry selectPin(vec3 origin, vec3 direction, float maxLenght, inout u
 	}
 	return maxDotPin;
 }
+/*
+GLSLPinGridEntry selectPin(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
+{
+	origin = clamp(vec3(0.0),vec3(0.9999), origin);
+	uvec3 gridId = uvec3(origin*float(pc.pinGridSize));
+	uint cellIdx = flatten(gridId, uvec3(pc.pinGridSize)) * pc.pinCountPerGridCell;
+
+	GLSLPinGridEntry gridEntry = pinGrid[cellIdx];
+
+	return gridEntry;
+}
+*/
 
 float samplePin(vec3 origin, vec3 destination, GLSLPinGridEntry gridEntry)
 {
@@ -366,6 +381,7 @@ float traceMediumTransmittance(Ray ray, Range range, inout uint seed, uint bounc
 	if(bounce >= MIN_PIN_BOUNCE)
 	{
 		transmittance = pinEvalTransmittance(localOrigin, localDir, localTMax, seed);
+		//transmittance = rayMarcheMediumTransmittance(localOrigin, localDir, localTMax, seed);
 	}
 	else
 	{
