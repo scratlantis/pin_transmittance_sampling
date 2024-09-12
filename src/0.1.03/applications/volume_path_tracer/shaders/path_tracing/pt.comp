@@ -401,7 +401,7 @@ VKAAreaLight selectAreaLight(inout uint seed, out float localPdf)
 {
 	VKAAreaLight areaLight;
 	uint lightIdx = uint(AREA_LIGHT_COUNT * unormNext(seed));
-	localPdf = 1.0; // uniform pdf
+	localPdf = 1.0/float(AREA_LIGHT_COUNT); // uniform pdf
 	areaLight = areaLights[lightIdx];
 	mat4 transform = modelTransforms[areaLight.modelIndex];
 	areaLight.v0 = vec3(transform*vec4(areaLight.v0, 1.0));

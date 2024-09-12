@@ -86,8 +86,10 @@ vec3 sampleAreaLight(vec3 pos, VKAAreaLight light, inout uint seed, out float lo
 	vec3 samplePos = bary.x * light.v0 + bary.y * light.v1 + (1.0 - bary.x - bary.y) * light.v2;
 	vec3 sampleDir = normalize(samplePos - pos);
 	float dist = distance(samplePos, pos);
-	//dist = clamp(dist, 0.005, 100.0);
-	localPdf = dist*dist / (triangleArea(light.v0, light.v1, light.v2) * absDot(light.normal, -sampleDir));
+	dist = clamp(dist, 0.05, 100.0);
+	float dotSurfaceNormal = absDot(light.normal, -sampleDir);
+	dotSurfaceNormal = clamp(dotSurfaceNormal, 0.05, 1.0);
+	localPdf = dist*dist / (triangleArea(light.v0, light.v1, light.v2) * dotSurfaceNormal);
 	return samplePos;
 }
 
