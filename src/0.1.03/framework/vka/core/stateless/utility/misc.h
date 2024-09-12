@@ -356,6 +356,8 @@ inline std::string getGLSLFormat(VkFormat format)
 			return "rgba32f";
 		case VK_FORMAT_R32G32B32A32_UINT:
 			return "rgba32ui";
+		case VK_FORMAT_R32_SFLOAT:
+			return "r32f";
 			break;
 		
 		default:

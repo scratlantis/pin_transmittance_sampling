@@ -23,7 +23,7 @@ void ReferencePathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const Rende
 
 	// Bind Scene
 	bind_block_12(computeCmd, *renderInfo.pSceneData);
-
+	add_shader_args(computeCmd, *renderInfo.pSceneData);
 	// Bind Medium
 	struct PushStruct
 	{
@@ -76,7 +76,7 @@ void PinPathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo 
 
 	// Bind Scene
 	bind_block_12(computeCmd, *renderInfo.pSceneData);
-
+	add_shader_args(computeCmd, *renderInfo.pSceneData);
 	// Bind Medium
 	struct PushStruct
 	{
@@ -125,6 +125,7 @@ void OldReferencePathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const Re
 
 	// Bind Scene
 	bind_block_12(computeCmd, *renderInfo.pSceneData);
+	add_shader_args(computeCmd, *renderInfo.pSceneData);
 
 	// Bind Medium
 	struct PushStruct

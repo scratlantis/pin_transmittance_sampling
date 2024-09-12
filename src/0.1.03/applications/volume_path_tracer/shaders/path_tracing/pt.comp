@@ -11,7 +11,7 @@
 
 
 //#define ENVMAP_PDF_ARRAY
-#include "envmap.glsl"
+
 
 COMPUTE_SHADER_ID_IN
 // Constants
@@ -20,6 +20,9 @@ SHADER_BLOCK_3_FRAME_VIEW_PARAMS(0)
 layout(binding = 3, FORMAT1) writeonly uniform image2D colorOut;
 // Scene data
 SHADER_BLOCK_12_USCENE(4)
+
+#include "envmap.glsl"
+
 // General config
 struct PushStruct
 {
@@ -481,12 +484,13 @@ vec3 sampleDirectIllumAreaLight(vec3 pos, inout vec3 direction, inout uint seed,
 
 Ray genDirectIllumRayEnvMap(vec3 pos, inout uint seed, out float localPdf, out vec3 localWeight)
 {
-	float pdf;
-	vec3 direction = random3D(seed);
-	direction = normalize(direction - vec3(0.5));
-	vec2 uv = dirToUv(direction);
-	localPdf = 1.0;
-	localWeight = vec3(10.0) * texture(envMap, uv).rgb;
+	//vec3 direction = random3D(seed);
+	//direction = normalize(direction - vec3(0.5));
+	//vec2 uv = dirToUv(direction);
+	//vec3 sampleEnvMapPdf(inout float pdf, vec4 rng, inout vec2 uv)
+	vec2 uv = sampleEnvMapPdf(localPdf, vec4(unormNext(seed), unormNext(seed), unormNext(seed), unormNext(seed)));
+	vec3 direction = uvToDir(uv);
+	localWeight = 5.0*texture(envMap, uv).rgb;
 	Ray ray;
 	ray.origin = pos;
 	ray.direction = direction;

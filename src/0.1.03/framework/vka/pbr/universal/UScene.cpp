@@ -1,6 +1,7 @@
 #include "UScene.h"
 #include <vka/globals.h>
 #include <vka/specialized_utility/draw_2D.h>
+#include <vka/specialized_utility/compute.h>
 
 namespace vka
 {
@@ -125,9 +126,12 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uin
 	if (!envMapName.empty())
 	{
 		sceneData.envMap             = gState.textureCache->fetch(cmdBuf, envMapName, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		sceneData.envMapPdfBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 16);
+		hash_t        key = envMapName HASHC envMapSubdivisions.x HASHC envMapSubdivisions.y;
+		if (!gState.dataCache->fetch(sceneData.envMapPdfBuffer, key))
+		{
+			cmdComputeImgPdf(cmdBuf, sceneData.envMap, sceneData.envMapPdfBuffer, envMapSubdivisions.x, envMapSubdivisions.y);
+		}
 		sceneData.envMapSubdivisions = envMapSubdivisions;
-		//sceneData.envMapPdfBuffer = pdfCache->fetch(cmdBuf, {envMapName, {16, 16}});
 	}
 	else
 	{

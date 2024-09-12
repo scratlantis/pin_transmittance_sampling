@@ -42,7 +42,7 @@ layout(binding = OFFSET + 9) uniform texture2D tex[]; \
 layout(binding = OFFSET + 10) uniform sampler2D envMap;\
 layout(binding = OFFSET + 11) readonly buffer ENV_MAP_PDF {float envMapPdf[];}; 
 
-
+#define ENVMAP_PDF_ARRAY envMapPdf
 
 
 

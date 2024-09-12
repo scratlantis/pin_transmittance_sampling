@@ -16,7 +16,7 @@ vec3 uvToDir(vec2 uv)
    return vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi));
 }
 
-/*
+
 #ifndef ENVMAP_PDF_BINS_X
 #define ENVMAP_PDF_BINS_X 64
 #endif
@@ -31,7 +31,7 @@ float envmapPdf[ENVMAP_PDF_BINS_Y + ENVMAP_PDF_BINS_X * ENVMAP_PDF_BINS_Y];
 #endif
 
 
-vec3 sampleEnvMapPdf(inout float pdf, vec4 rng, inout vec2 uv)
+vec2 sampleEnvMapPdf(inout float pdf, vec4 rng)
 {
 	int x = 0;
 	int y = 0;
@@ -61,11 +61,10 @@ vec3 sampleEnvMapPdf(inout float pdf, vec4 rng, inout vec2 uv)
 	}
 	
 	float selectionPDF = pdfRow * pdfColumn;
-	float solidAngleArea = 1.0 / float(ENVMAP_PDF_BINS_X * ENVMAP_PDF_BINS_Y);
-	weight = selectionPDF * solidAngleArea;
+	pdf = selectionPDF * float(ENVMAP_PDF_BINS_X * ENVMAP_PDF_BINS_Y);
 
-	uv = vec2((float(x)+rng.z)/ENVMAP_PDF_BINS_X, (float(y)+rng.w)/ENVMAP_PDF_BINS_Y);
 
-	return uvToDir(uv);
+	vec2 uv = vec2((float(x)+rng.z)/ENVMAP_PDF_BINS_X, (float(y)+rng.w)/ENVMAP_PDF_BINS_Y);
+
+	return uv;
 }
-*/

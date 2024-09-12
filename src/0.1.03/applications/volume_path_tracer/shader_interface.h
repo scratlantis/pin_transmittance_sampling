@@ -98,6 +98,12 @@ static void bind_block_12(ComputeCmd &cmd, const USceneData &uScene)
 	cmd.pushDescriptor(uScene.envMapPdfBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 }
 
+static void add_shader_args(ComputeCmd &cmd, const USceneData &uScene)
+{
+	cmd.pipelineDef.shaderDef.args.push_back({"ENVMAP_PDF_BINS_X", uScene.envMapSubdivisions.x});
+	cmd.pipelineDef.shaderDef.args.push_back({"ENVMAP_PDF_BINS_Y", uScene.envMapSubdivisions.y});
+}
+
 namespace vka
 {
 template <>

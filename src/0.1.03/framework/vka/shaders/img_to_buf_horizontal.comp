@@ -30,5 +30,5 @@ void main()
 	if (gID.x >= pc.extentIN.x || gID.y >= pc.extentIN.y) return;
 
 	uint outputIndex = gID.x + pc.extentIN.x * gID.y + pc.offsetOUT;
-	buf[outputIndex] = imageLoad(img, ivec2(gID + offsetIN)).r;
+	buf[outputIndex] = imageLoad(img, ivec2(gID + pc.offsetIN)).r;
 }

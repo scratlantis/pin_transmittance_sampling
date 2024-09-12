@@ -91,14 +91,13 @@ class USceneBuilderBase
 	std::string envMapName;
 	glm::uvec2  envMapSubdivisions;
 
-	HdrImagePdfCache* pdfCache;
 
 	// create material buffer
 	virtual void loadMaterials(CmdBuffer cmdBuf, Buffer buffer) = 0;
 
   public:
 	
-	USceneBuilderBase(HdrImagePdfCache* pdfCache) : pdfCache(pdfCache) {}
+	USceneBuilderBase(){}
 
 	void loadEnvMap(std::string name, glm::uvec2 subdivisions);
 
@@ -144,8 +143,8 @@ class USceneBuilder : public USceneBuilderBase
 
   public:
 
-	USceneBuilder(HdrImagePdfCache *pdfCache) :
-	    USceneBuilderBase(pdfCache)
+	USceneBuilder() :
+	    USceneBuilderBase()
 	{}
 	// load model
 

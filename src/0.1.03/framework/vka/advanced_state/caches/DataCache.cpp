@@ -17,6 +17,12 @@ bool DataCache::fetch(Buffer &buf, hash_t key)
 		buf = map[key];
 		return true;
 	}
-	return false;
+	else
+	{
+		buf = createBuffer(pPool, 0);
+		map[key] = buf;
+		return false;
+	}
 }
+
 }        // namespace vka

@@ -32,17 +32,17 @@ layout(push_constant) uniform PC {PushStruct pc;};
 
 void main()
 {
-	uvec2 gID = gl_GlobalInvocationID.xy;
-	if (gID.x >= pc.extentIN.x || gID.y >= pc.extentIN.y) return;
+	uint gID = gl_GlobalInvocationID.x;
+	if (gID >= pc.extentIN.y) return;
 
-	uint outputIndex = gID.y + offsetOUT;
+	uint outputIndex = gID + pc.offsetOUT;
 
 	#if REDUCE_OP == REDUCE_OP_AVERAGE
 	float normalizationTerm = 1.0 / float(pc.extentIN.x);
 	float sum = 0.0;
 	for(uint i = 0; i < pc.extentIN.x; i++)
 	{
-		float val = imageLoad(img, ivec2(i + offsetIN.x, gID.y + offsetIN.y)).r;
+		float val = imageLoad(img, ivec2(i + pc.offsetIN.x, gID + pc.offsetIN.y)).r;
 		sum += val * normalizationTerm;
 	}
 	buf[outputIndex] = sum;

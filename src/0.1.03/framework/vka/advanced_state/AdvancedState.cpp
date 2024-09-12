@@ -15,7 +15,7 @@ void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Wind
 	swapchainImage          = nullptr;
 	imguiWrapper            = new ImGuiWrapper();
 	depthBufferCache        = new DepthBufferCache(heap);
-	dataCache 				= new DataCache();
+	dataCache               = new DataCache(heap);
 }
 
 void AdvancedState::destroy()

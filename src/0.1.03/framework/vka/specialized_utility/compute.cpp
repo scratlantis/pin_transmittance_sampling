@@ -86,7 +86,7 @@ ComputeCmd getCmdDownSample(Image src, Image dst, ReduceOperation op)
 
 ComputeCmd getCmdReduceHorizontal(Image src, Buffer dst, uint32_t dstOffset, ReduceOperation op)
 {
-	ComputeCmd cmd(src->getExtent2D().height, cVkaShaderPath + "reduce_img_to_horizontal.comp",
+	ComputeCmd cmd(src->getExtent2D().height, cVkaShaderPath + "reduce_img_horizontal.comp",
 	               {
 	                   {"FORMAT", getGLSLFormat(src->getFormat())},
 	                   {"REDUCE_OP", static_cast<uint32_t>(op)},
@@ -108,7 +108,7 @@ ComputeCmd getCmdReduceHorizontal(Image src, Buffer dst, uint32_t dstOffset, Red
 
 ComputeCmd getCmdImageToBufferHorizontal(Image src, Buffer dst, uint32_t dstOffset)
 {
-	ComputeCmd cmd(src->getExtent2D(), cVkaShaderPath + "img_to_buffer_horizontal.comp",
+	ComputeCmd cmd(src->getExtent2D(), cVkaShaderPath + "img_to_buf_horizontal.comp",
 	               {
 	                   {"FORMAT", getGLSLFormat(src->getFormat())},
 	               });
@@ -133,12 +133,43 @@ void cmdComputeImgPdf(CmdBuffer cmdBuf, Image src, Buffer dst, uint32_t division
 	dst->changeSize(bufferSize);
 	dst->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
 	dst->addUsage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+	dst->addUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	dst->recreate();
-	VKA_ASSERT(src->getUsage() & VK_IMAGE_USAGE_STORAGE_BIT != 0);
+	VKA_ASSERT((src->getUsage() & VK_IMAGE_USAGE_STORAGE_BIT) != 0);
 	Image tempImg = createImage(gState.frame->stack, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT, VkExtent2D{divisionsX, divisionsY});
 	getCmdDownSample(src, tempImg, REDUCE_OP_IMAGE_PDF).exec(cmdBuf);
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	getCmdReduceHorizontal(tempImg, dst, 0, REDUCE_OP_AVERAGE).exec(cmdBuf);
 	getCmdImageToBufferHorizontal(tempImg, dst, divisionsY).exec(cmdBuf);
+	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+	//float fval = 1000000.f / 16.f;
+	//uint32_t val;
+	//memcpy(&val, &fval, sizeof(uint32_t));
+	//uint32_t firstPdfSize = divisionsY * sizeof(float);
+	//
+	//cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+	//cmdFillBuffer(cmdBuf, dst, firstPdfSize, bufferSize - firstPdfSize, val);
+	//cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+
+	getCmdNormalizeBuffer(dst, 0, divisionsY, 1).exec(cmdBuf);
+	getCmdNormalizeBuffer(dst, divisionsY, divisionsX, divisionsY).exec(cmdBuf);
+}
+
+ComputeCmd getCmdNormalizeBuffer(Buffer buf, uint32_t offset, uint32_t segmentSize, uint32_t segmentCount)
+{
+	ComputeCmd cmd(segmentCount, cVkaShaderPath + "normalize_buffer.comp");
+	cmd.pushDescriptor(buf, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	struct PushStruct
+	{
+		uint32_t offset;
+		uint32_t segmentSize;
+		uint32_t segmentCount;
+	} pc;
+	pc.segmentCount = segmentCount;
+	pc.segmentSize  = segmentSize;
+	pc.offset       = offset;
+	cmd.pushConstant(&pc, sizeof(PushStruct));
+	return cmd;
 }
 }        // namespace vka

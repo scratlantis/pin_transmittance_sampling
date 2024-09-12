@@ -16,7 +16,7 @@ const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 GVar gvar_model = {"Model", 0, GVAR_ENUM, GENERAL, std::vector<std::string>{"Cornell Box", "Sponza"}};
 GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, PERLIN_NOISE_SETTINGS, {16, 256}};
 GVar gvar_mse{"MSE : %.8f E-3", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
-GVar gvar_envmap = {"Envmap", 0, GVAR_ENUM, GENERAL, std::vector<std::string>{"None"}};
+GVar gvar_envmap = {"Envmap", 1, GVAR_ENUM, GENERAL, std::vector<std::string>{"None"}};
 
 
 
@@ -98,9 +98,7 @@ int main()
 	// Application Specific Parameters
 	Params params = DefaultParams();
 
-	// May be added to the global state in the future
-	HdrImagePdfCache pdfCache = HdrImagePdfCache(gState.heap);
-	USceneBuilder<GLSLVertex, GLSLMaterial> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial>(&pdfCache);
+	USceneBuilder<GLSLVertex, GLSLMaterial> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial>();
 
 	// Medium
 	Medium          medium          = Medium();
@@ -171,7 +169,7 @@ int main()
 			sceneBuilder.reset();
 			if (gvar_envmap.val.v_uint > 0)
 			{
-				sceneBuilder.loadEnvMap(envmap, glm::uvec2(16, 16));
+				sceneBuilder.loadEnvMap(envmap, glm::uvec2(64, 64));
 			}
 			sceneBuilder.addModel(cmdBuf, model.path, model.getObjToWorldMatrix());
 			scene = sceneBuilder.create(cmdBuf, gState.heap, SCENE_LOAD_FLAG_ALLOW_RASTERIZATION);
