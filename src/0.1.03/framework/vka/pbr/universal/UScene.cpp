@@ -6,10 +6,10 @@ namespace vka
 {
 namespace pbr
 {
-void USceneBuilderBase::loadEnvMap(const ImagePdfKey &key)
+void USceneBuilderBase::loadEnvMap(std::string name, glm::uvec2 subdivisions)
 {
-	// Load env map & pdf
-	// Todo
+	envMapName = name;
+	envMapSubdivisions = subdivisions;
 }
 
 void USceneBuilderBase::addModel(CmdBuffer cmdBuf, std::string path, glm::mat4 transform, uint32_t loadFlags)
@@ -124,14 +124,17 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uin
 
 	if (!envMapName.empty())
 	{
-		sceneData.envMap          = gState.textureCache->fetch(cmdBuf, envMapName, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		sceneData.envMapPdfBuffer = pdfCache->fetch(cmdBuf, {envMapName, {16, 16}});
+		sceneData.envMap             = gState.textureCache->fetch(cmdBuf, envMapName, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		sceneData.envMapPdfBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 16);
+		sceneData.envMapSubdivisions = envMapSubdivisions;
+		//sceneData.envMapPdfBuffer = pdfCache->fetch(cmdBuf, {envMapName, {16, 16}});
 	}
 	else
 	{
 		sceneData.info.useEnvMap  = false;
 		sceneData.envMap          = cmdCreateDummyTexture(cmdBuf, pPool);
 		sceneData.envMapPdfBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 16);
+		sceneData.envMapSubdivisions = {1, 1};
 	}
 
 	return sceneData;

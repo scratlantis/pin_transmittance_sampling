@@ -82,7 +82,7 @@ static void bind_block_3(ComputeCmd &cmd, const ShaderConst &sConst)
 	cmd.pushDescriptor(sConst.ubo_view, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	cmd.pushDescriptor(sConst.ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 }
-static void bind_block_11(ComputeCmd &cmd, const USceneData &uScene)
+static void bind_block_12(ComputeCmd &cmd, const USceneData &uScene)
 {
 	cmd.pushDescriptor(uScene.vertexBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(uScene.indexBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
@@ -95,6 +95,7 @@ static void bind_block_11(ComputeCmd &cmd, const USceneData &uScene)
 	cmd.pushDescriptor(SamplerDefinition());
 	cmd.pushDescriptor(uScene.textures, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 	cmd.pushDescriptor(uScene.envMap, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	cmd.pushDescriptor(uScene.envMapPdfBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 }
 
 namespace vka

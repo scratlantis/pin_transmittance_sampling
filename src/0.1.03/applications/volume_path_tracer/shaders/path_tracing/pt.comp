@@ -7,13 +7,19 @@
 #include "../medium/pins_common.glsl"
 #include "../template.glsl"
 
+
+
+
+//#define ENVMAP_PDF_ARRAY
+#include "envmap.glsl"
+
 COMPUTE_SHADER_ID_IN
 // Constants
 SHADER_BLOCK_3_FRAME_VIEW_PARAMS(0)
 // Target
 layout(binding = 3, FORMAT1) writeonly uniform image2D colorOut;
 // Scene data
-SHADER_BLOCK_11_USCENE(4)
+SHADER_BLOCK_12_USCENE(4)
 // General config
 struct PushStruct
 {
@@ -24,13 +30,13 @@ struct PushStruct
 };
 
 layout(push_constant) uniform PUSH_CONSTANTS {PushStruct pc;};
-layout(binding = 15) uniform sampler3D volSmp;
-layout(binding = 16) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
+layout(binding = 16) uniform sampler3D volSmp;
+layout(binding = 17) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
 
 #ifdef USE_PINS
 
-layout(binding = 17) readonly buffer PIN_GRID {GLSLPinGridEntry pinGrid[];};
-layout(binding = 18) readonly buffer PIN_TRANSMITTANCE { float pinTransmittance[];};
+layout(binding = 18) readonly buffer PIN_GRID {GLSLPinGridEntry pinGrid[];};
+layout(binding = 19) readonly buffer PIN_TRANSMITTANCE { float pinTransmittance[];};
 #ifndef PIN_MODE
 #define PIN_MODE PIN_MODE_FLAG_DIRECT
 #endif
@@ -137,18 +143,6 @@ GLSLPinGridEntry selectPin(vec3 origin, vec3 direction, float maxLenght, inout u
 	}
 	return maxDotPin;
 }
-/*
-GLSLPinGridEntry selectPin(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
-{
-	origin = clamp(vec3(0.0),vec3(0.9999), origin);
-	uvec3 gridId = uvec3(origin*float(pc.pinGridSize));
-	uint cellIdx = flatten(gridId, uvec3(pc.pinGridSize)) * pc.pinCountPerGridCell;
-
-	GLSLPinGridEntry gridEntry = pinGrid[cellIdx];
-
-	return gridEntry;
-}
-*/
 
 float samplePin(vec3 origin, vec3 destination, GLSLPinGridEntry gridEntry)
 {
@@ -411,7 +405,7 @@ VKAAreaLight selectAreaLight(inout uint seed, out float localPdf)
 	return areaLight;
 }
 
-Ray genDirectIllumRay(vec3 pos, inout uint seed, out float localPdf, out vec3 localWeight)
+Ray genDirectIllumRayAreaLight(vec3 pos, inout uint seed, out float localPdf, out vec3 localWeight)
 {
 	float selectionPDF, samplePDF;
 	VKAAreaLight areaLight = selectAreaLight(seed, selectionPDF);
@@ -467,11 +461,11 @@ float traceTransmittance(Ray ray, inout uint seed, uint bounce)
 	return geomTransmittance * mediumTransmittance;
 }
 
-vec3 sampleDirectIllum(vec3 pos, inout vec3 direction, inout uint seed, uint bounce)
+vec3 sampleDirectIllumAreaLight(vec3 pos, inout vec3 direction, inout uint seed, uint bounce)
 {
 	float localPdf;
 	vec3 localWeight;
-	Ray ray = genDirectIllumRay(pos, seed, localPdf, localWeight);
+	Ray ray = genDirectIllumRayAreaLight(pos, seed, localPdf, localWeight);
 	direction = ray.direction;
 	if(localPdf < EPSILON)
 	{
@@ -480,6 +474,41 @@ vec3 sampleDirectIllum(vec3 pos, inout vec3 direction, inout uint seed, uint bou
 
 	float transmittance = traceTransmittance(ray, seed, bounce);
 	vec3 Li = transmittance * (localWeight / localPdf);
+	return Li;
+}
+
+
+
+Ray genDirectIllumRayEnvMap(vec3 pos, inout uint seed, out float localPdf, out vec3 localWeight)
+{
+	float pdf;
+	vec3 direction = random3D(seed);
+	direction = normalize(direction - vec3(0.5));
+	vec2 uv = dirToUv(direction);
+	localPdf = 1.0;
+	localWeight = vec3(10.0) * texture(envMap, uv).rgb;
+	Ray ray;
+	ray.origin = pos;
+	ray.direction = direction;
+	ray.tmin = TMIN;
+	ray.tmax = TMAX;
+	return ray;
+}
+
+vec3 sampleDirectIllumEnvMap(vec3 pos, inout vec3 direction, inout uint seed, uint bounce)
+{
+	float localPdf;
+	vec3 localWeight;
+	Ray ray = genDirectIllumRayEnvMap(pos, seed, localPdf, localWeight);
+	direction = ray.direction;
+	if(localPdf < EPSILON)
+	{
+		return vec3(0.0);
+	}
+
+	float transmittance = traceTransmittance(ray, seed, bounce);
+	vec3 Li = transmittance * (localWeight / localPdf);
+	//return (localWeight / localPdf);
 	return Li;
 }
 
@@ -493,7 +522,6 @@ uint nextBounce(
 	float tMedium = MAX_FLOAT;
 	Range rMedium = traceMediumConservative(ray);
 	rMedium.rMax = min(rMedium.rMax, tGeom);
-	//rMedium.rMin = MAX_FLOAT;//debug
 	if(tGeom < rMedium.rMin)
 	{
 		evalHit(matData, tangentFrame, hitData);
@@ -558,7 +586,12 @@ void main()
 			}
 			else if(pathState == PATH_TERMINATED_INFINITY)
 			{
-				totalIllumination += BACKGROUND_LIGHTING * coef; // Replace with envmap
+				if(i == 0)
+				{
+					vec2 uv = dirToUv(ray.direction);
+					vec3 envMapValue = texture(envMap, uv).rgb;
+					totalIllumination += envMapValue * coef;
+				}
 				break;
 			}
 			else if(pathState == PATH_SURFACE_SCATTER) 
@@ -568,26 +601,43 @@ void main()
 				{
 					Le = matData.emission;
 				}
-				vec3 wi;
-				vec3 Li = sampleDirectIllum(ray.origin, wi, seed, i);
-				vec3 brdf = lampertBRDF(matData.albedo);
-				float cosTheta = max(0.0, dot(tangentFrame[2], wi));
-				vec3 Lo = Le + brdf * Li * cosTheta;
 
+				vec3 Lo = Le;
+				// Direct illumination from area lights
+				{
+					vec3 wi;
+					vec3 Li = sampleDirectIllumAreaLight(ray.origin, wi, seed, i);
+					vec3 brdf = lampertBRDF(matData.albedo);
+					float cosTheta = max(0.0, dot(tangentFrame[2], wi));
+					Lo += brdf * Li * cosTheta;
+				}
+				// Direct illumination from envMap
+				{
+					vec3 wi;
+					vec3 Li = sampleDirectIllumEnvMap(ray.origin, wi, seed, i);
+					vec3 brdf = lampertBRDF(matData.albedo);
+					float cosTheta = max(0.0, dot(tangentFrame[2], wi));
+					Lo += brdf * Li * cosTheta;
+				}
 				totalIllumination += coef * Lo;
-				//totalIllumination +=  matData.emission * coef;
-
-
-
-
 			}
 			else if(pathState == PATH_MEDIUM_SCATTER)
 			{
 				vec3 Le = vec3(0.0); // No emission from medium
-				vec3 wi;
-				vec3 Li = sampleDirectIllum(ray.origin, wi, seed, i);
-				vec3 volumeBSDF = uniformScatterBSDF(volInst.albedo);
-				vec3 Lo = Le + volumeBSDF * Li;
+				vec3 Lo = Le;
+				// Direct illumination from area lights
+				{
+					vec3 wi;
+					vec3 Li = sampleDirectIllumAreaLight(ray.origin, wi, seed, i);
+					vec3 volumeBSDF = uniformScatterBSDF(volInst.albedo);
+					Lo += volumeBSDF * Li;
+				}
+				{
+					vec3 wi;
+					vec3 Li = sampleDirectIllumEnvMap(ray.origin, wi, seed, i);
+					vec3 volumeBSDF = uniformScatterBSDF(volInst.albedo);
+					Lo += volumeBSDF * Li;
+				}
 				totalIllumination += coef * Lo;
 			}
 		}
@@ -639,7 +689,7 @@ void main()
 					Le = matData.emission;
 				}
 				vec3 wi;
-				vec3 Li = sampleDirectIllum(ray.origin, wi, seed, i);
+				vec3 Li = sampleDirectIllumAreaLight(ray.origin, wi, seed, i);
 				vec3 brdf = lampertBRDF(matData.albedo);
 				float cosTheta = max(0.0, dot(tangentFrame[2], wi));
 				vec3 Lo = Le + brdf * Li * cosTheta;
@@ -655,7 +705,7 @@ void main()
 			{
 				vec3 Le = vec3(0.0); // No emission from medium
 				vec3 wi;
-				vec3 Li = sampleDirectIllum(ray.origin, wi, seed, i);
+				vec3 Li = sampleDirectIllumAreaLight(ray.origin, wi, seed, i);
 				vec3 volumeBSDF = uniformScatterBSDF(volInst.albedo);
 				vec3 Lo = Le + volumeBSDF * Li;
 				//totalIllumination += coef * Lo;

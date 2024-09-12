@@ -24,6 +24,8 @@ vec3 sampleUniformSphere(vec2 xi) {
 	return normalize(vec3(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi)));
 }
 
+
+
 // just for consistency
 
 float pdfUniformSphere()

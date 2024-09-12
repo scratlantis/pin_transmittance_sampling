@@ -51,6 +51,8 @@ class USceneData
 
 	std::vector<Image> textures;
 	Image              envMap;
+
+	glm::uvec2		   envMapSubdivisions;
 	Buffer             envMapPdfBuffer;
 
 	USceneInfo info;
@@ -87,6 +89,7 @@ class USceneBuilderBase
 
 	// Ohter data
 	std::string envMapName;
+	glm::uvec2  envMapSubdivisions;
 
 	HdrImagePdfCache* pdfCache;
 
@@ -97,7 +100,7 @@ class USceneBuilderBase
 	
 	USceneBuilderBase(HdrImagePdfCache* pdfCache) : pdfCache(pdfCache) {}
 
-	void loadEnvMap(const ImagePdfKey &key);
+	void loadEnvMap(std::string name, glm::uvec2 subdivisions);
 
 	// load model
 	void addModel(CmdBuffer cmdBuf, std::string path, glm::mat4 transform = glm::mat4(1.0), uint32_t loadFlags = MODEL_LOAD_FLAG_IS_OPAQUE);

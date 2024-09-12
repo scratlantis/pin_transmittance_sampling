@@ -28,7 +28,7 @@ layout(binding = OFFSET + 1) uniform PARAMS								 \
 	GlobalParams params;												 \
 };
 
-#define SHADER_BLOCK_11_USCENE(OFFSET)										 \
+#define SHADER_BLOCK_12_USCENE(OFFSET)										 \
 layout(binding = OFFSET + 0) readonly buffer VERTICES { GLSLVertex vertices[]; }; \
 layout(binding = OFFSET + 1) readonly buffer INDICES { uint indices[]; }; \
 layout(binding = OFFSET + 2) readonly buffer MODEL_OFFSETS { VKAModelDataOffset modelOffsets[]; }; \
@@ -39,7 +39,8 @@ layout(binding = OFFSET + 6) uniform accelerationStructureEXT as; \
 layout(binding = OFFSET + 7) readonly buffer MODEL_TRANSFOMRS {mat4 modelTransforms[];}; \
 layout(binding = OFFSET + 8) uniform sampler smp; \
 layout(binding = OFFSET + 9) uniform texture2D tex[]; \
-layout(binding = OFFSET + 10) uniform sampler2D envMap;
+layout(binding = OFFSET + 10) uniform sampler2D envMap;\
+layout(binding = OFFSET + 11) readonly buffer ENV_MAP_PDF {float envMapPdf[];}; 
 
 
 

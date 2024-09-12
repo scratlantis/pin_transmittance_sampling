@@ -16,6 +16,7 @@ const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 GVar gvar_model = {"Model", 0, GVAR_ENUM, GENERAL, std::vector<std::string>{"Cornell Box", "Sponza"}};
 GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, PERLIN_NOISE_SETTINGS, {16, 256}};
 GVar gvar_mse{"MSE : %.8f E-3", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
+GVar gvar_envmap = {"Envmap", 0, GVAR_ENUM, GENERAL, std::vector<std::string>{"None"}};
 
 
 
@@ -52,6 +53,7 @@ std::vector<GVar *> gVars =
 		&gvar_medium_z,
 		&gvar_medium_rot_y,
 		&gvar_medium_scale,
+		&gvar_envmap
         // clang-format on
 };
 
@@ -91,6 +93,8 @@ int main()
 	gState.init(deviceCI, ioCI, &window, config);
 	enableGui();
 
+	addFileNamesToEnum(config.texturePath + "/envmap/2k/", gvar_envmap.set.list);
+
 	// Application Specific Parameters
 	Params params = DefaultParams();
 
@@ -106,6 +110,7 @@ int main()
 	// Scene
 	FixedCamera cam = FixedCamera(DefaultFixedCameraCI());
 	uint32_t modelIndexLastFrame = 0;
+	uint32_t envMapIndexLastFrame = 0;
 	uint32_t viewType = 0;
 	USceneData scene;
 	ModelInfo  model;
@@ -148,7 +153,8 @@ int main()
 		{
 			cam = FixedCamera(DefaultFixedCameraCI());
 		}
-		if (modelIndexLastFrame != gvar_model.val.v_uint || cnt == 0) // Load Scene
+		
+		if (modelIndexLastFrame != gvar_model.val.v_uint || envMapIndexLastFrame != gvar_envmap.val.v_uint || cnt == 0)        // Load Scene
 		{
 			if (cnt != 0)
 			{
@@ -156,15 +162,22 @@ int main()
 			}
 
 			modelIndexLastFrame = gvar_model.val.v_uint;
+			envMapIndexLastFrame = gvar_envmap.val.v_uint;
 			model = models[modelIndexLastFrame];
+			std::string envmap   = "/envmap/2k/" + gvar_envmap.set.list[gvar_envmap.val.v_uint];
 			CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
 
 			// Solid Geometry
 			sceneBuilder.reset();
+			if (gvar_envmap.val.v_uint > 0)
+			{
+				sceneBuilder.loadEnvMap(envmap, glm::uvec2(16, 16));
+			}
 			sceneBuilder.addModel(cmdBuf, model.path, model.getObjToWorldMatrix());
 			scene = sceneBuilder.create(cmdBuf, gState.heap, SCENE_LOAD_FLAG_ALLOW_RASTERIZATION);
 			scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
 			executeImmediat(cmdBuf);
+
 		}
 		bool viewHasChanged = cam.keyControl(0.016);
 		if (gState.io.mouse.rightPressed)
