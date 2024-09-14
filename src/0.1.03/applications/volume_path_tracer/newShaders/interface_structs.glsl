@@ -1,6 +1,6 @@
 // Must be cpp compatible
-#ifndef INTERFACE_H
-#define INTERFACE_H
+#ifndef INTERFACE_STRUCTS_H
+#define INTERFACE_STRUCTS_H
 
 struct GLSLFrame
 {

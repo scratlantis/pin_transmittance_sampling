@@ -1,10 +1,6 @@
-
-
-#include "../math.glsl"
+#include "math.glsl"
 #ifndef SAMPLING_H
 #define SAMPLING_H
-
-// pbrt
 
 vec2 sampleTriangleBarycentrics(vec2 xi) {
 	float su0 = sqrt(xi.x);
@@ -22,20 +18,6 @@ vec3 sampleUniformSphere(vec2 xi) {
 	float theta = 2.0f * PI * xi.x;
 	float phi = acos(2.0f * xi.y - 1.0f);
 	return normalize(vec3(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi)));
-}
-
-
-
-// just for consistency
-
-float pdfUniformSphere()
-{
-	return INV_4PI;
-}
-
-vec3 evalUniformSphere(vec3 kd)
-{
-	return vec3(kd * INV_4PI);
 }
 
 #endif

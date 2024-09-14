@@ -3,97 +3,20 @@
 #extension GL_EXT_ray_tracing : enable
 #extension GL_EXT_ray_query : enable
 
-#include "pt_common.glsl"
-#include "../medium/pins_common.glsl"
-#include "../template.glsl"
-
-
-
-
-//#define ENVMAP_PDF_ARRAY
-
-
-COMPUTE_SHADER_ID_IN
-// Constants
-SHADER_BLOCK_3_FRAME_VIEW_PARAMS(0)
+#include "pt_params.glsl"
+#define SHADER_CONST_BINDING_OFFSET 0
+#include "shader_const.glsl"
+#define PT_USCENE_BINDING_OFFSET SHADER_CONST_BINDING_COUNT
+#include "pt_uscene.glsl"
+#define PT_SCALAR_FIELD_MEDIUM_BINDING_OFFSET PT_USCENE_BINDING_OFFSET + PT_USCENE_BINDING_COUNT
+#include "pt_scalar_field_medium.glsl"
+#define PT_PIN_MEDIUM_BINDING_OFFSET PT_SCALAR_FIELD_MEDIUM_BINDING_OFFSET + PT_SCALAR_FIELD_MEDIUM_BINDING_COUNT
+#include "pt_pin_medium.glsl"
+#define LOCAL_BINDING_OFFSET PT_PIN_MEDIUM_BINDING_OFFSET + PT_PIN_MEDIUM_BINDING_COUNT
 // Target
-layout(binding = 3, FORMAT1) writeonly uniform image2D colorOut;
-// Scene data
-SHADER_BLOCK_12_USCENE(4)
-
-#include "envmap.glsl"
-
-// General config
-struct PushStruct
-{
-	uint volRes;
-	uint pinGridSize;
-	uint pinCountPerGridCell;
-	uint pinTransmittanceValueCount;
-};
-
-layout(push_constant) uniform PUSH_CONSTANTS {PushStruct pc;};
-layout(binding = 16) uniform sampler3D volSmp;
-layout(binding = 17) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
-
-#ifdef USE_PINS
-
-layout(binding = 18) readonly buffer PIN_GRID {GLSLPinGridEntry pinGrid[];};
-layout(binding = 19) readonly buffer PIN_TRANSMITTANCE { float pinTransmittance[];};
-#ifndef PIN_MODE
-#define PIN_MODE PIN_MODE_FLAG_DIRECT
-#endif
-
-#ifndef PIN_COUNT_PER_GRID_CELL
-#define PIN_COUNT_PER_GRID_CELL 4
-#endif
-#else
-
-#undef PIN_MODE
-#define PIN_MODE 0
-#endif
-
-
-#define PATH_TERMINATED_ZERO 0
-#define PATH_TERMINATED_INFINITY 1
-#define PATH_SURFACE_SCATTER 2
-#define PATH_MEDIUM_SCATTER 3
-
-
-struct HitData
-{
-	uint instanceCustomID;
-	uint geometryID;
-	uint primitiveID;
-	vec3 barycentrics;
-	mat4x3 objToWorld;
-};
-
-float traceGeometry(Ray ray, inout HitData hData)
-{
-	rayQueryEXT rq;
-	rayQueryInitializeEXT(rq, as, gl_RayFlagsOpaqueEXT, 0xFF, ray.origin, ray.tmin, ray.direction, ray.tmax);
-	while(rayQueryProceedEXT(rq)){}
-	if(rayQueryGetIntersectionTypeEXT(rq, true) == gl_RayQueryCommittedIntersectionTriangleEXT)
-	{
-		hData.instanceCustomID = rayQueryGetIntersectionInstanceCustomIndexEXT(rq, true);
-		hData.geometryID = rayQueryGetIntersectionGeometryIndexEXT(rq, true);
-		hData.primitiveID = rayQueryGetIntersectionPrimitiveIndexEXT(rq, true);
-		hData.barycentrics.yz = rayQueryGetIntersectionBarycentricsEXT(rq, true);
-		hData.barycentrics.x = 1.0 - hData.barycentrics.y - hData.barycentrics.z;
-		hData.objToWorld = rayQueryGetIntersectionObjectToWorldEXT(rq, true);
-		return rayQueryGetIntersectionTEXT(rq, true);
-	}
-	return MAX_FLOAT;
-}
-
-struct Range
-{
-	float rMin;
-	float rMax;
-};
-
-
+layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
+// Volume Instance
+layout(binding = LOCAL_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
 
 Range traceMediumConservative(Ray ray)
 {
@@ -125,163 +48,8 @@ Range traceMediumConservative(Ray ray)
 	}
 	return range;
 }
-#ifdef USE_PINS
-GLSLPinGridEntry selectPin(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
-{
-	origin = clamp(vec3(0.0),vec3(0.9999), origin);
-	uvec3 gridId = uvec3(origin*float(pc.pinGridSize));
-	uint cellIdx = flatten(gridId, uvec3(pc.pinGridSize)) * pc.pinCountPerGridCell;
 
-	float maxDot = 0.0;
-	GLSLPinGridEntry maxDotPin;
-	for(uint i = 0; i < PIN_COUNT_PER_GRID_CELL; i++)
-	{
-		GLSLPinGridEntry gridEntry = pinGrid[cellIdx + i];
-		float dotVal = abs(dot(getPinDirection(gridEntry.pin), direction));
-		if(dotVal > maxDot)
-		{
-			maxDot = dotVal;
-			maxDotPin = gridEntry;
-		}
-	}
-	return maxDotPin;
-}
-
-float samplePin(vec3 origin, vec3 destination, GLSLPinGridEntry gridEntry)
-{
-	vec3 pinOrigin = getPinOrigin(gridEntry.pin);
-	vec3 pinDestination = getPinDestination(gridEntry.pin);
-	vec3 pinDirection = getPinDirection(gridEntry.pin);
-	vec3 direction = normalize(destination - origin);
-
-	vec2 sampleLocation = projectRaySegment(pinOrigin, pinDestination, origin, destination);
-	sampleLocation = clamp(sampleLocation, 0.0, 0.9999);
-	sampleLocation *= vec2(pc.pinTransmittanceValueCount);
-	uvec2 rightSampleIndex = uvec2(sampleLocation);
-	vec2 uv = sampleLocation - floor(sampleLocation);
-	uint baseIndex = gridEntry.idx * pc.pinTransmittanceValueCount;
-
-	// right
-	vec2 rightSampleValue = vec2(pinTransmittance[baseIndex + rightSampleIndex.x], pinTransmittance[baseIndex + rightSampleIndex.y]);
-
-	// left
-	vec2 leftSampleValue;
-	if(rightSampleIndex.x == 0)
-	{
-		leftSampleValue.x = 0.0;
-	}
-	else
-	{
-		leftSampleValue.x = pinTransmittance[baseIndex + rightSampleIndex.x - 1];
-	}
-	if(rightSampleIndex.y == 0)
-	{
-		leftSampleValue.y = 0.0;
-	}
-	else
-	{
-		leftSampleValue.y = pinTransmittance[baseIndex + rightSampleIndex.y - 1];
-	}
-
-	vec2 sampleValue = mix(leftSampleValue, rightSampleValue, uv);
-	float cumulativDensity = abs(sampleValue.x - sampleValue.y);
-
-	float coef = distance(origin, destination)/distance(pinOrigin, pinDestination);
-	cumulativDensity *= coef;
-	//cumulativDensity = exp(-cumulativDensity);
-
-	//cumulativDensity*=distance(pinOrigin, pinDestination);//civ
-	//cumulativDensity /= min(dot(pinDirection, direction), 0.01);
-
-	float transmittance = exp(-cumulativDensity);
-	return transmittance;
-}
-
-float pinMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
-{
-	float rng = unormNext(seed);
-	const float max_steps = sqrt(3.0) * 2.0 / AVERAGE_RAY_MARCHE_STEP_SIZE;
-	float t = 0.0;
-	float transmittance = 1.0;
-	float stepSize = AVERAGE_RAY_MARCHE_STEP_SIZE * unormNext(seed);
-	stepSize = min(stepSize, maxLenght);
-
-	GLSLPinGridEntry pinGridEntry = selectPin(origin, direction, maxLenght, seed);
-
-	for(uint i = 0; i < max_steps; i++)
-	{
-		t += stepSize;
-		vec3 pos = origin + direction * (t-stepSize*unormNext(seed));
-
-		// Sample transmittance
-		transmittance = samplePin(origin, pos, pinGridEntry);
-
-		// Decide if we should stop
-		if(transmittance < rng)
-		{
-			return t;
-		}
-
-		stepSize = min(AVERAGE_RAY_MARCHE_STEP_SIZE, maxLenght - t);
-		if( stepSize < EPSILON)
-		{
-			return MAX_FLOAT;
-		}
-	}
-	return MAX_FLOAT;
-}
-
-float pinEvalTransmittance(vec3 origin, vec3 direction, float segmentLenght, inout uint seed)
-{
-	vec3 destination = origin + direction * segmentLenght;
-	GLSLPinGridEntry pinGridEntry = selectPin(origin, direction, segmentLenght, seed);
-	return samplePin(origin, destination, pinGridEntry);
-}
-
-#endif
-
-// return step size
-float rayMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
-{
-	float rng = unormNext(seed);
-	const float max_steps = sqrt(3.0) * 2.0 / AVERAGE_RAY_MARCHE_STEP_SIZE;
-	float t = 0.0;
-	float transmittance = 1.0;
-	float stepSize = AVERAGE_RAY_MARCHE_STEP_SIZE * unormNext(seed);
-	stepSize = min(stepSize, maxLenght);
-
-	for(uint i = 0; i < max_steps; i++)
-	{
-		t += stepSize;
-		vec3 pos = origin + direction * (t-stepSize*unormNext(seed));
-
-		// Sample density
-		float density = texture(volSmp, pos).r;
-		transmittance *= exp(-density * stepSize);
-
-		// Decide if we should stop
-		if(transmittance < rng)
-		{
-			return t;
-		}
-
-		stepSize = min(AVERAGE_RAY_MARCHE_STEP_SIZE, maxLenght - t);
-		if( stepSize < EPSILON)
-		{
-			return MAX_FLOAT;
-		}
-	}
-	return MAX_FLOAT;
-}
-
-
-
-
-
-
-
-
-float traceMedium(Ray ray, Range range, inout uint seed, uint bounce)
+float traceMedium(Ray ray, Range range, uint bounce, inout uint seed)
 {
 	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
 	vec3 localExit = (volInst.invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
@@ -310,63 +78,7 @@ float traceMedium(Ray ray, Range range, inout uint seed, uint bounce)
 	return distance(ray.origin, worldHitPos);
 }
 
-
-
-// Return tangent frame
-void evalHit(inout MaterialData matData, inout mat4x3 tangentFrame, HitData hitData)
-{
-	VKAModelDataOffset modelOffset = modelOffsets[hitData.instanceCustomID];
-	uint firstIndex = surfaceIndexOffsets[modelOffset.firstSurface + hitData.geometryID] + hitData.primitiveID * 3;
-	GLSLVertex v0 = vertices[indices[firstIndex    ] + modelOffset.firstVertex];
-	GLSLVertex v1 = vertices[indices[firstIndex + 1] + modelOffset.firstVertex];
-	GLSLVertex v2 = vertices[indices[firstIndex + 2] + modelOffset.firstVertex];
-	vec2 uv = mat3x2(v0.uv, v1.uv, v2.uv) * hitData.barycentrics;
-
-	// Material
-	GLSLMaterial mat = materials[modelOffset.firstSurface + hitData.geometryID];
-	// Add texture reads later
-	matData.albedo = mat.albedo;
-	//matData.albedo = vec3(0.5);
-	matData.specular = mat.specular;
-	matData.emission = 20.0 * mat.emission;
-	matData.roughness = mat.roughness;
-	matData.f0 = mat.f0;
-
-	// Compute tangent frame
-	vec3 localPos = mat3(v0.pos, v1.pos, v2.pos) * hitData.barycentrics;
-	vec3 localGeometricNormal = normalize(mat3(v0.normal, v1.normal, v2.normal) * hitData.barycentrics);
-	vec3 worldPos = hitData.objToWorld * vec4(localPos, 1.0);
-	vec3 worldNormal = normalize(hitData.objToWorld * vec4(localGeometricNormal, 0.0));
-	tangentFrame = tangentFrameFromPosNormal(worldPos,worldNormal);
-}
-
-
-float rayMarcheMediumTransmittance(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
-{
-	const float max_steps = sqrt(3.0) * 2.0 / AVERAGE_RAY_MARCHE_STEP_SIZE;
-	float t = 0.0;
-	float transmittance = 1.0;
-	float stepSize = AVERAGE_RAY_MARCHE_STEP_SIZE * unormNext(seed);
-	stepSize = min(stepSize, maxLenght);
-	for(uint i = 0; i < max_steps; i++)
-	{
-		t += stepSize;
-		vec3 pos = origin + direction * (t-stepSize*unormNext(seed));
-
-		// Sample density
-		float density = texture(volSmp, pos).r;
-		transmittance *= exp(-density * stepSize);
-
-		stepSize = min(AVERAGE_RAY_MARCHE_STEP_SIZE, maxLenght - t);
-		if( stepSize < EPSILON)
-		{
-			return transmittance;
-		}
-	}
-	return transmittance;
-}
-
-float traceMediumTransmittance(Ray ray, Range range, inout uint seed, uint bounce)
+float traceMediumTransmittance(Ray ray, Range range, uint bounce inout uint seed)
 {
 	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
 	vec3 localExit = (volInst.invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
@@ -378,7 +90,6 @@ float traceMediumTransmittance(Ray ray, Range range, inout uint seed, uint bounc
 	if(bounce >= MIN_PIN_BOUNCE)
 	{
 		transmittance = pinEvalTransmittance(localOrigin, localDir, localTMax, seed);
-		//transmittance = rayMarcheMediumTransmittance(localOrigin, localDir, localTMax, seed);
 	}
 	else
 	{
@@ -391,175 +102,99 @@ float traceMediumTransmittance(Ray ray, Range range, inout uint seed, uint bounc
 	return transmittance;
 }
 
-
-
-
-VKAAreaLight selectAreaLight(inout uint seed, out float localPdf)
-{
-	VKAAreaLight areaLight;
-	uint lightIdx = uint(AREA_LIGHT_COUNT * unormNext(seed));
-	localPdf = 1.0/float(AREA_LIGHT_COUNT); // uniform pdf
-	areaLight = areaLights[lightIdx];
-	mat4 transform = modelTransforms[areaLight.modelIndex];
-	areaLight.v0 = vec3(transform*vec4(areaLight.v0, 1.0));
-	areaLight.v1 = vec3(transform*vec4(areaLight.v1, 1.0));
-	areaLight.v2 = vec3(transform*vec4(areaLight.v2, 1.0));
-	areaLight.normal = normalize(vec3(transform*vec4(areaLight.normal, 0.0)));
-	return areaLight;
-}
-
-Ray genDirectIllumRayAreaLight(vec3 pos, inout uint seed, out float localPdf, out vec3 localWeight)
-{
-	float selectionPDF, samplePDF;
-	VKAAreaLight areaLight = selectAreaLight(seed, selectionPDF);
-	vec3 samplePos  = sampleAreaLight(pos, areaLight, seed, samplePDF);
-
-
-	localPdf = selectionPDF * samplePDF;
-
-	localWeight = vec3(areaLight.intensity * 10.0);
-	Ray ray;
-	ray.origin = pos;
-	ray.direction = normalize(samplePos-ray.origin);
-	ray.tmin = TMIN;
-	ray.tmax = distance(samplePos, ray.origin)-TMIN;
-	return ray;
-}
-
-float traceGeometryTransmittance(Ray ray)
-{
-	rayQueryEXT rq;
-	float transmittance;
-	rayQueryInitializeEXT(rq, as, gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT , 0xFF, ray.origin, ray.tmin, ray.direction, ray.tmax);
-	while(rayQueryProceedEXT(rq)){}
-	if(rayQueryGetIntersectionTypeEXT(rq, true) == gl_RayQueryCommittedIntersectionTriangleEXT)
-	{
-		transmittance = 0.0;
-	}
-	else
-	{
-		transmittance = 1.0;
-	}
-	return transmittance;
-}
-
-
-float traceTransmittance(Ray ray, inout uint seed, uint bounce)
+float traceTransmittance(Ray ray, uint bounce, inout uint seed)
 {
 	float geomTransmittance = traceGeometryTransmittance(ray);
-
 	if(geomTransmittance == 0.0)
 	{
 		return geomTransmittance;
 	}
-
 	Range rMedium = traceMediumConservative(ray);
 	if(rMedium.rMin == MAX_FLOAT)
 	{
 		return geomTransmittance;
 	}
-
-
-	float mediumTransmittance = traceMediumTransmittance(ray, rMedium, seed, bounce);
+	float mediumTransmittance = traceMediumTransmittance(ray, rMedium, bounce, seed);
 	return geomTransmittance * mediumTransmittance;
 }
 
-vec3 sampleDirectIllumAreaLight(vec3 pos, inout vec3 direction, inout uint seed, uint bounce)
-{
-	float localPdf;
-	vec3 localWeight;
-	Ray ray = genDirectIllumRayAreaLight(pos, seed, localPdf, localWeight);
-	direction = ray.direction;
-	if(localPdf < EPSILON)
-	{
-		return vec3(0.0);
-	}
 
-	float transmittance = traceTransmittance(ray, seed, bounce);
-	vec3 Li = transmittance * (localWeight / localPdf);
+vec3 sampleDirectIllumAreaLight((vec3 pos, uint bounce, inout uint seed, out vec3 wi)
+{
+	Ray ray = genDirectIllumRayAreaLight(pos, seed);
+	float transmittance = traceTransmittance(ray, bounce, seed);
+	wi = ray.direction;
+	vec3 Li = transmittance * ray.weight;
 	return Li;
 }
 
-
-
-Ray genDirectIllumRayEnvMap(vec3 pos, inout uint seed, out float localPdf, out vec3 localWeight)
+vec3 sampleDirectIllumEnvMap(vec3 pos, uint bounce, inout uint seed, out vec3 wi)
 {
-	//vec3 direction = random3D(seed);
-	//direction = normalize(direction - vec3(0.5));
-	//vec2 uv = dirToUv(direction);
-	//vec3 sampleEnvMapPdf(inout float pdf, vec4 rng, inout vec2 uv)
-	vec2 uv = sampleEnvMapPdf(localPdf, vec4(unormNext(seed), unormNext(seed), unormNext(seed), unormNext(seed)));
-	vec3 direction = uvToDir(uv);
-	localWeight = 5.0*texture(envMap, uv).rgb;
-	Ray ray;
-	ray.origin = pos;
-	ray.direction = direction;
-	ray.tmin = TMIN;
-	ray.tmax = TMAX;
-	return ray;
-}
-
-vec3 sampleDirectIllumEnvMap(vec3 pos, inout vec3 direction, inout uint seed, uint bounce)
-{
-	float localPdf;
-	vec3 localWeight;
 	Ray ray = genDirectIllumRayEnvMap(pos, seed, localPdf, localWeight);
-	direction = ray.direction;
-	if(localPdf < EPSILON)
-	{
-		return vec3(0.0);
-	}
-
-	float transmittance = traceTransmittance(ray, seed, bounce);
-	vec3 Li = transmittance * (localWeight / localPdf);
-	//return (localWeight / localPdf);
+	float transmittance = traceTransmittance(ray, bounce, seed);
+	wi = ray.direction;
+	vec3 Li = transmittance * ray.weight;
 	return Li;
 }
 
+#define PATH_TERMINATED_ZERO 0
+#define PATH_TERMINATED_INFINITY 1
+#define PATH_SURFACE_SCATTER 2
+#define PATH_MEDIUM_SCATTER 3
 
-uint nextBounce(
-	inout Ray ray, inout uint seed, inout float pdf, inout vec3 weight, // Full Ray payload
-	out HitData hitData, out MaterialData matData, out mat4x3 tangentFrame, // Hit data
-	uint bounce)
+Ray nextBounce(
+	Ray ray, uint bounce,
+	inout uint seed,
+	out uint hitType, out MaterialData matData, out mat4x3 tangentFrame)
 {
+	Ray nextRay;
+	HitData hitData;
 	float tGeom = traceGeometry(ray, hitData);
 	float tMedium = MAX_FLOAT;
 	Range rMedium = traceMediumConservative(ray);
 	rMedium.rMax = min(rMedium.rMax, tGeom);
 	if(tGeom < rMedium.rMin)
 	{
+		hitType = PATH_SURFACE_SCATTER;
 		evalHit(matData, tangentFrame, hitData);
-		ray = reflectLampertDiffuse(matData, tangentFrame, seed, pdf, weight);
-		return PATH_SURFACE_SCATTER;
+
+		nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
+		nextRay.weight *= ray.weight;
 	}
 	else if( rMedium.rMin == MAX_FLOAT )
 	{
-		return PATH_TERMINATED_INFINITY;
+		hitType = PATH_TERMINATED_INFINITY;
 	}
 	else
 	{
-		tMedium = traceMedium(ray, rMedium, seed, bounce);
+		tMedium = traceMedium(ray, rMedium, bounce, seed);
 		if(tGeom < tMedium)
 		{
+			hitType = PATH_SURFACE_SCATTER;
 			evalHit(matData, tangentFrame, hitData);
-			ray = reflectLampertDiffuse(matData, tangentFrame, seed, pdf, weight);
-			return PATH_SURFACE_SCATTER;
+
+			nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
+			nextRay.weight *= ray.weight;
 		}
 		else if( tMedium == MAX_FLOAT )
 		{
-			return PATH_TERMINATED_INFINITY;
+			hitType = PATH_TERMINATED_INFINITY;
 		}
 		else
 		{
-			ray = scatterUniform(volInst.albedo, ray.origin + tMedium * ray.direction, seed, pdf, weight);
-			return PATH_MEDIUM_SCATTER;
+			hitType = PATH_MEDIUM_SCATTER;
+			tangentFrame = mat4x3(1.0);
+			tangentFrame[3] = ray.origin + tMedium * ray.direction;
+			matData = {};
+			matData.albedo = volInst.albedo;
+
+			nextRay = scatterUniform(matData.albedo, tangentFrame[3], seed);
+			nextRay.weight *= ray.weight;
 		}
 	}
-	return PATH_TERMINATED_ZERO;
+	return nextRay;
 }
 
-
-#ifndef OLD_NO_DIRECT_ILLUM
 void main()
 {
 	COMPUTE_SHADER_CHECK_ID_FRAME
@@ -568,157 +203,78 @@ void main()
 	
 	for(uint j = 0; j < SAMPLE_COUNT; j++)
 	{
-		float pdf = 1.0;
-		vec3 weight = vec3(1.0);
 		Ray ray = genPrimaryRay(frame, view, gl_GlobalInvocationID.xy, seed);
-
-
 		for(uint i = 0; i < MAX_BOUNCES; i++)
 		{
-			vec3 coef = weight / pdf;
-
-			HitData hitData;
+			uint hitType;
 			MaterialData matData;
 			mat4x3 tangentFrame;
+			Ray nextRay = nextBounce(ray, i, seed, hitType, matData, tangentFrame);
 
-			uint pathState = nextBounce(ray, seed, pdf, weight, hitData, matData, tangentFrame, i);
-
-
-			if(pathState == PATH_TERMINATED_ZERO)
+			if(hitType == PATH_TERMINATED_ZERO)
 			{
 				break;
 			}
-			else if(pathState == PATH_TERMINATED_INFINITY)
+			else if(hitType == PATH_TERMINATED_INFINITY)
 			{
 				if(i == 0)
 				{
 					vec2 uv = dirToUv(ray.direction);
 					vec3 envMapValue = texture(envMap, uv).rgb;
-					totalIllumination += envMapValue * coef;
+					totalIllumination += ray.weight * envMapValue;
 				}
 				break;
 			}
-			else if(pathState == PATH_SURFACE_SCATTER) 
+			else if(hitType == PATH_SURFACE_SCATTER) 
 			{
-				vec3 Le = vec3(0.0); // Emission from light sources collected via NEE
-				if(i == 0)
+				vec3 Lo = vec3(0.0);
+				if(i == 0) // Emission only from the first hit. Other emissions from light sources are collected via NEE
 				{
 					Le = matData.emission;
+					vec3 Lo += Le;
 				}
-
-				vec3 Lo = Le;
+				vec3 brdf = lampertBRDF(matData.albedo);
+				vec3 wi;
 				// Direct illumination from area lights
+				#if AREA_LIGHT_COUNT > 0
 				{
-					vec3 wi;
-					vec3 Li = sampleDirectIllumAreaLight(ray.origin, wi, seed, i);
-					vec3 brdf = lampertBRDF(matData.albedo);
+					vec3 Li = sampleDirectIllumAreaLight(tangentFrame[3], i, seed, wi);
 					float cosTheta = max(0.0, dot(tangentFrame[2], wi));
 					Lo += brdf * Li * cosTheta;
 				}
+				#endif
 				// Direct illumination from envMap
 				{
-					vec3 wi;
-					vec3 Li = sampleDirectIllumEnvMap(ray.origin, wi, seed, i);
-					vec3 brdf = lampertBRDF(matData.albedo);
+					vec3 Li = sampleDirectIllumEnvMap(tangentFrame[3], i, seed, wi);
 					float cosTheta = max(0.0, dot(tangentFrame[2], wi));
 					Lo += brdf * Li * cosTheta;
 				}
-				totalIllumination += coef * Lo;
+				totalIllumination += ray.weight * Lo;
 			}
 			else if(pathState == PATH_MEDIUM_SCATTER)
 			{
-				vec3 Le = vec3(0.0); // No emission from medium
-				vec3 Lo = Le;
+				vec3 Lo = vec3(0.0); // No emission from medium (Le = 0)
 				// Direct illumination from area lights
-				{
-					vec3 wi;
-					vec3 Li = sampleDirectIllumAreaLight(ray.origin, wi, seed, i);
-					vec3 volumeBSDF = uniformScatterBSDF(volInst.albedo);
-					Lo += volumeBSDF * Li;
-				}
-				{
-					vec3 wi;
-					vec3 Li = sampleDirectIllumEnvMap(ray.origin, wi, seed, i);
-					vec3 volumeBSDF = uniformScatterBSDF(volInst.albedo);
-					Lo += volumeBSDF * Li;
-				}
-				totalIllumination += coef * Lo;
-			}
-		}
-	}
-
-	totalIllumination /= float(SAMPLE_COUNT);
-
-	imageStore(colorOut, gID.xy, vec4(totalIllumination, 1.0));
-}
-#else
-void main()
-{
-	COMPUTE_SHADER_CHECK_ID_FRAME
-	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width + frame.width*frame.height*frame.idx;
-	vec3 totalIllumination = vec3(0.0);
-	
-	for(uint j = 0; j < SAMPLE_COUNT; j++)
-	{
-		float pdf = 1.0;
-		vec3 weight = vec3(1.0);
-		Ray ray = genPrimaryRay(frame, view, gl_GlobalInvocationID.xy, seed);
-
-
-		for(uint i = 0; i < MAX_BOUNCES; i++)
-		{
-			vec3 coef = weight / pdf;
-
-			HitData hitData;
-			MaterialData matData;
-			mat4x3 tangentFrame;
-
-			uint pathState = nextBounce(ray, seed, pdf, weight, hitData, matData, tangentFrame, i);
-
-
-			if(pathState == PATH_TERMINATED_ZERO)
-			{
-				break;
-			}
-			else if(pathState == PATH_TERMINATED_INFINITY)
-			{
-				totalIllumination += BACKGROUND_LIGHTING * coef; // Replace with envmap
-				break;
-			}
-			else if(pathState == PATH_SURFACE_SCATTER) 
-			{
-				vec3 Le = vec3(0.0); // Emission from light sources collected via NEE
-				if(i == 0)
-				{
-					Le = matData.emission;
-				}
-				vec3 wi;
-				vec3 Li = sampleDirectIllumAreaLight(ray.origin, wi, seed, i);
-				vec3 brdf = lampertBRDF(matData.albedo);
-				float cosTheta = max(0.0, dot(tangentFrame[2], wi));
-				vec3 Lo = Le + brdf * Li * cosTheta;
-
-				//totalIllumination += coef * Lo;
-				totalIllumination +=  matData.emission * coef;
-
-
-
-
-			}
-			else if(pathState == PATH_MEDIUM_SCATTER)
-			{
-				vec3 Le = vec3(0.0); // No emission from medium
-				vec3 wi;
-				vec3 Li = sampleDirectIllumAreaLight(ray.origin, wi, seed, i);
 				vec3 volumeBSDF = uniformScatterBSDF(volInst.albedo);
-				vec3 Lo = Le + volumeBSDF * Li;
-				//totalIllumination += coef * Lo;
+				vec3 wi;
+				#if AREA_LIGHT_COUNT > 0
+				{
+					vec3 Li = sampleDirectIllumAreaLight(tangentFrame[3], i, seed, wi);
+					Lo += volumeBSDF * Li;
+				}
+				#endif
+				// Direct illumination from envMap
+				{
+					vec3 Li = sampleDirectIllumEnvMap(tangentFrame[3], i, seed, wi);
+					Lo += volumeBSDF * Li;
+				}
+				totalIllumination += ray.weight * Lo;
 			}
+
+			ray = nextRay;
 		}
 	}
 
 	totalIllumination /= float(SAMPLE_COUNT);
-
 	imageStore(colorOut, gID.xy, vec4(totalIllumination, 1.0));
 }
-#endif
