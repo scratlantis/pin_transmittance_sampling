@@ -56,7 +56,6 @@ void main()
 	{
 		BUFFER_TYPE val = imageLoad(img, ivec2(gID.x, i + gID.y * segmentSize)).r;
 		sum += val*denominator;
-		//sum += denominator;
 	}
 
 	buf[outputIndex] = sum;

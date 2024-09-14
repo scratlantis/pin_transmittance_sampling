@@ -32,9 +32,8 @@ int main()
 	enableGui();
 
 	// May be added to the global state in the future
-	HdrImagePdfCache pdfCache = HdrImagePdfCache(gState.heap);
 
-	USceneBuilder<GLSLVertex, GLSLMaterial> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial>(&pdfCache);
+	USceneBuilder<GLSLVertex, GLSLMaterial> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial>();
 
 	// Camera
 	FixedCamera cam = FixedCamera(DefaultFixedCameraCI());

@@ -1,7 +1,6 @@
 #pragma once
 #include <vka/advanced_state/AdvancedState.h>
 #include <vka/core/core_common.h>
-#include "../HdrImagePdfCache.h"
 
 namespace vka
 {
