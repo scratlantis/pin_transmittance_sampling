@@ -11,7 +11,7 @@ typedef glm::vec3 vec3;
 typedef glm::vec4 vec4;
 typedef glm::mat4 mat4;
 //#include "shaders/interface.glsl"
-#include "newShaders/interface_structs.glsl"
+#include "shaders/interface_structs.glsl"
 
 static GLSLFrame defaultFrame(VkExtent2D extent, uint32_t frameIdx)
 {

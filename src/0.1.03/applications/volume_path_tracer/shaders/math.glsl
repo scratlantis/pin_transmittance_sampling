@@ -106,4 +106,21 @@ float absDot(vec3 a, vec3 b)
 	return abs(dot(a, b));
 }
 
+vec2 dirToUv(vec3 v)
+{
+	const vec2 invAtan = vec2(0.1591, 0.3183);
+    vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
+    uv *= invAtan;
+    uv += 0.5;
+    return uv;
+}
+
+vec3 uvToDir(vec2 uv)
+{
+   uv+=0.5;
+   float theta = uv.y * 3.14159265359;
+   float phi = uv.x * 3.14159265359 * 2.0;
+   return vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi));
+}
+
 #endif

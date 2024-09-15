@@ -1,7 +1,7 @@
 #pragma once
 #include <vka/vka.h>
 #include <glm/gtc/matrix_transform.hpp>
-static const std::string shaderPath = std::string(APP_SRC_DIR) + "/newShaders/";
+static const std::string shaderPath = std::string(APP_SRC_DIR) + "/shaders/";
 
 using namespace vka;
 using namespace vka::pbr;
