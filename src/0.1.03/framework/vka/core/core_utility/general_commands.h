@@ -17,6 +17,7 @@ struct ImageSubresourceRange
 void cmdClearState(CmdBuffer cmdBuf);
 // Buffer
 void cmdCopyBuffer(CmdBuffer cmdBuf, BufferRef src, BufferRef dst);
+void cmdCopyBufferRegion(CmdBuffer cmdBuf, BufferRef src, BufferRef dst, uint32_t srcOffset, uint32_t dstOffset, VkDeviceSize size = VK_WHOLE_SIZE);
 void cmdUpload(CmdBuffer cmdBuf, Buffer buf);
 void cmdWriteCopy(CmdBuffer cmdBuf, Buffer buf, const void *data, VkDeviceSize size);
 void cmdUploadCopy(CmdBuffer cmdBuf, Buffer src, Buffer dst);

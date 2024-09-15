@@ -95,7 +95,8 @@ static void bind_scene(ComputeCmd &cmd, const USceneData* pScene)
 	cmd.pushDescriptor(pScene->materialBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(pScene->areaLightBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(pScene->tlas);
-	cmd.pushDescriptor(pScene->modelTransformBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pScene->instanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pScene->instanceOffsetBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(SamplerDefinition());
 	cmd.pushDescriptor(pScene->textures, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 	cmd.pushDescriptor(pScene->envMap, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
@@ -195,5 +196,18 @@ struct material_type<GLSLMaterial>
 		return material;
 	}
 };
+
+template <>
+struct instance_type<GLSLInstance>
+{
+	ComputeCmd get_cmd_write_tlas_instance(Buffer instanceBuffer, Buffer tlasInstanceBuffer, uint32_t instanceCount)
+	{
+		ComputeCmd cmd(instanceCount, shaderPath + "misc/instance_to_tlas_instance.comp", {{"INPUT_SIZE", instanceCount}});
+		cmd.pushDescriptor(instanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		cmd.pushDescriptor(tlasInstanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		return cmd;
+	}
+};
+
 }        // namespace pbr
 }        // namespace vka

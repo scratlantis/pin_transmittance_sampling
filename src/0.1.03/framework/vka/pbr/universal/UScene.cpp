@@ -13,11 +13,16 @@ void USceneBuilderBase::loadEnvMap(std::string name, glm::uvec2 subdivisions)
 	envMapSubdivisions = subdivisions;
 }
 
-void USceneBuilderBase::addModel(CmdBuffer cmdBuf, std::string path, glm::mat4 transform, uint32_t loadFlags)
+void USceneBuilderBase::addModel(CmdBuffer cmdBuf, std::string path, void *instanceData, uint32_t instanceCount, uint32_t loadFlags)
 {
-	addModelInternal(cmdBuf, gState.modelCache, path, loadFlags | MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE | MODEL_LOAD_FLAG_COPYABLE);
-	transformList.push_back(transform);
+	addModelInternal(cmdBuf, gState.modelCache, path, instanceData, instanceCount, loadFlags | MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE | MODEL_LOAD_FLAG_COPYABLE);
 }
+
+void USceneBuilderBase::addModel(CmdBuffer cmdBuf, std::string path, Buffer instanceBuffer, uint32_t instanceCount, uint32_t loadFlags)
+{
+	addModelInternal(cmdBuf, gState.modelCache, path, instanceBuffer, instanceCount, loadFlags | MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE | MODEL_LOAD_FLAG_COPYABLE);
+}
+
 
 USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uint32_t sceneLoadFlags = 0)
 {
@@ -67,13 +72,17 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uin
 		modelDataOffset[i].firstSurface = surfaceCount;
 		indexCounts.insert(indexCounts.end(), modelList[i].indexCount.begin(), modelList[i].indexCount.end());
 
-		std::vector<AreaLight> lights = modelList[i].lights;
-		for (size_t j = 0; j < lights.size(); j++)
-		{
-			lights[j].modelIndex = i;
-		}
 
-		areaLights.insert(areaLights.end(), lights.begin(), lights.end());
+		for (size_t k = 0; k < getInstanceCount(i); k++)
+		{
+			std::vector<AreaLight> lights = modelList[i].lights;
+			for (size_t j = 0; j < lights.size(); j++)
+			{
+				lights[j].instanceIndex = getInstanceOffset(i) + k;//civ
+			}
+
+			areaLights.insert(areaLights.end(), lights.begin(), lights.end());
+		}
 
 		surfaceCount += modelList[i].indexCount.size();
 		vertexOffsett += modelList[i].vertexBuffer->getSize();
@@ -121,7 +130,8 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uin
 		sceneData.info.useTextures = false;
 		sceneData.textures.push_back(cmdCreateDummyTexture(cmdBuf, pPool));
 	}
-	sceneData.tlas = createTopLevelAS(pPool, modelList.size());
+	//sceneData.tlas = createTopLevelAS(pPool, modelList.size());
+	sceneData.tlas = createTopLevelAS(pPool, getTotalInstanceCount());
 
 	if (!envMapName.empty())
 	{
@@ -144,40 +154,6 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uin
 	return sceneData;
 }
 
-
-USceneInstanceData USceneBuilderBase::uploadInstanceData(CmdBuffer cmdBuf, IResourcePool *pPool)
-{
-	USceneInstanceData instanceData{};
-	instanceData.tlasInstanceBuffer                                    = createBuffer(pPool, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
-	std::vector<VkAccelerationStructureInstanceKHR> instances(transformList.size());
-	for (uint32_t i = 0; i < instances.size(); i++)
-	{
-		instances[i].transform                              = glmToVk(transformList[i]);
-		instances[i].instanceCustomIndex                    = i;
-		instances[i].mask                                   = 0xFF;
-		instances[i].instanceShaderBindingTableRecordOffset = 0;
-		instances[i].flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-		instances[i].accelerationStructureReference         = modelList[i].blas->getDeviceAddress();
-	}
-	cmdWriteCopy(cmdBuf, instanceData.tlasInstanceBuffer, instances.data(), instances.size() * sizeof(VkAccelerationStructureInstanceKHR));
-
-	instanceData.modelTransformBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-	cmdWriteCopy(cmdBuf, instanceData.modelTransformBuffer, transformList.data(), transformList.size() * sizeof(glm::mat4));
-	return instanceData;
-}
-void USceneBuilderBase::setTransform(std::string path, glm::mat4 transform)
-{
-	uint32_t index       = indexMap.at(path);
-	transformList[index] = transform;
-}
-void USceneBuilderBase::reset()
-{
-	textureIndexMap.clear();
-	modelList.clear();
-	transformList.clear();
-	indexMap.clear();
-	envMapName = "";
-}
 void USceneData::build(CmdBuffer cmdBuf, USceneInstanceData instanceData)
 {
 	cmdBarrier(cmdBuf,
@@ -186,7 +162,8 @@ void USceneData::build(CmdBuffer cmdBuf, USceneInstanceData instanceData)
 	           VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
 	           VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR);
 	cmdBuildAccelerationStructure(cmdBuf, tlas, instanceData.tlasInstanceBuffer, createStagingBuffer());
-	this->modelTransformBuffer = instanceData.modelTransformBuffer;
+	this->instanceBuffer = instanceData.instanceBuffer;
+	this->instanceOffsetBuffer = instanceData.modelIndexBuffer;
 }
 }        // namespace pbr
 }        // namespace vka

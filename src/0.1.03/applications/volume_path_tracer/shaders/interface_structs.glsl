@@ -53,6 +53,27 @@ struct GLSLMaterial
 	uint padding_3[2];
 };
 
+
+struct GLSLInstance
+{
+	mat4 mat;
+
+	vec3 color;
+	uint cullMask;
+};
+
+struct GLSLLineSegment
+{
+	vec3 start;
+	uint padding1[1];
+
+	vec3 end;
+	uint padding2[1];
+
+	vec3 color;
+	uint cullMask;
+};
+
 struct GLSLMediumInstance
 {
 	mat4 mat;
@@ -74,6 +95,15 @@ struct GLSLPinGridEntry
 	GLSLPin pin; // 24 bytes
 	uint idx; // 4 bytes
 	uint padding[1]; // 4 bytes
+};
+
+struct GLSLAccelerationStructureInstanceKHR
+{
+    float	transform[12];
+    uint    instanceCustomIndex24_mask8;
+    uint	instanceShaderBindingTableRecordOffset24_flags8;
+    uint    asRef1;
+    uint    asRef2;
 };
 
 #endif // INTERFACE_H

@@ -20,6 +20,18 @@ void cmdCopyBuffer(CmdBuffer cmdBuf, BufferRef src, BufferRef dst)
 	cmdClearState(cmdBuf);
     vkCmdCopyBuffer(cmdBuf->getHandle(), src->getHandle(), dst->getHandle(), 1, &copyRegion);
 }
+
+void cmdCopyBufferRegion(CmdBuffer cmdBuf, BufferRef src, BufferRef dst, uint32_t srcOffset, uint32_t dstOffset, VkDeviceSize size)
+{
+	VkBufferCopy copyRegion;
+	copyRegion.srcOffset = src->getRange().offset + srcOffset;
+	copyRegion.dstOffset = dst->getRange().offset + dstOffset;
+	copyRegion.size      = std::min(src->getSize() - srcOffset, size);
+    VKA_ASSERT(copyRegion.size <= dst->getSize() - dstOffset);
+	cmdClearState(cmdBuf);
+	vkCmdCopyBuffer(cmdBuf->getHandle(), src->getHandle(), dst->getHandle(), 1, &copyRegion);
+}
+
 void cmdUpload(CmdBuffer cmdBuf, Buffer buf)
 {
 	VKA_ASSERT(buf->getMemoryType() != VMA_MEMORY_USAGE_GPU_ONLY);

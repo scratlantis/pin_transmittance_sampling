@@ -20,7 +20,7 @@
 #endif
 
 
-#define PT_USCENE_BINDING_COUNT 12
+#define PT_USCENE_BINDING_COUNT 13
 layout(binding = PT_USCENE_BINDING_OFFSET + 0) readonly buffer VERTICES { GLSLVertex vertices[]; };
 layout(binding = PT_USCENE_BINDING_OFFSET + 1) readonly buffer INDICES { uint indices[]; };
 layout(binding = PT_USCENE_BINDING_OFFSET + 2) readonly buffer MODEL_OFFSETS { VKAModelDataOffset modelOffsets[]; };
@@ -28,11 +28,12 @@ layout(binding = PT_USCENE_BINDING_OFFSET + 3) readonly buffer SURFACE_OFFSETS {
 layout(binding = PT_USCENE_BINDING_OFFSET + 4) readonly buffer MATERIALS { GLSLMaterial materials[]; };
 layout(binding = PT_USCENE_BINDING_OFFSET + 5) readonly buffer AREA_LIGHTS { VKAAreaLight areaLights[]; };
 layout(binding = PT_USCENE_BINDING_OFFSET + 6) uniform accelerationStructureEXT as;
-layout(binding = PT_USCENE_BINDING_OFFSET + 7) readonly buffer MODEL_TRANSFOMRS {mat4 modelTransforms[];};
-layout(binding = PT_USCENE_BINDING_OFFSET + 8) uniform sampler smp;
-layout(binding = PT_USCENE_BINDING_OFFSET + 9) uniform texture2D tex[];
-layout(binding = PT_USCENE_BINDING_OFFSET + 10) uniform sampler2D envMap;
-layout(binding = PT_USCENE_BINDING_OFFSET + 11) readonly buffer ENV_MAP_PDF {float envMapPdf[];};
+layout(binding = PT_USCENE_BINDING_OFFSET + 7) readonly buffer INSTANCES {GLSLInstance instances[];};
+layout(binding = PT_USCENE_BINDING_OFFSET + 8) readonly buffer INSTANCE_OFFSET {uint instanceOffsets[];};
+layout(binding = PT_USCENE_BINDING_OFFSET + 9) uniform sampler smp;
+layout(binding = PT_USCENE_BINDING_OFFSET + 10) uniform texture2D tex[];
+layout(binding = PT_USCENE_BINDING_OFFSET + 11) uniform sampler2D envMap;
+layout(binding = PT_USCENE_BINDING_OFFSET + 12) readonly buffer ENV_MAP_PDF {float envMapPdf[];};
 
 struct HitData
 {
@@ -80,7 +81,8 @@ float traceGeometryTransmittance(Ray ray)
 
 void evalHit(HitData hitData, inout MaterialData matData, inout mat4x3 tangentFrame)
 {
-	VKAModelDataOffset modelOffset = modelOffsets[hitData.instanceCustomID];
+	uint instanceOffset = instanceOffsets[hitData.instanceCustomID];
+	VKAModelDataOffset modelOffset = modelOffsets[instanceOffset];
 	uint firstIndex = surfaceIndexOffsets[modelOffset.firstSurface + hitData.geometryID] + hitData.primitiveID * 3;
 	GLSLVertex v0 = vertices[indices[firstIndex    ] + modelOffset.firstVertex];
 	GLSLVertex v1 = vertices[indices[firstIndex + 1] + modelOffset.firstVertex];
@@ -113,7 +115,7 @@ VKAAreaLight selectAreaLight(inout uint seed, out float localPdf)
 	uint lightIdx = uint(AREA_LIGHT_COUNT * unormNext(seed));
 	localPdf = 1.0/float(AREA_LIGHT_COUNT); // uniform pdf
 	areaLight = areaLights[lightIdx];
-	mat4 transform = modelTransforms[areaLight.modelIndex];
+	mat4 transform = instances[areaLight.instanceIndex].mat;
 	areaLight.v0 = vec3(transform*vec4(areaLight.v0, 1.0));
 	areaLight.v1 = vec3(transform*vec4(areaLight.v1, 1.0));
 	areaLight.v2 = vec3(transform*vec4(areaLight.v2, 1.0));

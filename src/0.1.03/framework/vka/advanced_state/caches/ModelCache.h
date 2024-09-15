@@ -66,7 +66,7 @@ struct AreaLight
 {
 	// NEE select light source
 	glm::vec3 center;
-	uint32_t  modelIndex;
+	uint32_t  instanceIndex;
 
 	glm::vec3 normal;
 	uint32_t  padding1[1];

@@ -10,13 +10,18 @@ void ReferencePathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const Rende
 	ComputeCmd computeCmd = ComputeCmd(localTarget->getExtent2D(), shaderPath + "path_tracing/pt.comp");
 
 	sConst.write(cmdBuf, computeCmd, localTarget->getExtent2D(), renderInfo.pCamera, renderInfo.frameIdx);
+
 	bind_shader_const(computeCmd, sConst);
+
 	bind_scene(computeCmd, renderInfo.pSceneData);
+
 	bind_medium(computeCmd, renderInfo.pMediun);
+
 	begin_local_descriptors(computeCmd);
 	bind_target(computeCmd, localTarget);
-	set_general_params(computeCmd);
 	computeCmd.pushDescriptor(renderInfo.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
+	set_general_params(computeCmd);
 
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	computeCmd.exec(cmdBuf);
@@ -34,13 +39,18 @@ void PinPathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo 
 	                                   });
 
 	sConst.write(cmdBuf, computeCmd, localTarget->getExtent2D(), renderInfo.pCamera, renderInfo.frameIdx);
+
 	bind_shader_const(computeCmd, sConst);
+
 	bind_scene(computeCmd, renderInfo.pSceneData);
+
 	bind_medium(computeCmd, renderInfo.pMediun);
+
 	begin_local_descriptors(computeCmd);
 	bind_target(computeCmd, localTarget);
-	set_general_params(computeCmd);
 	computeCmd.pushDescriptor(renderInfo.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
+	set_general_params(computeCmd);
 
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	computeCmd.exec(cmdBuf);

@@ -19,6 +19,9 @@ static_assert(sizeof(ModelDataOffset) == 8, "Size is not correct");
 template <class Material>
 struct material_type;
 
+template <class Instance>
+struct instance_type;
+
 struct USceneInfo
 {
 	bool useAreaLight = false;
@@ -26,10 +29,12 @@ struct USceneInfo
 	bool useTextures  = false;
 };
 
+
 struct USceneInstanceData
 {
-	Buffer modelTransformBuffer;
+	Buffer instanceBuffer;
 	Buffer tlasInstanceBuffer;
+	Buffer modelIndexBuffer;
 };
 
 
@@ -44,7 +49,8 @@ class USceneData
 	Buffer             areaLightBuffer;
 
 
-	Buffer modelTransformBuffer;
+	Buffer instanceBuffer;
+	Buffer instanceOffsetBuffer;
 	TLAS               tlas;
 
 
@@ -83,7 +89,6 @@ class USceneBuilderBase
 	// Model related data
 	std::unordered_map<std::string, uint32_t> textureIndexMap;
 	std::vector<ModelData>                    modelList;
-	std::vector<glm::mat4>                    transformList;
 	std::unordered_map<std::string, uint32_t> indexMap;
 
 
@@ -102,27 +107,34 @@ class USceneBuilderBase
 	void loadEnvMap(std::string name, glm::uvec2 subdivisions);
 
 	// load model
-	void addModel(CmdBuffer cmdBuf, std::string path, glm::mat4 transform = glm::mat4(1.0), uint32_t loadFlags = MODEL_LOAD_FLAG_IS_OPAQUE);
+	//void addModel(CmdBuffer cmdBuf, std::string path, glm::mat4 transform = glm::mat4(1.0), uint32_t loadFlags = MODEL_LOAD_FLAG_IS_OPAQUE);
 
-	virtual void addModelInternal(CmdBuffer cmdBuf, ModelCache *pModelCache, std::string path, uint32_t loadFlags) = 0;
+	void addModel(CmdBuffer cmdBuf, std::string path, void *instanceData, uint32_t instanceCount, uint32_t loadFlags = MODEL_LOAD_FLAG_IS_OPAQUE);
+	void addModel(CmdBuffer cmdBuf, std::string path, Buffer instanceBuffer, uint32_t instanceCount, uint32_t loadFlags = MODEL_LOAD_FLAG_IS_OPAQUE);
 
+	virtual void addModelInternal(CmdBuffer cmdBuf, ModelCache *pModelCache, std::string path, void* instanceData, uint32_t instanceCount, uint32_t loadFlags) = 0;
+	virtual void addModelInternal(CmdBuffer cmdBuf, ModelCache *pModelCache, std::string path, Buffer instanceBuffer, uint32_t instanceCount, uint32_t loadFlags) = 0;
+	virtual USceneInstanceData uploadInstanceData(CmdBuffer cmdBuf, IResourcePool *pPool)                                                                                       = 0;
+	virtual void               reset()                                                                                                                                          = 0;
+	virtual uint32_t           getInstanceOffset(uint32_t modelIndex)                                                                                                           = 0;
+	virtual uint32_t           getInstanceCount(uint32_t modelIndex)                                                                                                            = 0;
+	virtual uint32_t           getTotalInstanceCount()                                                                                                                          = 0;
 	// copy together buffers, create tlas
 	USceneData create(CmdBuffer cmdBuf, IResourcePool *pPool, uint32_t sceneLoadFlags);
-
-	// create and upload instance buffer
-	USceneInstanceData uploadInstanceData(CmdBuffer cmdBuf, IResourcePool *pPool);
-
-	// set transform for model
-	void setTransform(std::string path, glm::mat4 transform);
-
-	// revert to initial state
-	void reset();
 };
 
-template <class Vertex, class Material>
+template <class Vertex, class Material, class Instance>
 class USceneBuilder : public USceneBuilderBase
 {
-
+	struct InstanceData
+	{
+		uint32_t modelIndex;
+		uint32_t instanceCount;
+		std::vector<Instance> hostData;
+		Buffer deviceData;
+	};
+	std::vector<InstanceData> instanceList;
+	std::vector<uint32_t> modelIndexList;
 	// create material buffer
 	virtual void loadMaterials(CmdBuffer cmdBuf, Buffer buffer) override
 	{
@@ -136,12 +148,119 @@ class USceneBuilder : public USceneBuilderBase
 		}
 		cmdWriteCopy(cmdBuf, buffer, materialList.data(), materialList.size() * sizeof(Material));
 	}
-	void addModelInternal(CmdBuffer cmdBuf, ModelCache *pModelCache, std::string path, uint32_t loadFlags) override
+
+	virtual void addModelInternal(CmdBuffer cmdBuf, ModelCache* pModelCache, std::string path, void* instanceData, uint32_t instanceCount, uint32_t loadFlags) override
 	{
-		modelList.push_back(pModelCache->fetch<Vertex>(cmdBuf, path, loadFlags));
+		ModelData model = pModelCache->fetch<Vertex>(cmdBuf, path, loadFlags);
+		InstanceData inst{};
+		inst.modelIndex = modelList.size();
+		inst.instanceCount = instanceCount;
+		inst.hostData = std::vector<Instance>((Instance*)instanceData, (Instance*)instanceData + instanceCount);//civ
+		uint32_t modelIndex = modelList.size();
+		for (size_t i = 0; i < instanceCount; i++)
+		{
+			modelIndexList.push_back(modelIndex);
+		}
+		modelList.push_back(model);
+		instanceList.push_back(inst);
+	}
+	virtual void addModelInternal(CmdBuffer cmdBuf, ModelCache* pModelCache, std::string path, Buffer instanceBuffer, uint32_t instanceCount, uint32_t loadFlags) override
+	{
+		ModelData    model = pModelCache->fetch<Vertex>(cmdBuf, path, loadFlags);
+		InstanceData inst{};
+		inst.modelIndex    = modelList.size();
+		inst.instanceCount = instanceCount;
+		inst.deviceData    = instanceBuffer;
+		uint32_t modelIndex = modelList.size();
+		for (size_t i = 0; i < instanceCount; i++)
+		{
+			modelIndexList.push_back(modelIndex);
+		}
+		modelList.push_back(model);
+		instanceList.push_back(inst);
 	}
 
+
   public:
+	virtual USceneInstanceData uploadInstanceData(CmdBuffer cmdBuf, IResourcePool *pPool)
+	{
+		USceneInstanceData instanceData{};
+
+		instanceData.modelIndexBuffer   = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, modelIndexList.size() * sizeof(uint32_t));
+		cmdWriteCopy(cmdBuf, instanceData.modelIndexBuffer, modelIndexList.data(), modelIndexList.size() * sizeof(uint32_t));
+
+		instanceData.tlasInstanceBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
+		std::vector<VkAccelerationStructureInstanceKHR> tlasInstances;
+		for (auto& inst : instanceList)
+		{
+			for (uint32_t i = 0; i < inst.instanceCount; i++)
+			{
+				// transform and mask written on gpu
+				VkAccelerationStructureInstanceKHR tlasInstance{};
+				tlasInstance.instanceCustomIndex                    = tlasInstances.size();
+				tlasInstance.instanceShaderBindingTableRecordOffset = 0;
+				tlasInstance.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+				tlasInstance.accelerationStructureReference = modelList[inst.modelIndex].blas->getDeviceAddress();
+
+				tlasInstances.push_back(tlasInstance);
+			}
+
+			if (!inst.hostData.empty())
+			{
+				VKA_ASSERT(inst.hostData.size() == inst.instanceCount);
+				inst.deviceData = createStagingBuffer();
+				write(inst.deviceData, inst.hostData.data(), inst.hostData.size() * sizeof(Instance));
+			}
+		}
+		uint32_t totalInstanceCount = tlasInstances.size();
+		cmdWriteCopy(cmdBuf, instanceData.tlasInstanceBuffer, tlasInstances.data(), totalInstanceCount * sizeof(VkAccelerationStructureInstanceKHR));
+
+		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+
+		instanceData.instanceBuffer   = createBuffer(pPool, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, totalInstanceCount * sizeof(Instance));
+		uint32_t currentInstanceCount = 0;
+		for (auto &inst : instanceList)
+		{
+			cmdCopyBufferRegion(cmdBuf, inst.deviceData, instanceData.instanceBuffer, 0, currentInstanceCount * sizeof(Instance), inst.instanceCount * sizeof(Instance));
+			currentInstanceCount += inst.instanceCount;
+		}
+
+		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
+
+		instance_type<Instance>().get_cmd_write_tlas_instance(instanceData.instanceBuffer, instanceData.tlasInstanceBuffer, totalInstanceCount).exec(cmdBuf);
+		return instanceData;
+	}
+	virtual void reset() override
+	{
+		textureIndexMap.clear();
+		modelList.clear();
+		instanceList.clear();
+		indexMap.clear();
+		envMapName = "";
+	}
+	virtual uint32_t getInstanceOffset(uint32_t modelIndex)
+	{
+		uint32_t offset = 0;
+		for (uint32_t i = 0; i < modelIndex; i++)
+		{
+			offset += instanceList[i].instanceCount;
+		}
+		return offset;
+	}
+	virtual uint32_t getInstanceCount(uint32_t modelIndex)
+	{
+		return instanceList[modelIndex].instanceCount;
+	}
+	virtual uint32_t getTotalInstanceCount() override
+	{
+		uint32_t count = 0;
+		for (auto& inst : instanceList)
+		{
+			count += inst.instanceCount;
+		}
+		return count;
+	}
+
 
 	USceneBuilder() :
 	    USceneBuilderBase()

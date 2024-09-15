@@ -97,7 +97,7 @@ int main()
 	// Application Specific Parameters
 	Params params = DefaultParams();
 
-	USceneBuilder<GLSLVertex, GLSLMaterial> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial>();
+	USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance>();
 
 	// Medium
 	Medium          medium          = Medium();
@@ -170,7 +170,20 @@ int main()
 			{
 				sceneBuilder.loadEnvMap(envmap, glm::uvec2(64, 64));
 			}
-			sceneBuilder.addModel(cmdBuf, model.path, model.getObjToWorldMatrix());
+			GLSLInstance instance{};
+			instance.cullMask = 0xFF;
+			instance.mat = model.getObjToWorldMatrix();
+			instance.color    = glm::vec3(0.0);
+			sceneBuilder.addModel(cmdBuf, model.path, &instance, 1);
+
+			/*GLSLInstance instances[2];
+			instances[0]				= instance;
+			instances[1]				= instance;
+			glm::mat4 translation		= glm::translate(glm::mat4(1.0f), vec3(10.0, 0.0, 0.0));
+			instances[1].mat            = instance.mat * translation;
+			sceneBuilder.addModel(cmdBuf, model.path, &instances[0], 2);*/
+
+
 			scene = sceneBuilder.create(cmdBuf, gState.heap, SCENE_LOAD_FLAG_ALLOW_RASTERIZATION);
 			scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
 			executeImmediat(cmdBuf);
