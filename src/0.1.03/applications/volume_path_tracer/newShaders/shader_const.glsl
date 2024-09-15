@@ -1,18 +1,18 @@
 
 #ifndef SHADER_CONST_H
 #define SHADER_CONST_H
-
+#include "interface_structs.glsl"
 
 #define SHADER_CONST_BINDING_COUNT 3
-layout(binding = SHADER_CONST_OFFSET) uniform FRAME									 
+layout(binding = SHADER_CONST_BINDING_OFFSET) uniform FRAME									 
 {																		 
 	GLSLFrame frame;													 
 };																		 
-layout(binding = SHADER_CONST_OFFSET + 1) uniform VIEW								 
+layout(binding = SHADER_CONST_BINDING_OFFSET + 1) uniform VIEW								 
 {																		 
 	GLSLView view;													     
 };																		 
-layout(binding = SHADER_CONST_OFFSET + 2) uniform PARAMS								 
+layout(binding = SHADER_CONST_BINDING_OFFSET + 2) uniform PARAMS								 
 {																		 
 	GLSLParams params;													 
 };

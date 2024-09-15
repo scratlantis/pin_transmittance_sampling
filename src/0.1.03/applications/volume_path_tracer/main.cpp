@@ -71,7 +71,6 @@ ArrayTransmittanceEncoder transmittanceEncoder = ArrayTransmittanceEncoder();
 PinGridGenerator          pinGridGenerator     = PinGridGenerator();
 // Path Trace Strategies
 ReferencePathTracer 	 referencePathTracer  = ReferencePathTracer();
-OldReferencePathTracer oldReferencePathTracer = OldReferencePathTracer();
 PinPathTracer 			 pinPathTracer 		 = PinPathTracer();
 
 

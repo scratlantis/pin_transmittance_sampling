@@ -1,5 +1,6 @@
 #pragma once
 #include <vka/vka.h>
+#include <medium/Medium.h>
 
 
 extern std::vector<GVar *> gVars;
@@ -9,7 +10,8 @@ typedef glm::vec2 vec2;
 typedef glm::vec3 vec3;
 typedef glm::vec4 vec4;
 typedef glm::mat4 mat4;
-#include "shaders/interface.glsl"
+//#include "shaders/interface.glsl"
+#include "newShaders/interface_structs.glsl"
 
 static GLSLFrame defaultFrame(VkExtent2D extent, uint32_t frameIdx)
 {
@@ -76,32 +78,65 @@ extern ShaderConst sConst;
 
 // see template.glsl
 
-static void bind_block_3(ComputeCmd &cmd, const ShaderConst &sConst)
+static void bind_shader_const(ComputeCmd &cmd, const ShaderConst &sConst)
 {
+	cmd.pipelineDef.shaderDef.args.push_back({"SHADER_CONST_BINDING_OFFSET", static_cast<uint32_t>(cmd.descriptors.size())});
 	cmd.pushDescriptor(sConst.ubo_frame, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	cmd.pushDescriptor(sConst.ubo_view, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	cmd.pushDescriptor(sConst.ubo_params, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 }
-static void bind_block_12(ComputeCmd &cmd, const USceneData &uScene)
+static void bind_scene(ComputeCmd &cmd, const USceneData* pScene)
 {
-	cmd.pushDescriptor(uScene.vertexBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	cmd.pushDescriptor(uScene.indexBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	cmd.pushDescriptor(uScene.modelOffsetBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	cmd.pushDescriptor(uScene.surfaceOffsetBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	cmd.pushDescriptor(uScene.materialBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	cmd.pushDescriptor(uScene.areaLightBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	cmd.pushDescriptor(uScene.tlas);
-	cmd.pushDescriptor(uScene.modelTransformBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pipelineDef.shaderDef.args.push_back({"PT_USCENE_BINDING_OFFSET", static_cast<uint32_t>(cmd.descriptors.size())});
+	cmd.pushDescriptor(pScene->vertexBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pScene->indexBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pScene->modelOffsetBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pScene->surfaceOffsetBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pScene->materialBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pScene->areaLightBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pScene->tlas);
+	cmd.pushDescriptor(pScene->modelTransformBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(SamplerDefinition());
-	cmd.pushDescriptor(uScene.textures, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	cmd.pushDescriptor(uScene.envMap, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	cmd.pushDescriptor(uScene.envMapPdfBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pScene->textures, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	cmd.pushDescriptor(pScene->envMap, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	cmd.pushDescriptor(pScene->envMapPdfBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+	cmd.pipelineDef.shaderDef.args.push_back({"ENVMAP_PDF_BINS_X", pScene->envMapSubdivisions.x});
+	cmd.pipelineDef.shaderDef.args.push_back({"ENVMAP_PDF_BINS_Y", pScene->envMapSubdivisions.y});
+	cmd.pipelineDef.shaderDef.args.push_back({"AREA_LIGHT_COUNT", pScene->areaLightCount});
 }
 
-static void add_shader_args(ComputeCmd &cmd, const USceneData &uScene)
+static void bind_medium(ComputeCmd &cmd, const Medium *pMedium)
 {
-	cmd.pipelineDef.shaderDef.args.push_back({"ENVMAP_PDF_BINS_X", uScene.envMapSubdivisions.x});
-	cmd.pipelineDef.shaderDef.args.push_back({"ENVMAP_PDF_BINS_Y", uScene.envMapSubdivisions.y});
+	cmd.pipelineDef.shaderDef.args.push_back({"PT_SCALAR_FIELD_MEDIUM_BINDING_OFFSET", static_cast<uint32_t>(cmd.descriptors.size())});
+	cmd.pushDescriptor(pMedium->volumeGrid, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
+	cmd.pipelineDef.shaderDef.args.push_back({"PT_PIN_MEDIUM_BINDING_OFFSET", static_cast<uint32_t>(cmd.descriptors.size())});
+	cmd.pushDescriptor(pMedium->pinGrid, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pMedium->pinTransmittance, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+	cmd.pipelineDef.shaderDef.args.push_back({"RAY_MARCHE_STEP_SIZE", std::to_string(gvar_raymarche_step_size.val.v_float)});
+	cmd.pipelineDef.shaderDef.args.push_back({"VOLUME_RESOLUTION", std::to_string(gvar_image_resolution.val.v_uint)});
+	cmd.pipelineDef.shaderDef.args.push_back({"PIN_GRID_SIZE", std::to_string(gvar_pin_grid_size.val.v_uint)});
+	cmd.pipelineDef.shaderDef.args.push_back({"PIN_COUNT_PER_GRID_CELL", std::to_string(gvar_pin_count_per_grid_cell.val.v_uint)});
+	cmd.pipelineDef.shaderDef.args.push_back({"PIN_TRANSMITTANCE_VALUE_COUNT", std::to_string(gvar_pin_transmittance_value_count.val.v_uint)});
+}
+
+static void begin_local_descriptors(ComputeCmd &cmd)
+{
+	cmd.pipelineDef.shaderDef.args.push_back({"LOCAL_BINDING_OFFSET", static_cast<uint32_t>(cmd.descriptors.size())});
+}
+
+static void bind_target(ComputeCmd &cmd, Image target)
+{
+	cmd.pushDescriptor(target, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	cmd.pipelineDef.shaderDef.args.push_back({"FORMAT1", getGLSLFormat(target->getFormat())});
+}
+
+static void set_general_params(ComputeCmd &cmd)
+{
+	cmd.pipelineDef.shaderDef.args.push_back({"MAX_BOUNCES", gvar_max_bounce.val.v_uint});
+	cmd.pipelineDef.shaderDef.args.push_back({"MIN_PIN_BOUNCE", gvar_min_pin_bounce.val.v_uint});
 }
 
 namespace vka

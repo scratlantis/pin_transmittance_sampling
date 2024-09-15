@@ -33,8 +33,8 @@ layout(binding = PT_PIN_MEDIUM_BINDING_OFFSET + 1) readonly buffer PIN_TRANSMITT
 GLSLPinGridEntry selectPin(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
 {
 	origin = clamp(vec3(0.0),vec3(0.9999), origin);
-	uvec3 gridId = uvec3(origin*float(pc.pinGridSize));
-	uint cellIdx = flatten(gridId, uvec3(pc.pinGridSize)) * pc.pinCountPerGridCell;
+	uvec3 gridId = uvec3(origin*float(PIN_GRID_SIZE));
+	uint cellIdx = flatten(gridId, uvec3(PIN_GRID_SIZE)) * PIN_COUNT_PER_GRID_CELL;
 
 	float maxDot = 0.0;
 	GLSLPinGridEntry maxDotPin;
@@ -60,10 +60,10 @@ float samplePin(vec3 origin, vec3 destination, GLSLPinGridEntry gridEntry)
 
 	vec2 sampleLocation = projectRaySegment(pinOrigin, pinDestination, origin, destination);
 	sampleLocation = clamp(sampleLocation, 0.0, 0.9999);
-	sampleLocation *= vec2(pc.pinTransmittanceValueCount);
+	sampleLocation *= vec2(PIN_TRANSMITTANCE_VALUE_COUNT);
 	uvec2 rightSampleIndex = uvec2(sampleLocation);
 	vec2 uv = sampleLocation - floor(sampleLocation);
-	uint baseIndex = gridEntry.idx * pc.pinTransmittanceValueCount;
+	uint baseIndex = gridEntry.idx * PIN_TRANSMITTANCE_VALUE_COUNT;
 
 	// right
 	vec2 rightSampleValue = vec2(pinTransmittance[baseIndex + rightSampleIndex.x], pinTransmittance[baseIndex + rightSampleIndex.y]);

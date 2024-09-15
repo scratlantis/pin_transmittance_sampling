@@ -3,7 +3,7 @@
 #define PT_USCENE_H
 
 #include "pt_params.glsl"
-#include "../common.h"
+#include "../common.glsl"
 
 #ifdef ENVMAP_PDF_BINS_X
 	#ifdef ENVMAP_PDF_BINS_Y
@@ -180,7 +180,7 @@ vec2 sampleEnvMapPdf(inout uint seed, out float pdf)
 #endif
 
 
-Ray genDirectIllumRayEnvMap(vec3 pos, inout uint seed, out vec3 weight)
+Ray genDirectIllumRayEnvMap(vec3 pos, inout uint seed)
 {
 	Ray ray;
 	ray.origin = pos;

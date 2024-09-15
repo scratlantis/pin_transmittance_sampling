@@ -96,7 +96,7 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uin
 	sceneData.surfaceOffsetBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	cmdWriteCopy(cmdBuf, sceneData.surfaceOffsetBuffer, firstSurfaceIndex.data(), firstSurfaceIndex.size() * sizeof(uint32_t));
 
-
+	sceneData.areaLightCount = areaLights.size();
 	if (!areaLights.empty())
 	{
 		sceneData.areaLightBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);

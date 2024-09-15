@@ -51,8 +51,9 @@ class USceneData
 	std::vector<Image> textures;
 	Image              envMap;
 
-	glm::uvec2		   envMapSubdivisions;
-	Buffer             envMapPdfBuffer;
+	glm::uvec2 envMapSubdivisions;
+	Buffer     envMapPdfBuffer;
+	uint32_t   areaLightCount;
 
 	USceneInfo info;
 

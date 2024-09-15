@@ -13,12 +13,12 @@
 #endif
 
 #define PT_SCALAR_FIELD_MEDIUM_BINDING_COUNT 1
-layout(binding = PT_SCALAR_FIELD_MEDIUM_BINDING_OFFSETT) uniform sampler3D volSmp;
+layout(binding = PT_SCALAR_FIELD_MEDIUM_BINDING_OFFSET) uniform sampler3D volSmp;
 
 float rayMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
 {
 	float rng = unormNext(seed);
-	const float max_steps = sqrt(3.0) * 2.0 / AVERAGE_RAY_MARCHE_STEP_SIZE;
+	const float max_steps = sqrt(3.0) * 2.0 / RAY_MARCHE_STEP_SIZE;
 	float t = 0.0;
 	float transmittance = 1.0;
 	float stepSize = RAY_MARCHE_STEP_SIZE * unormNext(seed);

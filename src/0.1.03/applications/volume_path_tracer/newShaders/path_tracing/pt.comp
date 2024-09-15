@@ -4,19 +4,20 @@
 #extension GL_EXT_ray_query : enable
 
 #include "pt_params.glsl"
-#define SHADER_CONST_BINDING_OFFSET 0
-#include "shader_const.glsl"
-#define PT_USCENE_BINDING_OFFSET SHADER_CONST_BINDING_COUNT
+// Frame constants
+#include "../shader_const.glsl"
+
+// Scene
 #include "pt_uscene.glsl"
-#define PT_SCALAR_FIELD_MEDIUM_BINDING_OFFSET PT_USCENE_BINDING_OFFSET + PT_USCENE_BINDING_COUNT
+
+// Medium
 #include "pt_scalar_field_medium.glsl"
-#define PT_PIN_MEDIUM_BINDING_OFFSET PT_SCALAR_FIELD_MEDIUM_BINDING_OFFSET + PT_SCALAR_FIELD_MEDIUM_BINDING_COUNT
 #include "pt_pin_medium.glsl"
-#define LOCAL_BINDING_OFFSET PT_PIN_MEDIUM_BINDING_OFFSET + PT_PIN_MEDIUM_BINDING_COUNT
-// Target
+
+// Local bindings
 layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
-// Volume Instance
 layout(binding = LOCAL_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
+
 
 Range traceMediumConservative(Ray ray)
 {
@@ -78,7 +79,7 @@ float traceMedium(Ray ray, Range range, uint bounce, inout uint seed)
 	return distance(ray.origin, worldHitPos);
 }
 
-float traceMediumTransmittance(Ray ray, Range range, uint bounce inout uint seed)
+float traceMediumTransmittance(Ray ray, Range range, uint bounce, inout uint seed)
 {
 	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
 	vec3 localExit = (volInst.invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
@@ -119,7 +120,7 @@ float traceTransmittance(Ray ray, uint bounce, inout uint seed)
 }
 
 
-vec3 sampleDirectIllumAreaLight((vec3 pos, uint bounce, inout uint seed, out vec3 wi)
+vec3 sampleDirectIllumAreaLight(vec3 pos, uint bounce, inout uint seed, out vec3 wi)
 {
 	Ray ray = genDirectIllumRayAreaLight(pos, seed);
 	float transmittance = traceTransmittance(ray, bounce, seed);
@@ -130,7 +131,7 @@ vec3 sampleDirectIllumAreaLight((vec3 pos, uint bounce, inout uint seed, out vec
 
 vec3 sampleDirectIllumEnvMap(vec3 pos, uint bounce, inout uint seed, out vec3 wi)
 {
-	Ray ray = genDirectIllumRayEnvMap(pos, seed, localPdf, localWeight);
+	Ray ray = genDirectIllumRayEnvMap(pos, seed);
 	float transmittance = traceTransmittance(ray, bounce, seed);
 	wi = ray.direction;
 	vec3 Li = transmittance * ray.weight;
@@ -156,7 +157,7 @@ Ray nextBounce(
 	if(tGeom < rMedium.rMin)
 	{
 		hitType = PATH_SURFACE_SCATTER;
-		evalHit(matData, tangentFrame, hitData);
+		evalHit(hitData, matData, tangentFrame);
 
 		nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
 		nextRay.weight *= ray.weight;
@@ -171,7 +172,7 @@ Ray nextBounce(
 		if(tGeom < tMedium)
 		{
 			hitType = PATH_SURFACE_SCATTER;
-			evalHit(matData, tangentFrame, hitData);
+			evalHit(hitData, matData, tangentFrame);
 
 			nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
 			nextRay.weight *= ray.weight;
@@ -185,7 +186,6 @@ Ray nextBounce(
 			hitType = PATH_MEDIUM_SCATTER;
 			tangentFrame = mat4x3(1.0);
 			tangentFrame[3] = ray.origin + tMedium * ray.direction;
-			matData = {};
 			matData.albedo = volInst.albedo;
 
 			nextRay = scatterUniform(matData.albedo, tangentFrame[3], seed);
@@ -230,8 +230,7 @@ void main()
 				vec3 Lo = vec3(0.0);
 				if(i == 0) // Emission only from the first hit. Other emissions from light sources are collected via NEE
 				{
-					Le = matData.emission;
-					vec3 Lo += Le;
+					Lo += matData.emission;
 				}
 				vec3 brdf = lampertBRDF(matData.albedo);
 				vec3 wi;
@@ -251,7 +250,7 @@ void main()
 				}
 				totalIllumination += ray.weight * Lo;
 			}
-			else if(pathState == PATH_MEDIUM_SCATTER)
+			else if(hitType == PATH_MEDIUM_SCATTER)
 			{
 				vec3 Lo = vec3(0.0); // No emission from medium (Le = 0)
 				// Direct illumination from area lights

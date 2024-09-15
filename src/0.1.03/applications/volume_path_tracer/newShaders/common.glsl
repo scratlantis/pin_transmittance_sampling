@@ -6,7 +6,7 @@
 
 #include "math.glsl"
 #include "random.glsl"
-#include "shader_const.glsl"
+#include "sampling.glsl"
 
 // Path tracing:
 Ray genPrimaryRay(GLSLFrame frame, GLSLView view, uvec2 pixel, inout uint seed)
@@ -50,7 +50,6 @@ vec3 uniformScatterBSDF(vec3 Kd)
 Ray scatterUniform(vec3 albedo, vec3 pos, inout uint seed)
 {
 	vec3 dir = sampleUniformSphere(vec2(unormNext(seed), unormNext(seed)));
-	weight *= albedo;
 	Ray ray;
 	ray.direction = normalize(dir);
 	ray.origin = pos;
