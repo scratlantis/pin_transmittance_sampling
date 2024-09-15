@@ -1,0 +1,42 @@
+#version 460
+
+#include "../common.glsl"
+
+#ifndef INPUT_SIZE
+#define INPUT_SIZE 1
+#endif
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+layout(binding = 0) readonly buffer LINE_SEGMENTS{ GLSLLineSegment line_segment_buf[INPUT_SIZE]; };
+layout(binding = 1) writeonly buffer INSTANCES{ GLSLInstance instance_buf[INPUT_SIZE]; };
+
+void main()
+{
+	uint gID = gl_GlobalInvocationID.x;
+	if (gID >= INPUT_SIZE) return;
+	GLSLLineSegment line = line_segment_buf[gID];
+	GLSLInstance inst;
+	inst.color = line.color;
+	inst.cullMask = line.cullMask;
+	if(line.start == line.end)
+	{
+		inst.mat = mat4(1.0);
+	}
+	else
+	{
+		mat4x3 frame = tangentFrameFromPosNormal(line.start, -normalize(line.end - line.start));
+		float scale = 0.05;
+		inst.mat[0] = vec4(frame[0]*scale, 0.0);
+		inst.mat[1] = vec4(frame[1]*scale, 0.0);
+		inst.mat[2] = vec4(frame[2]*0.1, 0.0) * distance(line.end, line.start);
+		inst.mat[3] = vec4(frame[3], 1.0);
+
+		//inst.mat = mat4(1.0);
+		//inst.cullMask = 0xFF;
+	}
+
+
+	instance_buf[gID] = inst;
+
+	
+}

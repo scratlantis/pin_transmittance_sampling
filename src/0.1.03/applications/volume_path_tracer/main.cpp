@@ -17,6 +17,8 @@ GVar gvar_model = {"Model", 0, GVAR_ENUM, GENERAL, std::vector<std::string>{"Cor
 GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, PERLIN_NOISE_SETTINGS, {16, 256}};
 GVar gvar_mse{"MSE : %.8f E-3", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
 GVar gvar_envmap = {"Envmap", 1, GVAR_ENUM, GENERAL, std::vector<std::string>{"None"}};
+GVar gvar_fixed_seed = {"Fixed Seed", false, GVAR_BOOL, GENERAL};
+GVar gvar_seed       = {"Seed", 0, GVAR_UINT_RANGE, GENERAL, {0, 1000}};
 
 
 
@@ -53,7 +55,9 @@ std::vector<GVar *> gVars =
 		&gvar_medium_z,
 		&gvar_medium_rot_y,
 		&gvar_medium_scale,
-		&gvar_envmap
+		&gvar_envmap,
+		&gvar_fixed_seed,
+		&gvar_seed
         // clang-format on
 };
 
@@ -112,8 +116,10 @@ int main()
 	USceneData scene;
 	ModelInfo  model;
 
+	uint32_t maxLineSegmentCount = gvar_max_bounce.set.range.max.v_uint * 3;
+	Buffer   lineSegmentInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, maxLineSegmentCount * sizeof(GLSLInstance));
 	// Path Tracer
-	ComparativePathTracer pathTracer = ComparativePathTracer(0.8, 1.0);
+	ComparativePathTracer pathTracer = ComparativePathTracer(0.8, 1.0, lineSegmentInstanceBuffer, maxLineSegmentCount);
 
 
 	Buffer mseBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
@@ -133,6 +139,7 @@ int main()
 	// Load static models
 	CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
 	ModelData cursorModel = gState.modelCache->fetch<GLSLVertex>(cmdBuf, cursor.path, 0);
+	cmdFillBuffer(cmdBuf, lineSegmentInstanceBuffer, 0, maxLineSegmentCount * sizeof(GLSLInstance), 0);
 	executeImmediat(cmdBuf);
 
 	bool debugView = false;
@@ -170,11 +177,15 @@ int main()
 			{
 				sceneBuilder.loadEnvMap(envmap, glm::uvec2(64, 64));
 			}
+
 			GLSLInstance instance{};
 			instance.cullMask = 0xFF;
-			instance.mat = model.getObjToWorldMatrix();
+			instance.mat      = model.getObjToWorldMatrix();
 			instance.color    = glm::vec3(0.0);
 			sceneBuilder.addModel(cmdBuf, model.path, &instance, 1);
+
+			sceneBuilder.addModel(cmdBuf, cursor.path, lineSegmentInstanceBuffer, maxLineSegmentCount);
+
 
 			/*GLSLInstance instances[2];
 			instances[0]				= instance;
@@ -185,7 +196,7 @@ int main()
 
 
 			scene = sceneBuilder.create(cmdBuf, gState.heap, SCENE_LOAD_FLAG_ALLOW_RASTERIZATION);
-			scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
+			
 			executeImmediat(cmdBuf);
 
 		}
@@ -210,7 +221,9 @@ int main()
 		CmdBuffer  cmdBuf       = createCmdBuffer(gState.frame->stack);
 		Image      swapchainImg = getSwapchainImage();
 
-
+		// Update instance data and tlas
+		scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.frame->stack));
+		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT , VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR);
 		// Update medium
 		GLSLMediumInstance mediumInstance{};
 		mediumInstance.mat = glm::mat4(1.0f);
@@ -234,7 +247,7 @@ int main()
 		}
 
 		// Reset accumulation
-		if ( cnt <= 1 || viewHasChanged || gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && gState.io.mouse.pos.x < 0.2 * gState.io.extent.width)
+		if ( gvar_fixed_seed.val.v_bool || cnt <= 1 || viewHasChanged || gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && gState.io.mouse.pos.x < 0.2 * gState.io.extent.width)
 		{
 			pathTracer.reset(cmdBuf, &referencePathTracer, &pinPathTracer);
 			//pathTracer.reset(cmdBuf, &referencePathTracer, &oldReferencePathTracer);

@@ -1,6 +1,7 @@
 #pragma once
 #include <vka/vka.h>
 #include <medium/Medium.h>
+#include "config.h"
 
 
 extern std::vector<GVar *> gVars;
@@ -16,7 +17,14 @@ typedef glm::mat4 mat4;
 static GLSLFrame defaultFrame(VkExtent2D extent, uint32_t frameIdx)
 {
 	GLSLFrame frame;
-	frame.idx           = frameIdx;
+	if (gvar_fixed_seed.val.v_bool)
+	{
+		frame.idx = gvar_seed.val.v_uint;
+	}
+	else
+	{
+		frame.idx = frameIdx;
+	}
 	frame.width         = extent.width;
 	frame.height        = extent.height;
 	frame.projection    = glm::perspective(glm::radians(60.0f), (float) extent.width / (float) extent.height, 0.1f, 500.0f);

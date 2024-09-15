@@ -45,6 +45,9 @@ extern GVar     gvar_medium_z;
 extern GVar     gvar_medium_rot_y;
 extern GVar     gvar_medium_scale;
 extern GVar     gvar_env_map;
+extern GVar     gvar_fixed_seed;
+extern GVar     gvar_seed;
+
 
 
 

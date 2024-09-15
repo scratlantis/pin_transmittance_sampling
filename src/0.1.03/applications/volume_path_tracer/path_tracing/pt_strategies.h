@@ -4,17 +4,6 @@
 #include "ComparativePathTracer.h"
 
 
-class OldReferencePathTracer : public PathTraceStrategy
-{
-  public:
-	OldReferencePathTracer() = default;
-	~OldReferencePathTracer() = default;
-
-	void trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo) override;
-
-  private:
-};
-
 class ReferencePathTracer : public PathTraceStrategy
 {
   public:
@@ -22,7 +11,7 @@ class ReferencePathTracer : public PathTraceStrategy
 	~ReferencePathTracer() = default;
 
 
-	void trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo) override;
+	void trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo, Buffer lineSegmentBuffer) override;
 
   private:
 };
@@ -33,7 +22,7 @@ class PinPathTracer : public PathTraceStrategy
 	PinPathTracer() = default;
 	~PinPathTracer() = default;
 
-	void trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo) override;
+	void trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo, Buffer lineSegmentBuffer) override;
 
   private:
 };

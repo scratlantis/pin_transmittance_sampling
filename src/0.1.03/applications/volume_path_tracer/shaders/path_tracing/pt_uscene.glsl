@@ -44,10 +44,10 @@ struct HitData
 	mat4x3 objToWorld;
 };
 
-float traceGeometry(Ray ray, inout HitData hData)
+float traceGeometry(Ray ray, uint cullMask,inout HitData hData)
 {
 	rayQueryEXT rq;
-	rayQueryInitializeEXT(rq, as, gl_RayFlagsOpaqueEXT, 0xFF, ray.origin, ray.tmin, ray.direction, ray.tmax);
+	rayQueryInitializeEXT(rq, as, gl_RayFlagsOpaqueEXT, cullMask, ray.origin, ray.tmin, ray.direction, ray.tmax);
 	while(rayQueryProceedEXT(rq)){}
 	if(rayQueryGetIntersectionTypeEXT(rq, true) == gl_RayQueryCommittedIntersectionTriangleEXT)
 	{
@@ -62,11 +62,11 @@ float traceGeometry(Ray ray, inout HitData hData)
 	return MAX_FLOAT;
 }
 
-float traceGeometryTransmittance(Ray ray)
+float traceGeometryTransmittance(Ray ray, uint cullMask)
 {
 	rayQueryEXT rq;
 	float transmittance;
-	rayQueryInitializeEXT(rq, as, gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT , 0xFF, ray.origin, ray.tmin, ray.direction, ray.tmax);
+	rayQueryInitializeEXT(rq, as, gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT , cullMask, ray.origin, ray.tmin, ray.direction, ray.tmax);
 	while(rayQueryProceedEXT(rq)){}
 	if(rayQueryGetIntersectionTypeEXT(rq, true) == gl_RayQueryCommittedIntersectionTriangleEXT)
 	{

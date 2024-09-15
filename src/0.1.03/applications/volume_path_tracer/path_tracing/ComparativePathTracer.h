@@ -19,7 +19,7 @@ class PathTraceStrategy
 	PathTraceStrategy()  = default;
 	~PathTraceStrategy() = default;
 
-	virtual void trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo) = 0;
+	virtual void trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo, Buffer lineSegmentBuffer) = 0;
 };
 
 class ComparativePathTracer
@@ -41,6 +41,11 @@ class ComparativePathTracer
 	MSEComputeResources mseRes;
 	Buffer              mseBuffer;
 
+	Buffer lineSegmentBuffer;
+	Buffer lineSegmentInstanceBuffer;
+	uint32_t lineSegmentCount;
+
+
 	TimeQueryManager tqManager;
 	bool timeQueryFinished = true;
 
@@ -52,6 +57,9 @@ class ComparativePathTracer
 	void showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea);
 	void showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
 	float computeMSE(CmdBuffer cmdBuf);
-	ComparativePathTracer(float relativeWidth, float relativeHeight);
+	ComparativePathTracer(float relativeWidth, float relativeHeight, Buffer lineSegmentInstanceBuffer, uint32_t lineSegmentCount);
 	void destroy();
+
+  private:
+	ComputeCmd getCmdWriteLineSegments();
 };
