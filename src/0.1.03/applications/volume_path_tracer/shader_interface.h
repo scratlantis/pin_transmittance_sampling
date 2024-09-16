@@ -94,6 +94,8 @@ static GLSLParams guiParams(glm::vec2 cursorPos)
 	params.leftMB    = getShaderMouseLeftKeyState();
 	params.controlKEY = getShaderKeyState(GLFW_KEY_LEFT_CONTROL);
 	params.cursorPos = cursorPos;
+	params.pinSampleLocation = gvar_pin_sample_location.val.v_float;
+	params.continuousPathSampling = gvar_continuous_path_sampling.val.bool32();
 	return params;
 }
 

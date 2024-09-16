@@ -50,7 +50,7 @@ void ComparativePathTracer::render(CmdBuffer cmdBuf, const RenderInfo &renderInf
 {
 	
 	// Render
-	if (gState.io.keyPressedEvent[GLFW_KEY_LEFT_CONTROL])
+	if (gState.io.keyPressedEvent[GLFW_KEY_LEFT_CONTROL] || gvar_continuous_path_sampling.val.v_bool)
 	{
 		cmdFillBuffer(cmdBuf, lineSegmentBuffer, 0, sizeof(GLSLLineSegment) * lineSegmentCount, 0);
 	}

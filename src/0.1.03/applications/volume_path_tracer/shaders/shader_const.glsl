@@ -19,7 +19,7 @@ layout(binding = SHADER_CONST_BINDING_OFFSET + 2) uniform PARAMS
 
 layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
 
-
+#define SCONST_PARAMS params
 
 
 #define COMPUTE_SHADER_CHECK_ID_FRAME									 \

@@ -33,7 +33,12 @@ layout(binding = PT_PIN_MEDIUM_BINDING_OFFSET + 1) readonly buffer PIN_TRANSMITT
 GLSLPinGridEntry selectPin(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
 {
 	origin = clamp(vec3(0.0),vec3(0.9999), origin);
-	uvec3 gridId = uvec3(origin*float(PIN_GRID_SIZE));
+	vec3 destination = origin + direction * maxLenght;
+	destination = clamp(vec3(0.0),vec3(0.9999), destination);
+
+
+	vec3 sampleLocation = mix(origin, destination, SCONST_PARAMS.pinSampleLocation);
+	uvec3 gridId = uvec3(sampleLocation*float(PIN_GRID_SIZE));
 	uint cellIdx = flatten(gridId, uvec3(PIN_GRID_SIZE)) * PIN_COUNT_PER_GRID_CELL;
 
 	float maxDot = 0.0;

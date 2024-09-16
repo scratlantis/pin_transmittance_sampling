@@ -112,8 +112,8 @@ void writeLineSegment(vec3 start, vec3 end, uint bounce, uint type)
 	uvec2 gID = gl_GlobalInvocationID.xy;
 	uvec2 mousePixel = uvec2(params.cursorPos * vec2(frame.width, frame.height));
 	if(gID == mousePixel
-	&& params.leftMB == BUTTON_PRESS_EVENT
-	&& params.controlKEY == BUTTON_PRESSED)
+	&& 
+	( params.continuousPathSampling == 1 || (params.leftMB == BUTTON_PRESS_EVENT && params.controlKEY == BUTTON_PRESSED) ))
 	{
 		GLSLLineSegment line;
 		line.start = start;

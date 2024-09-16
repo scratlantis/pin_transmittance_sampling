@@ -20,6 +20,8 @@ GVar gvar_envmap = {"Envmap", 1, GVAR_ENUM, GENERAL, std::vector<std::string>{"N
 GVar gvar_fixed_seed = {"Fixed Seed", false, GVAR_BOOL, GENERAL};
 GVar gvar_seed       = {"Seed", 0, GVAR_UINT_RANGE, GENERAL, {0, 1000}};
 GVar gvar_medium_xray_line_segments = {"Medium Xray Line Segments", true, GVAR_BOOL, VISUALIZATION_SETTINGS};
+GVar gvar_pin_sample_location       = {"Pin sample location", 0, GVAR_UNORM, PIN_SETTINGS};
+GVar gvar_continuous_path_sampling  = {"Contious Path Sampling", false, GVAR_BOOL, VISUALIZATION_SETTINGS};
 
 
 
@@ -59,7 +61,9 @@ std::vector<GVar *> gVars =
 		&gvar_envmap,
 		&gvar_fixed_seed,
 		&gvar_seed,
-		&gvar_medium_xray_line_segments
+		&gvar_medium_xray_line_segments,
+		&gvar_pin_sample_location,
+		&gvar_continuous_path_sampling
         // clang-format on
 };
 
@@ -152,6 +156,8 @@ int main()
 	bool debugView = false;
 
 	float splitCoef = 0.5;
+
+	glm::vec2 lastPathSampleLocation = glm::vec2(0.0);
 
 	// Main Loop
 	for (uint cnt = 0; !gState.io.shouldTerminate(); cnt++)
@@ -256,8 +262,18 @@ int main()
 
 		if (gState.io.mouse.leftPressed && gState.io.mouse.pos.x > 0.2 * gState.io.extent.width)
 		{
-			splitCoef = glm::clamp<float>(splitCoef + gState.io.mouse.change.x / (0.8f * gState.io.extent.width), 0.0, 1.0);
+			if (gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL])
+			{
+				lastPathSampleLocation = glm::vec2(gState.io.mouse.pos.x, gState.io.mouse.pos.y);
+			}
+			else
+			{
+				splitCoef = glm::clamp<float>(splitCoef + gState.io.mouse.change.x / (0.8f * gState.io.extent.width), 0.0, 1.0);
+			}
+			
 		}
+
+
 
 
 		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.2, 0.2, 0.2, 1.0)).exec(cmdBuf);
@@ -272,10 +288,12 @@ int main()
 			renderInfo.frameIdx             = cnt;
 			renderInfo.pCamera              = &cam;
 			renderInfo.pMediun              = &medium;
-			renderInfo.mediumInstanceBuffer = mediumInstanceBuffer;
-			renderInfo.pSceneData           = &scene;
-			renderInfo.cursorPos.x           = (gState.io.mouse.pos.x - float(rect.offset.x)) / float(rect.extent.width);
-			renderInfo.cursorPos.y           = (gState.io.mouse.pos.y - float(rect.offset.y)) / float(rect.extent.height);
+			renderInfo.mediumInstanceBuffer  = mediumInstanceBuffer;
+			renderInfo.pSceneData            = &scene;
+			// renderInfo.cursorPos.x           = (gState.io.mouse.pos.x - float(rect.offset.x)) / float(rect.extent.width);
+			// renderInfo.cursorPos.y           = (gState.io.mouse.pos.y - float(rect.offset.y)) / float(rect.extent.height);
+			renderInfo.cursorPos.x = (lastPathSampleLocation.x - float(rect.offset.x)) / float(rect.extent.width);
+			renderInfo.cursorPos.y = (lastPathSampleLocation.y - float(rect.offset.y)) / float(rect.extent.height);
 			pathTracer.render(cmdBuf, renderInfo);
 
 			switch (viewType)

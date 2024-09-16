@@ -30,6 +30,10 @@ struct GLSLParams
 	vec2 cursorPos;
 	uint leftMB;
 	uint controlKEY;
+
+	float pinSampleLocation;
+	uint continuousPathSampling;
+	uint padding[2];
 };
 
 
