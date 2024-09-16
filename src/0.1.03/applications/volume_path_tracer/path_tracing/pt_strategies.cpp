@@ -9,7 +9,7 @@ void ReferencePathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const Rende
 	// Config general parameters
 	ComputeCmd computeCmd = ComputeCmd(localTarget->getExtent2D(), shaderPath + "path_tracing/pt.comp");
 
-	sConst.write(cmdBuf, computeCmd, localTarget->getExtent2D(), renderInfo.pCamera, renderInfo.frameIdx);
+	sConst.write(cmdBuf, computeCmd, localTarget->getExtent2D(), renderInfo.pCamera, renderInfo.frameIdx, renderInfo.cursorPos);
 
 	bind_shader_const(computeCmd, sConst);
 
@@ -39,7 +39,7 @@ void PinPathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo 
 	                                       {"USE_PINS", ""},
 	                                   });
 
-	sConst.write(cmdBuf, computeCmd, localTarget->getExtent2D(), renderInfo.pCamera, renderInfo.frameIdx);
+	sConst.write(cmdBuf, computeCmd, localTarget->getExtent2D(), renderInfo.pCamera, renderInfo.frameIdx, renderInfo.cursorPos);
 
 	bind_shader_const(computeCmd, sConst);
 

@@ -42,10 +42,10 @@ float rayMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint s
 		stepSize = min(RAY_MARCHE_STEP_SIZE, maxLenght - t);
 		if( stepSize < EPSILON)
 		{
-			return MAX_FLOAT;
+			return TMAX;
 		}
 	}
-	return MAX_FLOAT;
+	return TMAX;
 }
 
 float rayMarcheMediumTransmittance(vec3 origin, vec3 direction, float maxLenght, inout uint seed)

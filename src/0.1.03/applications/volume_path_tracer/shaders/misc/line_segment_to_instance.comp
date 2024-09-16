@@ -18,21 +18,21 @@ void main()
 	GLSLInstance inst;
 	inst.color = line.color;
 	inst.cullMask = line.cullMask;
+	inst.type = TYPE_LINE_SEGMENT;
 	if(line.start == line.end)
 	{
-		inst.mat = mat4(1.0);
+		inst.mat = mat4(0.00001);
+		inst.cullMask = 0;
+		inst.color = vec3(0.0);
 	}
 	else
 	{
 		mat4x3 frame = tangentFrameFromPosNormal(line.start, -normalize(line.end - line.start));
-		float scale = 0.05;
+		float scale = 0.02;
 		inst.mat[0] = vec4(frame[0]*scale, 0.0);
 		inst.mat[1] = vec4(frame[1]*scale, 0.0);
-		inst.mat[2] = vec4(frame[2]*0.1, 0.0) * distance(line.end, line.start);
+		inst.mat[2] = vec4(frame[2], 0.0) * distance(line.end, line.start);
 		inst.mat[3] = vec4(frame[3], 1.0);
-
-		//inst.mat = mat4(1.0);
-		//inst.cullMask = 0xFF;
 	}
 
 

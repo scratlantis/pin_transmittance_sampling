@@ -47,6 +47,8 @@ extern GVar     gvar_medium_scale;
 extern GVar     gvar_env_map;
 extern GVar     gvar_fixed_seed;
 extern GVar     gvar_seed;
+extern GVar     gvar_medium_xray_line_segments;
+
 
 
 

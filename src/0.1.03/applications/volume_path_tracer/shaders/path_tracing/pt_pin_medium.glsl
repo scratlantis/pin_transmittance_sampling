@@ -51,16 +51,16 @@ GLSLPinGridEntry selectPin(vec3 origin, vec3 direction, float maxLenght, inout u
 	return maxDotPin;
 }
 
-float samplePin(vec3 origin, vec3 destination, GLSLPinGridEntry gridEntry)
+float samplePin(vec3 origin, vec3 destination, GLSLPinGridEntry gridEntry, out vec2 segment)
 {
 	vec3 pinOrigin = getPinOrigin(gridEntry.pin);
 	vec3 pinDestination = getPinDestination(gridEntry.pin);
 	vec3 pinDirection = getPinDirection(gridEntry.pin);
 	vec3 direction = normalize(destination - origin);
 
-	vec2 sampleLocation = projectRaySegment(pinOrigin, pinDestination, origin, destination);
-	sampleLocation = clamp(sampleLocation, 0.0, 0.9999);
-	sampleLocation *= vec2(PIN_TRANSMITTANCE_VALUE_COUNT);
+	segment = projectRaySegment(pinOrigin, pinDestination, origin, destination);
+
+	vec2 sampleLocation = clamp(segment, 0.0, 0.9999) * vec2(PIN_TRANSMITTANCE_VALUE_COUNT);
 	uvec2 rightSampleIndex = uvec2(sampleLocation);
 	vec2 uv = sampleLocation - floor(sampleLocation);
 	uint baseIndex = gridEntry.idx * PIN_TRANSMITTANCE_VALUE_COUNT;
@@ -104,7 +104,7 @@ float pinMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint s
 	float transmittance = 1.0;
 	float stepSize = RAY_MARCHE_STEP_SIZE * unormNext(seed);
 	stepSize = min(stepSize, maxLenght);
-
+	vec2 uv;
 	GLSLPinGridEntry pinGridEntry = selectPin(origin, direction, maxLenght, seed);
 
 	for(uint i = 0; i < max_steps; i++)
@@ -113,7 +113,7 @@ float pinMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint s
 		vec3 pos = origin + direction * (t-stepSize*unormNext(seed));
 
 		// Sample transmittance
-		transmittance = samplePin(origin, pos, pinGridEntry);
+		transmittance = samplePin(origin, pos, pinGridEntry, uv);
 
 		// Decide if we should stop
 		if(transmittance < rng)
@@ -124,17 +124,22 @@ float pinMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint s
 		stepSize = min(RAY_MARCHE_STEP_SIZE, maxLenght - t);
 		if( stepSize < EPSILON)
 		{
-			return MAX_FLOAT;
+			return TMAX;
 		}
 	}
-	return MAX_FLOAT;
+	return TMAX;
 }
 
-float pinEvalTransmittance(vec3 origin, vec3 direction, float segmentLenght, inout uint seed)
+float pinEvalTransmittance(vec3 origin, vec3 direction, float segmentLenght,
+inout uint seed, out vec3 pinStart, out vec3 pinEnd)
 {
 	vec3 destination = origin + direction * segmentLenght;
+	vec2 uv;
 	GLSLPinGridEntry pinGridEntry = selectPin(origin, direction, segmentLenght, seed);
-	return samplePin(origin, destination, pinGridEntry);
+	float transmittance = samplePin(origin, destination, pinGridEntry, uv);
+	pinStart = mix(getPinOrigin(pinGridEntry.pin), getPinDestination(pinGridEntry.pin), uv.x);
+	pinEnd = mix(getPinOrigin(pinGridEntry.pin), getPinDestination(pinGridEntry.pin), uv.y);
+	return transmittance;
 }
 #endif
 

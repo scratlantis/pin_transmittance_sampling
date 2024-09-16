@@ -19,6 +19,7 @@ GVar gvar_mse{"MSE : %.8f E-3", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
 GVar gvar_envmap = {"Envmap", 1, GVAR_ENUM, GENERAL, std::vector<std::string>{"None"}};
 GVar gvar_fixed_seed = {"Fixed Seed", false, GVAR_BOOL, GENERAL};
 GVar gvar_seed       = {"Seed", 0, GVAR_UINT_RANGE, GENERAL, {0, 1000}};
+GVar gvar_medium_xray_line_segments = {"Medium Xray Line Segments", true, GVAR_BOOL, VISUALIZATION_SETTINGS};
 
 
 
@@ -57,7 +58,8 @@ std::vector<GVar *> gVars =
 		&gvar_medium_scale,
 		&gvar_envmap,
 		&gvar_fixed_seed,
-		&gvar_seed
+		&gvar_seed,
+		&gvar_medium_xray_line_segments
         // clang-format on
 };
 
@@ -65,9 +67,14 @@ ShaderConst sConst{};
 
 // Models
 ModelInfo cursor = {"arrow_cursor/arrow_cursor.obj", vec3(0.0, 0.0, 0.0), 0.05, vec3(0.0, 0.0, 0.0)};
+ModelInfo arrow = {"arrow/arrow.obj", vec3(0.0, 0.0, 0.0), 1.0, vec3(0.0, 0.0, 0.0)};
 ModelInfo cornellBox = {"cornell_box/cornell_box.obj", vec3(0,0.2,-0.3), 0.1, vec3(0.0,180.0,0.0)};
 ModelInfo sponza = {"sponza/sponza_v2.obj", vec3(0.0,0.2,-0.3), 0.1, vec3(0.0,180.0,0.0)};
 std::vector<ModelInfo> models     = {cornellBox, sponza};
+
+
+uint32_t modelLoadFlags = MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE | MODEL_LOAD_FLAG_IS_OPAQUE | MODEL_LOAD_FLAG_COPYABLE;
+
 // Medium Strategies
 PerlinVolume              perlinVolume         = PerlinVolume();
 UniformPinGenerator       pinGenerator         = UniformPinGenerator();
@@ -116,7 +123,7 @@ int main()
 	USceneData scene;
 	ModelInfo  model;
 
-	uint32_t maxLineSegmentCount = gvar_max_bounce.set.range.max.v_uint * 3;
+	uint32_t maxLineSegmentCount       = gvar_max_bounce.set.range.max.v_uint * LINE_SEGMENTS_PER_BOUNCE;
 	Buffer   lineSegmentInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, maxLineSegmentCount * sizeof(GLSLInstance));
 	// Path Tracer
 	ComparativePathTracer pathTracer = ComparativePathTracer(0.8, 1.0, lineSegmentInstanceBuffer, maxLineSegmentCount);
@@ -184,17 +191,7 @@ int main()
 			instance.color    = glm::vec3(0.0);
 			sceneBuilder.addModel(cmdBuf, model.path, &instance, 1);
 
-			sceneBuilder.addModel(cmdBuf, cursor.path, lineSegmentInstanceBuffer, maxLineSegmentCount);
-
-
-			/*GLSLInstance instances[2];
-			instances[0]				= instance;
-			instances[1]				= instance;
-			glm::mat4 translation		= glm::translate(glm::mat4(1.0f), vec3(10.0, 0.0, 0.0));
-			instances[1].mat            = instance.mat * translation;
-			sceneBuilder.addModel(cmdBuf, model.path, &instances[0], 2);*/
-
-
+			sceneBuilder.addModel(cmdBuf, arrow.path, lineSegmentInstanceBuffer, maxLineSegmentCount);
 			scene = sceneBuilder.create(cmdBuf, gState.heap, SCENE_LOAD_FLAG_ALLOW_RASTERIZATION);
 			
 			executeImmediat(cmdBuf);
@@ -247,11 +244,14 @@ int main()
 		}
 
 		// Reset accumulation
-		if ( gvar_fixed_seed.val.v_bool || cnt <= 1 || viewHasChanged || gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && gState.io.mouse.pos.x < 0.2 * gState.io.extent.width)
+		if ( gState.io.keyPressedEvent[GLFW_KEY_LEFT_CONTROL]
+			|| gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL] && gState.io.mouse.leftEvent
+			|| gvar_fixed_seed.val.v_bool
+			|| cnt <= 1
+			|| viewHasChanged
+			|| gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && gState.io.mouse.pos.x < 0.2 * gState.io.extent.width)
 		{
 			pathTracer.reset(cmdBuf, &referencePathTracer, &pinPathTracer);
-			//pathTracer.reset(cmdBuf, &referencePathTracer, &oldReferencePathTracer);
-			//pathTracer.reset(cmdBuf, &referencePathTracer, &referencePathTracer);
 		}
 
 		if (gState.io.mouse.leftPressed && gState.io.mouse.pos.x > 0.2 * gState.io.extent.width)
@@ -267,12 +267,15 @@ int main()
 		// Path tracing
 		if (!debugView)
 		{
+			VkRect2D_OP rect                = getScissorRect(0.2f, 0.f, 0.8f, 1.0f);
 			RenderInfo renderInfo           = RenderInfo();
 			renderInfo.frameIdx             = cnt;
 			renderInfo.pCamera              = &cam;
 			renderInfo.pMediun              = &medium;
 			renderInfo.mediumInstanceBuffer = mediumInstanceBuffer;
 			renderInfo.pSceneData           = &scene;
+			renderInfo.cursorPos.x           = (gState.io.mouse.pos.x - float(rect.offset.x)) / float(rect.extent.width);
+			renderInfo.cursorPos.y           = (gState.io.mouse.pos.y - float(rect.offset.y)) / float(rect.extent.height);
 			pathTracer.render(cmdBuf, renderInfo);
 
 			switch (viewType)
@@ -294,7 +297,8 @@ int main()
 		else
 		{
 			img_pt->setClearValue(ClearValue(0.0f, 0.0f, 0.0f, 1.0f));
-			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_pt, scene.vertexBuffer, scene.indexBuffer, &cam, model.getObjToWorldMatrix(), true);
+			ModelData sceneModel = gState.modelCache->fetch<GLSLVertex>(cmdBuf, model.path, modelLoadFlags);
+			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_pt, sceneModel.vertexBuffer, sceneModel.indexBuffer, &cam, model.getObjToWorldMatrix(), true);
 			cmdShowBoxFrame(cmdBuf, gState.frame->stack, img_pt, &cam, mediumInstance.mat, false, vec4(0.0, 0.0, 1.0, 1.0));
 
 

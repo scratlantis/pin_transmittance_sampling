@@ -41,10 +41,59 @@ static GLSLView cameraView(Camera* cam)
 	return view;
 }
 
-static GLSLParams guiParams(std::vector<GVar *> gv)
+static uint getShaderKeyState(uint key)
+{
+	if (gState.io.keyPressedEvent[key])
+	{
+		return BUTTON_PRESS_EVENT;
+	}
+	if (gState.io.keyReleasedEvent[key])
+	{
+		return BUTTON_RELEASE_EVENT;
+	}
+	if (gState.io.keyPressed[key])
+	{
+		return BUTTON_PRESSED;
+	}
+	return BUTTON_RELEASED;
+}
+
+static uint getShaderMouseLeftKeyState()
+{
+	if (gState.io.mouse.leftEvent && gState.io.mouse.leftPressed)
+	{
+		return BUTTON_PRESS_EVENT;
+	}
+	if (gState.io.mouse.leftEvent && !gState.io.mouse.leftPressed)
+	{
+		return BUTTON_RELEASE_EVENT;
+	}
+	if (gState.io.mouse.leftPressed)
+	{
+		return BUTTON_PRESSED;
+	}
+	return BUTTON_RELEASED;
+}
+
+static uint getShaderMouseRightKeyState()
+{
+	if (gState.io.mouse.rightEvent)
+	{
+		return BUTTON_PRESS_EVENT;
+	}
+	if (gState.io.mouse.rightPressed)
+	{
+		return BUTTON_PRESSED;
+	}
+	return BUTTON_RELEASED;
+}
+
+static GLSLParams guiParams(glm::vec2 cursorPos)
 {
 	GLSLParams params{};
-	// Place to add gui options for shader
+	params.leftMB    = getShaderMouseLeftKeyState();
+	params.controlKEY = getShaderKeyState(GLFW_KEY_LEFT_CONTROL);
+	params.cursorPos = cursorPos;
 	return params;
 }
 
@@ -69,7 +118,7 @@ class ShaderConst
 		ubo_params->garbageCollect();
 	}
 
-	void write(CmdBuffer cmdBuf, ComputeCmd &cmd, VkExtent2D extent, Camera* cam, uint32_t frameIdx)
+	void write(CmdBuffer cmdBuf, ComputeCmd &cmd, VkExtent2D extent, Camera* cam, uint32_t frameIdx, glm::vec2 cursorPos)
 	{
 		GLSLFrame ptFrame = defaultFrame(extent, frameIdx);
 		cmdWriteCopy(cmdBuf, ubo_frame, &ptFrame, sizeof(GLSLFrame));
@@ -77,7 +126,7 @@ class ShaderConst
 		GLSLView ptView = cameraView(cam);
 		cmdWriteCopy(cmdBuf, ubo_view, &ptView, sizeof(GLSLView));
 
-		GLSLParams params = guiParams(gVars);
+		GLSLParams params = guiParams(cursorPos);
 		cmdWriteCopy(cmdBuf, ubo_params, &params, sizeof(GLSLParams));
 	}
 };
@@ -146,6 +195,10 @@ static void set_general_params(ComputeCmd &cmd)
 {
 	cmd.pipelineDef.shaderDef.args.push_back({"MAX_BOUNCES", gvar_max_bounce.val.v_uint});
 	cmd.pipelineDef.shaderDef.args.push_back({"MIN_PIN_BOUNCE", gvar_min_pin_bounce.val.v_uint});
+	if (gvar_medium_xray_line_segments.val.v_bool)
+	{
+		cmd.pipelineDef.shaderDef.args.push_back({"XRAY_LINE_VISION", ""});
+	}
 }
 
 namespace vka

@@ -19,9 +19,17 @@ struct GLSLView
 	vec4 pos;
 };
 
+
+#define BUTTON_RELEASED 0
+#define BUTTON_PRESSED 1
+#define BUTTON_PRESS_EVENT 2
+#define BUTTON_RELEASE_EVENT 3
+
 struct GLSLParams
 {
-	uint padding[4];
+	vec2 cursorPos;
+	uint leftMB;
+	uint controlKEY;
 };
 
 
@@ -53,15 +61,19 @@ struct GLSLMaterial
 	uint padding_3[2];
 };
 
-
+#define TYPE_DEFAUL 0
+#define TYPE_LINE_SEGMENT 1
 struct GLSLInstance
 {
 	mat4 mat;
 
 	vec3 color;
 	uint cullMask;
-};
 
+	uint type;
+	uint padding[3];
+};
+#define LINE_SEGMENTS_PER_BOUNCE 5
 struct GLSLLineSegment
 {
 	vec3 start;

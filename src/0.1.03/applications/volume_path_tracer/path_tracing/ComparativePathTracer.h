@@ -7,6 +7,7 @@
 struct RenderInfo
 {
 	uint32_t    frameIdx;
+	glm::vec2	cursorPos;
 	Camera     *pCamera;
 	Medium     *pMediun;
 	Buffer      mediumInstanceBuffer;

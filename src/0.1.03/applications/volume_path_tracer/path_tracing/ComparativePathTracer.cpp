@@ -50,8 +50,10 @@ void ComparativePathTracer::render(CmdBuffer cmdBuf, const RenderInfo &renderInf
 {
 	
 	// Render
-
-	cmdFillBuffer(cmdBuf, lineSegmentBuffer, 0, sizeof(GLSLLineSegment) * lineSegmentCount, 0);
+	if (gState.io.keyPressedEvent[GLFW_KEY_LEFT_CONTROL])
+	{
+		cmdFillBuffer(cmdBuf, lineSegmentBuffer, 0, sizeof(GLSLLineSegment) * lineSegmentCount, 0);
+	}
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
 	if (timeQueryFinished)
 	{

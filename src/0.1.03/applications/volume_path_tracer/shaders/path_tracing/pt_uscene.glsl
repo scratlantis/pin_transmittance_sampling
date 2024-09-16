@@ -44,6 +44,11 @@ struct HitData
 	mat4x3 objToWorld;
 };
 
+GLSLInstance getInstanceData(HitData hitData)
+{
+	return instances[hitData.instanceCustomID];
+}
+
 float traceGeometry(Ray ray, uint cullMask,inout HitData hData)
 {
 	rayQueryEXT rq;
@@ -59,7 +64,7 @@ float traceGeometry(Ray ray, uint cullMask,inout HitData hData)
 		hData.objToWorld = rayQueryGetIntersectionObjectToWorldEXT(rq, true);
 		return rayQueryGetIntersectionTEXT(rq, true);
 	}
-	return MAX_FLOAT;
+	return TMAX;
 }
 
 float traceGeometryTransmittance(Ray ray, uint cullMask)
