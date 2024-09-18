@@ -15,4 +15,4 @@ add_library(csvwriter INTERFACE)
 target_include_directories(ktx INTERFACE CSV_WRITER/include)
 
 add_library(nlohmann_json INTERFACE)
-target_include_directories(nlohmann_json INTERFACE NLOMANN_JSON/include/nlohmann)
+target_include_directories(nlohmann_json INTERFACE NLOMANN_JSON/include)

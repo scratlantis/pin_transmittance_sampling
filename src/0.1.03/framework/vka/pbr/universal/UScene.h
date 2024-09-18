@@ -62,9 +62,14 @@ class USceneData
 	uint32_t   areaLightCount;
 
 	USceneInfo info;
+	bool isInitialized = false;
 
 	void garbageCollect()
 	{
+		if (!isInitialized)
+		{
+			return;
+		}
 		vertexBuffer->garbageCollect();
 		indexBuffer->garbageCollect();
 		modelOffsetBuffer->garbageCollect();

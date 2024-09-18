@@ -171,6 +171,7 @@ FOREACH(vka_version ${VKA_VERSIONS})
     target_compile_definitions(${current_app} PUBLIC APP_NAME="${application}")
     target_compile_definitions(${current_app} PUBLIC APP_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/${vka_version}/applications/${application}")
     target_compile_definitions(${current_app} PUBLIC RESOURCE_BASE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources")
+    target_compile_definitions(${current_app} PUBLIC CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/config")
 
     # link
     target_include_directories(${current_app} PUBLIC   ./src/${vka_version}/applications/${application}/ )

@@ -8,8 +8,126 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
+#include <nlohmann/json.hpp>
+#include <fstream>
+using json = nlohmann::json;
 namespace vka
 {
+	void writeGVarToJson(GVar* gv, json& j)
+	{
+		switch (gv->type)
+		{
+		case GVAR_EVENT:
+			    j[gv->id] = gv->val.v_bool;
+			break;
+		case GVAR_BOOL:
+			j[gv->id] = gv->val.v_bool;
+			break;
+		case GVAR_FLOAT:
+			j[gv->id] = gv->val.v_float;
+			break;
+		case GVAR_UNORM:
+			j[gv->id] = gv->val.v_float;
+			break;
+		case GVAR_UINT:
+			j[gv->id] = gv->val.v_uint;
+			break;
+		case GVAR_INT:
+			j[gv->id] = gv->val.v_int;
+			break;
+		case GVAR_VEC3:
+			j[gv->id] = {gv->val.v_vec3[0], gv->val.v_vec3[1], gv->val.v_vec3[2]};
+			break;
+		case GVAR_DISPLAY_VALUE:
+			j[gv->id] = gv->val.v_float;
+			break;
+		case GVAR_ENUM:
+			j[gv->id] = gv->val.v_uint;
+			break;
+		case GVAR_UINT_RANGE:
+			j[gv->id] = {gv->val.v_uint, gv->set.range.min.v_uint, gv->set.range.max.v_uint};
+			break;
+		case GVAR_FLOAT_RANGE:
+			j[gv->id] = {gv->val.v_float, gv->set.range.min.v_float, gv->set.range.max.v_float};
+			break;
+		default:
+			DEBUG_BREAK;
+			break;
+		}
+	}
+
+	void readGVarFromJson(GVar* gv, json& j)
+	{
+	    if (j.find(gv->id) == j.end())
+		{
+			return;
+		}
+		switch (gv->type)
+		{
+		case GVAR_EVENT:
+			    gv->val.v_bool = j[gv->id];
+			break;
+		case GVAR_BOOL:
+			gv->val.v_bool = j[gv->id];
+			break;
+		case GVAR_FLOAT:
+			gv->val.v_float = j[gv->id];
+			break;
+		case GVAR_UNORM:
+			gv->val.v_float = j[gv->id];
+			break;
+		case GVAR_UINT:
+			gv->val.v_uint = j[gv->id];
+			break;
+		case GVAR_INT:
+			gv->val.v_int = j[gv->id];
+			break;
+		case GVAR_VEC3:
+			gv->val.v_vec3[0] = j[gv->id][0];
+			gv->val.v_vec3[1] = j[gv->id][1];
+			gv->val.v_vec3[2] = j[gv->id][2];
+			break;
+		case GVAR_DISPLAY_VALUE:
+			gv->val.v_float = j[gv->id];
+			break;
+		case GVAR_ENUM:
+			gv->val.v_uint = j[gv->id];
+			break;
+		case GVAR_UINT_RANGE:
+			gv->val.v_uint = j[gv->id][0];
+			break;
+		case GVAR_FLOAT_RANGE:
+			gv->val.v_float = j[gv->id][0];
+			break;
+		default:
+			DEBUG_BREAK;
+			break;
+		}
+	}
+
+	void storeGVar(std::vector<GVar*> gvar, std::string path)
+	{
+		json j;
+	    std::ofstream o(path);
+		for (auto gv : gvar)
+		{
+		    writeGVarToJson(gv, j);
+		}
+		o << std::setw(4) << j << std::endl;
+	}
+	void loadGVar(std::vector<GVar*> gvar, std::string path)
+	{
+		json j;
+		std::ifstream i(path);
+		i >> j;
+		for (auto gv : gvar)
+		{
+			readGVarFromJson(gv, j);
+		}
+	}
+
+
+
 void configureGui_Default()
 {
 	VKA_ASSERT(!gState.guiConfigured);
@@ -89,28 +207,28 @@ void addGVar(GVar *gv)
 	switch (gv->type)
 	{
 		case GVAR_EVENT:
-			gv->val.v_bool = ImGui::Button(gv->path.c_str());
+			gv->val.v_bool = ImGui::Button(gv->id.c_str());
 			break;
 		case GVAR_BOOL:
-			ImGui::Checkbox(gv->path.c_str(), &gv->val.v_bool);
+			ImGui::Checkbox(gv->id.c_str(), &gv->val.v_bool);
 			break;
 		case GVAR_FLOAT:
-			ImGui::InputScalar(gv->path.c_str(), ImGuiDataType_Float, &gv->val.v_float);
+			ImGui::InputScalar(gv->id.c_str(), ImGuiDataType_Float, &gv->val.v_float);
 			break;
 		case GVAR_UNORM:
-			ImGui::SliderFloat(gv->path.c_str(), &gv->val.v_float, 0.0f, 1.0f);
+			ImGui::SliderFloat(gv->id.c_str(), &gv->val.v_float, 0.0f, 1.0f);
 			break;
 		case GVAR_UINT:
-			ImGui::InputScalar(gv->path.c_str(), ImGuiDataType_U32, &gv->val.v_uint);
+			ImGui::InputScalar(gv->id.c_str(), ImGuiDataType_U32, &gv->val.v_uint);
 			break;
 		case GVAR_INT:
-			ImGui::InputInt(gv->path.c_str(), &gv->val.v_int);
+			ImGui::InputInt(gv->id.c_str(), &gv->val.v_int);
 			break;
 		case GVAR_VEC3:
-			ImGui::InputFloat3(gv->path.c_str(), gv->val.v_vec3);
+			ImGui::InputFloat3(gv->id.c_str(), gv->val.v_vec3);
 			break;
 		case GVAR_DISPLAY_VALUE:
-			ImGui::Text(gv->path.c_str(), gv->val.v_float);
+			ImGui::Text(gv->id.c_str(), gv->val.v_float);
 			//ImGui::Text(gv->path.c_str(),1.0);
 			break;
 		case GVAR_ENUM:
@@ -118,13 +236,13 @@ void addGVar(GVar *gv)
 			{
 				ss << gv->set.list[i] << '\0';
 			}
-			ImGui::Combo(gv->path.c_str(), &gv->val.v_int, ss.str().c_str(), 5);
+			ImGui::Combo(gv->id.c_str(), &gv->val.v_int, ss.str().c_str(), 5);
 			break;
 		case GVAR_UINT_RANGE:
-			ImGui::SliderScalar(gv->path.c_str(), ImGuiDataType_U32, &gv->val.v_uint, &gv->set.range.min.v_uint, &gv->set.range.max.v_uint);
+			ImGui::SliderScalar(gv->id.c_str(), ImGuiDataType_U32, &gv->val.v_uint, &gv->set.range.min.v_uint, &gv->set.range.max.v_uint);
 			break;
 		case GVAR_FLOAT_RANGE:
-			ImGui::SliderScalar(gv->path.c_str(), ImGuiDataType_Float, &gv->val.v_float, &gv->set.range.min.v_float, &gv->set.range.max.v_float);
+			ImGui::SliderScalar(gv->id.c_str(), ImGuiDataType_Float, &gv->val.v_float, &gv->set.range.min.v_float, &gv->set.range.max.v_float);
 			break;
 		default:
 			break;
@@ -169,8 +287,101 @@ void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories, VkR
 		currentCategory = gvar[i]->sortId;
 	}
 	ImGui::End();
+	ImGui::ShowDemoWindow();
 }
 }        // namespace gvar_gui
+
+namespace gvar_gui_v2
+{
+void addGVar(GVar *gv)
+{
+	std::stringstream ss;
+	switch (gv->type)
+	{
+		case GVAR_EVENT:
+			gv->val.v_bool = ImGui::Button(gv->id.c_str());
+			break;
+		case GVAR_BOOL:
+			ImGui::Checkbox(gv->id.c_str(), &gv->val.v_bool);
+			break;
+		case GVAR_FLOAT:
+			ImGui::InputScalar(gv->id.c_str(), ImGuiDataType_Float, &gv->val.v_float);
+			break;
+		case GVAR_UNORM:
+			ImGui::SliderFloat(gv->id.c_str(), &gv->val.v_float, 0.0f, 1.0f);
+			break;
+		case GVAR_UINT:
+			ImGui::InputScalar(gv->id.c_str(), ImGuiDataType_U32, &gv->val.v_uint);
+			break;
+		case GVAR_INT:
+			ImGui::InputInt(gv->id.c_str(), &gv->val.v_int);
+			break;
+		case GVAR_VEC3:
+			ImGui::InputFloat3(gv->id.c_str(), gv->val.v_vec3);
+			break;
+		case GVAR_DISPLAY_VALUE:
+			ImGui::Text(gv->id.c_str(), gv->val.v_float);
+			// ImGui::Text(gv->path.c_str(),1.0);
+			break;
+		case GVAR_ENUM:
+			for (size_t i = 0; i < gv->set.list.size(); i++)
+			{
+				ss << gv->set.list[i] << '\0';
+			}
+			ImGui::Combo(gv->id.c_str(), &gv->val.v_int, ss.str().c_str(), 5);
+			break;
+		case GVAR_UINT_RANGE:
+			ImGui::SliderScalar(gv->id.c_str(), ImGuiDataType_U32, &gv->val.v_uint, &gv->set.range.min.v_uint, &gv->set.range.max.v_uint);
+			break;
+		case GVAR_FLOAT_RANGE:
+			ImGui::SliderScalar(gv->id.c_str(), ImGuiDataType_Float, &gv->val.v_float, &gv->set.range.min.v_float, &gv->set.range.max.v_float);
+			break;
+		default:
+			break;
+	}
+}
+
+void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories, VkRect2D_OP viewport)
+{
+	if (!gState.guiRendered)
+	{
+		gState.imguiWrapper->newFrame();
+		gState.guiRendered = true;
+	}
+	ImGui::SetNextWindowPos({(float) viewport.offset.x, (float) viewport.offset.y});
+	ImGui::SetNextWindowSize({(float) viewport.extent.width, (float) viewport.extent.height});
+	ImGui::Begin("Gvar", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize);
+	std::sort(gvar.begin(), gvar.end(), [](GVar *a, GVar *b) { return a->sortId < b->sortId; });
+	int currentCategory = -1;
+	bool     categoryOpen    = false;
+	for (uint32_t i = 0; i < gvar.size(); i++)
+	{
+		GVar *gv = gvar[i];
+		if (currentCategory < gv->sortId)
+		{
+			std::string name;
+			if (categories.size() > gv->sortId)
+			{
+				name = categories[gv->sortId];
+			}
+			else
+			{
+				name = "Unknown_" + gv->sortId;
+			}
+			categoryOpen = ImGui::CollapsingHeader(name.c_str());
+		}
+		if (categoryOpen)
+		{
+			ImGui::PushItemWidth(ImGui::GetWindowSize().x * 0.3);
+			addGVar(gv);
+		}
+		currentCategory = gvar[i]->sortId;
+	}
+	ImGui::End();
+	//ImGui::ShowDemoWindow();
+}
+}        // namespace gvar_gui
+
 
 namespace shader_console_gui
 {

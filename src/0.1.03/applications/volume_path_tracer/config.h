@@ -2,6 +2,7 @@
 #include <vka/vka.h>
 #include <glm/gtc/matrix_transform.hpp>
 static const std::string shaderPath = std::string(APP_SRC_DIR) + "/shaders/";
+static const std::string configPath = std::string(CONFIG_DIR) + "/";
 
 using namespace vka;
 using namespace vka::pbr;
@@ -14,6 +15,7 @@ enum GuiCategories
 	VISUALIZATION_SETTINGS = 3,
 	METRICS = 4,
 };
+#define NO_GUI -1
 
 extern GVar     gvar_model;
 extern GVar     gvar_perlin_scale0;
@@ -50,6 +52,23 @@ extern GVar     gvar_seed;
 extern GVar     gvar_medium_xray_line_segments;
 extern GVar     gvar_pin_sample_location;
 extern GVar     gvar_continuous_path_sampling;
+
+// Screen cursor
+extern GVar gvar_path_sampling_event;
+extern GVar gvar_screen_cursor_pos;
+extern GVar gvar_screen_cursor_enable;
+
+// Camera
+extern GVar     gvar_cam_fixpoint;
+extern GVar     gvar_cam_up;
+extern GVar     gvar_cam_distance;
+extern GVar     gvar_cam_yaw;
+extern GVar     gvar_cam_pitch;
+extern GVar     gvar_cam_move_speed;
+extern GVar     gvar_cam_turn_speed;
+extern GVar     gvar_cam_scroll_speed;
+
+
 
 
 
@@ -160,9 +179,9 @@ struct DefaultAdvancedStateConfig : AdvancedStateConfig
 	}
 };
 
-struct DefaultFixedCameraCI : public vka::FixedCameraCI
+struct DefaultFixedCameraState : public vka::FixedCameraState
 {
-	DefaultFixedCameraCI()
+	DefaultFixedCameraState()
 	{
 		fixpoint    = glm::vec3(0.0f, 0.0f, 0.0f);
 		distance    = 1.0;
@@ -172,25 +191,5 @@ struct DefaultFixedCameraCI : public vka::FixedCameraCI
 		moveSpeed   = 0.2f;
 		turnSpeed   = 0.25f;
 		scrollSpeed = 0.1f;
-	}
-};
-
-struct Params
-{
-	glm::mat4 initialMediumMatrix;
-	glm::vec3 initialMediumAlbedo;
-	glm::uint volumeResolution;
-};
-
-struct DefaultParams : public Params
-{
-	DefaultParams()
-	{
-		initialMediumMatrix  = glm::mat4(1.0f);
-		initialMediumMatrix  = glm::translate(initialMediumMatrix, glm::vec3(-0.2,-0.2,-0.2));
-		//initialMediumMatrix  = glm::translate(initialMediumMatrix, glm::vec3(-0.2,-0.2,-0.4));
-		initialMediumMatrix  = glm::scale(initialMediumMatrix, glm::vec3(0.3));
-		initialMediumAlbedo  = glm::vec3(1.0);
-		volumeResolution = 64;
 	}
 };

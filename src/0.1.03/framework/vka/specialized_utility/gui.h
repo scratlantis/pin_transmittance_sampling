@@ -96,22 +96,22 @@ enum GVar_Type
 
 struct GVar
 {
-	std::string path;
+	std::string id;
 	GVar_Val    val;
 	GVar_Type   type;
-	uint32_t    sortId;
+	int			sortId;
 	GVar_Set	set;
 
-	GVar(std::string p, GVar_Val v, GVar_Type t, uint32_t s) :
-	    path(p),
+	GVar(std::string p, GVar_Val v, GVar_Type t, int s) :
+	    id(p),
 	    val(v),
 	    type(t),
 	    sortId(s)
 	{
 	}
 
-	GVar(std::string p, GVar_Val v, GVar_Type t, uint32_t s, GVar_Set aSet) :
-	    path(p),
+	GVar(std::string p, GVar_Val v, GVar_Type t, int s, GVar_Set aSet) :
+	    id(p),
 	    val(v),
 	    type(t),
 	    sortId(s),
@@ -119,8 +119,8 @@ struct GVar
 	{
 	}
 
-	GVar(std::string p, GVar_Val v, GVar_Type t, uint32_t s, std::vector<std::string> list) :
-	    path(p),
+	GVar(std::string p, GVar_Val v, GVar_Type t, int s, std::vector<std::string> list) :
+	    id(p),
 	    val(v),
 	    type(t),
 	    sortId(s),
@@ -130,7 +130,15 @@ struct GVar
 
 };
 
+void storeGVar(std::vector<GVar *> gvar, std::string path);
+void loadGVar(std::vector<GVar *> gvar, std::string path);
+
 namespace gvar_gui
+{
+void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories, VkRect2D_OP viewport);
+}
+
+namespace gvar_gui_v2
 {
 void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories, VkRect2D_OP viewport);
 }

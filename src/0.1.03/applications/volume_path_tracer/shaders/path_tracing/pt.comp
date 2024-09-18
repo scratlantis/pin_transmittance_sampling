@@ -113,7 +113,8 @@ void writeLineSegment(vec3 start, vec3 end, uint bounce, uint type)
 	uvec2 mousePixel = uvec2(params.cursorPos * vec2(frame.width, frame.height));
 	if(gID == mousePixel
 	&& 
-	( params.continuousPathSampling == 1 || (params.leftMB == BUTTON_PRESS_EVENT && params.controlKEY == BUTTON_PRESSED) ))
+	//( params.pathSampling == 1 || (params.leftMB == BUTTON_PRESS_EVENT && params.controlKEY == BUTTON_PRESSED) ))
+	( params.pathSampling == 1))
 	{
 		GLSLLineSegment line;
 		line.start = start;
@@ -180,7 +181,7 @@ float traceTransmittance(Ray ray, uint bounce, inout uint seed)
 	return geomTransmittance * mediumTransmittance;
 }
 
-
+#if AREA_LIGHT_COUNT > 0
 vec3 sampleDirectIllumAreaLight(vec3 pos, uint bounce, inout uint seed, out vec3 wi)
 {
 	Ray ray = genDirectIllumRayAreaLight(pos, seed);
@@ -190,6 +191,7 @@ vec3 sampleDirectIllumAreaLight(vec3 pos, uint bounce, inout uint seed, out vec3
 	vec3 Li = transmittance * ray.weight;
 	return Li;
 }
+#endif
 
 vec3 sampleDirectIllumEnvMap(vec3 pos, uint bounce, inout uint seed, out vec3 wi)
 {

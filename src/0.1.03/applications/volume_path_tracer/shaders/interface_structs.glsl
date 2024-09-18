@@ -32,7 +32,7 @@ struct GLSLParams
 	uint controlKEY;
 
 	float pinSampleLocation;
-	uint continuousPathSampling;
+	uint pathSampling;
 	uint padding[2];
 };
 

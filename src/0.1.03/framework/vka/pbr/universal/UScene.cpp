@@ -150,7 +150,7 @@ USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uin
 		sceneData.envMapPdfBuffer = createBuffer(pPool, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 16);
 		sceneData.envMapSubdivisions = {1, 1};
 	}
-
+	sceneData.isInitialized = true;
 	return sceneData;
 }
 

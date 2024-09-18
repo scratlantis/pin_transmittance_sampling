@@ -1,0 +1,40 @@
+#pragma once
+#include "config.h"
+
+
+
+class EventManager
+{
+  public:
+	EventManager() = default;
+	~EventManager() = default;
+
+	void init(FixedCamera *pCam);
+
+	void newFrame();
+
+	bool requestModelLoad();
+
+	void updateView();
+
+	void updatePathTraceParams();
+
+	FixedCamera *pCam;
+
+	uint32_t       frameCounter    = 0;
+	uint32_t       lastModelIndex  = _UI32_MAX;
+	uint32_t       lastEnvMapIndex = _UI32_MAX;
+
+	// View
+	bool           viewHasChanged  = true;
+	bool           debugView       = false;
+	uint32_t       viewType        = 0;
+	const uint32_t viewTypeCount   = 2;
+
+	// Path Tracing
+	float ptSplittCoef = 0.5f;
+	bool ptReset = true;
+	bool pathViewCreated = false;
+
+  private:
+};

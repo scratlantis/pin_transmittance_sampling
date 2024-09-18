@@ -7,7 +7,7 @@
 
 namespace vka
 {
-struct FixedCameraCI
+struct FixedCameraState
 {
 	glm::vec3 fixpoint;
 	glm::vec3 up;
@@ -22,7 +22,7 @@ struct FixedCameraCI
 class FixedCamera : public Camera
 {
   public:
-	FixedCamera(FixedCameraCI ci)
+	FixedCamera(FixedCameraState ci)
 	{
 		fixpoint      = ci.fixpoint;
 		yaw           = ci.yaw;
@@ -34,6 +34,19 @@ class FixedCamera : public Camera
 		worldUp       = ci.up;
 		updateRotation();
 	};
+	FixedCameraState getState()
+	{
+		FixedCameraState state{};
+		state.fixpoint    = fixpoint;
+		state.yaw         = yaw;
+		state.pitch       = pitch;
+		state.moveSpeed   = movementSpeed;
+		state.turnSpeed   = turnSpeed;
+		state.scrollSpeed = scrollSpeed;
+		state.up          = worldUp;
+		state.distance    = distance;
+		return state;
+	}
 	FixedCamera() = default;
 	~FixedCamera(){};
 	virtual bool      keyControl(float deltaTime) override;

@@ -6,24 +6,25 @@
 #include "visualization/pin_visualization.h"
 #include "path_tracing/ComparativePathTracer.h"
 #include "path_tracing/pt_strategies.h"
-
+#include "EventManager.h"
 // State and output dir must be defined in the main file
 AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 
 // Gui variable
-
 GVar gvar_model = {"Model", 0, GVAR_ENUM, GENERAL, std::vector<std::string>{"Cornell Box", "Sponza"}};
 GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, PERLIN_NOISE_SETTINGS, {16, 256}};
 GVar gvar_mse{"MSE : %.8f E-3", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
-GVar gvar_envmap = {"Envmap", 1, GVAR_ENUM, GENERAL, std::vector<std::string>{"None"}};
+GVar gvar_env_map                   = {"Envmap", 1, GVAR_ENUM, GENERAL, std::vector<std::string>{"None"}};
 GVar gvar_fixed_seed = {"Fixed Seed", false, GVAR_BOOL, GENERAL};
 GVar gvar_seed       = {"Seed", 0, GVAR_UINT_RANGE, GENERAL, {0, 1000}};
 GVar gvar_medium_xray_line_segments = {"Medium Xray Line Segments", true, GVAR_BOOL, VISUALIZATION_SETTINGS};
 GVar gvar_pin_sample_location       = {"Pin sample location", 0, GVAR_UNORM, PIN_SETTINGS};
 GVar gvar_continuous_path_sampling  = {"Contious Path Sampling", false, GVAR_BOOL, VISUALIZATION_SETTINGS};
 
-
+GVar gvar_path_sampling_event       = {"Path Sampling Event", false, GVAR_EVENT, NO_GUI};
+GVar gvar_screen_cursor_pos = {"Screen Cursor Pos", {0.f,0.f,0.f}, GVAR_VEC3, NO_GUI};
+GVar gvar_screen_cursor_enable = {"Screen Cursor Enable", false, GVAR_BOOL, NO_GUI};
 
 std::vector<GVar *> gVars =
 {
@@ -58,12 +59,25 @@ std::vector<GVar *> gVars =
 		&gvar_medium_z,
 		&gvar_medium_rot_y,
 		&gvar_medium_scale,
-		&gvar_envmap,
+		&gvar_env_map,
 		&gvar_fixed_seed,
 		&gvar_seed,
 		&gvar_medium_xray_line_segments,
 		&gvar_pin_sample_location,
-		&gvar_continuous_path_sampling
+		&gvar_continuous_path_sampling,
+		//Screen Cursor
+		&gvar_path_sampling_event,
+		&gvar_screen_cursor_pos,
+		&gvar_screen_cursor_enable,
+		// Cam
+		&gvar_cam_fixpoint,
+		&gvar_cam_distance,
+		&gvar_cam_up,
+		&gvar_cam_yaw,
+		&gvar_cam_pitch,
+		&gvar_cam_move_speed,
+		&gvar_cam_turn_speed,
+		&gvar_cam_scroll_speed
         // clang-format on
 };
 
@@ -76,7 +90,6 @@ ModelInfo cornellBox = {"cornell_box/cornell_box.obj", vec3(0,0.2,-0.3), 0.1, ve
 ModelInfo sponza = {"sponza/sponza_v2.obj", vec3(0.0,0.2,-0.3), 0.1, vec3(0.0,180.0,0.0)};
 std::vector<ModelInfo> models     = {cornellBox, sponza};
 
-
 uint32_t modelLoadFlags = MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE | MODEL_LOAD_FLAG_IS_OPAQUE | MODEL_LOAD_FLAG_COPYABLE;
 
 // Medium Strategies
@@ -88,14 +101,11 @@ PinGridGenerator          pinGridGenerator     = PinGridGenerator();
 ReferencePathTracer 	 referencePathTracer  = ReferencePathTracer();
 PinPathTracer 			 pinPathTracer 		 = PinPathTracer();
 
-
 enum ViewType
 {
 	VIEW_TYPE_SPLIT,
 	VIEW_TYPE_DIFF
 };
-
-const uint32_t viewTypeCount = 2;
 
 int main()
 {
@@ -107,12 +117,9 @@ int main()
 	gState.init(deviceCI, ioCI, &window, config);
 	enableGui();
 
-	addFileNamesToEnum(config.texturePath + "/envmap/2k/", gvar_envmap.set.list);
-
-	// Application Specific Parameters
-	Params params = DefaultParams();
-
-	USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance>();
+	// GVars
+	loadGVar(gVars, configPath + "gvar.json");
+	addFileNamesToEnum(config.texturePath + "/envmap/2k/", gvar_env_map.set.list);
 
 	// Medium
 	Medium          medium          = Medium();
@@ -120,23 +127,15 @@ int main()
 	PinStateManager pinStateManager = PinStateManager(&medium);
 
 	// Scene
-	FixedCamera cam = FixedCamera(DefaultFixedCameraCI());
-	uint32_t modelIndexLastFrame = 0;
-	uint32_t envMapIndexLastFrame = 0;
-	uint32_t viewType = 0;
-	USceneData scene;
+	USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance>();
+	USceneData scene{};
 	ModelInfo  model;
 
+	// Path Tracer
 	uint32_t maxLineSegmentCount       = gvar_max_bounce.set.range.max.v_uint * LINE_SEGMENTS_PER_BOUNCE;
 	Buffer   lineSegmentInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, maxLineSegmentCount * sizeof(GLSLInstance));
-	// Path Tracer
 	ComparativePathTracer pathTracer = ComparativePathTracer(0.8, 1.0, lineSegmentInstanceBuffer, maxLineSegmentCount);
-
-
 	Buffer mseBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
-
-
-
 
 	// Persistent Resources:
 	// HDR Images for path tracing
@@ -153,41 +152,25 @@ int main()
 	cmdFillBuffer(cmdBuf, lineSegmentInstanceBuffer, 0, maxLineSegmentCount * sizeof(GLSLInstance), 0);
 	executeImmediat(cmdBuf);
 
-	bool debugView = false;
-
-	float splitCoef = 0.5;
-
-	glm::vec2 lastPathSampleLocation = glm::vec2(0.0);
+	FixedCamera cam = FixedCamera(loadCamState());
+	EventManager em = EventManager();
+	em.init(&cam);
 
 	// Main Loop
-	for (uint cnt = 0; !gState.io.shouldTerminate(); cnt++)
+	while(!gState.io.shouldTerminate())
 	{
-		if (gState.io.keyPressedEvent[GLFW_KEY_R])
+		em.newFrame();
+		if (em.requestModelLoad())        // Load Scene
 		{
-			clearShaderCache();
-		}
-		if (gState.io.keyPressedEvent[GLFW_KEY_T]) // Reset camera
-		{
-			cam = FixedCamera(DefaultFixedCameraCI());
-		}
-		
-		if (modelIndexLastFrame != gvar_model.val.v_uint || envMapIndexLastFrame != gvar_envmap.val.v_uint || cnt == 0)        // Load Scene
-		{
-			if (cnt != 0)
-			{
-				scene.garbageCollect();
-			}
-
-			modelIndexLastFrame = gvar_model.val.v_uint;
-			envMapIndexLastFrame = gvar_envmap.val.v_uint;
-			model = models[modelIndexLastFrame];
-			std::string envmap   = "/envmap/2k/" + gvar_envmap.set.list[gvar_envmap.val.v_uint];
+			scene.garbageCollect();
+			model              = models[gvar_model.val.v_uint];
 			CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
 
 			// Solid Geometry
 			sceneBuilder.reset();
-			if (gvar_envmap.val.v_uint > 0)
+			if (gvar_env_map.val.v_uint > 0)
 			{
+				std::string envmap = "/envmap/2k/" + gvar_env_map.set.list[gvar_env_map.val.v_uint];
 				sceneBuilder.loadEnvMap(envmap, glm::uvec2(64, 64));
 			}
 
@@ -196,34 +179,13 @@ int main()
 			instance.mat      = model.getObjToWorldMatrix();
 			instance.color    = glm::vec3(0.0);
 			sceneBuilder.addModel(cmdBuf, model.path, &instance, 1);
-
 			sceneBuilder.addModel(cmdBuf, arrow.path, lineSegmentInstanceBuffer, maxLineSegmentCount);
 			scene = sceneBuilder.create(cmdBuf, gState.heap, SCENE_LOAD_FLAG_ALLOW_RASTERIZATION);
-			
 			executeImmediat(cmdBuf);
 
 		}
-		bool viewHasChanged = cam.keyControl(0.016);
-		if (gState.io.mouse.rightPressed)
-		{
-			viewHasChanged = viewHasChanged || cam.mouseControl(0.016);
-		}
-		if (gState.io.mouse.middleEvent && gState.io.mouse.middlePressed)
-		{
-			debugView = !debugView;
-		};
-		if (gState.io.keyPressedEvent[GLFW_KEY_E])
-		{
-			viewType = (viewType + 1) % viewTypeCount;
-		}
-		if (gState.io.keyPressedEvent[GLFW_KEY_Q])
-		{
-			viewType = (viewTypeCount + viewType - 1) % viewTypeCount;
-		}
-		
 		CmdBuffer  cmdBuf       = createCmdBuffer(gState.frame->stack);
 		Image      swapchainImg = getSwapchainImage();
-
 		// Update instance data and tlas
 		scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.frame->stack));
 		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT , VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR);
@@ -243,63 +205,35 @@ int main()
 		buildInfo.transmittanceEncoder = &transmittanceEncoder;
 		buildInfo.pinGridGenerator = &pinGridGenerator;
 		MediumBuildTasks buildTasks = medium.update(cmdBuf, buildInfo);
-
 		if (buildTasks.buildPinGrid || pinStateManager.requiresUpdate())
 		{
 			pinStateManager.update(cmdBuf);
 		}
-
 		// Reset accumulation
-		if ( gState.io.keyPressedEvent[GLFW_KEY_LEFT_CONTROL]
-			|| gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL] && gState.io.mouse.leftEvent
-			|| gvar_fixed_seed.val.v_bool
-			|| cnt <= 1
-			|| viewHasChanged
-			|| gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && gState.io.mouse.pos.x < 0.2 * gState.io.extent.width)
+		if (em.ptReset)
 		{
 			pathTracer.reset(cmdBuf, &referencePathTracer, &pinPathTracer);
 		}
 
-		if (gState.io.mouse.leftPressed && gState.io.mouse.pos.x > 0.2 * gState.io.extent.width)
-		{
-			if (gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL])
-			{
-				lastPathSampleLocation = glm::vec2(gState.io.mouse.pos.x, gState.io.mouse.pos.y);
-			}
-			else
-			{
-				splitCoef = glm::clamp<float>(splitCoef + gState.io.mouse.change.x / (0.8f * gState.io.extent.width), 0.0, 1.0);
-			}
-			
-		}
-
-
-
-
 		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.2, 0.2, 0.2, 1.0)).exec(cmdBuf);
-
-
 		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 		// Path tracing
-		if (!debugView)
+		if (!em.debugView)
 		{
 			VkRect2D_OP rect                = getScissorRect(0.2f, 0.f, 0.8f, 1.0f);
 			RenderInfo renderInfo           = RenderInfo();
-			renderInfo.frameIdx             = cnt;
+			renderInfo.frameIdx             = em.frameCounter;
 			renderInfo.pCamera              = &cam;
 			renderInfo.pMediun              = &medium;
 			renderInfo.mediumInstanceBuffer  = mediumInstanceBuffer;
 			renderInfo.pSceneData            = &scene;
-			// renderInfo.cursorPos.x           = (gState.io.mouse.pos.x - float(rect.offset.x)) / float(rect.extent.width);
-			// renderInfo.cursorPos.y           = (gState.io.mouse.pos.y - float(rect.offset.y)) / float(rect.extent.height);
-			renderInfo.cursorPos.x = (lastPathSampleLocation.x - float(rect.offset.x)) / float(rect.extent.width);
-			renderInfo.cursorPos.y = (lastPathSampleLocation.y - float(rect.offset.y)) / float(rect.extent.height);
+			renderInfo.cursorPos.x           = (gvar_screen_cursor_pos.val.getVec4().x - float(rect.offset.x)) / float(rect.extent.width);
+			renderInfo.cursorPos.y           = (gvar_screen_cursor_pos.val.getVec4().y - float(rect.offset.y)) / float(rect.extent.height);
 			pathTracer.render(cmdBuf, renderInfo);
-
-			switch (viewType)
+			switch (em.viewType)
 			{
 				case VIEW_TYPE_SPLIT:
-					pathTracer.showSplitView(cmdBuf, swapchainImg, splitCoef, getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
+					pathTracer.showSplitView(cmdBuf, swapchainImg, em.ptSplittCoef, getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
 					break;
 				case VIEW_TYPE_DIFF:
 					pathTracer.showDiff(cmdBuf, swapchainImg, getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
@@ -307,7 +241,6 @@ int main()
 				default:
 					break;
 			}
-
 			// Compute MSE
 			gvar_mse.val.v_float = 1000.0*pathTracer.computeMSE(cmdBuf);
 		}
@@ -318,27 +251,23 @@ int main()
 			ModelData sceneModel = gState.modelCache->fetch<GLSLVertex>(cmdBuf, model.path, modelLoadFlags);
 			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_pt, sceneModel.vertexBuffer, sceneModel.indexBuffer, &cam, model.getObjToWorldMatrix(), true);
 			cmdShowBoxFrame(cmdBuf, gState.frame->stack, img_pt, &cam, mediumInstance.mat, false, vec4(0.0, 0.0, 1.0, 1.0));
-
-
 			glm::mat4 cursorMatrix = glm::translate(glm::mat4(1.0), vec3(gvar_cursor_pos_x.val.v_float, gvar_cursor_pos_y.val.v_float, gvar_cursor_pos_z.val.v_float));
 			cursorMatrix = glm::rotate(cursorMatrix, gvar_cursor_dir_theta.val.v_float, vec3(0.0, 0.0, 1.0));
 			cursorMatrix = glm::rotate(cursorMatrix, gvar_cursor_dir_phi.val.v_float, vec3(0.0, 1.0, 0.0));
 			cursorMatrix           = mediumInstance.mat * cursorMatrix * cursor.getObjToWorldMatrix();
 			cmdShowAlbedo(cmdBuf, gState.frame->stack, img_pt, cursorModel, &cam, cursorMatrix, false);
 			cmdVisualizePins(cmdBuf, gState.frame->stack, img_pt, medium.pins, pinStateManager.pinState, &cam, mediumInstance.mat, false, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
 			getCmdAdvancedCopy(img_pt, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			                VkRect2D_OP(img_pt->getExtent2D()), getScissorRect(0.2f, 0.f, 0.8f, 1.0f)).exec(cmdBuf);
 		}
 		// Add gui
-		{
-			gvar_gui::buildGui(gVars, {"General", "Noise Function", "Pins", "Visualization", "Metrics"}, getScissorRect(0.f, 0.f, 0.2, 1.0));
-			shader_console_gui::buildGui(getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
-			cmdRenderGui(cmdBuf, swapchainImg);
-		}
+		gvar_gui_v2::buildGui(gVars, {"General", "Noise Function", "Pins", "Visualization", "Metrics"}, getScissorRect(0.f, 0.f, 0.2, 1.0));
+		shader_console_gui::buildGui(getScissorRect(0.2f, 0.f, 0.8f, 1.0f));
+		cmdRenderGui(cmdBuf, swapchainImg);
 
 		swapBuffers({cmdBuf});
 	}
+	storeGVar(gVars, configPath + "gvar.json");
 	vkDeviceWaitIdle(gState.device.logical);
 	pathTracer.destroy();
 	gState.destroy();
