@@ -1,7 +1,7 @@
 {
     "Camera Distance": 0.30000001192092896,
     "Camera Move Speed": 0.20000000298023224,
-    "Camera Pitch": 23.75,
+    "Camera Pitch": 11.0,
     "Camera Position": [
         -0.03267844021320343,
         -0.05003957077860832,
@@ -14,7 +14,7 @@
         1.0,
         0.0
     ],
-    "Camera Yaw": 89.75,
+    "Camera Yaw": 75.75,
     "Contious Path Sampling": false,
     "Envmap": 1,
     "Falloff": false,
@@ -24,7 +24,7 @@
         16,
         256
     ],
-    "MSE : %.8f E-3": 3.17761492729187,
+    "MSE : %.8f E-3": 28.491151809692383,
     "Max bounces": [
         1,
         1,
@@ -100,11 +100,11 @@
         0.05000000074505806,
         0.30000001192092896
     ],
-    "Save Config": false,
+    "Save Config": true,
     "Screen Cursor Enable": true,
     "Screen Cursor Pos": [
-        640.0,
-        544.0,
+        530.0,
+        631.0,
         0.0
     ],
     "Seed": [
@@ -112,9 +112,9 @@
         0,
         1000
     ],
-    "Select Config": 3,
-    "Timing left : %.8f ms": 0.5469120144844055,
-    "Timing right : %.8f ms": 1.3107199668884277,
+    "Select Config": 1,
+    "Timing left : %.8f ms": 0.5495359897613525,
+    "Timing right : %.8f ms": 1.1134719848632813,
     "Transmittance Value Count": [
         10,
         1,

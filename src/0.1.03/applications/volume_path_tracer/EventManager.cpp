@@ -6,6 +6,17 @@ void EventManager::init(FixedCamera *pCam)
 	this->pCam = pCam;
 }
 
+void EventManager::reset()
+{
+	viewHasChanged  = true;
+	debugView       = false;
+	viewType        = 0;
+	ptSplittCoef    = 0.5f;
+	ptReset         = true;
+	pathViewCreated = false;
+	*pCam             = FixedCamera(loadCamState());
+}
+
 void EventManager::newFrame()
 {
 	frameCounter++;
@@ -17,6 +28,20 @@ void EventManager::newFrame()
 	{
 		*pCam = FixedCamera(DefaultFixedCameraState());
 	}
+	if (lastConfig != gvar_select_config.val.v_uint)
+	{
+		lastConfig = gvar_select_config.val.v_uint;
+		if (gvar_select_config.val.v_uint != 0)
+		{
+			loadGVar(gVars,configPath + gvar_select_config.set.list[gvar_select_config.val.v_uint]);
+		}
+		addFileNamesToEnum(std::string(RESOURCE_BASE_DIR) + "/textures/envmap/2k/", gvar_env_map.set.list);
+		gvar_select_config.set.list.clear();
+		gvar_select_config.set.list.push_back("None");
+		addFileNamesToEnum(configPath, gvar_select_config.set.list);
+		reset();
+	}
+
 	storeCamState(pCam->getState());
 	updateView();
 	updatePathTraceParams();

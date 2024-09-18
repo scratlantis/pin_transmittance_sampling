@@ -51,7 +51,7 @@ namespace vka
 			j[gv->id] = {gv->val.v_float, gv->set.range.min.v_float, gv->set.range.max.v_float};
 			break;
 		default:
-			DEBUG_BREAK;
+			//DEBUG_BREAK;
 			break;
 		}
 	}
@@ -100,7 +100,7 @@ namespace vka
 			gv->val.v_float = j[gv->id][0];
 			break;
 		default:
-			DEBUG_BREAK;
+			//DEBUG_BREAK;
 			break;
 		}
 	}
@@ -237,6 +237,7 @@ void addGVar(GVar *gv)
 				ss << gv->set.list[i] << '\0';
 			}
 			ImGui::Combo(gv->id.c_str(), &gv->val.v_int, ss.str().c_str(), 5);
+			gv->val.v_uint = gv->val.v_int;
 			break;
 		case GVAR_UINT_RANGE:
 			ImGui::SliderScalar(gv->id.c_str(), ImGuiDataType_U32, &gv->val.v_uint, &gv->set.range.min.v_uint, &gv->set.range.max.v_uint);
@@ -329,12 +330,16 @@ void addGVar(GVar *gv)
 				ss << gv->set.list[i] << '\0';
 			}
 			ImGui::Combo(gv->id.c_str(), &gv->val.v_int, ss.str().c_str(), 5);
+			gv->val.v_uint = gv->val.v_int;
 			break;
 		case GVAR_UINT_RANGE:
 			ImGui::SliderScalar(gv->id.c_str(), ImGuiDataType_U32, &gv->val.v_uint, &gv->set.range.min.v_uint, &gv->set.range.max.v_uint);
 			break;
 		case GVAR_FLOAT_RANGE:
 			ImGui::SliderScalar(gv->id.c_str(), ImGuiDataType_Float, &gv->val.v_float, &gv->set.range.min.v_float, &gv->set.range.max.v_float);
+			break;
+		case GVAR_TEXT_INPUT:
+			ImGui::InputText(gv->id.c_str(), gv->val.v_char_array.data(), gv->val.v_char_array.size());
 			break;
 		default:
 			break;

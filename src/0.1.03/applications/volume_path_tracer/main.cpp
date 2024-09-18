@@ -26,6 +26,10 @@ GVar gvar_path_sampling_event       = {"Path Sampling Event", false, GVAR_EVENT,
 GVar gvar_screen_cursor_pos = {"Screen Cursor Pos", {0.f,0.f,0.f}, GVAR_VEC3, NO_GUI};
 GVar gvar_screen_cursor_enable = {"Screen Cursor Enable", false, GVAR_BOOL, NO_GUI};
 
+GVar gvar_select_config = {"Select Config", 0, GVAR_ENUM, GENERAL, std::vector<std::string>{"Default"}};
+GVar gvar_save_config   = {"Save Config", false, GVAR_EVENT, GENERAL};
+GVar gvar_save_config_name = {"Save Config Name", std::string("quicksave"), GVAR_TEXT_INPUT, GENERAL};
+
 std::vector<GVar *> gVars =
 {
         // clang-format off
@@ -77,8 +81,12 @@ std::vector<GVar *> gVars =
 		&gvar_cam_pitch,
 		&gvar_cam_move_speed,
 		&gvar_cam_turn_speed,
-		&gvar_cam_scroll_speed
-        // clang-format on
+		&gvar_cam_scroll_speed,
+		//Config
+		&gvar_select_config,
+		&gvar_save_config,
+		&gvar_save_config_name
+		// clang-format on
 };
 
 ShaderConst sConst{};
@@ -107,6 +115,8 @@ enum ViewType
 	VIEW_TYPE_DIFF
 };
 
+
+
 int main()
 {
 	// Global State Initialization. See config.h for more details.
@@ -118,8 +128,9 @@ int main()
 	enableGui();
 
 	// GVars
-	loadGVar(gVars, configPath + "gvar.json");
+	/*loadGVar(gVars, configPath + "gvar.json");
 	addFileNamesToEnum(config.texturePath + "/envmap/2k/", gvar_env_map.set.list);
+	addFileNamesToEnum(configPath, gvar_select_config.set.list);*/
 
 	// Medium
 	Medium          medium          = Medium();
@@ -160,6 +171,11 @@ int main()
 	while(!gState.io.shouldTerminate())
 	{
 		em.newFrame();
+		if (gvar_save_config.val.v_bool)
+		{
+			storeGVar(gVars, configPath + std::string(gvar_save_config_name.val.v_char_array.data() + std::string(".json")));
+		}
+
 		if (em.requestModelLoad())        // Load Scene
 		{
 			scene.garbageCollect();

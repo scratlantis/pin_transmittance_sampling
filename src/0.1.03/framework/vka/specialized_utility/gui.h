@@ -11,13 +11,23 @@ void cmdRenderGui(CmdBuffer cmdBuf, Image target, float x, float y, float width,
 
 void cmdRenderGui(CmdBuffer cmdBuf, Image target);
 
-union GVar_Val
+struct GVar_Val
 {
 	bool     v_bool;
 	uint32_t v_uint;
 	int      v_int;
 	float    v_float;
 	float    v_vec3[3];
+
+	std::vector<char> v_char_array;
+
+	/*GVar_Val() = default;
+	~GVar_Val() = default;*/
+	
+	GVar_Val(std::string s)
+	{
+	    v_char_array = std::vector<char>(s.begin(), s.end());
+	}
 
 	GVar_Val(bool b)
 	{
@@ -92,6 +102,7 @@ enum GVar_Type
 	GVAR_ENUM,
 	GVAR_UINT_RANGE,
 	GVAR_FLOAT_RANGE,
+	GVAR_TEXT_INPUT,
 };
 
 struct GVar

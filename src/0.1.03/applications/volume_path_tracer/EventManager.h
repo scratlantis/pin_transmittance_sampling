@@ -10,7 +10,7 @@ class EventManager
 	~EventManager() = default;
 
 	void init(FixedCamera *pCam);
-
+	void reset();
 	void newFrame();
 
 	bool requestModelLoad();
@@ -35,6 +35,7 @@ class EventManager
 	float ptSplittCoef = 0.5f;
 	bool ptReset = true;
 	bool pathViewCreated = false;
+	uint32_t lastConfig = _UI32_MAX;
 
   private:
 };

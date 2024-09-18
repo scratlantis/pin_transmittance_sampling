@@ -17,6 +17,8 @@ enum GuiCategories
 };
 #define NO_GUI -1
 
+extern std::vector<GVar *> gVars;
+
 extern GVar     gvar_model;
 extern GVar     gvar_perlin_scale0;
 extern GVar     gvar_perlin_scale1;
@@ -68,6 +70,10 @@ extern GVar     gvar_cam_move_speed;
 extern GVar     gvar_cam_turn_speed;
 extern GVar     gvar_cam_scroll_speed;
 
+// Config
+extern GVar gvar_select_config;
+extern GVar gvar_save_config;
+extern GVar gvar_save_config_name;
 
 
 
