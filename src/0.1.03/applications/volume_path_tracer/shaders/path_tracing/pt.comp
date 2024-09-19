@@ -224,7 +224,7 @@ Ray nextBounce(
 	rMedium.rMax = min(rMedium.rMax, tGeom);
 
 	#ifdef XRAY_LINE_VISION
-	if(inst.type == 1)
+	if(tGeom != TMAX && inst.type == 1)
 	{
 		matData.emission = inst.color;
 		hitType = PATH_TERMINATED_EMISSION;
