@@ -157,6 +157,15 @@ void IOController::readInputs()
 	window->pollEvents();
 }
 
+void IOController::clearEvents()
+{
+	memset(&keyEvent, 0, VKA_KEY_COUNT * sizeof(bool));
+	memset(&keyPressedEvent, 0, VKA_KEY_COUNT * sizeof(bool));
+	memset(&keyReleasedEvent, 0, VKA_KEY_COUNT * sizeof(bool));
+	memset(&keyPressed, 0, VKA_KEY_COUNT * sizeof(bool));
+	mouse.clearEvents();
+}
+
 void IOController::destroy()
 {
 	vkDestroySwapchainKHR(gState.device.logical, swapchain, nullptr);

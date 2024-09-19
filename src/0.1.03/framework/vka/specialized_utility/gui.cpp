@@ -135,7 +135,7 @@ void configureGui_Default()
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO &io         = ImGui::GetIO();
-	float    sizePixels = 16;
+	float    sizePixels = 12;
 	io.Fonts->AddFontFromFileTTF("../external/IMGUI/misc/fonts/Roboto-Medium.ttf", sizePixels);
 	io.Fonts->AddFontFromFileTTF("../external/IMGUI/misc/fonts/Cousine-Regular.ttf", sizePixels);
 	io.Fonts->AddFontFromFileTTF("../external/IMGUI/misc/fonts/DroidSans.ttf", sizePixels);
@@ -145,7 +145,7 @@ void configureGui_Default()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1);
-	ImGui::StyleColorsDark();
+	ImGui::StyleColorsLight();
 }
 void enableGui(RenderPassDefinition rpDef, uint32_t subpassIdx)
 {

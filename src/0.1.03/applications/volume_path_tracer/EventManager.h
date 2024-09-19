@@ -36,5 +36,7 @@ class EventManager
 	uint32_t lastConfig = _UI32_MAX;
 
 	std::vector<GVar> gVarsLastFrame;
+	std::vector<GVar> gVarsPreGui;
+	bool guiFocus = false;
   private:
 };

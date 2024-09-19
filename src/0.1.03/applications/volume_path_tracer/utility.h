@@ -24,4 +24,28 @@ void addFileNamesToEnum(std::string path, std::vector<std::string> &enumVal);
 
 void storeCamState(const FixedCameraState &camState);
 
+static bool mouseInView()
+{
+	bool inView = true;
+	inView      = inView && gState.io.mouse.pos.x > viewDimensions.x * gState.io.extent.width;
+	inView      = inView && gState.io.mouse.pos.x < (viewDimensions.x + viewDimensions.width) * gState.io.extent.width;
+	inView      = inView && gState.io.mouse.pos.y > viewDimensions.y * gState.io.extent.height;
+	inView      = inView && gState.io.mouse.pos.y < (viewDimensions.y + viewDimensions.height) * gState.io.extent.height;
+	return inView;
+}
+static glm::vec2 mouseViewCoord()
+{
+	glm::vec2 coord;
+	coord.x = (gState.io.mouse.pos.x - viewDimensions.x * gState.io.extent.width) / (viewDimensions.width * gState.io.extent.width);
+	coord.y = (gState.io.mouse.pos.y - viewDimensions.y * gState.io.extent.height) / (viewDimensions.height * gState.io.extent.height);
+	return coord;
+}
+static glm::vec2 mouseViewChange()
+{
+	glm::vec2 change;
+	change.x = gState.io.mouse.change.x / (viewDimensions.width * gState.io.extent.width);
+	change.y = gState.io.mouse.change.y / (viewDimensions.height * gState.io.extent.height);
+	return change;
+}
+
 FixedCameraState loadCamState();

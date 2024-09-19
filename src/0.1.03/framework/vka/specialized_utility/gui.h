@@ -146,7 +146,7 @@ struct GVar
 		}
 		else
 		{
-			return false;
+			return true;
 		}
 	}
 

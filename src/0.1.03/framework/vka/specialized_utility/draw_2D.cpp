@@ -33,6 +33,7 @@ DrawCmd getCmdDrawRect(Image dst, VkImageLayout dstLayout, glm::vec4 color, VkRe
 	drawCmd.pushConstant(&color, sizeof(glm::vec4), VK_SHADER_STAGE_FRAGMENT_BIT);
 	addShader(drawCmd.pipelineDef, cVkaShaderPath + "fill_color.vert");
 	addShader(drawCmd.pipelineDef, cVkaShaderPath + "fill_color.frag");
+	drawCmd.renderArea = area;
 	return drawCmd;
 }
 

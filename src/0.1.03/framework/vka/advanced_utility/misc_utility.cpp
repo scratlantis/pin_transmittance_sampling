@@ -22,8 +22,12 @@ void swapBuffers(std::vector<CmdBuffer> cmdBufs)
 vka::VkRect2D_OP getScissorRect(float x, float y, float width, float height)
 {
 	return VkRect2D_OP::absRegion(VkRect2D_OP(gState.io.extent), Rect2D<float>{x, y,width, height});
-	//return vka::VkRect2D_OP{{{0, 0}, gState.io.extent}} * Rect2D<float>{x, y, std::min(width, 1.0f - x), std::min(height, 1.0f - y)};
 }
+vka::VkRect2D_OP getScissorRect(Rect2D<float> rect)
+{
+	return VkRect2D_OP::absRegion(VkRect2D_OP(gState.io.extent), rect);
+}
+
 
 
 Image createSwapchainAttachment(VkFormat format, VkImageUsageFlags usageFlags, VkImageLayout initialLayout)

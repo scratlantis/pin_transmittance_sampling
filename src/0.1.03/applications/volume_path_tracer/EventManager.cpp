@@ -20,14 +20,26 @@ void EventManager::reset()
 void EventManager::newFrame()
 {
 	frameCounter++;
-	if (gState.io.keyPressedEvent[GLFW_KEY_R])
+
+	// Build GUI and check gui focus
+	gVarsPreGui.clear();
+	for (size_t i = 0; i < gVars.size(); i++)
 	{
-		clearShaderCache();
+		gVarsPreGui.push_back(*gVars[i]);
 	}
-	if (gState.io.keyPressedEvent[GLFW_KEY_T])        // Reset camera
+	gvar_gui_v2::buildGui(gVars, {"General", "Noise Function", "Pins", "Visualization", "Metrics"}, getScissorRect(0.f, viewDimensions.y, viewDimensions.x, 1.0));
+	shader_console_gui::buildGui(getScissorRect(viewDimensions));
+	guiFocus = false;
+	for (size_t i = 0; i < gVars.size(); i++)
 	{
-		*pCam = FixedCamera(DefaultFixedCameraState());
+		guiFocus = guiFocus || !gVars[i]->compareValue(gVarsPreGui[i]);
 	}
+	if (guiFocus)
+	{
+		gState.io.clearEvents();
+	}
+
+	// Check for changes since last frame
 	if (frameCounter > 1)
 	{
 		VKA_ASSERT(gVars.size() == gVarsLastFrame.size());
@@ -42,6 +54,19 @@ void EventManager::newFrame()
 		gVarsLastFrame.push_back(*gVars[i]);
 	}
 
+	// Check for key events
+	if (gState.io.keyPressedEvent[GLFW_KEY_R])        // Reload shaders
+	{
+		clearShaderCache();
+	}
+	if (gState.io.keyPressedEvent[GLFW_KEY_T])        // Reset camera
+	{
+		*pCam = FixedCamera(DefaultFixedCameraState());
+	}
+	updateView();
+	updatePathTraceParams();
+
+	// Load new config
 	if (gVarHasChanged[gvar_select_config])
 	{
 		if (gvar_select_config.val.v_uint != 0)
@@ -56,8 +81,7 @@ void EventManager::newFrame()
 	}
 
 	storeCamState(pCam->getState());
-	updateView();
-	updatePathTraceParams();
+	
 }
 
 bool EventManager::requestModelLoad()
@@ -68,7 +92,10 @@ bool EventManager::requestModelLoad()
 
 void EventManager::updateView()
 {
-	viewHasChanged = pCam->keyControl(0.016);
+	if (mouseInView())
+	{
+		viewHasChanged = pCam->keyControl(0.016);
+	}
 	if (gState.io.mouse.rightPressed)
 	{
 		viewHasChanged = viewHasChanged || pCam->mouseControl(0.016);
@@ -90,24 +117,33 @@ void EventManager::updateView()
 void EventManager::updatePathTraceParams()
 {
 	// Reset accumulation
-	ptReset = gState.io.keyPressedEvent[GLFW_KEY_LEFT_CONTROL] || gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL] && gState.io.mouse.leftEvent || gvar_fixed_seed.val.v_bool || frameCounter <= 2 || viewHasChanged || gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && gState.io.mouse.pos.x < 0.2 * gState.io.extent.width;
+	// clang-format off
+	ptReset = gState.io.keyPressedEvent[GLFW_KEY_LEFT_CONTROL]
+		|| gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL] && gState.io.mouse.leftEvent
+		|| gvar_fixed_seed.val.v_bool
+		|| frameCounter <= 2
+		|| viewHasChanged
+		|| (gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && mouseInView())
+		|| guiFocus;
+	// clang-format on
+
 	if (gState.io.keyPressedEvent[GLFW_KEY_LEFT_CONTROL])
 	{
 		gvar_screen_cursor_enable.val.v_bool = false;
 		pathViewCreated                      = false;
 	}
-	if (gState.io.mouse.leftPressed && gState.io.mouse.pos.x > 0.2 * gState.io.extent.width)
+	if (gState.io.mouse.leftPressed && mouseInView())
 	{
 		if (gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL])
 		{
 			gvar_screen_cursor_enable.val.v_bool = true;
-
-			gvar_screen_cursor_pos.val.v_vec3[0] = gState.io.mouse.pos.x;
-			gvar_screen_cursor_pos.val.v_vec3[1] = gState.io.mouse.pos.y;
+			glm::vec2 coord             = mouseViewCoord();
+			gvar_screen_cursor_pos.val.v_vec3[0] = coord.x;
+			gvar_screen_cursor_pos.val.v_vec3[1] = coord.y;
 		}
 		else
 		{
-			ptSplittCoef = glm::clamp<float>(ptSplittCoef + gState.io.mouse.change.x / (0.8f * gState.io.extent.width), 0.0, 1.0);
+			ptSplittCoef = glm::clamp<float>(ptSplittCoef + mouseViewChange().x, 0.0, 1.0);
 		}
 	}
 	if (gvar_screen_cursor_enable.val.v_bool && !pathViewCreated)

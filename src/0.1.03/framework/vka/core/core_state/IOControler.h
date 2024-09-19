@@ -30,6 +30,22 @@ struct Mouse
 		change       = glm::vec2(0, 0);
 		scrollChange = 0.0;
 	}
+	void clearEvents()
+	{
+		leftEvent    = false;
+		rightEvent   = false;
+		middleEvent  = false;
+
+
+		leftPressed  = false;
+		rightPressed = false;
+		middlePressed = false;
+
+		pos -= change;
+
+		change       = glm::vec2(0, 0);
+		scrollChange = 0.0;
+	}
 };
 struct IOControlerCI
 {
@@ -69,6 +85,7 @@ class IOController
 	void    init();
 	void    requestSwapchainRecreation();
 	void    readInputs();
+	void    clearEvents();
 	void    destroy();
 	void    terminateWindowManager();
 	void    updateSwapchain();
