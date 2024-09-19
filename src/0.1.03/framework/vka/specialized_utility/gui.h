@@ -113,6 +113,43 @@ struct GVar
 	int			sortId;
 	GVar_Set	set;
 
+	bool operator==(const GVar &other) const
+	{
+		return id == other.id;
+	}
+
+	bool compareValue(const GVar &other) const
+	{
+		if (type == GVAR_VEC3)
+		{
+			return val.v_vec3[0] == other.val.v_vec3[0] && val.v_vec3[1] == other.val.v_vec3[1] && val.v_vec3[2] == other.val.v_vec3[2];
+		}
+		else if (type == GVAR_FLOAT || type == GVAR_FLOAT_RANGE || type == GVAR_UNORM)
+		{
+			return val.v_float == other.val.v_float;
+		}
+		else if (type == GVAR_INT)
+		{
+			return val.v_int == other.val.v_int;
+		}
+		else if (type == GVAR_UINT || type == GVAR_ENUM || type == GVAR_UINT_RANGE)
+		{
+			return val.v_uint == other.val.v_uint;
+		}
+		else if (type == GVAR_BOOL)
+		{
+			return val.v_bool == other.val.v_bool;
+		}
+		else if (type == GVAR_TEXT_INPUT)
+		{
+			return val.v_char_array == other.val.v_char_array;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
 	GVar(std::string p, GVar_Val v, GVar_Type t, int s) :
 	    id(p),
 	    val(v),
@@ -141,6 +178,8 @@ struct GVar
 
 };
 
+
+
 void storeGVar(std::vector<GVar *> gvar, std::string path);
 void loadGVar(std::vector<GVar *> gvar, std::string path);
 
@@ -160,3 +199,15 @@ void buildGui(VkRect2D_OP viewport);
 }
 
 }        // namespace vka
+
+namespace std
+{
+template <>
+struct hash<vka::GVar>
+{
+	std::size_t operator()(const vka::GVar &gvar) const
+	{
+		return std::hash<std::string>()(gvar.id);
+	}
+};
+}        // namespace std

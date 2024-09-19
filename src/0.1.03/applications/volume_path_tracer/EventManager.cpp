@@ -28,9 +28,22 @@ void EventManager::newFrame()
 	{
 		*pCam = FixedCamera(DefaultFixedCameraState());
 	}
-	if (lastConfig != gvar_select_config.val.v_uint)
+	if (frameCounter > 1)
 	{
-		lastConfig = gvar_select_config.val.v_uint;
+		VKA_ASSERT(gVars.size() == gVarsLastFrame.size());
+		for (uint32_t i = 0; i < gVars.size(); i++)
+		{
+			gVarHasChanged[*gVars[i]] = !gVars[i]->compareValue(gVarsLastFrame[i]);
+		}
+	}
+	gVarsLastFrame.clear();
+	for (size_t i = 0; i < gVars.size(); i++)
+	{
+		gVarsLastFrame.push_back(*gVars[i]);
+	}
+
+	if (gVarHasChanged[gvar_select_config])
+	{
 		if (gvar_select_config.val.v_uint != 0)
 		{
 			loadGVar(gVars,configPath + gvar_select_config.set.list[gvar_select_config.val.v_uint]);
@@ -49,9 +62,7 @@ void EventManager::newFrame()
 
 bool EventManager::requestModelLoad()
 {
-	bool result     = lastModelIndex != gvar_model.val.v_uint || lastEnvMapIndex != gvar_env_map.val.v_uint;
-	lastModelIndex = gvar_model.val.v_uint;
-	lastEnvMapIndex = gvar_env_map.val.v_uint;
+	bool result = gVarHasChanged[gvar_model] || gVarHasChanged[gvar_env_map];
 	return result;
 }
 
@@ -80,8 +91,6 @@ void EventManager::updatePathTraceParams()
 {
 	// Reset accumulation
 	ptReset = gState.io.keyPressedEvent[GLFW_KEY_LEFT_CONTROL] || gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL] && gState.io.mouse.leftEvent || gvar_fixed_seed.val.v_bool || frameCounter <= 2 || viewHasChanged || gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && gState.io.mouse.pos.x < 0.2 * gState.io.extent.width;
-
-
 	if (gState.io.keyPressedEvent[GLFW_KEY_LEFT_CONTROL])
 	{
 		gvar_screen_cursor_enable.val.v_bool = false;

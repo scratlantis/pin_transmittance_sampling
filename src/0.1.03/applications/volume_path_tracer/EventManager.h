@@ -22,8 +22,6 @@ class EventManager
 	FixedCamera *pCam;
 
 	uint32_t       frameCounter    = 0;
-	uint32_t       lastModelIndex  = _UI32_MAX;
-	uint32_t       lastEnvMapIndex = _UI32_MAX;
 
 	// View
 	bool           viewHasChanged  = true;
@@ -37,5 +35,6 @@ class EventManager
 	bool pathViewCreated = false;
 	uint32_t lastConfig = _UI32_MAX;
 
+	std::vector<GVar> gVarsLastFrame;
   private:
 };

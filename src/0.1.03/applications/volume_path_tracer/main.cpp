@@ -89,6 +89,8 @@ std::vector<GVar *> gVars =
 		// clang-format on
 };
 
+std::unordered_map<GVar, bool> gVarHasChanged;
+
 ShaderConst sConst{};
 
 // Models
@@ -126,6 +128,11 @@ int main()
 	AdvancedStateConfig config   = DefaultAdvancedStateConfig();
 	gState.init(deviceCI, ioCI, &window, config);
 	enableGui();
+
+	for( auto gv : gVars)
+	{
+		gVarHasChanged[*gv] = true;
+	}
 
 	// GVars
 	/*loadGVar(gVars, configPath + "gvar.json");

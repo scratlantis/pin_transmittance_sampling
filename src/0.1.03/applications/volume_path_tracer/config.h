@@ -18,6 +18,7 @@ enum GuiCategories
 #define NO_GUI -1
 
 extern std::vector<GVar *> gVars;
+extern std::unordered_map<GVar, bool> gVarHasChanged;
 
 extern GVar     gvar_model;
 extern GVar     gvar_perlin_scale0;
