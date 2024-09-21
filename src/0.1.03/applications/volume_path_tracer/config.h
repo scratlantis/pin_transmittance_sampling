@@ -17,7 +17,11 @@ enum GuiCategories
 };
 #define NO_GUI -1
 const float               viewMargin     = 0.001;
-const Rect2D<float> viewDimensions = {0.3, 0.03, 0.7 - viewMargin, 0.97 - viewMargin};
+
+const Rect2D<float>       viewDimensions    = {0.3, viewMargin, 1.0 - 2.0 * viewMargin, 0.97 - viewMargin};
+const Rect2D<float>       leftGuiDimensions = {0.f, viewDimensions.y, viewDimensions.x, 1.0};
+const Rect2D<float>       topGuiDimensions  = {0, 0, 0.5, viewDimensions.y};
+
 
 extern std::vector<GVar *> gVars;
 extern std::unordered_map<GVar, bool> gVarHasChanged;

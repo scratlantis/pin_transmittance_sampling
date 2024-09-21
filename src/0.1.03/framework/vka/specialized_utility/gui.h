@@ -11,6 +11,10 @@ void cmdRenderGui(CmdBuffer cmdBuf, Image target, float x, float y, float width,
 
 void cmdRenderGui(CmdBuffer cmdBuf, Image target);
 
+void setGuiDimensions(Rect2D<float> rect);
+
+#define GVAR_MAX_STRING_LENGHT 256
+
 struct GVar_Val
 {
 	bool     v_bool;
@@ -27,6 +31,9 @@ struct GVar_Val
 	GVar_Val(std::string s)
 	{
 	    v_char_array = std::vector<char>(s.begin(), s.end());
+		v_char_array.push_back('\0');
+		VKA_ASSERT(v_char_array.size() < GVAR_MAX_STRING_LENGHT);
+		v_char_array.resize(GVAR_MAX_STRING_LENGHT);
 	}
 
 	GVar_Val(bool b)
@@ -190,7 +197,9 @@ void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories, VkR
 
 namespace gvar_gui_v2
 {
+void addGVar(GVar *gv);
 void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories, VkRect2D_OP viewport);
+void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories);
 }
 
 namespace shader_console_gui

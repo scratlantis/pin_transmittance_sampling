@@ -28,6 +28,17 @@ vka::VkRect2D_OP getScissorRect(Rect2D<float> rect)
 	return VkRect2D_OP::absRegion(VkRect2D_OP(gState.io.extent), rect);
 }
 
+vka::Rect2D<float> addAbsOffsetToRect(Rect2D<float> rect, float x, float y)
+{
+	glm::vec2 offset = {x / float(gState.io.extent.width), y / float(gState.io.extent.height)};
+	return Rect2D<float>{rect.x + offset.x, rect.y + offset.y, rect.width - offset.x, rect.height - offset.y};
+}
+
+
+vka::Rect2D<float> addMarginToRect(Rect2D<float> rect, float margin)
+{
+	return Rect2D<float>{ rect.x + margin, rect.y + margin, rect.width - 2 * margin, rect.height - 2 * margin };
+}
 
 
 Image createSwapchainAttachment(VkFormat format, VkImageUsageFlags usageFlags, VkImageLayout initialLayout)

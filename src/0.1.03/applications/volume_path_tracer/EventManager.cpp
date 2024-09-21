@@ -1,5 +1,6 @@
 #include "EventManager.h"
 #include "utility.h"
+#include "ui.h"
 
 void EventManager::init(FixedCamera *pCam)
 {
@@ -27,8 +28,7 @@ void EventManager::newFrame()
 	{
 		gVarsPreGui.push_back(*gVars[i]);
 	}
-	gvar_gui_v2::buildGui(gVars, {"General", "Noise Function", "Pins", "Visualization", "Metrics"}, getScissorRect(0.f, viewDimensions.y, viewDimensions.x, 1.0));
-	shader_console_gui::buildGui(getScissorRect(viewDimensions));
+	buildGui();
 	guiFocus = false;
 	for (size_t i = 0; i < gVars.size(); i++)
 	{
@@ -123,7 +123,7 @@ void EventManager::updatePathTraceParams()
 		|| gvar_fixed_seed.val.v_bool
 		|| frameCounter <= 2
 		|| viewHasChanged
-		|| (gState.io.mouse.leftPressed && gState.io.mouse.leftPressed && mouseInView())
+		|| (gState.io.mouse.rightPressed && gState.io.mouse.leftPressed && !mouseInView())
 		|| guiFocus;
 	// clang-format on
 

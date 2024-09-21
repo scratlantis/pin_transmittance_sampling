@@ -145,7 +145,12 @@ void configureGui_Default()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1);
+
 	ImGui::StyleColorsLight();
+	//ImGuiStyle *style          = &ImGui::GetStyle();
+	//ImVec4 *colors             = style->Colors;
+	//colors[ImGuiCol_MenuBarBg] = ImVec4(0.86f, 0.86f, 0.86f, 0.00f);
+	//colors[ImGuiCol_Border]        = ImVec4(0.00f, 0.00f, 0.00f, 0.0f);
 }
 void enableGui(RenderPassDefinition rpDef, uint32_t subpassIdx)
 {
@@ -197,7 +202,12 @@ void cmdRenderGui(CmdBuffer cmdBuf, Image target)
 	cmdRenderGui(cmdBuf, target, 0.f, 0.f, 1.f, 1.f);
 }
 
-
+void setGuiDimensions(Rect2D<float> rect)
+{
+	VkRect2D_OP viewport = getScissorRect(rect.x, rect.y, rect.width, rect.height);
+	ImGui::SetNextWindowPos({(float) viewport.offset.x, (float) viewport.offset.y});
+	ImGui::SetNextWindowSize({(float) viewport.extent.width, (float) viewport.extent.height});
+}
 
 namespace gvar_gui
 {
@@ -384,6 +394,36 @@ void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories, VkR
 	}
 	ImGui::End();
 	//ImGui::ShowDemoWindow();
+}
+
+void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories)
+{
+	std::sort(gvar.begin(), gvar.end(), [](GVar *a, GVar *b) { return a->sortId < b->sortId; });
+	int  currentCategory = -1;
+	bool categoryOpen    = false;
+	for (uint32_t i = 0; i < gvar.size(); i++)
+	{
+		GVar *gv = gvar[i];
+		if (currentCategory < gv->sortId)
+		{
+			std::string name;
+			if (categories.size() > gv->sortId)
+			{
+				name = categories[gv->sortId];
+			}
+			else
+			{
+				name = "Unknown_" + gv->sortId;
+			}
+			categoryOpen = ImGui::CollapsingHeader(name.c_str());
+		}
+		if (categoryOpen)
+		{
+			ImGui::PushItemWidth(ImGui::GetWindowSize().x * 0.3);
+			addGVar(gv);
+		}
+		currentCategory = gvar[i]->sortId;
+	}
 }
 }        // namespace gvar_gui
 
