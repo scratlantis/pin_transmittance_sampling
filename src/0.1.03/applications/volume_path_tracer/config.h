@@ -18,7 +18,7 @@ enum GuiCategories
 #define NO_GUI -1
 const float               viewMargin     = 0.001;
 
-const Rect2D<float>       viewDimensions    = {0.3, viewMargin, 1.0 - 2.0 * viewMargin, 0.97 - viewMargin};
+const Rect2D<float>       viewDimensions    = {0.3, viewMargin, 0.7 - 1.0 * viewMargin, 1.0 - 2.0 * viewMargin};
 const Rect2D<float>       leftGuiDimensions = {0.f, viewDimensions.y, viewDimensions.x, 1.0};
 const Rect2D<float>       topGuiDimensions  = {0, 0, 0.5, viewDimensions.y};
 
@@ -81,6 +81,7 @@ extern GVar     gvar_cam_scroll_speed;
 extern GVar gvar_select_config;
 extern GVar gvar_save_config;
 extern GVar gvar_save_config_name;
+extern GVar gvar_reload_config;
 
 
 

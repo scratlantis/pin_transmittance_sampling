@@ -28,6 +28,7 @@ GVar gvar_screen_cursor_enable = {"Screen Cursor Enable", false, GVAR_BOOL, NO_G
 
 GVar gvar_select_config = {"Select Config", 0, GVAR_ENUM, GENERAL, std::vector<std::string>{"Default"}};
 GVar gvar_save_config   = {"Save Config", false, GVAR_EVENT, GENERAL};
+GVar gvar_reload_config   = {"Load Config", false, GVAR_EVENT, GENERAL};
 GVar gvar_save_config_name = {"Save Config Name", std::string("quicksave"), GVAR_TEXT_INPUT, GENERAL};
 
 std::vector<GVar *> gVars =
@@ -85,7 +86,8 @@ std::vector<GVar *> gVars =
 		//Config
 		&gvar_select_config,
 		&gvar_save_config,
-		&gvar_save_config_name
+		&gvar_save_config_name,
+		&gvar_reload_config
 		// clang-format on
 };
 
@@ -173,10 +175,7 @@ int main()
 	while(!gState.io.shouldTerminate())
 	{
 		em.newFrame();
-		if (gvar_save_config.val.v_bool)
-		{
-			storeGVar(gVars, configPath + std::string(gvar_save_config_name.val.v_char_array.data() + std::string(".json")));
-		}
+		
 
 		if (em.requestModelLoad())        // Load Scene
 		{

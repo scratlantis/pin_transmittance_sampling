@@ -39,6 +39,27 @@ void EventManager::newFrame()
 		gState.io.clearEvents();
 	}
 
+	if (gvar_save_config.val.v_bool)
+	{
+		storeGVar(gVars, configPath + std::string(gvar_save_config_name.val.v_char_array.data() + std::string(".json")));
+	}
+
+	if (gvar_save_config.val.v_bool || frameCounter < 2)
+	{
+		gvar_select_config.set.list.clear();
+		gvar_select_config.set.list.push_back("None");
+		addFileNamesToEnum(configPath, gvar_select_config.set.list);
+		for (uint32_t i = 0; i < gvar_select_config.set.list.size(); i++)
+		{
+			std::string name = gvar_save_config_name.val.v_char_array.data();
+			name += ".json";
+			if (gvar_select_config.set.list[i] == name)
+			{
+				gvar_select_config.val.v_uint = i;
+			}
+		}
+	}
+
 	// Check for changes since last frame
 	if (frameCounter > 1)
 	{
@@ -66,17 +87,16 @@ void EventManager::newFrame()
 	updateView();
 	updatePathTraceParams();
 
+	
 	// Load new config
-	if (gVarHasChanged[gvar_select_config])
+	
+	if (!gvar_save_config.val.v_bool && gVarHasChanged[gvar_select_config] || gvar_reload_config.val.v_bool)
 	{
 		if (gvar_select_config.val.v_uint != 0)
 		{
 			loadGVar(gVars,configPath + gvar_select_config.set.list[gvar_select_config.val.v_uint]);
 		}
 		addFileNamesToEnum(std::string(RESOURCE_BASE_DIR) + "/textures/envmap/2k/", gvar_env_map.set.list);
-		gvar_select_config.set.list.clear();
-		gvar_select_config.set.list.push_back("None");
-		addFileNamesToEnum(configPath, gvar_select_config.set.list);
 		reset();
 	}
 
