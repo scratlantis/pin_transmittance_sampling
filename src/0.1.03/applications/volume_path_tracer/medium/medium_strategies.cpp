@@ -4,14 +4,12 @@
 using namespace vka;
 
 
-GVar gvar_perlin_scale0{"scale 0", 0.5f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
-GVar gvar_perlin_scale1{"scale 1", 0.5f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
-GVar gvar_perlin_frequency0{"frequency 0", 0.5f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
-GVar gvar_perlin_frequency1{"frequency 1", 0.5f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
-GVar gvar_perlin_falloff{"Falloff", false, GVAR_BOOL, PERLIN_NOISE_SETTINGS};
-GVar gvar_medium_albedo_r{"Medium Albedo R", 1.0f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
-GVar gvar_medium_albedo_g{"Medium Albedo G", 1.0f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
-GVar gvar_medium_albedo_b{"Medium Albedo B", 1.0f, GVAR_UNORM, PERLIN_NOISE_SETTINGS};
+GVar gvar_perlin_scale0{"scale 0", 0.5f, GVAR_UNORM, NOISE_SETTINGS};
+GVar gvar_perlin_scale1{"scale 1", 0.5f, GVAR_UNORM, NOISE_SETTINGS};
+GVar gvar_perlin_frequency0{"frequency 0", 0.5f, GVAR_UNORM, NOISE_SETTINGS};
+GVar gvar_perlin_frequency1{"frequency 1", 0.5f, GVAR_UNORM, NOISE_SETTINGS};
+GVar gvar_perlin_falloff{"Falloff", false, GVAR_BOOL, NOISE_SETTINGS};
+
 
 bool PerlinVolume::requiresUpdate()
 {

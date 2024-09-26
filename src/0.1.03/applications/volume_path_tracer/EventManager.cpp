@@ -14,7 +14,7 @@ void EventManager::reset()
 	viewType        = 0;
 	ptSplittCoef    = 0.5f;
 	ptReset         = true;
-	pathViewCreated = false;
+	//pathViewCreated = false;
 	*pCam             = FixedCamera(loadCamState());
 }
 
@@ -37,6 +37,19 @@ void EventManager::newFrame()
 	if (guiFocus)
 	{
 		gState.io.clearEvents();
+	}
+
+	if (gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL] && gState.io.keyPressedEvent[GLFW_KEY_S])
+	{
+		gvar_save_config.val.v_bool = true;
+		std::string name = gvar_select_config.set.list[gvar_select_config.val.v_uint];
+		name			 = name.substr(0, name.find_last_of("."));
+		gvar_save_config_name.val  = GVar_Val(name);
+	}
+
+	if (gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL] && (gState.io.keyPressedEvent[GLFW_KEY_Z] || gState.io.keyPressedEvent[GLFW_KEY_Y]))
+	{
+		gvar_reload_config.val.v_bool = true;
 	}
 
 	if (gvar_save_config.val.v_bool)
@@ -84,8 +97,7 @@ void EventManager::newFrame()
 	{
 		*pCam = FixedCamera(DefaultFixedCameraState());
 	}
-	updateView();
-	updatePathTraceParams();
+	
 
 	
 	// Load new config
@@ -95,10 +107,51 @@ void EventManager::newFrame()
 		if (gvar_select_config.val.v_uint != 0)
 		{
 			loadGVar(gVars,configPath + gvar_select_config.set.list[gvar_select_config.val.v_uint]);
+			for (uint32_t i = 0; i < gvar_select_config.set.list.size(); i++)
+			{
+				std::string name = gvar_select_config.set.list[gvar_select_config.val.v_uint];
+				if (gvar_select_config.set.list[i] == name)
+				{
+					gvar_select_config.val.v_uint = i;
+				}
+			}
 		}
+		gvar_env_map.set.list.clear();
 		addFileNamesToEnum(std::string(RESOURCE_BASE_DIR) + "/textures/envmap/2k/", gvar_env_map.set.list);
 		reset();
 	}
+
+	float moveCoef = 0.2f;
+	float scaleCoef = 0.04f;
+	if (gState.io.keyPressed[GLFW_KEY_X])
+	{
+		gvar_medium_pos.val.v_vec3[0] += gState.io.mouse.scrollChange * moveCoef;
+		gvar_medium_pos.val.v_vec3[0] = glm::clamp(gvar_medium_pos.val.v_vec3[0], gvar_medium_pos.set.range.min.v_float, gvar_medium_pos.set.range.max.v_float);
+		viewHasChanged                = true;
+	}
+	else if (gState.io.keyPressed[GLFW_KEY_C])
+	{
+		gvar_medium_pos.val.v_vec3[1] += gState.io.mouse.scrollChange * moveCoef;
+		gvar_medium_pos.val.v_vec3[1] = glm::clamp(gvar_medium_pos.val.v_vec3[1], gvar_medium_pos.set.range.min.v_float, gvar_medium_pos.set.range.max.v_float);
+		viewHasChanged                = true;
+	}
+	else if (gState.io.keyPressed[GLFW_KEY_V])
+	{
+		gvar_medium_pos.val.v_vec3[2] += gState.io.mouse.scrollChange * moveCoef;
+		gvar_medium_pos.val.v_vec3[2] = glm::clamp(gvar_medium_pos.val.v_vec3[2], gvar_medium_pos.set.range.min.v_float, gvar_medium_pos.set.range.max.v_float);
+		viewHasChanged                = true;
+	}
+	else if (gState.io.keyPressed[GLFW_KEY_B])
+	{
+		gvar_medium_scale.val.v_float += gState.io.mouse.scrollChange * scaleCoef;
+		gvar_medium_scale.val.v_float = glm::clamp(gvar_medium_scale.val.v_float, gvar_medium_scale.set.range.min.v_float, gvar_medium_scale.set.range.max.v_float);
+		viewHasChanged                = true;
+	}
+	else
+	{
+		updateView();
+	}
+	updatePathTraceParams();
 
 	storeCamState(pCam->getState());
 	
@@ -112,25 +165,28 @@ bool EventManager::requestModelLoad()
 
 void EventManager::updateView()
 {
-	if (mouseInView())
+	if (!gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL])
 	{
-		viewHasChanged = pCam->keyControl(0.016);
-	}
-	if (gState.io.mouse.rightPressed)
-	{
-		viewHasChanged = viewHasChanged || pCam->mouseControl(0.016);
-	}
-	if (gState.io.mouse.middleEvent && gState.io.mouse.middlePressed)
-	{
-		debugView = !debugView;
-	};
-	if (gState.io.keyPressedEvent[GLFW_KEY_E])
-	{
-		viewType = (viewType + 1) % viewTypeCount;
-	}
-	if (gState.io.keyPressedEvent[GLFW_KEY_Q])
-	{
-		viewType = (viewTypeCount + viewType - 1) % viewTypeCount;
+		if (mouseInView())
+		{
+			viewHasChanged = pCam->keyControl(0.016);
+		}
+		if (gState.io.mouse.rightPressed)
+		{
+			viewHasChanged = viewHasChanged || pCam->mouseControl(0.016);
+		}
+		if (gState.io.mouse.middleEvent && gState.io.mouse.middlePressed)
+		{
+			debugView = !debugView;
+		};
+		if (gState.io.keyPressedEvent[GLFW_KEY_E])
+		{
+			viewType = (viewType + 1) % viewTypeCount;
+		}
+		if (gState.io.keyPressedEvent[GLFW_KEY_Q])
+		{
+			viewType = (viewTypeCount + viewType - 1) % viewTypeCount;
+		}
 	}
 }
 
@@ -138,7 +194,7 @@ void EventManager::updatePathTraceParams()
 {
 	// Reset accumulation
 	// clang-format off
-	ptReset = gState.io.keyPressedEvent[GLFW_KEY_LEFT_CONTROL]
+	ptReset = gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL] && gState.io.mouse.rightEvent
 		|| gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL] && gState.io.mouse.leftEvent
 		|| gvar_fixed_seed.val.v_bool
 		|| frameCounter <= 2
@@ -147,7 +203,12 @@ void EventManager::updatePathTraceParams()
 		|| guiFocus;
 	// clang-format on
 
-	if (gState.io.keyPressedEvent[GLFW_KEY_LEFT_CONTROL])
+	if (gvar_reload_config.val.v_bool)
+	{
+		ptReset = true;
+		pathViewCreated = false;
+	}
+	if (gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL] && gState.io.mouse.rightEvent)
 	{
 		gvar_screen_cursor_enable.val.v_bool = false;
 		pathViewCreated                      = false;
@@ -156,10 +217,15 @@ void EventManager::updatePathTraceParams()
 	{
 		if (gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL])
 		{
-			gvar_screen_cursor_enable.val.v_bool = true;
-			glm::vec2 coord             = mouseViewCoord();
-			gvar_screen_cursor_pos.val.v_vec3[0] = coord.x;
-			gvar_screen_cursor_pos.val.v_vec3[1] = coord.y;
+			if (gState.io.mouse.leftEvent)
+			{
+				gvar_screen_cursor_enable.val.v_bool = true;
+				pathViewCreated                      = false;
+				glm::vec2 coord             = mouseViewCoord();
+				gvar_screen_cursor_pos.val.v_vec3[0] = coord.x;
+				gvar_screen_cursor_pos.val.v_vec3[1] = coord.y;
+				gvar_screen_cursor_seed.val.v_uint   = frameCounter;
+			}
 		}
 		else
 		{

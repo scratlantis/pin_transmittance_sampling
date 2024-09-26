@@ -1,8 +1,8 @@
 #include "pt_strategies.h"
 
 GVar gvar_min_pin_bounce{"Min pin bounce", 1, GVAR_UINT_RANGE, PIN_SETTINGS, {0, 16}};
-GVar gvar_max_bounce{"Max bounces", 8, GVAR_UINT_RANGE, PIN_SETTINGS, {1, 16}};
-GVar gvar_raymarche_step_size{"Raymarche step size", 0.1f, GVAR_FLOAT_RANGE, PIN_SETTINGS, {0.05f, 0.3f}};
+GVar gvar_max_bounce{"Max bounces", 8, GVAR_UINT_RANGE, PATH_TRACING, {1, 16}};
+GVar gvar_raymarche_step_size{"Raymarche step size", 0.1f, GVAR_FLOAT_RANGE, PATH_TRACING, {0.05f, 0.3f}};
 
 void ReferencePathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo, Buffer lineSegmentBuffer)
 {

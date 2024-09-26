@@ -10,8 +10,11 @@ void buildTitleBar()
 	{
 		if (ImGui::BeginMenu("Config"))
 		{
-			if (ImGui::MenuItem("Save", "", &gvar_save_config.val.v_bool))
+			if (ImGui::MenuItem("Save", "STRG+S", &gvar_save_config.val.v_bool))
 			{
+				std::string name          = gvar_select_config.set.list[gvar_select_config.val.v_uint];
+				name                      = name.substr(0, name.find_last_of("."));
+				gvar_save_config_name.val = GVar_Val(name);
 			}
 			if (ImGui::BeginMenu("Save As"))
 			{
@@ -19,7 +22,7 @@ void buildTitleBar()
 				gvar_gui_v2::addGVar(&gvar_save_config);
 				ImGui::EndMenu();
 			}
-			if (ImGui::MenuItem("Reload", "", &gvar_reload_config.val.v_bool)){}
+			if (ImGui::MenuItem("Reload", "STRG+Z", &gvar_reload_config.val.v_bool)){}
 			if (ImGui::BeginMenu("Load"))
 			{
 				gvar_gui_v2::addGVar(&gvar_select_config);
@@ -66,7 +69,7 @@ void buildGui()
 	setGuiDimensions(leftGuiDimensions);
 	ImGui::Begin("Menu", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoScrollbar);
 	buildTitleBar();
-	gvar_gui_v2::buildGui(gVars, {"General", "Noise Function", "Pins", "Visualization", "Metrics"});
+	gvar_gui_v2::buildGui(gVars, {"Path tracing", "Medium", "Noise", "Pins", "Visualization", "Metrics"});
 	ImGui::End();
 
 

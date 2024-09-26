@@ -4,9 +4,7 @@
 
 
 
-GVar gvar_cursor_pos_x{"Pin Cursor X", 0.5f, GVAR_UNORM, VISUALIZATION_SETTINGS};
-GVar gvar_cursor_pos_y{"Pin Cursor Y", 0.5f, GVAR_UNORM, VISUALIZATION_SETTINGS};
-GVar gvar_cursor_pos_z{"Pin Cursor Z", 0.5f, GVAR_UNORM, VISUALIZATION_SETTINGS};
+GVar gvar_cursor_pos{"Pin Cursor Pos", {0.5f, 0.5f, 0.5f}, GVAR_VEC3_RANGE, VISUALIZATION_SETTINGS, {0.f, 1.f}};
 
 GVar gvar_cursor_dir_phi{"Pin Cursor phi", 0.0f, GVAR_FLOAT_RANGE, VISUALIZATION_SETTINGS, {0.0f, 1.f * glm::pi<float>()}};
 GVar gvar_cursor_dir_theta{"Pin Cursor theta", 0.0f, GVAR_FLOAT_RANGE, VISUALIZATION_SETTINGS, {0.0f, 2.f * glm::pi<float>()}};
@@ -76,7 +74,7 @@ void PinStateManager::update(CmdBuffer cmdBuf)
 	writeGridPinState(cmdBuf);
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
-	cursorPos = glm::vec3(gvar_cursor_pos_x.val.v_float, gvar_cursor_pos_y.val.v_float, gvar_cursor_pos_z.val.v_float);
+	cursorPos       = gvar_cursor_pos.val.getVec3();
 	cursorDirection = glm::vec2(gvar_cursor_dir_phi.val.v_float, gvar_cursor_dir_theta.val.v_float);
 
 	writeCursorPinState(cmdBuf);
@@ -86,7 +84,7 @@ void PinStateManager::update(CmdBuffer cmdBuf)
 
 bool PinStateManager::requiresUpdate()
 {
-	glm::vec3 newCursorPos = glm::vec3(gvar_cursor_pos_x.val.v_float, gvar_cursor_pos_y.val.v_float, gvar_cursor_pos_z.val.v_float);
+	glm::vec3 newCursorPos = gvar_cursor_pos.val.getVec3();
 	glm::vec2 newCursorDir = glm::vec2(gvar_cursor_dir_phi.val.v_float, gvar_cursor_dir_theta.val.v_float);
 
 	return glm::distance(newCursorPos, cursorPos) > 0.001f || glm::distance(newCursorDir, cursorDirection) > 0.001f;

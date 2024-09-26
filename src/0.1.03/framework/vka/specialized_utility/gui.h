@@ -64,6 +64,10 @@ struct GVar_Val
 	{
 		return glm::vec4(v_vec3[0], v_vec3[1], v_vec3[2], 0);
 	};
+	glm::vec3 getVec3()
+	{
+		return glm::vec3(v_vec3[0], v_vec3[1], v_vec3[2]);
+	};
 	uint32_t bool32()
 	{
 		return v_bool ? 1 : 0;
@@ -105,6 +109,7 @@ enum GVar_Type
 	GVAR_INT,
 	GVAR_UINT,
 	GVAR_VEC3,
+	GVAR_VEC3_RANGE,
 	GVAR_DISPLAY_VALUE,
 	GVAR_ENUM,
 	GVAR_UINT_RANGE,
@@ -112,6 +117,10 @@ enum GVar_Type
 	GVAR_TEXT_INPUT,
 };
 
+enum GuiFlags
+{
+	GUI_FLAGS_NO_LOAD = 1 << 0,
+};
 struct GVar
 {
 	std::string id;
@@ -119,6 +128,7 @@ struct GVar
 	GVar_Type   type;
 	int			sortId;
 	GVar_Set	set;
+	uint32_t    flags = 0;
 
 	bool operator==(const GVar &other) const
 	{
@@ -151,6 +161,10 @@ struct GVar
 		{
 			return val.v_char_array == other.val.v_char_array;
 		}
+		else if (type == GVAR_VEC3_RANGE)
+		{
+			return val.v_vec3[0] == other.val.v_vec3[0] && val.v_vec3[1] == other.val.v_vec3[1] && val.v_vec3[2] == other.val.v_vec3[2];
+		}
 		else
 		{
 			return true;
@@ -174,12 +188,41 @@ struct GVar
 	{
 	}
 
+	GVar(std::string p, GVar_Val v, GVar_Type t, int s, uint32_t flags) :
+	    id(p),
+	    val(v),
+	    type(t),
+	    sortId(s),
+		flags(flags)
+	{
+	}
+
+	GVar(std::string p, GVar_Val v, GVar_Type t, int s, GVar_Set aSet, uint32_t flags) :
+	    id(p),
+	    val(v),
+	    type(t),
+	    sortId(s),
+	    set(aSet),
+		flags(flags)
+	{
+	}
+
 	GVar(std::string p, GVar_Val v, GVar_Type t, int s, std::vector<std::string> list) :
 	    id(p),
 	    val(v),
 	    type(t),
 	    sortId(s),
 	    set( {list} )
+	{
+	}
+
+	GVar(std::string p, GVar_Val v, GVar_Type t, int s, std::vector<std::string> list, uint32_t flags) :
+	    id(p),
+	    val(v),
+	    type(t),
+	    sortId(s),
+	    set({list}),
+	    flags(flags)
 	{
 	}
 

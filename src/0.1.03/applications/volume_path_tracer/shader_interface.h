@@ -21,6 +21,10 @@ static GLSLFrame defaultFrame(VkExtent2D extent, uint32_t frameIdx)
 	{
 		frame.idx = gvar_seed.val.v_uint;
 	}
+	else if (gvar_path_sampling_event.val.v_bool)
+	{
+		frame.idx = gvar_screen_cursor_seed.val.v_uint;
+	}
 	else
 	{
 		frame.idx = frameIdx;

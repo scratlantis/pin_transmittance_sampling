@@ -42,13 +42,16 @@ namespace vka
 			j[gv->id] = gv->val.v_float;
 			break;
 		case GVAR_ENUM:
-			j[gv->id] = gv->val.v_uint;
+			j[gv->id] = gv->val.v_int;
 			break;
 		case GVAR_UINT_RANGE:
 			j[gv->id] = {gv->val.v_uint, gv->set.range.min.v_uint, gv->set.range.max.v_uint};
 			break;
 		case GVAR_FLOAT_RANGE:
 			j[gv->id] = {gv->val.v_float, gv->set.range.min.v_float, gv->set.range.max.v_float};
+			break;
+		case GVAR_VEC3_RANGE:
+			j[gv->id] = {gv->val.v_vec3[0], gv->val.v_vec3[1], gv->val.v_vec3[2], gv->set.range.min.v_float, gv->set.range.max.v_float};
 			break;
 		default:
 			//DEBUG_BREAK;
@@ -61,6 +64,10 @@ namespace vka
 	    if (j.find(gv->id) == j.end())
 		{
 			return;
+		}
+		if ((gv->flags & GUI_FLAGS_NO_LOAD) != 0)
+		{
+		    return;
 		}
 		switch (gv->type)
 		{
@@ -91,13 +98,19 @@ namespace vka
 			gv->val.v_float = j[gv->id];
 			break;
 		case GVAR_ENUM:
-			gv->val.v_uint = j[gv->id];
+			gv->val.v_int  = j[gv->id];
+			gv->val.v_uint = gv->val.v_int;
 			break;
 		case GVAR_UINT_RANGE:
 			gv->val.v_uint = j[gv->id][0];
 			break;
 		case GVAR_FLOAT_RANGE:
 			gv->val.v_float = j[gv->id][0];
+			break;
+		case GVAR_VEC3_RANGE:
+			gv->val.v_vec3[0] = j[gv->id][0];
+			gv->val.v_vec3[1] = j[gv->id][1];
+			gv->val.v_vec3[2] = j[gv->id][2];
 			break;
 		default:
 			//DEBUG_BREAK;
@@ -209,6 +222,8 @@ void setGuiDimensions(Rect2D<float> rect)
 	ImGui::SetNextWindowSize({(float) viewport.extent.width, (float) viewport.extent.height});
 }
 
+
+
 namespace gvar_gui
 {
 void addGVar(GVar *gv)
@@ -239,7 +254,6 @@ void addGVar(GVar *gv)
 			break;
 		case GVAR_DISPLAY_VALUE:
 			ImGui::Text(gv->id.c_str(), gv->val.v_float);
-			//ImGui::Text(gv->path.c_str(),1.0);
 			break;
 		case GVAR_ENUM:
 			for (size_t i = 0; i < gv->set.list.size(); i++)
@@ -330,6 +344,9 @@ void addGVar(GVar *gv)
 		case GVAR_VEC3:
 			ImGui::InputFloat3(gv->id.c_str(), gv->val.v_vec3);
 			break;
+		case GVAR_VEC3_RANGE:
+			ImGui::SliderFloat3(gv->id.c_str(), gv->val.v_vec3, gv->set.range.min.v_float, gv->set.range.max.v_float);
+			break;
 		case GVAR_DISPLAY_VALUE:
 			ImGui::Text(gv->id.c_str(), gv->val.v_float);
 			// ImGui::Text(gv->path.c_str(),1.0);
@@ -393,12 +410,12 @@ void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories, VkR
 		currentCategory = gvar[i]->sortId;
 	}
 	ImGui::End();
-	//ImGui::ShowDemoWindow();
+	/*ImGui::ShowDemoWindow();*/
 }
 
 void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories)
 {
-	std::sort(gvar.begin(), gvar.end(), [](GVar *a, GVar *b) { return a->sortId < b->sortId; });
+	std::stable_sort(gvar.begin(), gvar.end(), [](GVar *a, GVar *b) { return a->sortId < b->sortId; });
 	int  currentCategory = -1;
 	bool categoryOpen    = false;
 	for (uint32_t i = 0; i < gvar.size(); i++)
@@ -419,11 +436,12 @@ void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories)
 		}
 		if (categoryOpen)
 		{
-			ImGui::PushItemWidth(ImGui::GetWindowSize().x * 0.3);
+			ImGui::PushItemWidth(ImGui::GetWindowSize().x * 0.5);
 			addGVar(gv);
 		}
 		currentCategory = gvar[i]->sortId;
 	}
+	ImGui::ShowDemoWindow();
 }
 }        // namespace gvar_gui
 

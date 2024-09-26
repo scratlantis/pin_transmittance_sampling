@@ -12,24 +12,25 @@ AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 
 // Gui variable
-GVar gvar_model = {"Model", 0, GVAR_ENUM, GENERAL, std::vector<std::string>{"Cornell Box", "Sponza"}};
-GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, PERLIN_NOISE_SETTINGS, {16, 256}};
+GVar gvar_model = {"Model", 0, GVAR_ENUM, NO_GUI, std::vector<std::string>{"Cornell Box", "Sponza"}};
+GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, NOISE_SETTINGS, {16, 256}};
 GVar gvar_mse{"MSE : %.8f E-3", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
-GVar gvar_env_map                   = {"Envmap", 1, GVAR_ENUM, GENERAL, std::vector<std::string>{"None"}};
-GVar gvar_fixed_seed = {"Fixed Seed", false, GVAR_BOOL, GENERAL};
-GVar gvar_seed       = {"Seed", 0, GVAR_UINT_RANGE, GENERAL, {0, 1000}};
+GVar gvar_env_map                   = {"Envmap", 1, GVAR_ENUM, NO_GUI, std::vector<std::string>{"None"}};
+GVar gvar_fixed_seed = {"Fixed Seed", false, GVAR_BOOL, PATH_TRACING};
+GVar gvar_seed                      = {"Seed", 0, GVAR_UINT_RANGE, PATH_TRACING, {0, 1000}};
 GVar gvar_medium_xray_line_segments = {"Medium Xray Line Segments", true, GVAR_BOOL, VISUALIZATION_SETTINGS};
 GVar gvar_pin_sample_location       = {"Pin sample location", 0, GVAR_UNORM, PIN_SETTINGS};
 GVar gvar_continuous_path_sampling  = {"Contious Path Sampling", false, GVAR_BOOL, VISUALIZATION_SETTINGS};
 
 GVar gvar_path_sampling_event       = {"Path Sampling Event", false, GVAR_EVENT, NO_GUI};
 GVar gvar_screen_cursor_pos = {"Screen Cursor Pos", {0.f,0.f,0.f}, GVAR_VEC3, NO_GUI};
+GVar gvar_screen_cursor_seed        = {"Screen Cursor Seed", 0, GVAR_UINT, NO_GUI};
 GVar gvar_screen_cursor_enable = {"Screen Cursor Enable", false, GVAR_BOOL, NO_GUI};
 
-GVar gvar_select_config = {"Select Config", 0, GVAR_ENUM, GENERAL, std::vector<std::string>{"Default"}};
-GVar gvar_save_config   = {"Save Config", false, GVAR_EVENT, GENERAL};
-GVar gvar_reload_config   = {"Load Config", false, GVAR_EVENT, GENERAL};
-GVar gvar_save_config_name = {"Save Config Name", std::string("quicksave"), GVAR_TEXT_INPUT, GENERAL};
+GVar gvar_select_config    = {"Select Config", 0, GVAR_ENUM, NO_GUI, std::vector<std::string>{"Default"}, GUI_FLAGS_NO_LOAD};
+GVar gvar_save_config      = {"Save Config", false, GVAR_EVENT, NO_GUI, GUI_FLAGS_NO_LOAD};
+GVar gvar_reload_config    = {"Load Config", false, GVAR_EVENT, NO_GUI, GUI_FLAGS_NO_LOAD};
+GVar gvar_save_config_name = {"Save Config Name", std::string("quicksave"), GVAR_TEXT_INPUT, NO_GUI, GUI_FLAGS_NO_LOAD};
 
 std::vector<GVar *> gVars =
 {
@@ -40,17 +41,13 @@ std::vector<GVar *> gVars =
 		&gvar_perlin_scale0,
 		&gvar_perlin_scale1,
 		&gvar_perlin_falloff,
-		&gvar_medium_albedo_r,
-		&gvar_medium_albedo_g,
-		&gvar_medium_albedo_b,
+		&gvar_medium_albedo,
 		&gvar_image_resolution,
 		&gvar_pin_count,
 		&gvar_pin_transmittance_value_count,
 		&gvar_pin_count_per_grid_cell,
 		&gvar_pin_grid_size,
-		&gvar_cursor_pos_x,
-		&gvar_cursor_pos_y,
-		&gvar_cursor_pos_z,
+		&gvar_cursor_pos,
 		&gvar_cursor_dir_phi,
 		&gvar_cursor_dir_theta,
 		&gvar_mse,
@@ -59,9 +56,7 @@ std::vector<GVar *> gVars =
 		&gvar_timing_left,
 		&gvar_timing_right,
 		&gvar_raymarche_step_size,
-		&gvar_medium_x,
-		&gvar_medium_y,
-		&gvar_medium_z,
+		&gvar_medium_pos,
 		&gvar_medium_rot_y,
 		&gvar_medium_scale,
 		&gvar_env_map,
@@ -74,6 +69,7 @@ std::vector<GVar *> gVars =
 		&gvar_path_sampling_event,
 		&gvar_screen_cursor_pos,
 		&gvar_screen_cursor_enable,
+		&gvar_screen_cursor_seed,
 		// Cam
 		&gvar_cam_fixpoint,
 		&gvar_cam_distance,
@@ -211,10 +207,10 @@ int main()
 		mediumInstance.mat = glm::mat4(1.0f);
 		mediumInstance.mat = glm::rotate(mediumInstance.mat, glm::radians(gvar_medium_rot_y.val.v_float), glm::vec3(0.0f, 0.0f, 1.0f));
 		mediumInstance.mat = glm::scale(mediumInstance.mat, glm::vec3(gvar_medium_scale.val.v_float));
-		mediumInstance.mat = glm::translate(mediumInstance.mat, glm::vec3(gvar_medium_x.val.v_float, gvar_medium_y.val.v_float, gvar_medium_z.val.v_float));
+		mediumInstance.mat = glm::translate(mediumInstance.mat, gvar_medium_pos.val.getVec3());
 
 		mediumInstance.invMat = glm::inverse(mediumInstance.mat);
-		mediumInstance.albedo = vec3(gvar_medium_albedo_r.val.v_float, gvar_medium_albedo_g.val.v_float, gvar_medium_albedo_b.val.v_float);
+		mediumInstance.albedo = gvar_medium_albedo.val.getVec3();
 		cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
 		MediumBuildInfo buildInfo{};
 		buildInfo.volGenerator = &perlinVolume;
@@ -268,7 +264,7 @@ int main()
 			ModelData sceneModel = gState.modelCache->fetch<GLSLVertex>(cmdBuf, model.path, modelLoadFlags);
 			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_debug, sceneModel.vertexBuffer, sceneModel.indexBuffer, &cam, model.getObjToWorldMatrix(), true);
 			cmdShowBoxFrame(cmdBuf, gState.frame->stack, img_debug, &cam, mediumInstance.mat, false, vec4(0.0, 0.0, 1.0, 1.0));
-			glm::mat4 cursorMatrix = glm::translate(glm::mat4(1.0), vec3(gvar_cursor_pos_x.val.v_float, gvar_cursor_pos_y.val.v_float, gvar_cursor_pos_z.val.v_float));
+			glm::mat4 cursorMatrix = glm::translate(glm::mat4(1.0), gvar_cursor_pos.val.getVec3());
 			cursorMatrix = glm::rotate(cursorMatrix, gvar_cursor_dir_theta.val.v_float, vec3(0.0, 0.0, 1.0));
 			cursorMatrix = glm::rotate(cursorMatrix, gvar_cursor_dir_phi.val.v_float, vec3(0.0, 1.0, 0.0));
 			cursorMatrix           = mediumInstance.mat * cursorMatrix * cursor.getObjToWorldMatrix();

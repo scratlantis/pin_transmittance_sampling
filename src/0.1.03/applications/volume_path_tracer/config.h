@@ -9,11 +9,12 @@ using namespace vka::pbr;
 
 enum GuiCategories
 {
-	GENERAL = 0,
-	PERLIN_NOISE_SETTINGS = 1,
-	PIN_SETTINGS = 2,
-	VISUALIZATION_SETTINGS = 3,
-	METRICS = 4,
+	PATH_TRACING,
+	MEDIUM,
+	NOISE_SETTINGS,
+	PIN_SETTINGS,
+	VISUALIZATION_SETTINGS,
+	METRICS,
 };
 #define NO_GUI -1
 const float               viewMargin     = 0.001;
@@ -32,17 +33,13 @@ extern GVar     gvar_perlin_scale1;
 extern GVar     gvar_perlin_frequency0;
 extern GVar     gvar_perlin_frequency1;
 extern GVar     gvar_perlin_falloff;
-extern GVar     gvar_medium_albedo_r;
-extern GVar     gvar_medium_albedo_g;
-extern GVar     gvar_medium_albedo_b;
+extern GVar     gvar_medium_albedo;
 extern GVar     gvar_image_resolution;
 extern GVar     gvar_pin_count;
 extern GVar     gvar_pin_transmittance_value_count;
 extern GVar     gvar_pin_count_per_grid_cell;
 extern GVar     gvar_pin_grid_size;
-extern GVar     gvar_cursor_pos_x;
-extern GVar     gvar_cursor_pos_y;
-extern GVar     gvar_cursor_pos_z;
+extern GVar     gvar_cursor_pos;
 extern GVar     gvar_cursor_dir_phi;
 extern GVar     gvar_cursor_dir_theta;
 extern GVar     gvar_min_pin_bounce;
@@ -50,9 +47,7 @@ extern GVar     gvar_max_bounce;
 extern GVar     gvar_timing_left;
 extern GVar     gvar_timing_right;
 extern GVar     gvar_raymarche_step_size;
-extern GVar     gvar_medium_x;
-extern GVar     gvar_medium_y;
-extern GVar     gvar_medium_z;
+extern GVar     gvar_medium_pos;
 extern GVar     gvar_medium_rot_y;
 extern GVar     gvar_medium_scale;
 extern GVar     gvar_env_map;
@@ -66,6 +61,8 @@ extern GVar     gvar_continuous_path_sampling;
 extern GVar gvar_path_sampling_event;
 extern GVar gvar_screen_cursor_pos;
 extern GVar gvar_screen_cursor_enable;
+extern GVar gvar_screen_cursor_seed;
+
 
 // Camera
 extern GVar     gvar_cam_fixpoint;
