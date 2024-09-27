@@ -58,7 +58,9 @@ float rayMarcheMediumTransmittance(vec3 origin, vec3 direction, float maxLenght,
 	for(uint i = 0; i < max_steps; i++)
 	{
 		t += stepSize;
-		vec3 pos = origin + direction * (t-stepSize*unormNext(seed));
+		//vec3 pos = origin + direction * (t-stepSize*unormNext(seed));
+		vec3 pos = origin + direction * (t-stepSize*0.5);
+		//vec3 pos = origin + direction * t;
 
 		// Sample density
 		float density = texture(volSmp, pos).r;

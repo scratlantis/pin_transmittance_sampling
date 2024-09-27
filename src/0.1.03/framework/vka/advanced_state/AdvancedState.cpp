@@ -16,6 +16,7 @@ void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Wind
 	imguiWrapper            = new ImGuiWrapper();
 	depthBufferCache        = new DepthBufferCache(heap);
 	dataCache               = new DataCache(heap);
+	imguiTextureIDCache     = new ImGuiTextureIDCache(heap);
 }
 
 void AdvancedState::destroy()
@@ -25,6 +26,7 @@ void AdvancedState::destroy()
 	framebufferCache->clear();
 	modelCache->clear();
 	dataCache->clear();
+	imguiTextureIDCache->clear();
 	if (guiEnabled)
 	{
 		imguiWrapper->destroy();

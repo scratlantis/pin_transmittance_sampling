@@ -175,10 +175,7 @@ void enableGui(RenderPassDefinition rpDef, uint32_t subpassIdx)
 	gState.guiEnabled       = true;
 	gState.guiRenderPassDef = rpDef;
 	gState.imguiWrapper->init(gState.cache->fetch(rpDef), subpassIdx);
-	CmdBuffer cmdBuffer = createCmdBuffer(gState.frame->stack);
-	gState.imguiWrapper->upload(cmdBuffer);
-	executeImmediat(cmdBuffer);
-	gState.imguiWrapper->freeStaging();
+	gState.imguiWrapper->upload();
 }
 
 void enableGui()
@@ -441,7 +438,7 @@ void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories)
 		}
 		currentCategory = gvar[i]->sortId;
 	}
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 }
 }        // namespace gvar_gui
 

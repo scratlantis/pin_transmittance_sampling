@@ -11,8 +11,7 @@ class ImGuiWrapper
 	~ImGuiWrapper(){};
 
 	void init(VkRenderPass renderPass, uint32_t subpassIdx);
-	void upload(CmdBuffer cmdBuf);
-	void freeStaging();
+	void upload();
 	void render(CmdBuffer cmdBuf);
 	void newFrame();
 	void destroy();

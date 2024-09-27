@@ -35,7 +35,7 @@ void main()
 		vec3 samplePoint = origin + (stepSize * (0.5 + float(i))) * direction;
 		float density = texture(volSmp, samplePoint).r;
 		densitySum += density*stepSize;
-		transmittance[gID * pc.perPinValueCount + i] = density;//exp(-densitySum);
+		transmittance[gID * pc.perPinValueCount + i] = densitySum;//exp(-densitySum);
 		//transmittance[gID * pc.perPinValueCount + i] = exp(-densitySum);
 	}
 }

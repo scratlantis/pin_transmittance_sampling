@@ -14,13 +14,20 @@ struct RenderInfo
 	USceneData *pSceneData;
 };
 
+struct RenderOutput
+{
+	Image localTarget;
+	Buffer lineSegmentBuffer;
+	Buffer plotBuffer;
+};
+
 class PathTraceStrategy
 {
   public:
 	PathTraceStrategy()  = default;
 	~PathTraceStrategy() = default;
 
-	virtual void trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo, Buffer lineSegmentBuffer) = 0;
+	virtual void trace(CmdBuffer cmdBuf, const RenderInfo &renderInfo, RenderOutput &output) = 0;
 };
 
 class ComparativePathTracer
@@ -42,6 +49,7 @@ class ComparativePathTracer
 	MSEComputeResources mseRes;
 	Buffer              mseBuffer;
 
+	Buffer   plotBuffer;
 	Buffer lineSegmentBuffer;
 	Buffer lineSegmentInstanceBuffer;
 	uint32_t lineSegmentCount;
@@ -58,7 +66,7 @@ class ComparativePathTracer
 	void showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea);
 	void showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
 	float computeMSE(CmdBuffer cmdBuf);
-	ComparativePathTracer(float relativeWidth, float relativeHeight, Buffer lineSegmentInstanceBuffer, uint32_t lineSegmentCount);
+	ComparativePathTracer(float relativeWidth, float relativeHeight, Buffer lineSegmentInstanceBuffer, Buffer plotBuffer, uint32_t lineSegmentCount);
 	void destroy();
 
   private:

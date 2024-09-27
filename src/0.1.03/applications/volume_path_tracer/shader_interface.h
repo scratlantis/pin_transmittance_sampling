@@ -201,6 +201,8 @@ static void set_general_params(ComputeCmd &cmd)
 {
 	cmd.pipelineDef.shaderDef.args.push_back({"MAX_BOUNCES", gvar_max_bounce.val.v_uint});
 	cmd.pipelineDef.shaderDef.args.push_back({"MIN_PIN_BOUNCE", gvar_min_pin_bounce.val.v_uint});
+	cmd.pipelineDef.shaderDef.args.push_back({"PLOT_OFFSET_PINS", 0});
+	cmd.pipelineDef.shaderDef.args.push_back({"PLOT_OFFSET_SCALAR_FIELD", MAX_PLOT_POINTS});
 	if (gvar_medium_xray_line_segments.val.v_bool)
 	{
 		cmd.pipelineDef.shaderDef.args.push_back({"XRAY_LINE_VISION", ""});

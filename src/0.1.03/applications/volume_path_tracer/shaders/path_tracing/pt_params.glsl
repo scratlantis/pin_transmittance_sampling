@@ -41,3 +41,6 @@
 #endif
 
 
+#ifndef PLOT_POINTS
+#define PLOT_POINTS 10
+#endif

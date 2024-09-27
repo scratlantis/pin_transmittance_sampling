@@ -2,7 +2,7 @@
 #include <imgui_impl_vulkan.h>
 #include <imgui_internal.h>
 
-
+GuiConfig guiConf;
 
 void buildTitleBar()
 {
@@ -44,6 +44,8 @@ void buildTitleBar()
 	}
 }
 
+
+
 void resetEvents()
 {
 	for (auto &gv : gVars)
@@ -54,6 +56,33 @@ void resetEvents()
 		}
 	}
 }
+
+void showPlots()
+{
+	if (guiConf.showPlots)
+	{
+		{
+			ImVec2      uv_min     = ImVec2(0.0f, 0.0f);                    // Top-left
+			ImVec2      uv_max     = ImVec2(1.0f, 1.0f);                    // Lower-right
+			ImVec4      tint_col   = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);        // No tint
+			ImVec4      border_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+			ImVec2      size       = ImVec2(guiConf.plot1->getExtent2D().width, guiConf.plot1->getExtent2D().height);
+			ImTextureID texID      = gState.imguiTextureIDCache->fetch(guiConf.plot1);
+			ImGui::Image(texID, size, uv_min, uv_max, tint_col, border_col);
+		}
+		{
+			ImVec2      uv_min     = ImVec2(0.0f, 0.0f);                    // Top-left
+			ImVec2      uv_max     = ImVec2(1.0f, 1.0f);                    // Lower-right
+			ImVec4      tint_col   = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);        // No tint
+			ImVec4      border_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+			ImVec2      size       = ImVec2(guiConf.plot2->getExtent2D().width, guiConf.plot2->getExtent2D().height);
+			ImTextureID texID      = gState.imguiTextureIDCache->fetch(guiConf.plot2);
+			ImGui::Image(texID, size, uv_min, uv_max, tint_col, border_col);
+		}
+
+	}
+}
+
 void buildGui()
 {
 	// ToDo build title bar
@@ -70,9 +99,23 @@ void buildGui()
 	ImGui::Begin("Menu", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoScrollbar);
 	buildTitleBar();
 	gvar_gui_v2::buildGui(gVars, {"Path tracing", "Medium", "Noise", "Pins", "Visualization", "Metrics"});
+
+	//if (guiConf.showPlots)
+	//{
+	//	ImVec2      uv_min     = ImVec2(0.0f, 0.0f);                    // Top-left
+	//	ImVec2      uv_max     = ImVec2(1.0f, 1.0f);                    // Lower-right
+	//	ImVec4      tint_col   = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);        // No tint
+	//	ImVec4      border_col = ImGui::GetStyleColorVec4(ImGuiCol_Border);
+	//	ImVec2      size       = ImVec2(guiConf.plot1->getExtent2D().width, guiConf.plot1->getExtent2D().height);
+	//	ImTextureID texID      = gState.imguiTextureIDCache->fetch(guiConf.plot1);
+	//	ImGui::Image(texID, size, uv_min, uv_max, tint_col, border_col);
+	//}
 	ImGui::End();
 
-
+	setGuiDimensions(bottomGuiDimensions);
+	ImGui::Begin("Plots", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar);
+	showPlots();
+	ImGui::End();
 	shader_console_gui::buildGui(getScissorRect(viewDimensions));
 
 }

@@ -51,18 +51,19 @@ void ImGuiWrapper::init(VkRenderPass renderPass, uint32_t subpassIdx)
 	initInfo.Allocator                 = VK_NULL_HANDLE;
 	initInfo.CheckVkResultFn           = VK_NULL_HANDLE;
 	initInfo.MSAASamples               = VK_SAMPLE_COUNT_1_BIT;
-	ImGui_ImplVulkan_Init(&initInfo, renderPass);
+	initInfo.RenderPass				= renderPass;
+	ImGui_ImplVulkan_Init(&initInfo);
 }
 
-void ImGuiWrapper::upload(CmdBuffer cmdBuf)
+void ImGuiWrapper::upload()
 {
-	ImGui_ImplVulkan_CreateFontsTexture(cmdBuf->getHandle());
+	ImGui_ImplVulkan_CreateFontsTexture();
 }
 
-void ImGuiWrapper::freeStaging()
-{
-	ImGui_ImplVulkan_DestroyFontUploadObjects();
-}
+//void ImGuiWrapper::freeStaging()
+//{
+//	ImGui_ImplVulkan_DestroyFontUploadObjects();
+//}
 
 void ImGuiWrapper::newFrame()
 {
@@ -78,7 +79,7 @@ void ImGuiWrapper::render(CmdBuffer cmdBuf)
 
 void ImGuiWrapper::destroy()
 {
-	vkDestroyDescriptorPool(gState.device.logical, descriptorPool, nullptr);
 	ImGui_ImplVulkan_Shutdown();
+	vkDestroyDescriptorPool(gState.device.logical, descriptorPool, nullptr);
 }
 }        // namespace vka

@@ -172,4 +172,27 @@ ComputeCmd getCmdNormalizeBuffer(Buffer buf, uint32_t offset, uint32_t segmentSi
 	cmd.pushConstant(&pc, sizeof(PushStruct));
 	return cmd;
 }
+
+ComputeCmd getCmdPlot(Buffer src, Image dst, uint32_t offset, glm::vec3 color)
+{
+	ComputeCmd cmd(dst->getExtent2D(), cVkaShaderPath + "plot.comp",
+	               {
+	                   {"FORMAT", getGLSLFormat(dst->getFormat())},
+	               });
+	struct PushStruct
+	{
+		glm::vec3 color;
+		glm::uint width;
+		glm::uint height;
+		glm::uint offset;
+	} pc;
+	pc.width  = dst->getExtent2D().width;
+	pc.height = dst->getExtent2D().height;
+	pc.offset = offset;
+	pc.color  = color;
+	cmd.pushConstant(&pc, sizeof(PushStruct));
+	cmd.pushDescriptor(src, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(dst, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	return cmd;
+}
 }        // namespace vka

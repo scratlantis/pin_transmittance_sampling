@@ -143,16 +143,22 @@ int main()
 	USceneData scene{};
 	ModelInfo  model;
 
-	// Path Tracer
-	uint32_t maxLineSegmentCount       = gvar_max_bounce.set.range.max.v_uint * LINE_SEGMENTS_PER_BOUNCE;
-	Buffer   lineSegmentInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, maxLineSegmentCount * sizeof(GLSLInstance));
-	ComparativePathTracer pathTracer                = ComparativePathTracer(viewDimensions.width, viewDimensions.height, lineSegmentInstanceBuffer, maxLineSegmentCount);
-	Buffer mseBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
 
 	// Persistent Resources:
 	// HDR Images for path tracing
 	Image img_debug = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, viewDimensions.width, viewDimensions.height);
 	
+	Buffer plotBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, MAX_PLOT_POINTS * MAX_PLOTS * sizeof(float));
+	guiConf.showPlots = true;
+	guiConf.plot1 = createSwapchainAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, bottomGuiDimensions.width * 0.95, bottomGuiDimensions.height * 0.45);
+	guiConf.plot2 = createSwapchainAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, bottomGuiDimensions.width * 0.95, bottomGuiDimensions.height * 0.45);
+	
+	// Path Tracer
+	uint32_t maxLineSegmentCount       = gvar_max_bounce.set.range.max.v_uint * LINE_SEGMENTS_PER_BOUNCE;
+	Buffer   lineSegmentInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, maxLineSegmentCount * sizeof(GLSLInstance));
+	ComparativePathTracer pathTracer                = ComparativePathTracer(viewDimensions.width, viewDimensions.height, lineSegmentInstanceBuffer, plotBuffer, maxLineSegmentCount);
+	Buffer mseBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
+
 	// Uniform Buffers
 	sConst.alloc();
 
@@ -160,6 +166,7 @@ int main()
 	CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
 	ModelData cursorModel = gState.modelCache->fetch<GLSLVertex>(cmdBuf, cursor.path, 0);
 	cmdFillBuffer(cmdBuf, lineSegmentInstanceBuffer, 0, maxLineSegmentCount * sizeof(GLSLInstance), 0);
+	cmdFillBuffer(cmdBuf, plotBuffer, 0, plotBuffer->getSize(), 0);
 	executeImmediat(cmdBuf);
 
 	FixedCamera cam = FixedCamera(loadCamState());
@@ -198,6 +205,13 @@ int main()
 
 		}
 		CmdBuffer  cmdBuf       = createCmdBuffer(gState.frame->stack);
+
+		getCmdPlot(plotBuffer, guiConf.plot1, 0, vec3(1.0, 0.0, 0.0)).exec(cmdBuf);
+		getCmdPlot(plotBuffer, guiConf.plot2, MAX_PLOT_POINTS, vec3(0.0, 0.0, 1.0)).exec(cmdBuf);
+		cmdTransitionLayout(cmdBuf, guiConf.plot1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		cmdTransitionLayout(cmdBuf, guiConf.plot2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+
 		Image      swapchainImg = getSwapchainImage();
 		// Update instance data and tlas
 		scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.frame->stack));

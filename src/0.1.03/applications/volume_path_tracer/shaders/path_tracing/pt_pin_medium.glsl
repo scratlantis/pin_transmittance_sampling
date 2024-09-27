@@ -95,7 +95,15 @@ float samplePin(vec3 origin, vec3 destination, GLSLPinGridEntry gridEntry, out v
 	vec2 sampleValue = mix(leftSampleValue, rightSampleValue, uv);
 	float cumulativDensity = abs(sampleValue.x - sampleValue.y);
 
-	float coef = distance(origin, destination)/distance(pinOrigin, pinDestination);
+	float realDistance = distance(origin, destination);
+	float pinDistance = distance(pinOrigin, pinDestination)*abs(segment.y - segment.x);
+	
+	float coef = 1.0;
+	if(pinDistance > 0.01 && realDistance > 0.01)
+	{
+		coef = realDistance/pinDistance;
+	}
+
 	cumulativDensity *= coef;
 	float transmittance = exp(-cumulativDensity);
 	return transmittance;

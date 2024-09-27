@@ -11,7 +11,7 @@ class ReferencePathTracer : public PathTraceStrategy
 	~ReferencePathTracer() = default;
 
 
-	void trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo, Buffer lineSegmentBuffer) override;
+	void trace(CmdBuffer cmdBuf, const RenderInfo &renderInfo, RenderOutput &output) override;
 
   private:
 };
@@ -22,7 +22,7 @@ class PinPathTracer : public PathTraceStrategy
 	PinPathTracer() = default;
 	~PinPathTracer() = default;
 
-	void trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo, Buffer lineSegmentBuffer) override;
+	void trace(CmdBuffer cmdBuf, const RenderInfo &renderInfo, RenderOutput &output) override;
 
   private:
 };

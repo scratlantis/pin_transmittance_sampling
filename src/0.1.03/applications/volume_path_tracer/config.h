@@ -17,11 +17,17 @@ enum GuiCategories
 	METRICS,
 };
 #define NO_GUI -1
+
+#define MAX_PLOT_POINTS 100
+#define MAX_PLOTS 2
+
 const float               viewMargin     = 0.001;
 
 const Rect2D<float>       viewDimensions    = {0.3, viewMargin, 0.7 - 1.0 * viewMargin, 1.0 - 2.0 * viewMargin};
-const Rect2D<float>       leftGuiDimensions = {0.f, viewDimensions.y, viewDimensions.x, 1.0};
+const Rect2D<float>       leftGuiDimensions = {0.f, viewDimensions.y, viewDimensions.x, 0.7};
 const Rect2D<float>       topGuiDimensions  = {0, 0, 0.5, viewDimensions.y};
+//const Rect2D<float>       bottomGuiDimensions = {0.3, 0.7, 0.7, 0.3};
+const Rect2D<float> bottomGuiDimensions = {leftGuiDimensions.x, leftGuiDimensions.height, leftGuiDimensions.width, 1.0 - leftGuiDimensions.height};
 
 
 extern std::vector<GVar *> gVars;
@@ -82,6 +88,13 @@ extern GVar gvar_reload_config;
 
 
 
+struct GuiConfig
+{
+	bool  showPlots;
+	Image plot1;
+	Image plot2;
+};
+extern GuiConfig guiConf;
 
 
 

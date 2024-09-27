@@ -20,6 +20,7 @@
 layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
 layout(binding = LOCAL_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
 layout(binding = LOCAL_BINDING_OFFSET + 2) writeonly buffer LINE_SEGMENTS{ GLSLLineSegment line_segment_buf[]; };
+layout(binding = LOCAL_BINDING_OFFSET + 3) writeonly buffer PLOT_BUF{ float plotBuf[]; };
 
 Range traceMediumConservative(Ray ray)
 {
@@ -81,6 +82,55 @@ float traceMedium(Ray ray, Range range, uint bounce, inout uint seed)
 	return distance(ray.origin, worldHitPos);
 }
 
+void writePinPlot(vec3 origin, vec3 direction, float segmentLenght, uint seed, uint bounce)
+{
+#ifdef PLOT_TRANSMITTANCE
+	uvec2 gID = gl_GlobalInvocationID.xy;
+	uvec2 mousePixel = uvec2(params.cursorPos * vec2(frame.width, frame.height));
+	if((gID == mousePixel) && (params.pathSampling == 1) && (bounce == 0))
+	{
+		vec2 uv;
+		GLSLPinGridEntry pinGridEntry = selectPin(origin, direction, segmentLenght, seed);
+		float distanceSum = 0.0;
+		uint offset = PLOT_OFFSET_PINS;
+		float stepSize = segmentLenght/float(PLOT_POINTS);
+		plotBuf[offset] = float(PLOT_POINTS);
+		for(uint i = 0; i < PLOT_POINTS; i++)
+		{
+			vec3 destination = origin + direction * stepSize * float(1 + i);
+			float transmittance = samplePin(origin, destination, pinGridEntry, uv);
+			plotBuf[offset + 2 + 2 * i + 0] = stepSize;
+			plotBuf[offset + 2 + 2 * i + 1] = transmittance;
+		}
+		plotBuf[offset + 1] = segmentLenght;
+	}
+#endif
+}
+
+void writeScalarFieldPlot(vec3 origin, vec3 direction, float segmentLenght, uint seed, uint bounce)
+{
+#ifdef PLOT_TRANSMITTANCE
+	uvec2 gID = gl_GlobalInvocationID.xy;
+	uvec2 mousePixel = uvec2(params.cursorPos * vec2(frame.width, frame.height));
+	if((gID == mousePixel) && (params.pathSampling == 1) && (bounce == 0))
+	{
+		uint offset = PLOT_OFFSET_SCALAR_FIELD;
+		float stepSize = segmentLenght/float(PLOT_POINTS);
+		plotBuf[offset] = float(PLOT_POINTS);
+		for(uint i = 0; i < PLOT_POINTS; i++)
+		{
+			float localTMax = stepSize * float(1 + i);
+			uint localSeed = seed;
+			float transmittance = rayMarcheMediumTransmittance(origin, direction, localTMax, localSeed);
+			//transmittance = float(1 + i)/float(PLOT_POINTS);
+			plotBuf[offset + 2 + 2 * i + 0] = stepSize;
+			plotBuf[offset + 2 + 2 * i + 1] = transmittance;
+		}
+		plotBuf[offset + 1] = segmentLenght;
+	}
+#endif
+}
+
 
 
 #define LINE_SEGMENT_TYPE_INDIRECT 0
@@ -136,6 +186,8 @@ float traceMediumTransmittance(Ray ray, Range range, uint bounce, inout uint see
 	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
 	float localTMax = distance(localOrigin, localExit);
 
+	writeScalarFieldPlot(localOrigin, localDir, localTMax, seed, bounce);
+
 	float transmittance;
 	#if((PIN_MODE & PIN_MODE_FLAG_DIRECT) != 0)
 	if(bounce >= MIN_PIN_BOUNCE)
@@ -151,6 +203,7 @@ float traceMediumTransmittance(Ray ray, Range range, uint bounce, inout uint see
 		else
 		{
 			writeLineSegment(pinStart, pinEnd, bounce, LINE_SEGMENT_TYPE_PIN_AL);
+			writePinPlot(localOrigin, localDir, localTMax, seed, bounce);
 		}
 	}
 	else
@@ -290,7 +343,6 @@ void main()
 	COMPUTE_SHADER_CHECK_ID_FRAME
 	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width + frame.width*frame.height*frame.idx;
 	vec3 totalIllumination = vec3(0.0);
-	
 	bool selectedPixel = (gID.x == frame.width/2 && gID.y == frame.height/2);
 
 	for(uint j = 0; j < SAMPLE_COUNT; j++)

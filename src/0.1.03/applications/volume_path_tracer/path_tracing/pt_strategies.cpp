@@ -4,12 +4,12 @@ GVar gvar_min_pin_bounce{"Min pin bounce", 1, GVAR_UINT_RANGE, PIN_SETTINGS, {0,
 GVar gvar_max_bounce{"Max bounces", 8, GVAR_UINT_RANGE, PATH_TRACING, {1, 16}};
 GVar gvar_raymarche_step_size{"Raymarche step size", 0.1f, GVAR_FLOAT_RANGE, PATH_TRACING, {0.05f, 0.3f}};
 
-void ReferencePathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo, Buffer lineSegmentBuffer)
+void ReferencePathTracer::trace(CmdBuffer cmdBuf, const RenderInfo &renderInfo, RenderOutput &output)
 {
 	// Config general parameters
-	ComputeCmd computeCmd = ComputeCmd(localTarget->getExtent2D(), shaderPath + "path_tracing/pt.comp");
+	ComputeCmd computeCmd = ComputeCmd(output.localTarget->getExtent2D(), shaderPath + "path_tracing/pt.comp");
 
-	sConst.write(cmdBuf, computeCmd, localTarget->getExtent2D(), renderInfo.pCamera, renderInfo.frameIdx, renderInfo.cursorPos);
+	sConst.write(cmdBuf, computeCmd, output.localTarget->getExtent2D(), renderInfo.pCamera, renderInfo.frameIdx, renderInfo.cursorPos);
 
 	bind_shader_const(computeCmd, sConst);
 
@@ -18,9 +18,10 @@ void ReferencePathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const Rende
 	bind_medium(computeCmd, renderInfo.pMediun);
 
 	begin_local_descriptors(computeCmd);
-	bind_target(computeCmd, localTarget);
+	bind_target(computeCmd, output.localTarget);
 	computeCmd.pushDescriptor(renderInfo.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	computeCmd.pushDescriptor(lineSegmentBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	computeCmd.pushDescriptor(output.lineSegmentBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	computeCmd.pushDescriptor(output.plotBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
 	set_general_params(computeCmd);
 
@@ -31,15 +32,15 @@ void ReferencePathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const Rende
 
 
 
-void PinPathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo &renderInfo, Buffer lineSegmentBuffer)
+void PinPathTracer::trace(CmdBuffer cmdBuf, const RenderInfo &renderInfo, RenderOutput &output)
 {
 	// Config general parameters
-	ComputeCmd computeCmd = ComputeCmd(localTarget->getExtent2D(), shaderPath + "path_tracing/pt.comp",
+	ComputeCmd computeCmd = ComputeCmd(output.localTarget->getExtent2D(), shaderPath + "path_tracing/pt.comp",
 	                                   {
 	                                       {"USE_PINS", ""},
 	                                   });
 
-	sConst.write(cmdBuf, computeCmd, localTarget->getExtent2D(), renderInfo.pCamera, renderInfo.frameIdx, renderInfo.cursorPos);
+	sConst.write(cmdBuf, computeCmd, output.localTarget->getExtent2D(), renderInfo.pCamera, renderInfo.frameIdx, renderInfo.cursorPos);
 
 	bind_shader_const(computeCmd, sConst);
 
@@ -48,10 +49,12 @@ void PinPathTracer::trace(CmdBuffer cmdBuf, Image localTarget, const RenderInfo 
 	bind_medium(computeCmd, renderInfo.pMediun);
 
 	begin_local_descriptors(computeCmd);
-	bind_target(computeCmd, localTarget);
+	bind_target(computeCmd, output.localTarget);
 	computeCmd.pushDescriptor(renderInfo.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	computeCmd.pushDescriptor(lineSegmentBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	computeCmd.pushDescriptor(output.lineSegmentBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	computeCmd.pushDescriptor(output.plotBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	computeCmd.pipelineDef.shaderDef.args.push_back({"WRITE_LINE_SEGMENTS", ""});
+	computeCmd.pipelineDef.shaderDef.args.push_back({"PLOT_TRANSMITTANCE", ""});
 	set_general_params(computeCmd);
 
 

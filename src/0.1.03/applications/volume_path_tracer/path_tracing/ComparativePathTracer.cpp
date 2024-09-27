@@ -1,7 +1,7 @@
 #include "ComparativePathTracer.h"
 
 ComparativePathTracer::ComparativePathTracer(float relativeWidth, float relativeHeight,
-                                             Buffer lineSegmentInstanceBuffer, uint32_t lineSegmentCount)
+                                             Buffer lineSegmentInstanceBuffer, Buffer plotBuffer, uint32_t lineSegmentCount)
 {
 	localTargetA = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, relativeWidth, relativeHeight);
 	localTargetB = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, relativeWidth, relativeHeight);
@@ -14,6 +14,7 @@ ComparativePathTracer::ComparativePathTracer(float relativeWidth, float relative
 
 	tqManager = TimeQueryManager({TQ_PATH_TRACER_A, TQ_PATH_TRACER_B});
 
+	this->plotBuffer                = plotBuffer;
 	this->lineSegmentInstanceBuffer = lineSegmentInstanceBuffer;
 	this->lineSegmentCount          = lineSegmentCount;
 	lineSegmentBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(GLSLLineSegment) * lineSegmentCount);
@@ -55,22 +56,24 @@ void ComparativePathTracer::render(CmdBuffer cmdBuf, const RenderInfo &renderInf
 		cmdFillBuffer(cmdBuf, lineSegmentBuffer, 0, sizeof(GLSLLineSegment) * lineSegmentCount, 0);
 	}
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
+	RenderOutput outputA = {localTargetA, lineSegmentBuffer, plotBuffer};
+	RenderOutput outputB = {localTargetB, lineSegmentBuffer, plotBuffer};
 	if (timeQueryFinished)
 	{
 		tqManager.cmdResetQueryPool(cmdBuf);
 
 		tqManager.startTiming(cmdBuf, TQ_PATH_TRACER_A, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
-		pStrategieA->trace(cmdBuf, localTargetA, renderInfo, lineSegmentBuffer);
+		pStrategieA->trace(cmdBuf, renderInfo, outputA);
 		tqManager.endTiming(cmdBuf, TQ_PATH_TRACER_A, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
 		tqManager.startTiming(cmdBuf, TQ_PATH_TRACER_B, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
-		pStrategieB->trace(cmdBuf, localTargetB, renderInfo, lineSegmentBuffer);
+		pStrategieB->trace(cmdBuf, renderInfo, outputB);
 		tqManager.endTiming(cmdBuf, TQ_PATH_TRACER_B, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 	}
 	else
 	{
-		pStrategieA->trace(cmdBuf, localTargetA, renderInfo, lineSegmentBuffer);
-		pStrategieB->trace(cmdBuf, localTargetB, renderInfo, lineSegmentBuffer);
+		pStrategieA->trace(cmdBuf, renderInfo, outputA);
+		pStrategieB->trace(cmdBuf, renderInfo, outputB);
 	}
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	getCmdWriteLineSegments().exec(cmdBuf);
