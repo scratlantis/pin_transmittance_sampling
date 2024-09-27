@@ -61,6 +61,8 @@ extern GVar     gvar_fixed_seed;
 extern GVar     gvar_seed;
 extern GVar     gvar_medium_xray_line_segments;
 extern GVar     gvar_pin_sample_location;
+extern GVar     gvar_jitter_sampling_location;
+extern GVar     gvar_jitter_sampling_pos;
 extern GVar     gvar_continuous_path_sampling;
 
 // Screen cursor

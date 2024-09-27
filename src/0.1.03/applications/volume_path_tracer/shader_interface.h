@@ -100,6 +100,8 @@ static GLSLParams guiParams(glm::vec2 cursorPos)
 	params.cursorPos = cursorPos;
 	params.pinSampleLocation = gvar_pin_sample_location.val.v_float;
 	params.pathSampling = gvar_path_sampling_event.val.bool32() | gvar_continuous_path_sampling.val.bool32();
+	params.jitterPinSampleLocation = gvar_jitter_sampling_location.val.bool32();
+	params.jitterPinSamplePos = gvar_jitter_sampling_pos.val.v_float;
 	return params;
 }
 

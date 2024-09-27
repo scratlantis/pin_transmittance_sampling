@@ -24,7 +24,7 @@ void main()
 		return;
 	}
 	vec3 pos = vec3(gID) / float(pc.resolution);
-	pos.xz *= 0.1;
+	//pos.xz *= 0.1;
 	float density0 = exp(pc.perlinScale0 * 10.0) * max( 0.0,(perlinNoise(pos*pc.perlinFrequency0*20.0)) );
 	float density1 = exp(pc.perlinScale1 * 10.0) * max( 0.0,(perlinNoise(pos*pc.perlinFrequency1*20.0)) );
 	float density = density0 + density1;

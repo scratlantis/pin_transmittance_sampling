@@ -33,7 +33,8 @@ struct GLSLParams
 
 	float pinSampleLocation;
 	uint pathSampling;
-	uint padding[2];
+	uint jitterPinSampleLocation;
+	float jitterPinSamplePos;
 };
 
 

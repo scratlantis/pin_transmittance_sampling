@@ -12,11 +12,13 @@ AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 
 // Gui variable
-GVar gvar_model = {"Model", 0, GVAR_ENUM, NO_GUI, std::vector<std::string>{"Cornell Box", "Sponza"}};
+GVar gvar_model = {"Model", 0, GVAR_ENUM, NO_GUI, std::vector<std::string>{"Cornell Box", "Sponza", "Cornell Box Small light", "Cornell Box Large Light"}};
 GVar gvar_image_resolution{"Image Resolution", 64, GVAR_UINT_RANGE, NOISE_SETTINGS, {16, 256}};
 GVar gvar_mse{"MSE : %.8f E-3", 0.0f, GVAR_DISPLAY_VALUE, METRICS };
 GVar gvar_env_map                   = {"Envmap", 1, GVAR_ENUM, NO_GUI, std::vector<std::string>{"None"}};
 GVar gvar_fixed_seed = {"Fixed Seed", false, GVAR_BOOL, PATH_TRACING};
+GVar gvar_jitter_sampling_location  = {"Jitter sampling location", false, GVAR_BOOL, PIN_SETTINGS};
+GVar gvar_jitter_sampling_pos  = {"Jitter sampling pos", 0.0f, GVAR_UNORM, PIN_SETTINGS};
 GVar gvar_seed                      = {"Seed", 0, GVAR_UINT_RANGE, PATH_TRACING, {0, 1000}};
 GVar gvar_medium_xray_line_segments = {"Medium Xray Line Segments", true, GVAR_BOOL, VISUALIZATION_SETTINGS};
 GVar gvar_pin_sample_location       = {"Pin sample location", 0, GVAR_UNORM, PIN_SETTINGS};
@@ -64,6 +66,8 @@ std::vector<GVar *> gVars =
 		&gvar_seed,
 		&gvar_medium_xray_line_segments,
 		&gvar_pin_sample_location,
+		&gvar_jitter_sampling_location,
+		&gvar_jitter_sampling_pos,
 		&gvar_continuous_path_sampling,
 		//Screen Cursor
 		&gvar_path_sampling_event,
@@ -96,7 +100,9 @@ ModelInfo cursor = {"arrow_cursor/arrow_cursor.obj", vec3(0.0, 0.0, 0.0), 0.05, 
 ModelInfo arrow = {"arrow/arrow.obj", vec3(0.0, 0.0, 0.0), 1.0, vec3(0.0, 0.0, 0.0)};
 ModelInfo cornellBox = {"cornell_box/cornell_box.obj", vec3(0,0.2,-0.3), 0.1, vec3(0.0,180.0,0.0)};
 ModelInfo sponza = {"sponza/sponza_v2.obj", vec3(0.0,0.2,-0.3), 0.1, vec3(0.0,180.0,0.0)};
-std::vector<ModelInfo> models     = {cornellBox, sponza};
+ModelInfo              cornellBox_small_light = {"cornell_box_small_light_source/cornell_box.obj", vec3(0.0, 0.2, -0.3), 0.1, vec3(0.0, 180.0, 0.0)};
+ModelInfo              cornellBox_large_light = {"cornell_box_large_light_source/cornell_box.obj", vec3(0.0, 0.2, -0.3), 0.1, vec3(0.0, 180.0, 0.0)};
+std::vector<ModelInfo> models                 = {cornellBox, sponza, cornellBox_small_light, cornellBox_large_light};
 
 uint32_t modelLoadFlags = MODEL_LOAD_FLAG_CREATE_ACCELERATION_STRUCTURE | MODEL_LOAD_FLAG_IS_OPAQUE | MODEL_LOAD_FLAG_COPYABLE;
 
