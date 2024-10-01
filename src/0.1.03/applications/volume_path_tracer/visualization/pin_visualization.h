@@ -4,6 +4,8 @@
 using namespace vka;
 void cmdVisualizePins(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer pinBuffer, Buffer pinState, Camera *cam, glm::mat4 objToWorld, bool clearDepth, VkImageLayout dstLayout);
 
+void cmdVisualizePinFlux(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer pinBuffer, Buffer pinFlux, Camera *cam, glm::mat4 objToWorld, bool clearDepth, VkImageLayout dstLayout);
+
 
 enum PinStateFlags
 {
@@ -23,7 +25,8 @@ class PinStateManager
 	void writeCursorPinState(CmdBuffer cmdBuf);
 
   public:
-	Buffer    pinState;
+	Buffer    pinState = nullptr;
+	Buffer	  pinFlux = nullptr;
 	PinStateManager() = default;
 	~PinStateManager() = default;
 	PinStateManager(Medium* pMedium) :

@@ -120,6 +120,11 @@ enum ViewType
 	VIEW_TYPE_SPLIT,
 	VIEW_TYPE_DIFF
 };
+enum DebugViewType
+{
+	DEBUG_VIEW_TYPE_PIN_STATE,
+	DEBUG_VIEW_TYPE_PIN_FLUX
+};
 
 
 
@@ -288,8 +293,22 @@ int main()
 			cursorMatrix = glm::rotate(cursorMatrix, gvar_cursor_dir_theta.val.v_float, vec3(0.0, 0.0, 1.0));
 			cursorMatrix = glm::rotate(cursorMatrix, gvar_cursor_dir_phi.val.v_float, vec3(0.0, 1.0, 0.0));
 			cursorMatrix           = mediumInstance.mat * cursorMatrix * cursor.getObjToWorldMatrix();
-			cmdShowAlbedo(cmdBuf, gState.frame->stack, img_debug, cursorModel, &cam, cursorMatrix, false);
-			cmdVisualizePins(cmdBuf, gState.frame->stack, img_debug, medium.pins, pinStateManager.pinState, &cam, mediumInstance.mat, false, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			switch (em.debugViewType)
+			{
+				case DEBUG_VIEW_TYPE_PIN_STATE:
+					cmdShowAlbedo(cmdBuf, gState.frame->stack, img_debug, cursorModel, &cam, cursorMatrix, false);
+					cmdVisualizePins(cmdBuf, gState.frame->stack, img_debug, medium.pins, pinStateManager.pinState, &cam, mediumInstance.mat, false, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+					break;
+				case DEBUG_VIEW_TYPE_PIN_FLUX:
+					cmdVisualizePinFlux(cmdBuf, gState.frame->stack, img_debug, medium.pins, pinStateManager.pinFlux, &cam, mediumInstance.mat, false, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+					break;
+				default:
+					break;
+			}
+
+			/*cmdShowAlbedo(cmdBuf, gState.frame->stack, img_debug, cursorModel, &cam, cursorMatrix, false);
+			cmdVisualizePins(cmdBuf, gState.frame->stack, img_debug, medium.pins, pinStateManager.pinState, &cam, mediumInstance.mat, false, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);*/
+
 			getCmdAdvancedCopy(img_debug, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			                   VkRect2D_OP(img_debug->getExtent2D()), viewRect)
 			    .exec(cmdBuf);

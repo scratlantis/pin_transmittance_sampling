@@ -60,6 +60,12 @@ void PinStateManager::resetPinState(CmdBuffer cmdBuf)
 	pinState->recreate();
 	setDebugMarker(pinState, "PinState");
 	cmdFillBuffer(cmdBuf, pinState, 0);
+
+	pinFlux->changeSize(gvar_pin_count.val.v_uint * sizeof(float));
+	pinFlux->addUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	pinFlux->recreate();
+	setDebugMarker(pinFlux, "PinFlux");
+	cmdFillBuffer(cmdBuf, pinFlux, 0);
 }
 
 void PinStateManager::update(CmdBuffer cmdBuf)
@@ -67,6 +73,10 @@ void PinStateManager::update(CmdBuffer cmdBuf)
 	if (!pinState)
 	{
 		pinState = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	}
+	if (!pinFlux)
+	{
+		pinFlux = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	}
 	
 	resetPinState(cmdBuf);
@@ -113,7 +123,7 @@ void cmdVisualizePins(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer 
 	Image         depthBuffer = gState.depthBufferCache->fetch(dst->getExtent2D());
 	drawCmd.renderArea.extent                       = dst->getExtent2D();
 	drawCmd.pipelineDef.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-	addShader(drawCmd.pipelineDef, shaderPath + "visualization/show_pins.vert");
+	addShader(drawCmd.pipelineDef, shaderPath + "visualization/show_pin_state.vert");
 
 	if (clearDepth)
 	{
@@ -131,16 +141,61 @@ void cmdVisualizePins(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer 
 	drawCmd.pushConstant(&pc, sizeof(PushStruct), VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	DrawCmd drawOpaque = drawCmd;
-	addShader(drawOpaque.pipelineDef, shaderPath + "visualization/show_pins.frag", {{"OPAQUE", ""}});
+	addShader(drawOpaque.pipelineDef, shaderPath + "visualization/show_pin_state.frag", {{"OPAQUE", ""}});
 	drawOpaque.pushColorAttachment(dst, finalLayout, BlendOperation::alpha(), BlendOperation::alpha());
 	drawOpaque.pushDepthAttachment(depthBuffer, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 	drawOpaque.exec(cmdBuf);
 
 	DrawCmd drawTransparent = drawCmd;
-	addShader(drawTransparent.pipelineDef, shaderPath + "visualization/show_pins.frag");
+	addShader(drawTransparent.pipelineDef, shaderPath + "visualization/show_pin_state.frag");
 	drawTransparent.pushColorAttachment(dst, finalLayout, BlendOperation::alpha(), BlendOperation::alpha());
 	drawTransparent.pushDepthAttachment(depthBuffer, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
 	drawTransparent.exec(cmdBuf);
+}
+
+void cmdVisualizePinFlux(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer pinBuffer, Buffer pinFlux, Camera *cam, glm::mat4 objToWorld, bool clearDepth, VkImageLayout dstLayout)
+{
+	DrawCmd     drawCmd = DrawCmd();
+	DrawSurface drawSurface{};
+	drawSurface.vertexBuffer         = pinBuffer;
+	drawSurface.count                = pinBuffer->getSize() / sizeof(glm::vec3);
+	drawSurface.indexBuffer          = nullptr;
+	drawSurface.vertexLayout.formats = {VK_FORMAT_R32G32B32_SFLOAT};
+	drawSurface.vertexLayout.offsets = {0};
+	drawSurface.vertexLayout.stride  = sizeof(glm::vec3);
+	drawCmd.setGeometry(drawSurface);
+
+	glm::mat4 projectionMat = glm::perspective(glm::radians(60.0f), (float) dst->getExtent().width / (float) dst->getExtent().height, 0.1f, 500.0f);
+	glm::mat4 vp            = projectionMat * cam->getViewMatrix() * objToWorld;
+	drawCmd.pushDescriptor(cmdBuf, pPool, &vp, sizeof(glm::mat4), VK_SHADER_STAGE_VERTEX_BIT);
+	drawCmd.pushDescriptor(pinFlux, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
+
+	struct PushStruct
+	{
+		glm::vec2 extent;
+		float     thickness;
+	} pc;
+	pc.extent    = glm::vec2(dst->getExtent().width, dst->getExtent().height);
+	pc.thickness = 1.0f;
+	drawCmd.pushConstant(&pc, sizeof(PushStruct), VK_SHADER_STAGE_GEOMETRY_BIT);
+	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+	VkImageLayout finalLayout                       = dstLayout == VK_IMAGE_LAYOUT_UNDEFINED ? dst->getLayout() : dstLayout;
+	Image         depthBuffer                       = gState.depthBufferCache->fetch(dst->getExtent2D());
+	drawCmd.renderArea.extent                       = dst->getExtent2D();
+	drawCmd.pipelineDef.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+	addShader(drawCmd.pipelineDef, shaderPath + "visualization/show_pin_flux.vert");
+	addShader(drawCmd.pipelineDef, shaderPath + "visualization/show_pin_flux.geom");
+	addShader(drawCmd.pipelineDef, shaderPath + "visualization/show_pin_flux.frag");
+
+	if (clearDepth)
+	{
+		depthBuffer->setClearValue(ClearValue(1.0f, 0));
+	}
+
+	drawCmd.pushColorAttachment(dst, finalLayout, BlendOperation::add(), BlendOperation::add());
+	drawCmd.pushDepthAttachment(depthBuffer, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
+	drawCmd.exec(cmdBuf);
+
 }
 
 

@@ -29,6 +29,9 @@ class EventManager
 	uint32_t       viewType        = 0;
 	const uint32_t viewTypeCount   = 2;
 
+	uint32_t       debugViewType      = 0;
+	const uint32_t debugViewTypeCount = 2;
+
 	// Path Tracing
 	float ptSplittCoef = 0.5f;
 	bool ptReset = true;

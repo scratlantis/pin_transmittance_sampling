@@ -179,13 +179,27 @@ void EventManager::updateView()
 		{
 			debugView = !debugView;
 		};
-		if (gState.io.keyPressedEvent[GLFW_KEY_E])
+		if (debugView)
 		{
-			viewType = (viewType + 1) % viewTypeCount;
+			if (gState.io.keyPressedEvent[GLFW_KEY_E])
+			{
+				debugViewType = (debugViewType + 1) % debugViewTypeCount;
+			}
+			if (gState.io.keyPressedEvent[GLFW_KEY_Q])
+			{
+				debugViewType = (debugViewTypeCount + debugViewType - 1) % debugViewTypeCount;
+			}
 		}
-		if (gState.io.keyPressedEvent[GLFW_KEY_Q])
+		else
 		{
-			viewType = (viewTypeCount + viewType - 1) % viewTypeCount;
+			if (gState.io.keyPressedEvent[GLFW_KEY_E])
+			{
+				viewType = (viewType + 1) % viewTypeCount;
+			}
+			if (gState.io.keyPressedEvent[GLFW_KEY_Q])
+			{
+				viewType = (viewTypeCount + viewType - 1) % viewTypeCount;
+			}
 		}
 	}
 }
