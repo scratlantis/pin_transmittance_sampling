@@ -26,6 +26,7 @@ class PinTransmittanceStorageStrategy
   public:
 	virtual bool requiresUpdate()                                                                        = 0;
 	virtual void computeTransmittance(CmdBuffer cmdBuf, BufferRef pinBuffer, Image volume, Buffer transmittanceBuffer) = 0;
+	/*virtual void computeTransmittance(CmdBuffer cmdBuf, BufferRef pinBuffer, Image volume, Buffer transmittanceBuffer) = 0;*/
 };
 class PinGridGenerationStrategy
 {

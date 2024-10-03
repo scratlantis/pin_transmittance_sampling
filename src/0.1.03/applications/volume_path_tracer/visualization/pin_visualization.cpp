@@ -9,6 +9,8 @@ GVar gvar_cursor_pos{"Pin Cursor Pos", {0.5f, 0.5f, 0.5f}, GVAR_VEC3_RANGE, VISU
 GVar gvar_cursor_dir_phi{"Pin Cursor phi", 0.0f, GVAR_FLOAT_RANGE, VISUALIZATION_SETTINGS, {0.0f, 1.f * glm::pi<float>()}};
 GVar gvar_cursor_dir_theta{"Pin Cursor theta", 0.0f, GVAR_FLOAT_RANGE, VISUALIZATION_SETTINGS, {0.0f, 2.f * glm::pi<float>()}};
 
+GVar gvar_flux_scale{"Pin Flux Scale", 0.01f, GVAR_FLOAT_RANGE, VISUALIZATION_SETTINGS, {0.0f, 0.1f}};
+
 
 void PinStateManager::writeGridPinState(CmdBuffer cmdBuf)
 {
@@ -176,7 +178,7 @@ void cmdVisualizePinFlux(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buff
 		float     thickness;
 	} pc;
 	pc.extent    = glm::vec2(dst->getExtent().width, dst->getExtent().height);
-	pc.thickness = 1.0f;
+	pc.thickness = gvar_flux_scale.val.v_float;
 	drawCmd.pushConstant(&pc, sizeof(PushStruct), VK_SHADER_STAGE_GEOMETRY_BIT);
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	VkImageLayout finalLayout                       = dstLayout == VK_IMAGE_LAYOUT_UNDEFINED ? dst->getLayout() : dstLayout;

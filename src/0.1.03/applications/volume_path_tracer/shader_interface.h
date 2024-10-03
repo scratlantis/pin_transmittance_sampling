@@ -188,6 +188,26 @@ static void bind_medium(ComputeCmd &cmd, const Medium *pMedium)
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_TRANSMITTANCE_VALUE_COUNT", std::to_string(gvar_pin_transmittance_value_count.val.v_uint)});
 }
 
+struct ProfilerOutput
+{
+	Buffer lineSegmentBuffer;
+	Buffer plotBuffer;
+	Buffer fluxBuffer;
+};
+
+static void bind_profiler(ComputeCmd &cmd, const ProfilerOutput &output)
+{
+	cmd.pipelineDef.shaderDef.args.push_back({"PT_PROFILING_BINDING_OFFSET", static_cast<uint32_t>(cmd.descriptors.size())});
+	cmd.pushDescriptor(output.lineSegmentBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(output.plotBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(output.fluxBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	if (gvar_write_flux.val.v_bool)
+	{
+		cmd.pipelineDef.shaderDef.args.push_back({"WRITE_PIN_FLUX", ""});
+	}
+
+}
+
 static void begin_local_descriptors(ComputeCmd &cmd)
 {
 	cmd.pipelineDef.shaderDef.args.push_back({"LOCAL_BINDING_OFFSET", static_cast<uint32_t>(cmd.descriptors.size())});

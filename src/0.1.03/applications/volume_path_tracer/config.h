@@ -64,6 +64,8 @@ extern GVar     gvar_pin_sample_location;
 extern GVar     gvar_jitter_sampling_location;
 extern GVar     gvar_jitter_sampling_pos;
 extern GVar     gvar_continuous_path_sampling;
+extern GVar     gvar_write_flux;
+extern GVar     gvar_flux_scale;
 
 // Screen cursor
 extern GVar gvar_path_sampling_event;

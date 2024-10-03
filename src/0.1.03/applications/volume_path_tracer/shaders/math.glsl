@@ -21,6 +21,10 @@ mat4x3 tangentFrameFromPosNormal(vec3 pos, vec3 normal)
 	vec3 bitangent = normalize(cross(normal, tangent));
 	return mat4x3(tangent, bitangent, normal, pos);
 }
+float average(vec3 v)
+{
+	return (v.x + v.y + v.z) / 3.0;
+}
 
 void assureNotZero(inout vec3 v)
 {

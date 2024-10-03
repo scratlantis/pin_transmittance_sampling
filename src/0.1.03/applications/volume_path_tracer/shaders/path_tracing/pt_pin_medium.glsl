@@ -151,11 +151,12 @@ float pinMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint s
 }
 
 float pinEvalTransmittance(vec3 origin, vec3 direction, float segmentLenght,
-inout uint seed, out vec3 pinStart, out vec3 pinEnd)
+inout uint seed, out vec3 pinStart, out vec3 pinEnd, inout uint pinID)
 {
 	vec3 destination = origin + direction * segmentLenght;
 	vec2 uv;
 	GLSLPinGridEntry pinGridEntry = selectPin(origin, direction, segmentLenght, seed);
+	pinID = pinGridEntry.idx;
 	float transmittance = samplePin(origin, destination, pinGridEntry, uv);
 	pinStart = mix(getPinOrigin(pinGridEntry.pin), getPinDestination(pinGridEntry.pin), uv.x);
 	pinEnd = mix(getPinOrigin(pinGridEntry.pin), getPinDestination(pinGridEntry.pin), uv.y);

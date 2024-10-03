@@ -47,7 +47,7 @@ void ComparativePathTracer::reset(CmdBuffer cmdBuf, PathTraceStrategy *pStrategi
 GVar gvar_timing_left{"Timing left : %.8f ms", 0.0f, GVAR_DISPLAY_VALUE, METRICS};
 GVar gvar_timing_right{"Timing right : %.8f ms", 0.0f, GVAR_DISPLAY_VALUE, METRICS};
 
-void ComparativePathTracer::render(CmdBuffer cmdBuf, const RenderInfo &renderInfo)
+void ComparativePathTracer::render(CmdBuffer cmdBuf, const RenderInfo &renderInfo, Buffer fluxBuffer)
 {
 	
 	// Render
@@ -55,9 +55,18 @@ void ComparativePathTracer::render(CmdBuffer cmdBuf, const RenderInfo &renderInf
 	{
 		cmdFillBuffer(cmdBuf, lineSegmentBuffer, 0, sizeof(GLSLLineSegment) * lineSegmentCount, 0);
 	}
+	if (gvar_write_flux.val.v_bool)
+	{
+		cmdFillBuffer(cmdBuf, fluxBuffer, 0, sizeof(float) * gvar_pin_count.val.v_uint, 0);
+	}
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
-	RenderOutput outputA = {localTargetA, lineSegmentBuffer, plotBuffer};
-	RenderOutput outputB = {localTargetB, lineSegmentBuffer, plotBuffer};
+	ProfilerOutput profilerOutput;
+	profilerOutput.lineSegmentBuffer = lineSegmentBuffer;
+	profilerOutput.plotBuffer        = plotBuffer;
+	profilerOutput.fluxBuffer        = fluxBuffer;
+
+	RenderOutput outputA             = {localTargetA, profilerOutput};
+	RenderOutput outputB             = {localTargetB, profilerOutput};
 	if (timeQueryFinished)
 	{
 		tqManager.cmdResetQueryPool(cmdBuf);

@@ -17,8 +17,7 @@ struct RenderInfo
 struct RenderOutput
 {
 	Image localTarget;
-	Buffer lineSegmentBuffer;
-	Buffer plotBuffer;
+	ProfilerOutput profilerOutput;
 };
 
 class PathTraceStrategy
@@ -62,7 +61,7 @@ class ComparativePathTracer
 	~ComparativePathTracer() = default;
 
 	void reset(CmdBuffer cmdBuf, PathTraceStrategy *pStrategieA, PathTraceStrategy *pStrategieB);
-	void render(CmdBuffer cmdBuf, const RenderInfo &renderInfo);
+	void  render(CmdBuffer cmdBuf, const RenderInfo &renderInfo, Buffer fluxBuffer);
 	void showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea);
 	void showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
 	float computeMSE(CmdBuffer cmdBuf);

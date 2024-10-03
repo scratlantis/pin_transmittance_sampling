@@ -34,6 +34,8 @@ GVar gvar_save_config      = {"Save Config", false, GVAR_EVENT, NO_GUI, GUI_FLAG
 GVar gvar_reload_config    = {"Load Config", false, GVAR_EVENT, NO_GUI, GUI_FLAGS_NO_LOAD};
 GVar gvar_save_config_name = {"Save Config Name", std::string("quicksave"), GVAR_TEXT_INPUT, NO_GUI, GUI_FLAGS_NO_LOAD};
 
+GVar gvar_write_flux{"Write Pin Flux", false, GVAR_EVENT, VISUALIZATION_SETTINGS};
+
 std::vector<GVar *> gVars =
 {
         // clang-format off
@@ -87,7 +89,9 @@ std::vector<GVar *> gVars =
 		&gvar_select_config,
 		&gvar_save_config,
 		&gvar_save_config_name,
-		&gvar_reload_config
+		&gvar_reload_config,
+		&gvar_write_flux,
+		&gvar_flux_scale,
 		// clang-format on
 };
 
@@ -267,7 +271,7 @@ int main()
 			renderInfo.pSceneData            = &scene;
 			renderInfo.cursorPos.x           = gvar_screen_cursor_pos.val.getVec4().x;
 			renderInfo.cursorPos.y           = gvar_screen_cursor_pos.val.getVec4().y;
-			pathTracer.render(cmdBuf, renderInfo);
+			pathTracer.render(cmdBuf, renderInfo, pinStateManager.pinFlux);
 			switch (em.viewType)
 			{
 				case VIEW_TYPE_SPLIT:
