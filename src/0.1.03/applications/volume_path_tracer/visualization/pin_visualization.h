@@ -6,6 +6,8 @@ void cmdVisualizePins(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer 
 
 void cmdVisualizePinFlux(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer pinBuffer, Buffer pinFlux, Camera *cam, glm::mat4 objToWorld, bool clearDepth, VkImageLayout dstLayout);
 
+void cmdTestPlots(CmdBuffer cmdBuf, Buffer plot);
+
 
 enum PinStateFlags
 {

@@ -79,6 +79,24 @@ void showPlots()
 			ImTextureID texID      = gState.imguiTextureIDCache->fetch(guiConf.plot2);
 			ImGui::Image(texID, size, uv_min, uv_max, tint_col, border_col);
 		}
+		{
+			ImVec2      uv_min     = ImVec2(0.0f, 0.0f);                    // Top-left
+			ImVec2      uv_max     = ImVec2(1.0f, 1.0f);                    // Lower-right
+			ImVec4      tint_col   = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);        // No tint
+			ImVec4      border_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+			ImVec2      size       = ImVec2(guiConf.plot3->getExtent2D().width, guiConf.plot3->getExtent2D().height);
+			ImTextureID texID      = gState.imguiTextureIDCache->fetch(guiConf.plot3);
+			ImGui::Image(texID, size, uv_min, uv_max, tint_col, border_col);
+		}
+		{
+			ImVec2      uv_min     = ImVec2(0.0f, 0.0f);                    // Top-left
+			ImVec2      uv_max     = ImVec2(1.0f, 1.0f);                    // Lower-right
+			ImVec4      tint_col   = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);        // No tint
+			ImVec4      border_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+			ImVec2      size       = ImVec2(guiConf.plot4->getExtent2D().width, guiConf.plot4->getExtent2D().height);
+			ImTextureID texID      = gState.imguiTextureIDCache->fetch(guiConf.plot4);
+			ImGui::Image(texID, size, uv_min, uv_max, tint_col, border_col);
+		}
 
 	}
 }

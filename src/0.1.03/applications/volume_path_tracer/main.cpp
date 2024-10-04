@@ -165,8 +165,10 @@ int main()
 	
 	Buffer plotBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, MAX_PLOT_POINTS * MAX_PLOTS * sizeof(float));
 	guiConf.showPlots = true;
-	guiConf.plot1 = createSwapchainAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, bottomGuiDimensions.width * 0.95, bottomGuiDimensions.height * 0.45);
-	guiConf.plot2 = createSwapchainAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, bottomGuiDimensions.width * 0.95, bottomGuiDimensions.height * 0.45);
+	guiConf.plot1 = createSwapchainAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, bottomGuiDimensions.width * 0.95, bottomGuiDimensions.height * 0.2);
+	guiConf.plot2 = createSwapchainAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, bottomGuiDimensions.width * 0.95, bottomGuiDimensions.height * 0.2);
+	guiConf.plot3 = createSwapchainAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, bottomGuiDimensions.width * 0.95, bottomGuiDimensions.height * 0.2);
+	guiConf.plot4 = createSwapchainAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, bottomGuiDimensions.width * 0.95, bottomGuiDimensions.height * 0.2);
 	
 	// Path Tracer
 	uint32_t maxLineSegmentCount       = gvar_max_bounce.set.range.max.v_uint * LINE_SEGMENTS_PER_BOUNCE;
@@ -223,9 +225,13 @@ int main()
 
 		getCmdPlot(plotBuffer, guiConf.plot1, 0, vec3(1.0, 0.0, 0.0)).exec(cmdBuf);
 		getCmdPlot(plotBuffer, guiConf.plot2, MAX_PLOT_POINTS, vec3(0.0, 0.0, 1.0)).exec(cmdBuf);
+		getCmdPlot(plotBuffer, guiConf.plot3, MAX_PLOT_POINTS * 2, vec3(0.0, 0.0, 1.0)).exec(cmdBuf);
+		getCmdPlot(plotBuffer, guiConf.plot4, MAX_PLOT_POINTS* 3, vec3(0.0, 0.0, 1.0)).exec(cmdBuf);
 		cmdTransitionLayout(cmdBuf, guiConf.plot1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		cmdTransitionLayout(cmdBuf, guiConf.plot2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
+		cmdTransitionLayout(cmdBuf, guiConf.plot3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		cmdTransitionLayout(cmdBuf, guiConf.plot4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		cmdTestPlots(cmdBuf, plotBuffer);
 
 		Image      swapchainImg = getSwapchainImage();
 		// Update instance data and tlas

@@ -197,7 +197,15 @@ void cmdVisualizePinFlux(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buff
 	drawCmd.pushColorAttachment(dst, finalLayout, BlendOperation::add(), BlendOperation::add());
 	drawCmd.pushDepthAttachment(depthBuffer, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
 	drawCmd.exec(cmdBuf);
+}
 
+void cmdTestPlots(CmdBuffer cmdBuf, Buffer plot)
+{
+	ComputeCmd cmd = ComputeCmd(1, shaderPath + "visualization/test_plots.comp");
+	cmdFillBuffer(cmdBuf, plot, 0);
+	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
+	cmd.pushDescriptor(plot, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.exec(cmdBuf);
 }
 
 

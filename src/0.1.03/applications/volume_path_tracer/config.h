@@ -18,8 +18,8 @@ enum GuiCategories
 };
 #define NO_GUI -1
 
-#define MAX_PLOT_POINTS 100
-#define MAX_PLOTS 2
+#define MAX_PLOT_POINTS 1000
+#define MAX_PLOTS 4
 
 const float               viewMargin     = 0.001;
 
@@ -97,6 +97,8 @@ struct GuiConfig
 	bool  showPlots;
 	Image plot1;
 	Image plot2;
+	Image plot3;
+	Image plot4;
 };
 extern GuiConfig guiConf;
 

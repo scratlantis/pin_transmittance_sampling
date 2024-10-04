@@ -66,13 +66,14 @@ void main()
 	}
 	float leftVal = 1.0;
 	float rightVal = 1.0;
-	if(leftIndex >= 0)
-	{
-		leftVal = buf[firstDataPoint + leftIndex * 2 + 1];
-	}
 	if(rightIndex < dataPointCount)
 	{
 		rightVal = buf[firstDataPoint + rightIndex * 2 + 1];
+		leftVal = rightVal;
+	}
+	if(leftIndex >= 0)
+	{
+		leftVal = buf[firstDataPoint + leftIndex * 2 + 1];
 	}
 	float val = mix(rightVal, leftVal, coef);
 	if(1.0 - y < val)
