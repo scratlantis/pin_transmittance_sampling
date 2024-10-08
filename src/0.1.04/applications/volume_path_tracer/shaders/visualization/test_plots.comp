@@ -1,0 +1,97 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "../common.glsl"
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+layout(binding = 0) buffer PLOT {float plot[];};
+
+
+float f(float x)
+{
+	//return (32.0-x)/32.0;
+	return x/32.0;
+}
+
+
+
+#define PLOTB 1000
+#define PLOTC 2000
+#define PLOTD 3000
+void main()
+{
+	plot[0] = 32.0;
+    float stepSum = 0.0;
+    for(uint i = 0; i<32; i++)
+    {
+        float stepSize = 1.0;
+        stepSum+= stepSize;
+        float val = f(i);
+        plot[2 + i*2] = stepSize;
+        plot[2 + i*2+1] = val;
+    }
+    plot[1] = stepSum;
+
+    plot[PLOTB] = 32.0*2.0;
+    stepSum = 0.0;
+    float accumulation = 0.0;
+
+    uint bitMask = 0;
+
+    for(uint i = 0; i<32; i++)
+    {
+        float stepSize = 1.0;
+        stepSum+= stepSize;
+        accumulation += f(i);
+        float val = 0.0;
+        if(accumulation > 1.0)
+		{
+			accumulation -= 1.0;
+            bitMask |= 1<<(32 - i);
+            val = 1.0;
+		}
+        plot[PLOTB + 2 + i*4+0] = 0.0;
+        plot[PLOTB + 2 + i*4+1] = val;
+
+        plot[PLOTB + 2 + i*4+2] = stepSize;
+        plot[PLOTB + 2 + i*4+3] = val;
+    }
+    plot[PLOTB + 1] = stepSum;
+
+    //bitMask = 0xFFFFFFFF;
+
+    plot[PLOTC] = 32.0*2.0;
+    stepSum = 0.0;
+    for(uint i = 0; i<32; i++)
+    {
+        float stepSize = 1.0;
+        stepSum+= stepSize;
+        plot[PLOTC + 2 + i*4+2] = stepSize;
+        plot[PLOTC + 2 + i*4+3] = 0.0;
+    }
+    plot[PLOTC+1] = stepSum;
+
+
+
+    const uint sampleCount = 1000;
+    float invSampleCount = 1.0/float(sampleCount);
+    for(uint i = 0; i<sampleCount; i++)
+	{
+		uint sampleMaskA = hash(i+14728);
+		uint sampleMaskB = hash(i+198341);
+        uint sampleMask = sampleMaskA & sampleMaskB;
+        sampleMask = ~sampleMask;
+		//uint sampleMask = hash(i+10);
+        uint finalMask = sampleMask & bitMask;
+        int dist = findMSB(finalMask);
+        if(dist >= 0 && dist<32)
+        {
+            int selectedBit = 32 - dist;
+            plot[PLOTC + 2 + selectedBit*4+1] += invSampleCount;
+            plot[PLOTC + 2 + selectedBit*4+3] += invSampleCount;
+        }
+    
+	}
+}
+
+

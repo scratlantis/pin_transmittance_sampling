@@ -80,6 +80,7 @@ struct GVar_Range
 	GVar_Val max;
 };
 
+//typedef std::vector<std::string> GVar_Enum_t;
 
 struct GVar_Set
 {

@@ -1,0 +1,41 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "../random.glsl"
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
+
+layout(binding = 0, r32f) uniform image3D volumeData;
+struct PushStruct
+{
+	uint   resolution;
+	float  perlinFrequency0;
+	float  perlinScale0;
+	float  perlinFrequency1;
+	float  perlinScale1;
+	uint   perlinFalloff;
+};
+
+layout(push_constant) uniform PC {PushStruct pc;};
+
+void main()
+{
+	ivec3 gID = ivec3(gl_GlobalInvocationID.xyz);
+	if (gID.x >= pc.resolution || gID.y >= pc.resolution || gID.z >= pc.resolution)
+	{
+		return;
+	}
+	vec3 pos = vec3(gID) / float(pc.resolution);
+	//pos.xz *= 0.1;
+	float density0 = exp(pc.perlinScale0 * 10.0) * max( 0.0,(perlinNoise(pos*pc.perlinFrequency0*20.0)) );
+	float density1 = exp(pc.perlinScale1 * 10.0) * max( 0.0,(perlinNoise(pos*pc.perlinFrequency1*20.0)) );
+	float density = density0 + density1;
+	float distanceToLowerBound = min(min(pos.x, pos.y), pos.z);
+	float distanceToUpperBound = 1.0 - max(max(pos.x, pos.y), pos.z);
+	float distanceToBound = min(distanceToLowerBound, distanceToUpperBound);
+	if(pc.perlinFalloff == 1)
+	{
+		density*= clamp(sin(distanceToBound), 0.0, 1.0);
+	}
+	density = max(0.0, density);
+	imageStore(volumeData, gID, vec4(density));
+
+}

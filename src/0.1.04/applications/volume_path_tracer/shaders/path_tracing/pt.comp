@@ -1,0 +1,370 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_query : enable
+
+#ifdef WRITE_PIN_FLUX
+#extension GL_EXT_shader_atomic_float : enable
+#endif
+
+#include "pt_params.glsl"
+// Frame constants
+#include "../shader_const.glsl"
+
+// Scene
+#include "pt_uscene.glsl"
+
+// Medium
+#include "pt_scalar_field_medium.glsl"
+#include "pt_pin_medium.glsl"
+
+#include "pt_profiling.glsl"
+
+//#undef AREA_LIGHT_COUNT
+
+// Local bindings
+
+layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
+layout(binding = LOCAL_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
+
+
+Range traceMediumConservative(Ray ray)
+{
+	vec3 localOrigin = (volInst.invMat * vec4(ray.origin, 1.0)).xyz;
+	vec3 localDir = (volInst.invMat * vec4(ray.direction, 0.0)).xyz;
+	vec3 localEntry, localExit;
+	Range range;
+	bool intersect = unitCubeIntersection(localOrigin, localDir, localEntry, localExit);
+	if(intersect && distance(localEntry, localExit) > distance(localOrigin, localExit)) 
+	{
+		// Inside Cube
+		vec3 worldExitPos = (volInst.mat * vec4(localExit, 1.0)).xyz;
+		range.rMin = 0.0;
+		range.rMax = distance(ray.origin, worldExitPos);
+	}
+	else if(intersect)
+	{
+	    // Intersect Cube
+		vec3 worldEntryPos = (volInst.mat * vec4(localEntry, 1.0)).xyz;
+		vec3 worldExitPos = (volInst.mat * vec4(localExit, 1.0)).xyz;
+		range.rMin = distance(ray.origin, worldEntryPos);
+		range.rMax = distance(ray.origin, worldExitPos);
+	}
+	else
+	{
+		// Miss Cube
+		range.rMin = TMAX;
+		range.rMax = TMAX;
+	}
+	return range;
+}
+
+float traceMedium(Ray ray, Range range, uint bounce, inout uint seed)
+{
+	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
+	vec3 localExit = (volInst.invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
+	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
+	float localTMax = distance(localOrigin, localExit);
+	writeScalarFieldDensityPlot(localOrigin, localDir, localTMax, seed, bounce, 1);
+	vec3 pinStartLocal,pinEndLocal;
+
+	#if((PIN_MODE & PIN_MODE_FLAG_INDIRECT) != 0)
+		float tLocal;
+		if(bounce > 0)
+		{
+			//tLocal = pinMarcheMedium(localOrigin, localDir, localTMax, seed);
+			tLocal = pinSampleDistanceMedium(localOrigin, localDir, localTMax, pinStartLocal, pinEndLocal, seed);
+			writePinDensityPlot(localOrigin, localDir, localTMax, seed, bounce, 1);
+
+			vec3 pinStart = (volInst.mat * vec4(pinStartLocal, 1.0)).xyz;
+			vec3 pinEnd = (volInst.mat * vec4(pinEndLocal, 1.0)).xyz;
+			writeLineSegment(pinStart, pinEnd, bounce, LINE_SEGMENT_TYPE_INDIRECT_PIN);
+		}
+		else
+		{
+			tLocal = rayMarcheMedium(localOrigin, localDir, localTMax, seed);
+		}
+	#else
+		float tLocal = rayMarcheMedium(localOrigin, localDir, localTMax, seed);
+	#endif
+
+	if(tLocal == TMAX)
+	{
+		return TMAX;
+	}
+	vec3 worldHitPos = (volInst.mat * vec4(localOrigin + tLocal * localDir, 1.0)).xyz;
+	return distance(ray.origin, worldHitPos);
+}
+
+
+float traceMediumTransmittance(Ray ray, Range range, uint bounce, inout uint seed, inout uint pinID)
+{
+	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
+	vec3 localExit = (volInst.invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
+	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
+	float localTMax = distance(localOrigin, localExit);
+
+	writeScalarFieldPlot(localOrigin, localDir, localTMax, seed, bounce, 0);
+
+	float transmittance;
+	#if((PIN_MODE & PIN_MODE_FLAG_DIRECT) != 0)
+	if(bounce >= MIN_PIN_BOUNCE)
+	{
+		vec3 pinStartLocal, pinEndLocal;
+		transmittance = pinEvalTransmittance(localOrigin, localDir, localTMax, seed, pinStartLocal, pinEndLocal, pinID);
+		vec3 pinStart = (volInst.mat * vec4(pinStartLocal, 1.0)).xyz;
+		vec3 pinEnd = (volInst.mat * vec4(pinEndLocal, 1.0)).xyz;
+		if(ray.tmax == TMAX)
+		{
+			writeLineSegment(pinStart, pinEnd, bounce, LINE_SEGMENT_TYPE_PIN_ENV);
+		}
+		else
+		{
+			writeLineSegment(pinStart, pinEnd, bounce, LINE_SEGMENT_TYPE_PIN_AL);
+			writePinPlot(localOrigin, localDir, localTMax, seed, bounce, 0);
+		}
+	}
+	else
+	{
+		transmittance = rayMarcheMediumTransmittance(localOrigin, localDir, localTMax, seed);
+	}
+	#else
+	transmittance = rayMarcheMediumTransmittance(localOrigin, localDir, localTMax, seed);
+	#endif
+
+	return transmittance;
+}
+
+float traceTransmittance(Ray ray, uint bounce, inout uint seed, inout uint pinID)
+{
+	float geomTransmittance = traceGeometryTransmittance(ray, 0x0F);
+	if(geomTransmittance == 0.0)
+	{
+		return geomTransmittance;
+	}
+	Range rMedium = traceMediumConservative(ray);
+	if(rMedium.rMin == TMAX)
+	{
+		return geomTransmittance;
+	}
+	
+	float mediumTransmittance = traceMediumTransmittance(ray, rMedium, bounce, seed, pinID);
+	return geomTransmittance * mediumTransmittance;
+}
+
+#if AREA_LIGHT_COUNT > 0
+vec3 sampleDirectIllumAreaLight(vec3 pos, uint bounce, inout uint seed, inout uint pinID, out float sampleWeight, out vec3 wi)
+{
+	Ray ray = genDirectIllumRayAreaLight(pos, seed);
+	writeLineSegment(pos, ray.origin + ray.direction * ray.tmax, bounce, LINE_SEGMENT_TYPE_DIRECT_AL);
+	float transmittance = traceTransmittance(ray, bounce, seed, pinID);
+	wi = ray.direction;
+	sampleWeight = average(ray.weight);
+	vec3 Li = transmittance * ray.weight;
+	return Li;
+}
+#endif
+
+vec3 sampleDirectIllumEnvMap(vec3 pos, uint bounce, inout uint seed, inout uint pinID, out float sampleWeight, out vec3 wi)
+{
+	Ray ray = genDirectIllumRayEnvMap(pos, seed);
+	
+	writeLineSegment(pos, ray.origin + ray.direction * 0.2, bounce, LINE_SEGMENT_TYPE_DIRECT_ENV);
+	
+	float transmittance = traceTransmittance(ray, bounce, seed, pinID);
+	wi = ray.direction;
+	sampleWeight = average(ray.weight);
+	vec3 Li = transmittance * ray.weight;
+	return Li;
+}
+
+#define PATH_TERMINATED_EMISSION 0
+#define PATH_TERMINATED_INFINITY 1
+#define PATH_SURFACE_SCATTER 2
+#define PATH_MEDIUM_SCATTER 3
+
+Ray nextBounce(
+	Ray ray, uint bounce, uint cullMask,
+	inout uint seed,
+	out uint hitType, out MaterialData matData, out mat4x3 tangentFrame)
+{
+	Ray nextRay;
+	HitData hitData;
+	float tGeom = traceGeometry(ray, cullMask, hitData);
+	GLSLInstance inst = getInstanceData(hitData);
+	float tMedium = TMAX;
+	Range rMedium = traceMediumConservative(ray);
+	rMedium.rMax = min(rMedium.rMax, tGeom);
+
+	#ifdef XRAY_LINE_VISION
+	if(tGeom != TMAX && inst.type == 1)
+	{
+		matData.emission = inst.color;
+		hitType = PATH_TERMINATED_EMISSION;
+		return nextRay;
+	}
+	#endif
+
+	if(tGeom < rMedium.rMin)
+	{
+		hitType = PATH_SURFACE_SCATTER;
+		evalHit(hitData, matData, tangentFrame);
+
+		nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
+		nextRay.weight *= ray.weight;
+
+		if(inst.type == 1)
+		{
+			matData.emission = inst.color;
+			hitType = PATH_TERMINATED_EMISSION;
+		}
+	}
+	else if( rMedium.rMin == TMAX )
+	{
+		hitType = PATH_TERMINATED_INFINITY;
+	}
+	else
+	{
+		tMedium = traceMedium(ray, rMedium, bounce, seed);
+		if(tGeom < tMedium)
+		{
+			hitType = PATH_SURFACE_SCATTER;
+			evalHit(hitData, matData, tangentFrame);
+
+			nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
+			nextRay.weight *= ray.weight;
+
+			if(inst.type == 1)
+			{
+				matData.emission = inst.color;
+				hitType = PATH_TERMINATED_EMISSION;
+			}
+		}
+		else if( tMedium == TMAX )
+		{
+			hitType = PATH_TERMINATED_INFINITY;
+		}
+		else
+		{
+			hitType = PATH_MEDIUM_SCATTER;
+			tangentFrame = mat4x3(1.0);
+			tangentFrame[3] = ray.origin + tMedium * ray.direction;
+			matData.albedo = volInst.albedo;
+
+			nextRay = scatterUniform(matData.albedo, tangentFrame[3], seed);
+			nextRay.weight *= ray.weight;
+		}
+	}
+	return nextRay;
+}
+
+void main()
+{
+	COMPUTE_SHADER_CHECK_ID_FRAME
+	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width + frame.width*frame.height*frame.idx;
+	vec3 totalIllumination = vec3(0.0);
+	bool selectedPixel = (gID.x == frame.width/2 && gID.y == frame.height/2);
+
+	for(uint j = 0; j < SAMPLE_COUNT; j++)
+	{
+		Ray ray = genPrimaryRay(frame, view, gl_GlobalInvocationID.xy, seed);
+		for(uint i = 0; i < MAX_BOUNCES; i++)
+		{
+			uint hitType;
+			MaterialData matData;
+			mat4x3 tangentFrame;
+
+			uint cullMask;
+			if(i == 0 && !selectedPixel)
+			{
+				cullMask = 0xFF;
+			}
+			else
+			{
+				cullMask = 0x0F;
+			}
+
+
+			Ray nextRay = nextBounce(ray, i, cullMask, seed, hitType, matData, tangentFrame);
+
+			if(i != 0)
+			{
+				writeLineSegment(ray.origin, tangentFrame[3], i, LINE_SEGMENT_TYPE_INDIRECT);
+			}
+
+			float sampleWeight = 1.0;
+			if(hitType == PATH_TERMINATED_EMISSION)
+			{
+				totalIllumination += ray.weight * matData.emission;
+				break;
+			}
+			else if(hitType == PATH_TERMINATED_INFINITY)
+			{
+				if(i == 0)
+				{
+					vec2 uv = dirToUv(ray.direction);
+					vec3 envMapValue = texture(envMap, uv).rgb;
+					totalIllumination += ray.weight * envMapValue;
+				}
+				break;
+			}
+			else if(hitType == PATH_SURFACE_SCATTER) 
+			{
+				vec3 Lo = vec3(0.0);
+				if(i == 0) // Emission only from the first hit. Other emissions from light sources are collected via NEE
+				{
+					Lo += matData.emission;
+				}
+				vec3 brdf = lampertBRDF(matData.albedo);
+				vec3 wi;
+				// Direct illumination from area lights
+				#if AREA_LIGHT_COUNT > 0
+				{
+					uint pinID = 0;
+					vec3 Li = sampleDirectIllumAreaLight(tangentFrame[3], i, seed, pinID, sampleWeight, wi);
+					float cosTheta = max(0.0, dot(tangentFrame[2], wi));
+					Lo += brdf * Li * cosTheta;
+					writePinFlux(pinID, ray.weight * brdf * sampleWeight * cosTheta);
+				}
+				#endif
+				// Direct illumination from envMap
+				{
+					uint pinID = 0;
+					vec3 Li = sampleDirectIllumEnvMap(tangentFrame[3], i, seed, pinID, sampleWeight, wi);
+					float cosTheta = max(0.0, dot(tangentFrame[2], wi));
+					Lo += brdf * Li * cosTheta;
+					writePinFlux(pinID, ray.weight * brdf * sampleWeight * cosTheta);
+				}
+				totalIllumination += ray.weight * Lo;
+			}
+			else if(hitType == PATH_MEDIUM_SCATTER)
+			{
+				vec3 Lo = vec3(0.0); // No emission from medium (Le = 0)
+				// Direct illumination from area lights
+				vec3 volumeBSDF = uniformScatterBSDF(volInst.albedo);
+				vec3 wi;
+				#if AREA_LIGHT_COUNT > 0
+				{
+					uint pinID = 0;
+					vec3 Li = sampleDirectIllumAreaLight(tangentFrame[3], i, seed, pinID, sampleWeight, wi);
+					Lo += volumeBSDF * Li;
+					writePinFlux(pinID, ray.weight * volumeBSDF * sampleWeight);
+				}
+				#endif
+				// Direct illumination from envMap
+				{
+					uint pinID = 0;
+					vec3 Li = sampleDirectIllumEnvMap(tangentFrame[3], i, seed, pinID, sampleWeight, wi);
+					Lo += volumeBSDF * Li;
+					writePinFlux(pinID, ray.weight * volumeBSDF * sampleWeight);
+				}
+				totalIllumination += ray.weight * Lo;
+			}
+
+			ray = nextRay;
+		}
+	}
+
+	totalIllumination /= float(SAMPLE_COUNT);
+	imageStore(colorOut, gID.xy, vec4(totalIllumination, 1.0));
+}
