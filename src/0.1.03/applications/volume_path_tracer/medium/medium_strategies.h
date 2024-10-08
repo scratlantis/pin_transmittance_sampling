@@ -27,7 +27,7 @@ class ArrayTransmittanceEncoder : public PinTransmittanceStorageStrategy
 	uint32_t transmittanceValueCount;
   public:
 	bool requiresUpdate() override;
-	void computeTransmittance(CmdBuffer cmdBuf, BufferRef pinBuffer, Image volume, Buffer transmittanceBuffer) override;
+	void computeTransmittance(CmdBuffer cmdBuf, BufferRef pinBuffer, Image volume, Buffer transmittanceBuffer, Buffer pinDensityMask) override;
 };
 
 
@@ -37,5 +37,5 @@ class PinGridGenerator : public PinGridGenerationStrategy
 	uint32_t pinCountPerGridCell;
   public:
 	bool requiresUpdate() override;
-	void generatePinGrid(CmdBuffer cmdBuf, BufferRef pinBuffer, Buffer pinGridBuffer) override;
+	void generatePinGrid(CmdBuffer cmdBuf, BufferRef pinBuffer, BufferRef pinDensityMask, Buffer pinGridBuffer) override;
 };

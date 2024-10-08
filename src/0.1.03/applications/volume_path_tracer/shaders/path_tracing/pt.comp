@@ -65,12 +65,20 @@ float traceMedium(Ray ray, Range range, uint bounce, inout uint seed)
 	vec3 localExit = (volInst.invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
 	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
 	float localTMax = distance(localOrigin, localExit);
+	writeScalarFieldDensityPlot(localOrigin, localDir, localTMax, seed, bounce, 1);
+	vec3 pinStartLocal,pinEndLocal;
 
 	#if((PIN_MODE & PIN_MODE_FLAG_INDIRECT) != 0)
 		float tLocal;
 		if(bounce > 0)
 		{
-			tLocal = pinMarcheMedium(localOrigin, localDir, localTMax, seed);
+			//tLocal = pinMarcheMedium(localOrigin, localDir, localTMax, seed);
+			tLocal = pinSampleDistanceMedium(localOrigin, localDir, localTMax, pinStartLocal, pinEndLocal, seed);
+			writePinDensityPlot(localOrigin, localDir, localTMax, seed, bounce, 1);
+
+			vec3 pinStart = (volInst.mat * vec4(pinStartLocal, 1.0)).xyz;
+			vec3 pinEnd = (volInst.mat * vec4(pinEndLocal, 1.0)).xyz;
+			writeLineSegment(pinStart, pinEnd, bounce, LINE_SEGMENT_TYPE_INDIRECT_PIN);
 		}
 		else
 		{
@@ -96,7 +104,7 @@ float traceMediumTransmittance(Ray ray, Range range, uint bounce, inout uint see
 	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
 	float localTMax = distance(localOrigin, localExit);
 
-	writeScalarFieldPlot(localOrigin, localDir, localTMax, seed, bounce);
+	writeScalarFieldPlot(localOrigin, localDir, localTMax, seed, bounce, 0);
 
 	float transmittance;
 	#if((PIN_MODE & PIN_MODE_FLAG_DIRECT) != 0)
@@ -113,7 +121,7 @@ float traceMediumTransmittance(Ray ray, Range range, uint bounce, inout uint see
 		else
 		{
 			writeLineSegment(pinStart, pinEnd, bounce, LINE_SEGMENT_TYPE_PIN_AL);
-			writePinPlot(localOrigin, localDir, localTMax, seed, bounce);
+			writePinPlot(localOrigin, localDir, localTMax, seed, bounce, 0);
 		}
 	}
 	else

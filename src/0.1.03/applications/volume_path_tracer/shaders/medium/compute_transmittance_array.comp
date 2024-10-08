@@ -7,7 +7,8 @@ layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z_id = 2) in;
 
 layout(binding = 0) readonly buffer PINS {GLSLPin pins[];};
 layout(binding = 1) writeonly buffer PIN_TRANSMITTANCE {float transmittance[];};
-layout(binding = 2) uniform sampler3D volSmp;
+layout(binding = 2) writeonly buffer PIN_DENSITY_MASK {GLSLDensityMaskEntry pinDensityMask[];};
+layout(binding = 3) uniform sampler3D volSmp;
 struct PushStruct
 {
 	uint   pinCount;
@@ -30,12 +31,36 @@ void main()
 	float stepSize = pinLenght / float(pc.perPinValueCount);
 
 	float densitySum = 0.0f;
+	float maxDensity = 0.0f;
 	for(uint i = 0; i < pc.perPinValueCount; i++)
 	{
 		vec3 samplePoint = origin + (stepSize * (0.5 + float(i))) * direction;
 		float density = texture(volSmp, samplePoint).r;
+		maxDensity = max(maxDensity, density);
 		densitySum += density*stepSize;
 		transmittance[gID * pc.perPinValueCount + i] = densitySum;//exp(-densitySum);
 		//transmittance[gID * pc.perPinValueCount + i] = exp(-densitySum);
 	}
+	GLSLDensityMaskEntry entry;
+	entry.maxDensity = maxDensity;
+
+	stepSize = pinLenght / float(32);
+	uint sampleMask = 0;
+	for(uint i = 0; i < 32; i++)
+	{
+		vec3 samplePoint = origin + (stepSize * (0.5 + float(i))) * direction;
+		float density = texture(volSmp, samplePoint).r;
+		float rng = random(gID + i + 1);
+		//float transmittance = exp(-density);
+		//if(transmittance < rng)
+		if(density /  maxDensity > rng)
+		{
+			sampleMask |= 1 << i;
+		}
+		//sampleMask |= 1 << i;
+	}
+	entry.densityMask = sampleMask;
+
+	pinDensityMask[gID] = entry;
+
 }

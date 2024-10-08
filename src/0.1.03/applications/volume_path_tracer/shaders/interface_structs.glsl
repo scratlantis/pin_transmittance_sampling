@@ -78,7 +78,7 @@ struct GLSLInstance
 	uint type;
 	uint padding[3];
 };
-#define LINE_SEGMENTS_PER_BOUNCE 5
+#define LINE_SEGMENTS_PER_BOUNCE 6
 struct GLSLLineSegment
 {
 	vec3 start;
@@ -107,11 +107,27 @@ struct GLSLPin
 	vec2 by_bz;
 };
 
+//struct GLSLPinGridEntry
+//{
+//	GLSLPin pin; // 24 bytes
+//	uint idx; // 4 bytes
+//	uint padding[1]; // 4 bytes
+//};
+
+#define DENSITY_MASK_SIZE 1 // 32 bits (1 * sizeof(uint))
+
+struct GLSLDensityMaskEntry
+{
+	float maxDensity;// 4 bytes
+	uint densityMask;// 4 bytes
+};
 struct GLSLPinGridEntry
 {
 	GLSLPin pin; // 24 bytes
 	uint idx; // 4 bytes
-	uint padding[1]; // 4 bytes
+
+	float maxDensity;// 4 bytes
+	uint densityMask;// 4 bytes
 };
 
 struct GLSLAccelerationStructureInstanceKHR

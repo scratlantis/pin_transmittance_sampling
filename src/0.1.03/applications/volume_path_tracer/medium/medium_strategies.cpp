@@ -87,15 +87,21 @@ bool ArrayTransmittanceEncoder::requiresUpdate()
 	return transmittanceValueCount != gvar_pin_transmittance_value_count.val.v_uint;
 }
 
-void ArrayTransmittanceEncoder::computeTransmittance(CmdBuffer cmdBuf, BufferRef pinBuffer, Image volume, Buffer transmittanceBuffer)
+void ArrayTransmittanceEncoder::computeTransmittance(CmdBuffer cmdBuf, BufferRef pinBuffer, Image volume, Buffer transmittanceBuffer, Buffer pinDensityMask)
 {
 	transmittanceValueCount = gvar_pin_transmittance_value_count.val.v_uint;
 	transmittanceBuffer->changeSize(gvar_pin_count.val.v_uint * gvar_pin_transmittance_value_count.val.v_uint * sizeof(float));
 	transmittanceBuffer->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
 	transmittanceBuffer->recreate();
+
+	pinDensityMask->changeSize(gvar_pin_count.val.v_uint * sizeof(GLSLDensityMaskEntry));
+	pinDensityMask->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
+	pinDensityMask->recreate();
+
 	ComputeCmd cmd = ComputeCmd(gvar_pin_count.val.v_uint, shaderPath + "medium/compute_transmittance_array.comp");
 	cmd.pushDescriptor(pinBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(transmittanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pinDensityMask, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(volume, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	struct PushStruct
 	{
@@ -116,7 +122,7 @@ bool PinGridGenerator::requiresUpdate()
 	return gridSize != gvar_pin_grid_size.val.v_uint || pinCountPerGridCell != gvar_pin_count_per_grid_cell.val.v_uint;
 }
 
-void PinGridGenerator::generatePinGrid(CmdBuffer cmdBuf, BufferRef pinBuffer, Buffer pinGridBuffer)
+void PinGridGenerator::generatePinGrid(CmdBuffer cmdBuf, BufferRef pinBuffer, BufferRef pinDensityMask, Buffer pinGridBuffer)
 {
 	gridSize = gvar_pin_grid_size.val.v_uint;
 	pinCountPerGridCell = gvar_pin_count_per_grid_cell.val.v_uint;
@@ -125,6 +131,7 @@ void PinGridGenerator::generatePinGrid(CmdBuffer cmdBuf, BufferRef pinBuffer, Bu
 	pinGridBuffer->recreate();
 	ComputeCmd cmd = ComputeCmd(glm::uvec3(gridSize), shaderPath + "medium/fill_pin_grid_greedy.comp");
 	cmd.pushDescriptor(pinBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(pinDensityMask, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(pinGridBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	struct PushStruct
 	{

@@ -60,28 +60,35 @@ void main()
 
     //bitMask = 0xFFFFFFFF;
 
-    plot[PLOTC] = 32.0;
+    plot[PLOTC] = 32.0*2.0;
     stepSum = 0.0;
     for(uint i = 0; i<32; i++)
     {
         float stepSize = 1.0;
         stepSum+= stepSize;
-        plot[PLOTC + 2 + i*2] = stepSize;
-        plot[PLOTC + 2 + i*2+1] = 0.0;
+        plot[PLOTC + 2 + i*4+2] = stepSize;
+        plot[PLOTC + 2 + i*4+3] = 0.0;
     }
     plot[PLOTC+1] = stepSum;
+
+
 
     const uint sampleCount = 1000;
     float invSampleCount = 1.0/float(sampleCount);
     for(uint i = 0; i<sampleCount; i++)
 	{
-		uint sampleMask = hash(i+10);
+		uint sampleMaskA = hash(i+14728);
+		uint sampleMaskB = hash(i+198341);
+        uint sampleMask = sampleMaskA & sampleMaskB;
+        sampleMask = ~sampleMask;
+		//uint sampleMask = hash(i+10);
         uint finalMask = sampleMask & bitMask;
         int dist = findMSB(finalMask);
         if(dist >= 0 && dist<32)
         {
             int selectedBit = 32 - dist;
-            plot[PLOTC + 2 + selectedBit*2+1] += invSampleCount;
+            plot[PLOTC + 2 + selectedBit*4+1] += invSampleCount;
+            plot[PLOTC + 2 + selectedBit*4+3] += invSampleCount;
         }
     
 	}

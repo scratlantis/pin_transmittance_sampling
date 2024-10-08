@@ -225,13 +225,13 @@ int main()
 
 		getCmdPlot(plotBuffer, guiConf.plot1, 0, vec3(1.0, 0.0, 0.0)).exec(cmdBuf);
 		getCmdPlot(plotBuffer, guiConf.plot2, MAX_PLOT_POINTS, vec3(0.0, 0.0, 1.0)).exec(cmdBuf);
-		getCmdPlot(plotBuffer, guiConf.plot3, MAX_PLOT_POINTS * 2, vec3(0.0, 0.0, 1.0)).exec(cmdBuf);
-		getCmdPlot(plotBuffer, guiConf.plot4, MAX_PLOT_POINTS* 3, vec3(0.0, 0.0, 1.0)).exec(cmdBuf);
+		getCmdPlot(plotBuffer, guiConf.plot3, MAX_PLOT_POINTS * 2, vec3(0.3, 0.5, 0.3)).exec(cmdBuf);
+		getCmdPlot(plotBuffer, guiConf.plot4, MAX_PLOT_POINTS * 3, vec3(0.0, 0.8, 0.0)).exec(cmdBuf);
 		cmdTransitionLayout(cmdBuf, guiConf.plot1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		cmdTransitionLayout(cmdBuf, guiConf.plot2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		cmdTransitionLayout(cmdBuf, guiConf.plot3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		cmdTransitionLayout(cmdBuf, guiConf.plot4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		cmdTestPlots(cmdBuf, plotBuffer);
+		//cmdTestPlots(cmdBuf, plotBuffer);
 
 		Image      swapchainImg = getSwapchainImage();
 		// Update instance data and tlas

@@ -116,6 +116,76 @@ float samplePin(vec3 origin, vec3 destination, GLSLPinGridEntry gridEntry, out v
 	return transmittance;
 }
 
+float pinSampleDistanceMedium(vec3 origin, vec3 direction, float maxLenght, out vec3 pinStart, out vec3 pinEnd, inout uint seed)
+{
+	GLSLPinGridEntry pinGridEntry = selectPin(origin, direction, maxLenght, seed);
+	vec3 pinOrigin = getPinOrigin(pinGridEntry.pin);
+	vec3 pinDestination = getPinDestination(pinGridEntry.pin);
+	vec3 pinDirection = getPinDirection(pinGridEntry.pin);
+	vec3 destination = origin + direction * maxLenght;
+	vec2 segment = projectRaySegment(pinOrigin, pinDestination, origin, destination);
+
+	pinStart = mix(getPinOrigin(pinGridEntry.pin), getPinDestination(pinGridEntry.pin), segment.x);
+	pinEnd = mix(getPinOrigin(pinGridEntry.pin), getPinDestination(pinGridEntry.pin), segment.y);
+
+	bool sampleForward = segment.x < segment.y;
+	uvec2 bitSegment = uvec2 (clamp(segment, 0.0, 0.9999) * vec2(32));
+	uint sampleCount = uint(abs(bitSegment.x-bitSegment.y));
+	//return 0.1;
+	if(sampleCount == 0)
+	{
+		return TMAX;
+	}
+	float distancePerBit = maxLenght/float(sampleCount);
+	float pdf = exp(-distancePerBit*pinGridEntry.maxDensity);
+	uint sampleBitDistance;
+
+	if(sampleForward)
+	{
+		uint sampleMask = 0;
+		for(uint i = bitSegment.x; i<bitSegment.y;i++)
+		{
+			float rng = unormNext(seed);
+			if(rng > pdf)
+			{
+				sampleMask |= 1 << 32-i;
+				//sampleMask |= 1 << i;
+			}
+		}
+		int sampleBitOffset = findMSB(sampleMask & pinGridEntry.densityMask);
+		if(sampleBitOffset == -1)
+		{
+			return TMAX;
+		}
+		sampleBitDistance = sampleBitOffset - bitSegment.x;
+	}
+	else
+	{
+		uint sampleMask = 0;
+		for(uint i = bitSegment.y; i<bitSegment.x;i++)
+		{
+			float rng = unormNext(seed);
+			if(rng > pdf)
+			{
+				//sampleMask |= 1 << (32 - i);
+				sampleMask |= 1 << i;
+			}
+		}
+		int sampleBitOffset = findLSB(sampleMask & pinGridEntry.densityMask);
+		if(sampleBitOffset == -1)
+		{
+			return TMAX;
+		}
+		sampleBitDistance = sampleBitOffset - bitSegment.y;
+	}
+	float sampleDistance =  sampleBitDistance*distancePerBit;
+	
+
+
+	return sampleDistance;
+}
+
+
 float pinMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
 {
 	float rng = unormNext(seed);
