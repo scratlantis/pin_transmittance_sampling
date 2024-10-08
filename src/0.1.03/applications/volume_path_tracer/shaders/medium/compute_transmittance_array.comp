@@ -42,18 +42,23 @@ void main()
 		//transmittance[gID * pc.perPinValueCount + i] = exp(-densitySum);
 	}
 	GLSLDensityMaskEntry entry;
-	entry.maxDensity = maxDensity;
 
 	stepSize = pinLenght / float(32);
+	float maxCollisionPropabillity = 1.0 - exp(-maxDensity*stepSize);
+	entry.maxDensity = maxCollisionPropabillity;
+
 	uint sampleMask = 0;
 	for(uint i = 0; i < 32; i++)
 	{
 		vec3 samplePoint = origin + (stepSize * (0.5 + float(i))) * direction;
 		float density = texture(volSmp, samplePoint).r;
+
+		float collisionPropabillity = 1.0 - exp(-density*stepSize);
+
 		float rng = random(gID + i + 1);
 		//float transmittance = exp(-density);
 		//if(transmittance < rng)
-		if(density /  maxDensity > rng)
+		if((collisionPropabillity /  maxCollisionPropabillity) > rng)
 		{
 			sampleMask |= 1 << i;
 		}

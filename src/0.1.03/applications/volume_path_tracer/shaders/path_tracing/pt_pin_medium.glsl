@@ -137,7 +137,7 @@ float pinSampleDistanceMedium(vec3 origin, vec3 direction, float maxLenght, out 
 		return TMAX;
 	}
 	float distancePerBit = maxLenght/float(sampleCount);
-	float pdf = exp(-distancePerBit*pinGridEntry.maxDensity);
+	float pdf = pinGridEntry.maxDensity;//exp(-distancePerBit*pinGridEntry.maxDensity);
 	uint sampleBitDistance;
 
 	if(sampleForward)
@@ -146,10 +146,10 @@ float pinSampleDistanceMedium(vec3 origin, vec3 direction, float maxLenght, out 
 		for(uint i = bitSegment.x; i<bitSegment.y;i++)
 		{
 			float rng = unormNext(seed);
-			if(rng > pdf)
+			if(rng < pdf)
 			{
-				sampleMask |= 1 << 32-i;
-				//sampleMask |= 1 << i;
+				//sampleMask |= 1 << 32-i;
+				sampleMask |= 1 << i;
 			}
 		}
 		int sampleBitOffset = findMSB(sampleMask & pinGridEntry.densityMask);
@@ -165,10 +165,10 @@ float pinSampleDistanceMedium(vec3 origin, vec3 direction, float maxLenght, out 
 		for(uint i = bitSegment.y; i<bitSegment.x;i++)
 		{
 			float rng = unormNext(seed);
-			if(rng > pdf)
+			if(rng < pdf)
 			{
-				//sampleMask |= 1 << (32 - i);
-				sampleMask |= 1 << i;
+				sampleMask |= 1 << (32 - i);
+				//sampleMask |= 1 << i;
 			}
 		}
 		int sampleBitOffset = findLSB(sampleMask & pinGridEntry.densityMask);
