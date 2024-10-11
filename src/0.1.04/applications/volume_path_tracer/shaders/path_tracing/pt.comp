@@ -20,6 +20,11 @@
 
 #include "pt_profiling.glsl"
 
+//#include "pt_inspection.glsl"
+
+
+
+
 //#undef AREA_LIGHT_COUNT
 
 // Local bindings
