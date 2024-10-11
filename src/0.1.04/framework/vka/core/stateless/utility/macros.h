@@ -18,9 +18,9 @@
 #define VALIDATION true
 
 #ifdef _WIN32
-#	define GLSLC_COMMAND "glslc.exe --target-env=vulkan1.2"
+#	define GLSLC_COMMAND "glslc.exe --target-env=vulkan1.3"
 #else        // not _WIN32
-#	define GLSLC_COMMAND "glslc --target-env vulkan1.2"
+#	define GLSLC_COMMAND "glslc --target-env vulkan1.3"
 #endif        // _WIN32
 
 #define INTEL_VENDOR_ID 8086

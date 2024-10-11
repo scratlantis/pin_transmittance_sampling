@@ -139,6 +139,10 @@ struct DefaultDeviceCI : DeviceCI
 		features12.descriptorBindingPartiallyBound = VK_TRUE;
 		enabledFeatures.addNode(features12);
 
+		VkPhysicalDeviceVulkan13Features features13{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+		features13.maintenance4 = VK_TRUE;
+		enabledFeatures.addNode(features13);
+
 		VkPhysicalDeviceShaderAtomicFloatFeaturesEXT shaderAtomicFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT};
 		shaderAtomicFeatures.shaderBufferFloat32Atomics   = VK_TRUE;
 		shaderAtomicFeatures.shaderBufferFloat32AtomicAdd = VK_TRUE;
