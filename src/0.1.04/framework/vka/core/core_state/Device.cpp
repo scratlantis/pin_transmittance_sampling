@@ -15,7 +15,21 @@ void Device::configure(DeviceCI &deviceCI)
 void Device::destroy()
 {
 	vkDestroyDevice(logical, nullptr);
+	LOAD_CMD_VK_INSTANCE(vkDestroyDebugUtilsMessengerEXT, instance)
+	pvkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 	vkDestroyInstance(instance, nullptr);
+}
+
+VKAPI_ATTR VkBool32 VKAPI_CALL debug_utils_message_callback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT             messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+    void                                       *pUserData)
+{
+	std::string message = std::string(pCallbackData->pMessage);
+	message = message.substr(message.find_last_of("|") + 1);
+	std::cout << message.c_str();
+	return VK_FALSE;
 }
 
 void Device::createInstance()
@@ -43,9 +57,8 @@ void Device::createInstance()
 
 	if (!instanceExtensions.empty())
 	{
-		//		IF_VALIDATION(
 		instanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-		instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);        //)
+		instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		instanceCreateInfo.enabledExtensionCount   = static_cast<uint32_t>(instanceExtensions.size());
 		instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 	}
@@ -53,8 +66,24 @@ void Device::createInstance()
 	const char *validationLayerName        = "VK_LAYER_KHRONOS_validation";
 	instanceCreateInfo.ppEnabledLayerNames = &validationLayerName;
 	instanceCreateInfo.enabledLayerCount   = 1;
+
+	VkValidationFeaturesEXT                   validationFeatures{VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT};
+	validationFeatures.enabledValidationFeatureCount = deviceCI.enabledValidationFeatures.size();
+	validationFeatures.pEnabledValidationFeatures    = deviceCI.enabledValidationFeatures.data();
+	validationFeatures.pNext                         = deviceCI.enabledInstanceFeatures.chainNodes();
+	instanceCreateInfo.pNext = &validationFeatures;
+
+
+	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCI{VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+	debugUtilsMessengerCI.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+	debugUtilsMessengerCI.messageType     = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+	debugUtilsMessengerCI.pfnUserCallback = debug_utils_message_callback;
+
 	VK_CHECK(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
-	// IF_VALIDATION(
+
+	LOAD_CMD_VK_INSTANCE(vkCreateDebugUtilsMessengerEXT, instance)
+	VK_CHECK(pvkCreateDebugUtilsMessengerEXT(instance, &debugUtilsMessengerCI, nullptr, &debugMessenger));
+
 	uint32_t instanceLayerCount;
 	vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
 	std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
@@ -140,7 +169,7 @@ void Device::createLogicalDevice()
 	logicalDeviceCI.pQueueCreateInfos       = queueCIs.data();
 	logicalDeviceCI.enabledExtensionCount   = VKA_COUNT(deviceCI.enabledDeviceExtensions);
 	logicalDeviceCI.ppEnabledExtensionNames = deviceCI.enabledDeviceExtensions.data();
-	logicalDeviceCI.pNext                   = deviceCI.enabledFeatures.chainNodes();
+	logicalDeviceCI.pNext                   = deviceCI.enabledDeviceFeatures.chainNodes();
 
 	VK_CHECK(vkCreateDevice(physical, &logicalDeviceCI, nullptr, &logical));
 

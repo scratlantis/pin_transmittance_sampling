@@ -173,7 +173,6 @@ int main()
 	// Path Tracer
 	uint32_t maxLineSegmentCount       = gvar_max_bounce.set.range.max.v_uint * LINE_SEGMENTS_PER_BOUNCE;
 	Buffer   lineSegmentInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, maxLineSegmentCount * sizeof(GLSLInstance));
-	ComparativePathTracer pathTracer                = ComparativePathTracer(viewDimensions.width, viewDimensions.height, lineSegmentInstanceBuffer, plotBuffer, maxLineSegmentCount);
 	Buffer mseBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
 
 	// Uniform Buffers
@@ -181,6 +180,7 @@ int main()
 
 	// Load static models
 	CmdBuffer cmdBuf = createCmdBuffer(gState.heap);
+	ComparativePathTracer pathTracer                = ComparativePathTracer(cmdBuf, viewDimensions.width, viewDimensions.height, lineSegmentInstanceBuffer, plotBuffer, maxLineSegmentCount);
 	ModelData cursorModel = gState.modelCache->fetch<GLSLVertex>(cmdBuf, cursor.path, 0);
 	cmdFillBuffer(cmdBuf, lineSegmentInstanceBuffer, 0, maxLineSegmentCount * sizeof(GLSLInstance), 0);
 	cmdFillBuffer(cmdBuf, plotBuffer, 0, plotBuffer->getSize(), 0);

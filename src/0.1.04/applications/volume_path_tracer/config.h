@@ -114,7 +114,7 @@ struct DefaultDeviceCI : DeviceCI
 		computeQueueCount   = 0;
 
 		// Instance Extensions
-		enabledInstanceExtensions = {VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME};
+		enabledInstanceExtensions = {VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, VK_EXT_LAYER_SETTINGS_EXTENSION_NAME};
 
 		// Device Extensions
 		enabledDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -127,34 +127,39 @@ struct DefaultDeviceCI : DeviceCI
 		enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE3_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME);
+		enabledDeviceExtensions.push_back(VK_EXT_SHADER_IMAGE_ATOMIC_INT64_EXTENSION_NAME);
+
+		// Instance Features
+		enabledValidationFeatures.push_back(VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT);
+
 
 		// Device Features
 		VkPhysicalDeviceVulkan11Features vulkan11Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
 		vulkan11Features.shaderDrawParameters = VK_TRUE;
-		enabledFeatures.addNode(vulkan11Features);
+		enabledDeviceFeatures.addNode(vulkan11Features);
 
 		VkPhysicalDeviceVulkan12Features features12{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
 		features12.bufferDeviceAddress             = VK_TRUE;
 		features12.shaderFloat16                   = VK_TRUE;
 		features12.descriptorBindingPartiallyBound = VK_TRUE;
-		enabledFeatures.addNode(features12);
+		enabledDeviceFeatures.addNode(features12);
 
 		VkPhysicalDeviceVulkan13Features features13{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 		features13.maintenance4 = VK_TRUE;
-		enabledFeatures.addNode(features13);
+		enabledDeviceFeatures.addNode(features13);
 
 		VkPhysicalDeviceShaderAtomicFloatFeaturesEXT shaderAtomicFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT};
 		shaderAtomicFeatures.shaderBufferFloat32Atomics   = VK_TRUE;
 		shaderAtomicFeatures.shaderBufferFloat32AtomicAdd = VK_TRUE;
-		enabledFeatures.addNode(shaderAtomicFeatures);
+		enabledDeviceFeatures.addNode(shaderAtomicFeatures);
 
 		VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
 		rayQueryFeatures.rayQuery = VK_TRUE;
-		enabledFeatures.addNode(rayQueryFeatures);
+		enabledDeviceFeatures.addNode(rayQueryFeatures);
 
 		VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT shader64Features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_IMAGE_ATOMIC_INT64_FEATURES_EXT};
 		shader64Features.shaderImageInt64Atomics = VK_TRUE;
-		enabledFeatures.addNode(shader64Features);
+		enabledDeviceFeatures.addNode(shader64Features);
 
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
@@ -173,19 +178,19 @@ struct DefaultDeviceCI : DeviceCI
 		deviceFeatures.geometryShader           = VK_TRUE;
 		VkPhysicalDeviceFeatures2 features2{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
 		features2.features = deviceFeatures;
-		enabledFeatures.addNode(features2);
+		enabledDeviceFeatures.addNode(features2);
 
 
 		VkPhysicalDeviceRayTracingPipelineFeaturesKHR ray_tracing_pipeline_features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
 		ray_tracing_pipeline_features.rayTracingPipeline = VK_TRUE;
-		enabledFeatures.addNode(ray_tracing_pipeline_features);
+		enabledDeviceFeatures.addNode(ray_tracing_pipeline_features);
 
 		VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
 		acceleration_structure_features.accelerationStructure                                 = VK_TRUE;
 		acceleration_structure_features.accelerationStructureIndirectBuild                    = VK_FALSE;
 		acceleration_structure_features.accelerationStructureHostCommands                     = VK_FALSE;
 		acceleration_structure_features.descriptorBindingAccelerationStructureUpdateAfterBind = VK_FALSE;
-		enabledFeatures.addNode(acceleration_structure_features);
+		enabledDeviceFeatures.addNode(acceleration_structure_features);
 	}
 };
 

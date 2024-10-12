@@ -2,6 +2,9 @@
 #ifndef PT_USCENE_H
 #define PT_USCENE_H
 
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_query : enable
+
 #include "pt_params.glsl"
 #include "../common.glsl"
 

@@ -65,7 +65,7 @@ class ComparativePathTracer
 	void showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea);
 	void showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
 	float computeMSE(CmdBuffer cmdBuf);
-	ComparativePathTracer(float relativeWidth, float relativeHeight, Buffer lineSegmentInstanceBuffer, Buffer plotBuffer, uint32_t lineSegmentCount);
+	ComparativePathTracer(CmdBuffer cmdBuf, float relativeWidth, float relativeHeight, Buffer lineSegmentInstanceBuffer, Buffer plotBuffer, uint32_t lineSegmentCount);
 	void destroy();
 
   private:
