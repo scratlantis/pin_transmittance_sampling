@@ -9,11 +9,10 @@ namespace vka
 {
     struct CameraCI
     {
-	    vec3 pos;
-	    vec3 frontDir;
-	    vec3 upDir;
-	    uint seed;
-
+	    vec3       pos;
+	    vec3       frontDir;
+	    vec3       upDir;
+	    uint       seed;
 	    VkExtent2D extent;
 	    float      yFovDeg;
 	    float      zNear;

@@ -114,6 +114,11 @@ glm::vec3 FixedCamera::getViewDirection() const
 	return front;
 }
 
+glm::vec3 FixedCamera::getViewUpDirection() const
+{
+	return up;
+}
+
 glm::mat4 FixedCamera::getViewMatrix() const
 {
 	return glm::lookAt(getPosition(), getPosition() + front, up);

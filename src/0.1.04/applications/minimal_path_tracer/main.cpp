@@ -1,29 +1,54 @@
 #include "config.h"
+#include "shader_interface.h"
 AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 using namespace glm;
 
 int main()
 {
-	// Global State Initialization. See config.h for more details.
+	//// Global State Initialization. See config.h for more details.
 	DeviceCI            deviceCI = DefaultDeviceCI(APP_NAME);
 	IOControlerCI       ioCI     = DefaultIOControlerCI(APP_NAME, 1000, 700);
 	GlfwWindow          window   = GlfwWindow();
 	AdvancedStateConfig config   = DefaultAdvancedStateConfig();
 	gState.init(deviceCI, ioCI, &window, config);
-
-	FixedCamera                                           cam                 = FixedCamera(DefaultFixedCameraState());
+	//// Init swapchain attachments
 	Image img_pt              = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 0.8, 1.0);
 	Image img_pt_accumulation = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 0.8, 1.0);
 	gState.updateSwapchainAttachments();
-
+	//// Init other stuff
+	FixedCamera                                           cam          = FixedCamera(DefaultFixedCameraState());
 	USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance>();
+	//// Load stuff:
 	CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
-	//// Load Scene
+	//// Load Geometry
+	sceneBuilder.loadEnvMap("/envmap/2k/autumn_field_2k.hdr", glm::uvec2(64, 64));
+	GLSLInstance instance{};
+	instance.cullMask = 0xFF;
+	instance.mat      = getMatrix(vec3(0, 0.2, -0.3), vec3(0.0, 180.0, 0.0), 0.1);
+	sceneBuilder.addModel(cmdBuf, "cornell_box/cornell_box.obj", &instance, 1);
+	USceneData scene = sceneBuilder.create(cmdBuf, gState.heap);
+	scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
+	//// Load Medium
+	PerlinNoiseArgs perlinArgs{};
+	perlinArgs.scale         = 0.1;
+	perlinArgs.min           = 0.0;
+	perlinArgs.max           = 10000;
+	perlinArgs.frequency     = 0.1;
+	perlinArgs.falloffAtEdge = true;
+	Image medium = createImage3D(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+	cmdTransitionLayout(cmdBuf, medium, VK_IMAGE_LAYOUT_GENERAL);
+	getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);
+	GLSLMediumInstance mediumInstance{};
+	mediumInstance.mat = getMatrix(vec3(0, 0, 0), vec3(0, 0, 0), 1.0);
+	mediumInstance.invMat = glm::inverse(mediumInstance.mat);
+	Buffer mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+	cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
+	//// Clear accumulation target
 	cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0, 0.0, 1.0, 1.0));
 	executeImmediat(cmdBuf);
-
 	// Main Loop
+	uint32_t frameCount = 0;
 	while (!gState.io.shouldTerminate())
 	{
 		if (gState.io.keyPressedEvent[GLFW_KEY_R])
@@ -31,33 +56,45 @@ int main()
 			clearShaderCache();
 		}
 		bool viewHasChanged = cam.keyControl(0.016);
-		if (gState.io.mouse.rightPressed)
-		{
-			viewHasChanged = viewHasChanged || cam.mouseControl(0.016);
-		}
-
+		viewHasChanged = (gState.io.mouse.rightPressed && cam.mouseControl(0.016)) || viewHasChanged;
 		viewHasChanged = viewHasChanged || gState.io.swapchainRecreated();
 
 		CmdBuffer cmdBuf       = createCmdBuffer(gState.frame->stack);
 		Image     swapchainImg = getSwapchainImage();
 		if (viewHasChanged)
 		{
-			cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0,0.0,1.0,1.0));
+			cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0,0.0,0.0,0.0));
 		}
 		// Path tracing
 		{
+			CameraCI camCI{};
+			camCI.pos      = cam.getPosition();
+			camCI.frontDir = cam.getViewDirection();
+			camCI.upDir    = cam.getViewUpDirection();
+			camCI.seed     = frameCount;
+			camCI.extent = img_pt->getExtent2D();
+			camCI.yFovDeg = 60.0;
+			camCI.zNear  = 0.1;
+			camCI.zFar = 100.0;
 
+			TraceArgs traceArgs{};
+			traceArgs.maxDepth             = 5;
+			traceArgs.rayMarchStepSize     = 0.1;
+			traceArgs.cameraCI             = camCI;
+			traceArgs.sceneData            = scene;
+			traceArgs.mediumInstanceBuffer = mediumInstanceBuffer;
+			traceArgs.mediumTexture        = medium;
+
+			cmdTrace(cmdBuf, img_pt, traceArgs);
 		}
+		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 		// Accumulation
 		{
-			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-			//getCmdAccumulate(img_pt, img_pt_accumulation, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
-			getCmdNormalize(img_pt_accumulation, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			                VkRect2D_OP(img_pt_accumulation->getExtent2D()), getScissorRect()).exec(cmdBuf);
+			getCmdAccumulate(img_pt, img_pt_accumulation, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
+			getCmdNormalize(img_pt_accumulation, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VkRect2D_OP(img_pt_accumulation->getExtent2D()), getScissorRect()).exec(cmdBuf);
 		}
-
 		swapBuffers({cmdBuf});
+		frameCount++;
 	}
-
 	gState.destroy();
 }

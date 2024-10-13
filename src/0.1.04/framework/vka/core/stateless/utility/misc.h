@@ -366,4 +366,6 @@ inline std::string getGLSLFormat(VkFormat format)
 			break;
 	}
 }
+
+glm::mat4 getMatrix(glm::vec3 pos, glm::vec3 rotDeg, float scale);
 }        // namespace vka

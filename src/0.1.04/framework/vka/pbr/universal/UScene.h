@@ -125,7 +125,7 @@ class USceneBuilderBase
 	virtual uint32_t           getInstanceCount(uint32_t modelIndex)                                                                                                            = 0;
 	virtual uint32_t           getTotalInstanceCount()                                                                                                                          = 0;
 	// copy together buffers, create tlas
-	USceneData create(CmdBuffer cmdBuf, IResourcePool *pPool, uint32_t sceneLoadFlags);
+	USceneData create(CmdBuffer cmdBuf, IResourcePool *pPool, uint32_t sceneLoadFlags = 0);
 };
 
 template <class Vertex, class Material, class Instance>
