@@ -10,18 +10,6 @@ namespace vka
 	        cmd.pushDescriptor(camBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	        cmd.pushDescriptor(camInstBuf, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 		}
-		struct CameraCI
-		{
-	        vec3 pos;
-	        vec3 frontDir;
-			vec3 upDir;
-	        uint seed;
-
-			VkExtent2D extent;
-			float yFovDeg;
-	        float zNear;
-	        float zFar;
-		};
 		void cmdUpdateCamera(CmdBuffer cmdBuf, Buffer camBuf, Buffer camInstBuf, CameraCI ci)
 		{
 	        GLSLCamera cam{};
@@ -60,5 +48,13 @@ namespace vka
 	        cmd.pipelineDef.shaderDef.args.push_back({"ENVMAP_PDF_BINS_Y", pScene->envMapSubdivisions.y});
 	        cmd.pipelineDef.shaderDef.args.push_back({"AREA_LIGHT_COUNT", pScene->areaLightCount});
         }
+        void bindScalarField(ComputeCmd &cmd, Image scalarField, float rayMarchStepSize)
+		{
+	        cmd.pushSubmodule(cVkaShaderModulePath + "pt_scalar_field.glsl");
+			cmd.pushDescriptor(scalarField, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+			cmd.pipelineDef.shaderDef.args.push_back({"RAY_MARCH_STEP_SIZE", std::to_string(rayMarchStepSize)});
+	        VKA_ASSERT(scalarField->getExtent().width == scalarField->getExtent().height && scalarField->getExtent().depth == scalarField->getExtent().height);
+	        cmd.pipelineDef.shaderDef.args.push_back({"VOLUME_RESOLUTION", scalarField->getExtent().width});
+		}
 	}
 }

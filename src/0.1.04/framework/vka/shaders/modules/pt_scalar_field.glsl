@@ -1,8 +1,7 @@
-#ifndef PT_SCALAR_FIELD_MEDIUM_H
-#define PT_SCALAR_FIELD_MEDIUM_H
+#ifndef PT_SCALAR_FIELD_H
+#define PT_SCALAR_FIELD_H
 
-#include "pt_params.glsl"
-#include "../common.glsl"
+#include "../lib/pt_common.glsl"
 
 #ifndef VOLUME_RESOLUTION
 #define VOLUME_RESOLUTION 128
@@ -12,8 +11,8 @@
 #define RAY_MARCHE_STEP_SIZE 0.2
 #endif
 
-#define PT_SCALAR_FIELD_MEDIUM_BINDING_COUNT 1
-layout(binding = PT_SCALAR_FIELD_MEDIUM_BINDING_OFFSET) uniform sampler3D volSmp;
+#define PT_SCALAR_FIELD_BINDING_COUNT 1
+layout(binding = PT_SCALAR_FIELD_BINDING_OFFSET) uniform sampler3D volSmp;
 
 float rayMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
 {

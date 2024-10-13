@@ -141,16 +141,14 @@ Ray nextBounce(
 	return nextRay;
 }
 
-float pos_dot(vec3 a, vec3 b)
-{
-	return max(0.0, dot(a, b));
-}
 
 void main()
 {
-	ivec2 gID = ivec2(gl_GlobalInvocationID.xy);
-	if(gID.x >= frame.width || gID.y >= frame.height){return;}
-	uint seed = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * frame.width + frame.width * frame.height * frame.idx;
+	if(!validInvocation())
+	{
+		return;
+	}
+	uint seed = getSeed();
 	vec3 totalIllumination = vec3(0.0);
 
 	for(uint j = 0; j < SAMPLE_COUNT; j++)
@@ -230,5 +228,5 @@ void main()
 	}
 
 	totalIllumination /= float(SAMPLE_COUNT);
-	imageStore(colorOut, gID.xy, vec4(totalIllumination, 1.0));
+	imageStore(colorOut, gl_GlobalInvocationID.xy, vec4(totalIllumination, 1.0));
 }

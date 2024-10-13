@@ -127,4 +127,9 @@ vec3 uvToDir(vec2 uv)
    return vec3(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi));
 }
 
+float pos_dot(vec3 a, vec3 b)
+{
+	return max(0.0, dot(a, b));
+}
+
 #endif

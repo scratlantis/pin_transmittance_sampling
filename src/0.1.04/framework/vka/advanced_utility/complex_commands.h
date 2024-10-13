@@ -116,6 +116,7 @@ class ComputeCmd
 	ComputeCmd(glm::uvec3 taskSize, std::string path, std::vector<ShaderArgs> args = {});
 
 	void pushSubmodule(const std::string path, std::vector<ShaderArgs> args = {});
+	void startLocalBindings();
 	void pushDescriptor(BufferRef buffer, VkDescriptorType type);
 	void pushDescriptor(Image image, VkDescriptorType type);
 	void pushDescriptor(const SamplerDefinition sampler);
@@ -137,6 +138,7 @@ class ComputeCmd
   private:
 	glm::uvec3     workGroupCount;
 	CmdBufferState getCmdBufferState() const;
+	void           pushBaseModule(glm::uvec3 invocationCount);
 };
 
 }        // namespace vka
