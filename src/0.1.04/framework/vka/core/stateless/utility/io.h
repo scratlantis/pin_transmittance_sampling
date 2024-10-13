@@ -10,22 +10,13 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-inline std::vector<char> readFile(const std::string &filename)
-{
-	std::ifstream file(filename, std::ios::binary | std::ios::ate);
-	if (!file.is_open())
-	{
-		std::cout << "Failed to open a file: " << filename << std::endl;
-		throw std::runtime_error("Failed to open a file!");
-		return {};
-	}
-	size_t            file_size = (size_t) file.tellg();
-	std::vector<char> file_buffer(file_size);
-	file.seekg(0);
-	file.read(file_buffer.data(), file_size);
-	file.close();
-	return file_buffer;
-}
+std::vector<char> readFile(const std::string &filename);
+
+void writeFile(const std::string &filename, const std::string &data);
+
+uint32_t longestCommonPrefix(const std::string &s1, const std::string &s2);
+std::string getRelativePath(const std::string &dir, const std::string &path);
+
 
 inline void printVka(const char *format, ...)
 {

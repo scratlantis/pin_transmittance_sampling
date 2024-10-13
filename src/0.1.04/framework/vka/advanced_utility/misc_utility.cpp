@@ -19,6 +19,11 @@ void swapBuffers(std::vector<CmdBuffer> cmdBufs)
 	gState.nextFrame();
 }
 
+vka::VkRect2D_OP getScissorRect()
+{
+	return VkRect2D_OP::absRegion(VkRect2D_OP(gState.io.extent), Rect2D<float>{0, 0, 1, 1});
+}
+
 vka::VkRect2D_OP getScissorRect(float x, float y, float width, float height)
 {
 	return VkRect2D_OP::absRegion(VkRect2D_OP(gState.io.extent), Rect2D<float>{x, y,width, height});

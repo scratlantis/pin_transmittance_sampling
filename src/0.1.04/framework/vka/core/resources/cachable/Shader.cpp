@@ -14,7 +14,7 @@ DEFINE_EQUALS_OVERLOAD(ShaderDefinition, ResourceIdentifier)
 
 bool ShaderDefinition::operator==(const ShaderDefinition &other) const
 {
-	return path == other.path && cmpVector(args, other.args);
+	return path == other.path && cmpVector(args, other.args) && cmpVector(libs, other.libs);
 }
 
 std::string ShaderDefinition::fileID() const
@@ -29,6 +29,12 @@ std::string ShaderDefinition::fileID() const
 			id.append("=");
 		}
 		id.append(args[i].value);
+	}
+
+	for (size_t i = 0; i < libs.size(); i++)
+	{
+		id.append("_");
+		id.append(libs[i]);
 	}
 	return id;
 }
@@ -48,6 +54,17 @@ std::string ShaderDefinition::fileName() const
 	return name;
 }
 
+std::string ShaderDefinition::suffix() const
+{
+	return path.substr(path.find_last_of(".") + 1);
+}
+
+std::string ShaderDefinition::preprocessedPath() const
+{
+	std::string shaderTargetDir = gShaderOutputDir + "/preprocessed";
+	return shaderTargetDir + "/" + fileIDShort() + "." + suffix();
+}
+
 void Shader_R::free()
 {
 	vkDestroyShaderModule(gState.device.logical, handle, nullptr);
@@ -59,13 +76,46 @@ Shader_R::Shader_R(IResourceCache *pCache, ShaderDefinition const &definition) :
 	createModule(definition);
 }
 
+void Shader_R::preprocess(ShaderDefinition const& def)
+{
+	std::string shaderPrefix = "#version 460\n#extension GL_GOOGLE_include_directive : enable\n";
+
+
+	std::string shaderTargetDir = gShaderOutputDir + "/preprocessed";
+	std::filesystem::create_directories(shaderTargetDir);
+
+	std::string shaderCode     = std::string(readFile(def.path).data());
+	for (auto& lib : def.libs)
+	{
+		std::string relativePath = getRelativePath(shaderTargetDir, lib);
+		std::string include = "#include \"" + relativePath + "\"\n";
+		shaderPrefix += include;
+	}
+
+	shaderCode = shaderPrefix + shaderCode;
+	for (uint32_t i = shaderCode.size() - 1; i > 0; i--)
+	{
+		char c = shaderCode[i];
+		if (c < 0 || c > 127)
+		{
+			shaderCode.pop_back();
+		}
+		else
+		{
+			break;
+		}
+	}
+	writeFile(def.preprocessedPath(), shaderCode);
+}
+
+
 void Shader_R::compile(ShaderDefinition const &def)
 {
 	std::stringstream shader_src_path;
 	std::stringstream shader_spv_path;
 	std::stringstream shader_log_path;
 	std::stringstream cmdShaderCompile;
-	shader_src_path << def.path;
+	shader_src_path << def.preprocessedPath();
 
 	shader_spv_path << gShaderOutputDir << "/spv";
 	std::filesystem::create_directories(shader_spv_path.str());
@@ -98,6 +148,7 @@ void Shader_R::createModule(ShaderDefinition const &def)
 {
 	printVka(("Loading shader: " + def.fileName()).c_str());
 	std::vector<char> shader_log;
+	preprocess(def);
 	compile(def);
 	std::stringstream shader_log_path;
 	shader_log_path << gShaderOutputDir << "/log/" << def.fileIDShort() << "_log.txt";

@@ -257,7 +257,10 @@ const std::map<VkFormat, VulkanFormatInfo> cVkFormatTable = {
 const VkExtent2D cResolution4k = {3840, 2160};
 const VkExtent2D cResolution2k = {2048, 1024};
 
-const std::string cVkaShaderPath = std::string(FRAMEWORK_SRC_DIR) + "/vka/shaders/";
+const std::string cVkaShaderPath = std::string(FRAMEWORK_SRC_DIR) + "/vka/shaders/programs/";
+const std::string cVkaShaderLibPath = std::string(FRAMEWORK_SRC_DIR) + "/vka/shaders/lib/";
+const std::string cVkaShaderModulePath = std::string(FRAMEWORK_SRC_DIR) + "/vka/shaders/modules/";
+
 
 extern const std::vector<glm::vec3> cCubeVertecies;
 extern const std::vector<uint32_t> cCubeTriangleIndices;

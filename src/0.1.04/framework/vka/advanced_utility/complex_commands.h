@@ -115,6 +115,7 @@ class ComputeCmd
 	ComputeCmd(VkExtent3D taskSize, std::string path, std::vector<ShaderArgs> args = {});
 	ComputeCmd(glm::uvec3 taskSize, std::string path, std::vector<ShaderArgs> args = {});
 
+	void pushSubmodule(const std::string path, std::vector<ShaderArgs> args = {});
 	void pushDescriptor(BufferRef buffer, VkDescriptorType type);
 	void pushDescriptor(Image image, VkDescriptorType type);
 	void pushDescriptor(const SamplerDefinition sampler);
