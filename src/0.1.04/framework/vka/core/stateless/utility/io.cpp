@@ -47,3 +47,33 @@ void writeFile(const std::string &filename, const std::string &data)
 	f <<  data;
 	f.close();
 }
+
+//https://stackoverflow.com/questions/51431425/how-to-recursively-copy-files-and-directories
+namespace fs = std::filesystem;
+// Recursively copies those files and folders from src to target which matches
+// predicate, and overwrites existing files in target.
+void copyRecursive(const fs::path &src, const fs::path &target,
+                   const std::function<bool(fs::path)> &predicate /* or use template */) noexcept
+{
+	try
+	{
+		for (const auto &dirEntry : fs::recursive_directory_iterator(src))
+		{
+			const auto &p = dirEntry.path();
+			if (predicate(p))
+			{
+				// Create path in target, if not existing.
+				const auto relativeSrc      = fs::relative(p, src);
+				const auto targetParentPath = target / relativeSrc.parent_path();
+				fs::create_directories(targetParentPath);
+
+				// Copy to the targetParentPath which we just created.
+				fs::copy(p, targetParentPath, fs::copy_options::overwrite_existing);
+			}
+		}
+	}
+	catch (std::exception &e)
+	{
+		std::cout << e.what();
+	}
+}

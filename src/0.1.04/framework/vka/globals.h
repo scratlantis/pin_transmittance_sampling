@@ -4,4 +4,5 @@
 
 extern vka::AdvancedState    gState;
 extern const std::string gShaderOutputDir;
+extern const std::string gAppShaderDir;
 extern std::vector<std::string> shaderPrintfOutput;

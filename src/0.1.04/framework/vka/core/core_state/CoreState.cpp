@@ -72,6 +72,7 @@ void CoreState::init(DeviceCI &deviceCI, IOControlerCI ioControllerCI, Window *w
 	memAlloc.init();
 	cmdAlloc.init();
 	cache = new ResourceCache();
+	io.buildShaderLib();
 	initBits |= STATE_INIT_ALL_BIT;
 }
 SubmitSynchronizationInfo CoreState::acquireNextSwapchainImage()

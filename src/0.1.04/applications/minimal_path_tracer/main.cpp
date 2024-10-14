@@ -54,6 +54,7 @@ int main()
 		if (gState.io.keyPressedEvent[GLFW_KEY_R])
 		{
 			clearShaderCache();
+			gState.io.buildShaderLib();
 		}
 		bool viewHasChanged = cam.keyControl(0.016);
 		viewHasChanged = (gState.io.mouse.rightPressed && cam.mouseControl(0.016)) || viewHasChanged;

@@ -91,6 +91,7 @@ class IOController
 	void    updateSwapchain();
 	bool    swapchainRecreated();
 	bool    shouldTerminate();
+	void    buildShaderLib();
 	Window *getWindow();
 
 	DELETE_COPY_CONSTRUCTORS(IOController);
