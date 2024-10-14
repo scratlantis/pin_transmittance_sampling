@@ -255,8 +255,8 @@ void DrawCmd::pushVertexData(BufferRef buffer, VertexDataLayout layout)
 void ComputeCmd::pushSubmodule(const std::string path, std::vector<ShaderArgs> args)
 {
 	pipelineDef.shaderDef.libs.push_back(path);
-	uint32_t nameLength = path.find_last_of(".") - path.find_last_of("/");
-	std::string name       = path.substr(path.find_last_of("/"), nameLength);
+	uint32_t nameLength = path.find_last_of(".") - path.find_last_of("/") - 1;
+	std::string name       = path.substr(path.find_last_of("/") + 1, nameLength);
 	for (auto &c : name)
 		c = toupper(c);
 	name = name + "_BINDING_OFFSET";

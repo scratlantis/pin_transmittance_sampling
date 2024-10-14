@@ -1,5 +1,6 @@
-layout(binding = PT_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
-layout(binding = PT_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
+#include "interface_structs.glsl"
+layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
+layout(binding = LOCAL_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
 
 Range traceMediumConservative(Ray ray)
 {
@@ -49,7 +50,6 @@ float traceMedium(Ray ray, Range range, uint bounce, inout uint seed)
 	return distance(ray.origin, worldHitPos);
 }
 
-
 float traceMediumTransmittance(Ray ray, Range range, inout uint seed)
 {
 	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
@@ -71,7 +71,7 @@ float traceTransmittance(Ray ray, inout uint seed)
 }
 
 #if AREA_LIGHT_COUNT > 0
-vec3 sampleDirectIllumAreaLight(vec3 pos, inout uint seed, out vec3 L_i, out vec3 omega_i)
+void sampleDirectIllumAreaLight(vec3 pos, inout uint seed, out vec3 L_i, out vec3 omega_i)
 {
 	Ray ray = genDirectIllumRayAreaLight(pos, seed);
 	L_i = traceTransmittance(ray, seed) * ray.weight;
@@ -79,17 +79,17 @@ vec3 sampleDirectIllumAreaLight(vec3 pos, inout uint seed, out vec3 L_i, out vec
 }
 #endif
 
-vec3 sampleDirectIllumEnvMap(vec3 pos, inout uint seed, out vec3 L_i, out vec3 omega_i)
+void sampleDirectIllumEnvMap(vec3 pos, inout uint seed, out vec3 L_i, out vec3 omega_i)
 {
 	Ray ray = genDirectIllumRayEnvMap(pos, seed);
 	L_i = traceTransmittance(ray, seed) * ray.weight;
 	omega_i = ray.direction;
 }
 
-const uint PATH_TERMINATED_EMISSION 0
-const uint PATH_TERMINATED_INFINITY 1
-const uint PATH_SURFACE_SCATTER 2
-const uint PATH_MEDIUM_SCATTER 3
+const uint PATH_TERMINATED_EMISSION = 0;
+const uint PATH_TERMINATED_INFINITY = 1;
+const uint PATH_SURFACE_SCATTER = 2;
+const uint PATH_MEDIUM_SCATTER = 3;
 
 Ray nextBounce(
 	Ray ray, uint bounce, uint cullMask,
@@ -141,7 +141,6 @@ Ray nextBounce(
 	return nextRay;
 }
 
-
 void main()
 {
 	if(!validInvocation())
@@ -153,7 +152,7 @@ void main()
 
 	for(uint j = 0; j < SAMPLE_COUNT; j++)
 	{
-		Ray ray = genPrimaryRay(frame, view, gl_GlobalInvocationID.xy, seed);
+		Ray ray = genPrimaryRay(gl_GlobalInvocationID.xy, seed);
 		for(uint i = 0; i < MAX_BOUNCES; i++)
 		{
 			uint hitType;
@@ -162,7 +161,7 @@ void main()
 			uint cullMask = 0xFF;
 
 			Ray nextRay = nextBounce(ray, i, cullMask, seed, hitType, matData, tangentFrame);
-
+			vec3 L_o = vec3(0.0);
 			if(hitType == PATH_TERMINATED_EMISSION)
 			{
 				totalIllumination += ray.weight * matData.emission;
@@ -180,10 +179,9 @@ void main()
 			}
 			else if(hitType == PATH_SURFACE_SCATTER) 
 			{
-				vec3 Lo = vec3(0.0);
 				if(i == 0) // Emission only from the first hit. Other emissions from light sources are collected via NEE
 				{
-					Lo += matData.emission;
+					L_o += matData.emission;
 				}
 				vec3 brdf = lampertBRDF(matData.albedo);
 				vec3 L_i, omega_i;
@@ -191,42 +189,38 @@ void main()
 				#if AREA_LIGHT_COUNT > 0
 				{
 					sampleDirectIllumAreaLight(tangentFrame[3], seed, L_i, omega_i);
-					Lo += brdf * Li * pos_dot(tangentFrame[2], omega_i);
+					L_o += brdf * L_i * pos_dot(tangentFrame[2], omega_i);
 				}
 				#endif
 				// Direct illumination from envMap
 				{
 					sampleDirectIllumEnvMap(tangentFrame[3], seed, L_i, omega_i);
-					Lo += brdf * Li * pos_dot(tangentFrame[2], omega_i);
+					L_o += brdf * L_i * pos_dot(tangentFrame[2], omega_i);
 				}
-
-				totalIllumination += ray.weight * Lo;
 			}
 			else if(hitType == PATH_MEDIUM_SCATTER)
 			{
-				vec3 Lo = vec3(0.0); // No emission from medium (Le = 0)
+				vec3 L_o = vec3(0.0); // No emission from medium (Le = 0)
 				// Direct illumination from area lights
 				vec3 bsdf = uniformScatterBSDF(volInst.albedo);
 				vec3 L_i, omega_i;
 				#if AREA_LIGHT_COUNT > 0
 				{
 					sampleDirectIllumAreaLight(tangentFrame[3], seed, L_i, omega_i);
-					Lo += bsdf * L_i;
+					L_o += bsdf * L_i;
 				}
 				#endif
 				// Direct illumination from envMap
 				{
 					sampleDirectIllumEnvMap(tangentFrame[3], seed, L_i, omega_i);
-					Lo += bsdf * L_i;
+					L_o += bsdf * L_i;
 				}
-
-				totalIllumination += ray.weight * Lo;
 			}
-
+			totalIllumination += ray.weight * L_o;
 			ray = nextRay;
 		}
 	}
 
 	totalIllumination /= float(SAMPLE_COUNT);
-	imageStore(colorOut, gl_GlobalInvocationID.xy, vec4(totalIllumination, 1.0));
+	imageStore(colorOut, ivec2(gl_GlobalInvocationID.xy), vec4(totalIllumination, 1.0));
 }

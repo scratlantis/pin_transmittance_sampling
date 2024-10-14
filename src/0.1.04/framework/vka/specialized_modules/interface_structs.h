@@ -68,7 +68,7 @@ struct instance_type<GLSLInstance>
 {
 	ComputeCmd get_cmd_write_tlas_instance(Buffer instanceBuffer, Buffer tlasInstanceBuffer, uint32_t instanceCount)
 	{
-		ComputeCmd cmd(instanceCount, cVkaShaderPath + "instance_to_tlas_instance.comp", {{"INPUT_SIZE", instanceCount}});
+		ComputeCmd cmd(instanceCount, cVkaShaderPath + "default_scene/instance_to_tlas_instance.comp", {{"INPUT_SIZE", instanceCount}});
 		cmd.pushDescriptor(instanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		cmd.pushDescriptor(tlasInstanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		return cmd;

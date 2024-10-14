@@ -2,6 +2,7 @@
 #include "shader_interface.h"
 AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
+const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders";
 using namespace glm;
 
 int main()
@@ -31,12 +32,14 @@ int main()
 	scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
 	//// Load Medium
 	PerlinNoiseArgs perlinArgs{};
-	perlinArgs.scale         = 0.1;
+	perlinArgs.scale         = 100.0;
 	perlinArgs.min           = 0.0;
-	perlinArgs.max           = 10000;
-	perlinArgs.frequency     = 0.1;
-	perlinArgs.falloffAtEdge = true;
-	Image medium = createImage3D(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+	perlinArgs.max           = 100.0;
+	perlinArgs.frequency     = 100.0;
+	perlinArgs.falloffAtEdge = false;
+	const uint32_t mediumExtent1D = 64;
+	VkExtent3D     mediumExtent{mediumExtent1D, mediumExtent1D, mediumExtent1D};
+	Image          medium = createImage(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, mediumExtent);
 	cmdTransitionLayout(cmdBuf, medium, VK_IMAGE_LAYOUT_GENERAL);
 	getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);
 	GLSLMediumInstance mediumInstance{};
@@ -55,6 +58,9 @@ int main()
 		{
 			clearShaderCache();
 			gState.io.buildShaderLib();
+			CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
+			getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);
+			executeImmediat(cmdBuf);
 		}
 		bool viewHasChanged = cam.keyControl(0.016);
 		viewHasChanged = (gState.io.mouse.rightPressed && cam.mouseControl(0.016)) || viewHasChanged;
@@ -79,6 +85,7 @@ int main()
 			camCI.zFar = 100.0;
 
 			TraceArgs traceArgs{};
+			traceArgs.sampleCount          = 1;
 			traceArgs.maxDepth             = 5;
 			traceArgs.rayMarchStepSize     = 0.1;
 			traceArgs.cameraCI             = camCI;

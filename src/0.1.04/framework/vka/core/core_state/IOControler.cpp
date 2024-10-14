@@ -197,7 +197,7 @@ void IOController::buildShaderLib()
 	    [](std::filesystem::path path) {
 		    return path.extension() == ".glsl";
 	    };
-	copyRecursive(gAppShaderDir, shaderRootDir + "/app", isIncludableShader);
-	copyRecursive(cVkaShaderPath, shaderRootDir + "/app", isIncludableShader);
+	copyRecursive(gAppShaderRoot, shaderRootDir + "/app", isIncludableShader);
+	copyRecursive(cVkaShaderRoot, shaderRootDir + "/lib", isIncludableShader);
 }
 }        // namespace vka

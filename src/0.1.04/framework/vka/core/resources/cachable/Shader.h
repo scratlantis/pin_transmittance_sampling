@@ -48,7 +48,7 @@ class ShaderDefinition : public ResourceIdentifier
 	std::string suffix() const;
 
 	std::string preprocessedPath() const;
-	
+	static std::string preprocessedLibPath(const std::string &path);
 
   protected:
 };

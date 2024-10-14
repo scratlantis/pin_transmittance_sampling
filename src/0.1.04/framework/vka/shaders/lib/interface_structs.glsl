@@ -1,4 +1,3 @@
-#pragma once
 #ifndef VKA_STRUCTS_H
 #define VKA_STRUCTS_H
 

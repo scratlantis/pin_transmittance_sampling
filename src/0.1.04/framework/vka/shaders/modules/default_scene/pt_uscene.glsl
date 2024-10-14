@@ -5,8 +5,7 @@
 #extension GL_EXT_ray_tracing : enable
 #extension GL_EXT_ray_query : enable
 
-#include "pt_params.glsl"
-#include "../common.glsl"
+#include "../../lib/pt_common.glsl"
 
 #ifdef ENVMAP_PDF_BINS_X
 	#ifdef ENVMAP_PDF_BINS_Y
