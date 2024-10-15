@@ -21,6 +21,7 @@ namespace vka
     void bindCamera(ComputeCmd &cmd, Buffer camBuf, Buffer camInstBuf);
 	void cmdUpdateCamera(CmdBuffer cmdBuf, Buffer camBuf, Buffer camInstBuf, CameraCI ci);
     void bindScene(ComputeCmd &cmd, const pbr::USceneData *pScene);
+    void bindMockScene(ComputeCmd &cmd);
     void bindScalarField(ComputeCmd &cmd, Image scalarField, float rayMarchStepSize);
     }
 }

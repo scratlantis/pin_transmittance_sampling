@@ -27,7 +27,11 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 
 	ComputeCmd cmd(target->getExtent2D(), shaderPath + "pt.comp", {{"FORMAT1", getGLSLFormat(target->getFormat())}});
 	bindCamera(cmd, camBuf, camInstBuf);
+#ifdef RAY_TRACING_SUPPORT
 	bindScene(cmd, &args.sceneData);
+#else
+	bindMockScene(cmd);
+#endif
 	bindScalarField(cmd, args.mediumTexture, args.rayMarchStepSize);
 	cmd.startLocalBindings();
 	cmd.pushDescriptor(target, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);

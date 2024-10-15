@@ -41,6 +41,24 @@ std::vector<char> readFile(const std::string &filename)
 	return file_buffer;
 }
 
+std::vector<char> readTextFile(const std::string &filename)
+{
+	std::ifstream file(filename, std::ios::binary | std::ios::ate);
+	if (!file.is_open())
+	{
+		std::cout << "Failed to open a file: " << filename << std::endl;
+		throw std::runtime_error("Failed to open a file!");
+		return {};
+	}
+	size_t            file_size = (size_t) file.tellg();
+	std::vector<char> file_buffer(file_size);
+	file.seekg(0);
+	file.read(file_buffer.data(), file_size);
+	file.close();
+	file_buffer.push_back('\0');
+	return file_buffer;
+}
+
 void writeFile(const std::string &filename, const std::string &data)
 {
 	std::ofstream f(filename);

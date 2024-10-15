@@ -127,7 +127,7 @@ void Shader_R::preprocess(ShaderDefinition const& def)
 	std::string shaderTargetDir = shaderPath.substr(0, shaderPath.find_last_of("/"));
 	std::filesystem::create_directories(shaderTargetDir);
 
-	std::string shaderCode     = std::string(readFile(def.path).data());
+	std::string shaderCode = std::string(readTextFile(def.path).data());
 	for (auto& lib : def.libs)
 	{
 		std::string libPath = ShaderDefinition::preprocessedLibPath(lib);
@@ -144,18 +144,18 @@ void Shader_R::preprocess(ShaderDefinition const& def)
 	}
 
 	shaderCode = shaderPrefix + shaderCode;
-	for (uint32_t i = shaderCode.size() - 1; i > 0; i--)
-	{
-		char c = shaderCode[i];
-		if (c != '}') // Todo: very hacky, but works for now
-		{
-			shaderCode.pop_back();
-		}
-		else
-		{
-			break;
-		}
-	}
+	//for (uint32_t i = shaderCode.size() - 1; i > 0; i--)
+	//{
+	//	char c = shaderCode[i];
+	//	if (c != '}') // Todo: very hacky, but works for now
+	//	{
+	//		shaderCode.pop_back();
+	//	}
+	//	else
+	//	{
+	//		break;
+	//	}
+	//}
 	writeFile(shaderPath, shaderCode);
 }
 
@@ -204,8 +204,8 @@ void Shader_R::createModule(ShaderDefinition const &def)
 	std::stringstream shader_log_path;
 	shader_log_path << gShaderOutputDir << "/log/" << def.fileIDShort() << "_log.txt";
 	std::string shader_log_path_str = shader_log_path.str();
-	shader_log = readFile(shader_log_path_str);
-	if (shader_log.size() > 0)
+	shader_log                      = readTextFile(shader_log_path_str);
+	if (shader_log.size() > 1)
 	{
 		printVka("Error compiling shader '%s' : %s", def.fileIDShort().c_str(), shader_log.data());
 		gState.shaderLog += "\nShader compile error:\n";

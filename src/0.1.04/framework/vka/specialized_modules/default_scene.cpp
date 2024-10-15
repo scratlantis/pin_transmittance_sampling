@@ -48,6 +48,10 @@ namespace vka
 	        cmd.pipelineDef.shaderDef.args.push_back({"ENVMAP_PDF_BINS_Y", pScene->envMapSubdivisions.y});
 	        cmd.pipelineDef.shaderDef.args.push_back({"AREA_LIGHT_COUNT", pScene->areaLightCount});
         }
+        void bindMockScene(ComputeCmd &cmd)
+        {
+	        cmd.pushSubmodule(cVkaShaderModulePath + "mock/pt_uscene_mock.glsl");
+        }
         void bindScalarField(ComputeCmd &cmd, Image scalarField, float rayMarchStepSize)
 		{
 	        cmd.pushSubmodule(cVkaShaderModulePath + "pt_scalar_field.glsl");

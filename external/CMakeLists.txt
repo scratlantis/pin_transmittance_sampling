@@ -11,6 +11,9 @@ add_library(ktx INTERFACE)
 target_include_directories(ktx INTERFACE KTX/include
                                         KTX/other_include/KHR)
 
+add_library(vma INTERFACE)
+target_include_directories(vma INTERFACE VULKAN_MEMORY_ALLOCATOR/include)
+
 add_library(csvwriter INTERFACE)
 target_include_directories(ktx INTERFACE CSV_WRITER/include)
 

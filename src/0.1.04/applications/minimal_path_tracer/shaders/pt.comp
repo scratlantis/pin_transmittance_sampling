@@ -2,6 +2,8 @@
 layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
 layout(binding = LOCAL_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
 
+
+
 Range traceMediumConservative(Ray ray)
 {
 	vec3 localOrigin = (volInst.invMat * vec4(ray.origin, 1.0)).xyz;
@@ -171,9 +173,7 @@ void main()
 			{
 				if(i == 0)
 				{
-					vec2 uv = dirToUv(ray.direction);
-					vec3 envMapValue = texture(envMap, uv).rgb;
-					totalIllumination += ray.weight * envMapValue;
+					totalIllumination += ray.weight * sampleEnvMap(ray.direction);
 				}
 				break;
 			}

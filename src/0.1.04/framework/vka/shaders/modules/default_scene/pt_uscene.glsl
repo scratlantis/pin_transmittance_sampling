@@ -14,7 +14,7 @@
 #endif
 
 #ifndef BACKGROUND_LIGHTING
-#define BACKGROUND_LIGHTING (vec3(1.0, 1.0, 1.0) * 0.2)
+#define BACKGROUND_LIGHTING (vec3(1.0, 1.0, 1.0) * 0.8)
 #endif
 
 #ifndef AREA_LIGHT_COUNT
@@ -199,12 +199,17 @@ Ray genDirectIllumRayEnvMap(vec3 pos, inout uint seed)
 	float pdf;
 	vec2 uv = sampleEnvMapPdf(seed, pdf);
 	ray.direction = uvToDir(uv);
-	ray.weight = 5.0*texture(envMap, uv).rgb / pdf;
+	ray.weight = 4.0 * PI * texture(envMap, uv).rgb / pdf;
 #else
 	ray.direction = normalize(vec3(0.5) - random3D(seed));
-	ray.weight = vec3(BACKGROUND_LIGHTING);
+	ray.weight = 4.0 * PI * vec3(BACKGROUND_LIGHTING);
 #endif
 	return ray;
+}
+
+vec3 sampleEnvMap(vec3 dir)
+{
+	return texture(envMap, dirToUv(dir)).rgb;
 }
 
 #endif

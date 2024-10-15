@@ -20,16 +20,19 @@ int main()
 	//// Init other stuff
 	FixedCamera                                           cam          = FixedCamera(DefaultFixedCameraState());
 	USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance>();
+	USceneData scene;
 	//// Load stuff:
 	CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
 	//// Load Geometry
 	sceneBuilder.loadEnvMap("/envmap/2k/autumn_field_2k.hdr", glm::uvec2(64, 64));
+#ifdef RAY_TRACING_SUPPORT
 	GLSLInstance instance{};
 	instance.cullMask = 0xFF;
 	instance.mat      = getMatrix(vec3(0, 0.2, -0.3), vec3(0.0, 180.0, 0.0), 0.1);
 	sceneBuilder.addModel(cmdBuf, "cornell_box/cornell_box.obj", &instance, 1);
-	USceneData scene = sceneBuilder.create(cmdBuf, gState.heap);
+	scene = sceneBuilder.create(cmdBuf, gState.heap);
 	scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
+#endif
 	//// Load Medium
 	PerlinNoiseArgs perlinArgs{};
 	perlinArgs.scale         = 1000.0;

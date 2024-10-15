@@ -14,6 +14,8 @@
 
 std::vector<char> readFile(const std::string &filename);
 
+std::vector<char> readTextFile(const std::string &filename);
+
 void writeFile(const std::string &filename, const std::string &data);
 void copyRecursive(const std::filesystem::path &src, const std::filesystem::path &target,
                    const std::function<bool(std::filesystem::path)> &predicate /* or use template */) noexcept;
