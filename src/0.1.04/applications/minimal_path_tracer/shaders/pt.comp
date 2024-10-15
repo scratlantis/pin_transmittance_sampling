@@ -200,7 +200,6 @@ void main()
 			}
 			else if(hitType == PATH_MEDIUM_SCATTER)
 			{
-				vec3 L_o = vec3(0.0); // No emission from medium (Le = 0)
 				// Direct illumination from area lights
 				vec3 bsdf = uniformScatterBSDF(volInst.albedo);
 				vec3 L_i, omega_i;

@@ -199,7 +199,7 @@ ComputeCmd getCmdPlot(Buffer src, Image dst, uint32_t offset, glm::vec3 color)
 
 ComputeCmd getCmdPerlinNoise(Image target, PerlinNoiseArgs args)
 {
-	ComputeCmd cmd(target->getExtent2D(), cVkaShaderPath + "perlin_noise_3D.comp");
+	ComputeCmd cmd(target->getExtent(), cVkaShaderPath + "perlin_noise_3D.comp");
 	VKA_ASSERT(target->getFormat() == VK_FORMAT_R32_SFLOAT)
 	VKA_ASSERT(!args.blend); // Not yet implemented.
 	cmd.pushDescriptor(target, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);

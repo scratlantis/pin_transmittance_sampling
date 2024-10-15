@@ -16,11 +16,12 @@ void Device::destroy()
 {
 	vkDestroyDevice(logical, nullptr);
 	LOAD_CMD_VK_INSTANCE(vkDestroyDebugUtilsMessengerEXT, instance)
-	pvkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+	pvkDestroyDebugUtilsMessengerEXT(instance, printfDebugMessenger, nullptr);
+	pvkDestroyDebugUtilsMessengerEXT(instance, validationDebugMessenger, nullptr);
 	vkDestroyInstance(instance, nullptr);
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL debug_utils_message_callback(
+VKAPI_ATTR VkBool32 VKAPI_CALL printf_debug_utils_message_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT             messageType,
     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
@@ -29,6 +30,20 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debug_utils_message_callback(
 	std::string message = std::string(pCallbackData->pMessage);
 	message = message.substr(message.find_last_of("|") + 1);
 	std::cout << message.c_str();
+	return VK_FALSE;
+}
+
+VKAPI_ATTR VkBool32 VKAPI_CALL validation_debug_utils_message_callback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT             messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+    void                                       *pUserData)
+{
+	std::string message = std::string(pCallbackData->pMessage);
+	message             = message.substr(message.find_last_of("|") + 1);
+	uint32_t endPos     = message.find_last_of("(");
+	message             = message.substr(0, endPos);
+	std::cout << "[ Validation Error ]\n" << message.c_str() << "\n";
 	return VK_FALSE;
 }
 
@@ -73,39 +88,22 @@ void Device::createInstance()
 	validationFeatures.pNext                         = deviceCI.enabledInstanceFeatures.chainNodes();
 	instanceCreateInfo.pNext = &validationFeatures;
 
-
-	VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCI{VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
-	debugUtilsMessengerCI.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-	debugUtilsMessengerCI.messageType     = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-	debugUtilsMessengerCI.pfnUserCallback = debug_utils_message_callback;
-
 	VK_CHECK(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
 
 	LOAD_CMD_VK_INSTANCE(vkCreateDebugUtilsMessengerEXT, instance)
-	VK_CHECK(pvkCreateDebugUtilsMessengerEXT(instance, &debugUtilsMessengerCI, nullptr, &debugMessenger));
 
-	uint32_t instanceLayerCount;
-	vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
-	std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
-	vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
-	bool validationLayerPresent = false;
-	for (VkLayerProperties layer : instanceLayerProperties)
-	{
-		if (strcmp(layer.layerName, validationLayerName) == 0)
-		{
-			validationLayerPresent = true;
-			break;
-		}
-	}
-	if (validationLayerPresent)
-	{
-		instanceCreateInfo.ppEnabledLayerNames = &validationLayerName;
-		instanceCreateInfo.enabledLayerCount   = 1;
-	}
-	else
-	{
-		std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled";
-	}
+	VkDebugUtilsMessengerCreateInfoEXT printfDebugUtilsMessengerCI{VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+	printfDebugUtilsMessengerCI.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+	printfDebugUtilsMessengerCI.messageType     = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+	printfDebugUtilsMessengerCI.pfnUserCallback = printf_debug_utils_message_callback;
+	VK_CHECK(pvkCreateDebugUtilsMessengerEXT(instance, &printfDebugUtilsMessengerCI, nullptr, &printfDebugMessenger));
+
+	VkDebugUtilsMessengerCreateInfoEXT validationDebugUtilsMessengerCI{VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
+	validationDebugUtilsMessengerCI.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	validationDebugUtilsMessengerCI.messageType     = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+	validationDebugUtilsMessengerCI.pfnUserCallback = validation_debug_utils_message_callback;
+	VK_CHECK(pvkCreateDebugUtilsMessengerEXT(instance, &validationDebugUtilsMessengerCI, nullptr, &printfDebugMessenger));
+
 	gState.initBits |= STATE_INIT_DEVICE_INSTANCE_BIT;
 }
 void Device::selectPhysicalDevice()

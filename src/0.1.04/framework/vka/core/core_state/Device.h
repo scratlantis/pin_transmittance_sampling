@@ -24,7 +24,8 @@ class Device
 	VkDevice             logical;
 	VkPhysicalDevice     physical;
 	VkInstance           instance;
-	VkDebugUtilsMessengerEXT debugMessenger;
+	VkDebugUtilsMessengerEXT printfDebugMessenger;
+	VkDebugUtilsMessengerEXT validationDebugMessenger;
 	std::vector<VkQueue> universalQueues;
 	int                  universalQueueFamily;
 	std::vector<VkQueue> computeQueues;

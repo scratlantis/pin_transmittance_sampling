@@ -1,8 +1,9 @@
 #include "../lib/random.glsl"
 layout(binding = 0, r32f) uniform image3D volumeData;
+#extension GL_EXT_debug_printf : enable
 struct PushStruct
 {
-	uint	seed;
+	uint	 seed;
 	float	 scale;
 	float    minVal;
 	float    maxVal;
@@ -15,13 +16,12 @@ layout(push_constant) uniform PC {PushStruct pc;};
 
 void main()
 {
-	if(!validInvocation()) return;
 	ivec3 gID = ivec3(gl_GlobalInvocationID.xyz);
+	if(!validInvocation()) return;
 	vec3 pos = vec3(gID) / vec3(INVOCATION_COUNT_X, INVOCATION_COUNT_Y, INVOCATION_COUNT_Z);
 	pos += random3D(pc.seed);
+	
 	float density = pc.scale * perlinNoise(pos*pc.frequency);
-	//float density = pc.scale * max(0.0,perlinNoise(pos*100.0));
-	//density= 100.0;
 	if(pc.falloffAtEdge == 1)
 	{
 		float distanceToLowerBound = min(min(pos.x, pos.y), pos.z);

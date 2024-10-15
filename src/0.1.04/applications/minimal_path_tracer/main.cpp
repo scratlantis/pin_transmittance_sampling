@@ -14,8 +14,8 @@ int main()
 	AdvancedStateConfig config   = DefaultAdvancedStateConfig();
 	gState.init(deviceCI, ioCI, &window, config);
 	//// Init swapchain attachments
-	Image img_pt              = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 0.8, 1.0);
-	Image img_pt_accumulation = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 0.8, 1.0);
+	Image img_pt              = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 1.0, 1.0);
+	Image img_pt_accumulation = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 1.0, 1.0);
 	gState.updateSwapchainAttachments();
 	//// Init other stuff
 	FixedCamera                                           cam          = FixedCamera(DefaultFixedCameraState());
@@ -32,19 +32,20 @@ int main()
 	scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
 	//// Load Medium
 	PerlinNoiseArgs perlinArgs{};
-	perlinArgs.scale         = 100.0;
+	perlinArgs.scale         = 1000.0;
 	perlinArgs.min           = 0.0;
 	perlinArgs.max           = 100.0;
-	perlinArgs.frequency     = 100.0;
-	perlinArgs.falloffAtEdge = false;
+	perlinArgs.frequency     = 4.0;
+	perlinArgs.falloffAtEdge = true;
 	const uint32_t mediumExtent1D = 64;
 	VkExtent3D     mediumExtent{mediumExtent1D, mediumExtent1D, mediumExtent1D};
 	Image          medium = createImage(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, mediumExtent);
 	cmdTransitionLayout(cmdBuf, medium, VK_IMAGE_LAYOUT_GENERAL);
 	getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);
 	GLSLMediumInstance mediumInstance{};
-	mediumInstance.mat = getMatrix(vec3(0, 0, 0), vec3(0, 0, 0), 1.0);
+	mediumInstance.mat = getMatrix(vec3(-0.2, -0.2, -0.2), vec3(0, 0, 0), 0.4);
 	mediumInstance.invMat = glm::inverse(mediumInstance.mat);
+	mediumInstance.albedo  = vec3(1.0, 1.0, 1.0);
 	Buffer mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 	cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
 	//// Clear accumulation target
