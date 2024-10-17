@@ -443,6 +443,31 @@ void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories)
 }        // namespace gvar_gui
 
 
+namespace plot_gui
+{
+void buildGui(VkRect2D_OP viewport, uint32_t plotCount)
+{
+	if (!gState.guiRendered)
+	{
+		gState.imguiWrapper->newFrame();
+		gState.guiRendered = true;
+	}
+	ImGui::SetNextWindowPos({(float) viewport.offset.x, (float) viewport.offset.y});
+	ImGui::SetNextWindowSize({(float) viewport.extent.width, (float) viewport.extent.height});
+	ImGui::Begin("PlotGui", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+
+	for (size_t i = 0; i < plotCount; i++)
+	{
+		//ImGui::PlotLines("##plot", gState.plotData[i].data(), gState.plotData[i].size(), 0, nullptr, FLT_MAX, FLT_MAX, ImVec2(0, 80));
+	
+
+	}
+
+
+	ImGui::End();
+}
+}
+
 namespace shader_console_gui
 {
 void buildGui(VkRect2D_OP viewport)
