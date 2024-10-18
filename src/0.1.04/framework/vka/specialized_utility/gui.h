@@ -12,6 +12,10 @@ void cmdRenderGui(CmdBuffer cmdBuf, Image target, float x, float y, float width,
 void cmdRenderGui(CmdBuffer cmdBuf, Image target);
 void setGuiDimensions(Rect2D<float> rect);
 
+void beginGui(std::string name, Rect2D<float> rect, uint32_t flags, bool *isOpen);
+
+void endGui();
+
 
 
 //bool addShaderLog();

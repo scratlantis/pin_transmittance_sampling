@@ -52,6 +52,43 @@ uint32_t GVar_Val::bool32()
 	return v_bool ? 1 : 0;
 };
 
+bool GVar_Val::equals(const GVar_Val &other, GVar_Type type) const
+{
+	if (type == GVAR_VEC3)
+	{
+		return v_vec3[0] == other.v_vec3[0] && v_vec3[1] == other.v_vec3[1] && v_vec3[2] == other.v_vec3[2];
+	}
+	else if (type == GVAR_FLOAT || type == GVAR_FLOAT_RANGE || type == GVAR_UNORM)
+	{
+		return v_float == other.v_float;
+	}
+	else if (type == GVAR_INT)
+	{
+		return v_int == other.v_int;
+	}
+	else if (type == GVAR_UINT || type == GVAR_ENUM || type == GVAR_UINT_RANGE)
+	{
+		return v_uint == other.v_uint;
+	}
+	else if (type == GVAR_BOOL)
+	{
+		return v_bool == other.v_bool;
+	}
+	else if (type == GVAR_TEXT_INPUT)
+	{
+		return v_char_array == other.v_char_array;
+	}
+	else if (type == GVAR_VEC3_RANGE)
+	{
+		return v_vec3[0] == other.v_vec3[0] && v_vec3[1] == other.v_vec3[1] && v_vec3[2] == other.v_vec3[2];
+	}
+	else
+	{
+		DEBUG_BREAK;
+		return true;
+	}
+}
+
 // Value Range
 GVar_Set::GVar_Set() :
     range({0, 0})
@@ -75,38 +112,7 @@ bool GVar::operator==(const GVar &other) const
 
 bool GVar::compareValue(const GVar &other) const
 {
-	if (type == GVAR_VEC3)
-	{
-		return val.v_vec3[0] == other.val.v_vec3[0] && val.v_vec3[1] == other.val.v_vec3[1] && val.v_vec3[2] == other.val.v_vec3[2];
-	}
-	else if (type == GVAR_FLOAT || type == GVAR_FLOAT_RANGE || type == GVAR_UNORM)
-	{
-		return val.v_float == other.val.v_float;
-	}
-	else if (type == GVAR_INT)
-	{
-		return val.v_int == other.val.v_int;
-	}
-	else if (type == GVAR_UINT || type == GVAR_ENUM || type == GVAR_UINT_RANGE)
-	{
-		return val.v_uint == other.val.v_uint;
-	}
-	else if (type == GVAR_BOOL)
-	{
-		return val.v_bool == other.val.v_bool;
-	}
-	else if (type == GVAR_TEXT_INPUT)
-	{
-		return val.v_char_array == other.val.v_char_array;
-	}
-	else if (type == GVAR_VEC3_RANGE)
-	{
-		return val.v_vec3[0] == other.val.v_vec3[0] && val.v_vec3[1] == other.val.v_vec3[1] && val.v_vec3[2] == other.val.v_vec3[2];
-	}
-	else
-	{
-		return true;
-	}
+	return val.equals(other.val, type);
 }
 
 GVar::GVar(std::string p, GVar_Val v, GVar_Type t, int s) :
@@ -115,6 +121,7 @@ GVar::GVar(std::string p, GVar_Val v, GVar_Type t, int s) :
     type(t),
     sortId(s)
 {
+	GVar::all.push_back(this);
 }
 
 GVar::GVar(std::string p, GVar_Val v, GVar_Type t, int s, GVar_Set aSet) :
@@ -124,6 +131,7 @@ GVar::GVar(std::string p, GVar_Val v, GVar_Type t, int s, GVar_Set aSet) :
     sortId(s),
     set(aSet)
 {
+	GVar::all.push_back(this);
 }
 
 GVar::GVar(std::string p, GVar_Val v, GVar_Type t, int s, uint32_t flags) :
@@ -133,6 +141,7 @@ GVar::GVar(std::string p, GVar_Val v, GVar_Type t, int s, uint32_t flags) :
     sortId(s),
     flags(flags)
 {
+	GVar::all.push_back(this);
 }
 
 GVar::GVar(std::string p, GVar_Val v, GVar_Type t, int s, GVar_Set aSet, uint32_t flags) :
@@ -143,6 +152,7 @@ GVar::GVar(std::string p, GVar_Val v, GVar_Type t, int s, GVar_Set aSet, uint32_
     set(aSet),
     flags(flags)
 {
+	GVar::all.push_back(this);
 }
 
 GVar::GVar(std::string p, GVar_Val v, GVar_Type t, int s, std::vector<std::string> list) :
@@ -152,6 +162,7 @@ GVar::GVar(std::string p, GVar_Val v, GVar_Type t, int s, std::vector<std::strin
     sortId(s),
     set({list})
 {
+	GVar::all.push_back(this);
 }
 
 GVar::GVar(std::string p, GVar_Val v, GVar_Type t, int s, std::vector<std::string> list, uint32_t flags) :
@@ -162,6 +173,7 @@ GVar::GVar(std::string p, GVar_Val v, GVar_Type t, int s, std::vector<std::strin
     set({list}),
     flags(flags)
 {
+	GVar::all.push_back(this);
 }
 
 
@@ -270,9 +282,11 @@ void GVar::readFromJson(json &j)
 	}
 }
 
-void GVar::addToGui()
+bool GVar::addToGui()
 {
 	std::stringstream ss;
+	GVar_Val oldVal = val;
+	GVar_Val newVal;
 	switch (type)
 	{
 		case GVAR_EVENT:
@@ -322,6 +336,44 @@ void GVar::addToGui()
 		default:
 			break;
 	}
+	return !oldVal.equals(val, type);
+}
+
+std::vector<GVar *> GVar::filterMask(std::vector<GVar *> gvar, uint32_t mask)
+{
+	std::vector<GVar *> result;
+	for (auto gv : gvar)
+	{
+		if ((gv->flags & mask) != 0)
+		{
+			result.push_back(gv);
+		}
+	}
+	return result;
+}
+
+std::vector<GVar *> GVar::filterSortID(std::vector<GVar *> gvar, uint32_t sortID)
+{
+	std::vector<GVar *> result;
+	for (auto gv : gvar)
+	{
+		if (gv->sortId == sortID)
+		{
+			result.push_back(gv);
+		}
+	}
+	return result;
+}
+
+bool GVar::addToGui(std::vector<GVar *> gvar, std::string category)
+{
+	std::sort(gvar.begin(), gvar.end(), [](GVar *a, GVar *b) { return a->sortId < b->sortId; });
+	bool changed = false;
+	for (GVar* gv : gvar)
+	{
+		changed = gv->addToGui() || changed;
+	}
+	return changed;
 }
 
 void GVar::store(std::vector<GVar *> gvar, std::string path)
@@ -343,6 +395,10 @@ void GVar::load(std::vector<GVar *> gvar, std::string path)
 	{
 		gv->readFromJson(j);
 	}
+}
+std::vector<GVar *> GVar::getAll()
+{
+	return all;
 }
 
 }        // namespace vka

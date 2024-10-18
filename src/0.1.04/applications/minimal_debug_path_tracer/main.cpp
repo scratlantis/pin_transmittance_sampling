@@ -1,9 +1,12 @@
 #include "config.h"
 #include "shader_interface.h"
+#include "ui.h"
 AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders";
 using namespace glm;
+
+GVar perlinFrequency{"Perlin frequency", 4.f, GVAR_FLOAT_RANGE, GUI_CAT_NOISE, {1.f, 10.f}};
 
 int main()
 {
@@ -13,9 +16,10 @@ int main()
 	GlfwWindow          window   = GlfwWindow();
 	AdvancedStateConfig config   = DefaultAdvancedStateConfig();
 	gState.init(deviceCI, ioCI, &window, config);
+	enableGui();
 	//// Init swapchain attachments
-	Image img_pt              = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 1.0, 1.0);
-	Image img_pt_accumulation = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, 1.0, 1.0);
+	Image img_pt              = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, viewDimensions.width, viewDimensions.height);
+	Image img_pt_accumulation = createSwapchainAttachment(VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_LAYOUT_GENERAL, viewDimensions.width, viewDimensions.height);
 	gState.updateSwapchainAttachments();
 	//// Init other stuff
 	FixedCamera                                           cam          = FixedCamera(DefaultFixedCameraState());
@@ -38,7 +42,7 @@ int main()
 	perlinArgs.scale         = 1000.0;
 	perlinArgs.min           = 0.0;
 	perlinArgs.max           = 100.0;
-	perlinArgs.frequency     = 4.0;
+	perlinArgs.frequency          = perlinFrequency.val.v_float;
 	perlinArgs.falloffAtEdge = true;
 	const uint32_t mediumExtent1D = 64;
 	VkExtent3D     mediumExtent{mediumExtent1D, mediumExtent1D, mediumExtent1D};
@@ -58,23 +62,34 @@ int main()
 	uint32_t frameCount = 0;
 	while (!gState.io.shouldTerminate())
 	{
+		bool shaderRecompiled = false;
 		if (gState.io.keyPressedEvent[GLFW_KEY_R])
 		{
 			clearShaderCache();
 			gState.io.buildShaderLib();
-			CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
-			getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);
-			executeImmediat(cmdBuf);
+			shaderRecompiled = true;
 		}
 		bool viewHasChanged = cam.keyControl(0.016);
 		viewHasChanged = (gState.io.mouse.rightPressed && cam.mouseControl(0.016)) || viewHasChanged;
-		viewHasChanged = viewHasChanged || gState.io.swapchainRecreated();
+		viewHasChanged      = viewHasChanged || gState.io.swapchainRecreated();
+
+		std::vector<bool> settingsChanged = buildGui();
+		bool              anySettingsChanged = orOp(settingsChanged);
 
 		CmdBuffer cmdBuf       = createCmdBuffer(gState.frame->stack);
+		// Fill swapchain with background color
 		Image     swapchainImg = getSwapchainImage();
-		if (viewHasChanged)
+		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.25, 0.25, 0.3, 1.0)).exec(cmdBuf);
+		// Reset accumulation
+		if (viewHasChanged || anySettingsChanged || shaderRecompiled)
 		{
 			cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0,0.0,0.0,0.0));
+		}
+		// Regenerate noise
+		if (settingsChanged[GUI_CAT_NOISE] || shaderRecompiled)
+		{
+			perlinArgs.frequency = perlinFrequency.val.v_float;
+			getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);
 		}
 		// Path tracing
 		{
@@ -103,7 +118,11 @@ int main()
 		// Accumulation
 		{
 			getCmdAccumulate(img_pt, img_pt_accumulation, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
-			getCmdNormalize(img_pt_accumulation, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VkRect2D_OP(img_pt_accumulation->getExtent2D()), getScissorRect()).exec(cmdBuf);
+			getCmdNormalize(img_pt_accumulation, swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VkRect2D_OP(img_pt_accumulation->getExtent2D()), getScissorRect(viewDimensions)).exec(cmdBuf);
+		}
+		// Gui
+		{
+			cmdRenderGui(cmdBuf, swapchainImg);
 		}
 		swapBuffers({cmdBuf});
 		frameCount++;

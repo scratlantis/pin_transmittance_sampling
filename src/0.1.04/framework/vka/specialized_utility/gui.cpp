@@ -85,127 +85,20 @@ void setGuiDimensions(Rect2D<float> rect)
 	ImGui::SetNextWindowPos({(float) viewport.offset.x, (float) viewport.offset.y});
 	ImGui::SetNextWindowSize({(float) viewport.extent.width, (float) viewport.extent.height});
 }
+void beginGui(std::string name, Rect2D<float> rect, uint32_t flags, bool *isOpen = nullptr)
+{
+	if (!gState.guiRendered)
+	{
+		gState.imguiWrapper->newFrame();
+		gState.guiRendered = true;
+	}
+	setGuiDimensions(rect);
+	ImGui::Begin(name.c_str(), isOpen, flags);
+}
 
-
-
-
-//void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories, VkRect2D_OP viewport)
-//{
-//	if (!gState.guiRendered)
-//	{
-//		gState.imguiWrapper->newFrame();
-//		gState.guiRendered = true;
-//	}
-//	ImGui::SetNextWindowPos({(float) viewport.offset.x, (float) viewport.offset.y});
-//	ImGui::SetNextWindowSize({(float) viewport.extent.width, (float) viewport.extent.height});
-//	ImGui::Begin("Gvar", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize);
-//	std::sort(gvar.begin(), gvar.end(), [](GVar *a, GVar *b) { return a->sortId < b->sortId; });
-//	int currentCategory = -1;
-//	bool     categoryOpen    = false;
-//	for (uint32_t i = 0; i < gvar.size(); i++)
-//	{
-//		GVar *gv = gvar[i];
-//		if (currentCategory < gv->sortId)
-//		{
-//			std::string name;
-//			if (categories.size() > gv->sortId)
-//			{
-//				name = categories[gv->sortId];
-//			}
-//			else
-//			{
-//				name = "Unknown_" + gv->sortId;
-//			}
-//			categoryOpen = ImGui::CollapsingHeader(name.c_str());
-//		}
-//		if (categoryOpen)
-//		{
-//			ImGui::PushItemWidth(ImGui::GetWindowSize().x * 0.3);
-//			addGVar(gv);
-//		}
-//		currentCategory = gvar[i]->sortId;
-//	}
-//	ImGui::End();
-//	/*ImGui::ShowDemoWindow();*/
-//}
-
-//void buildGui(std::vector<GVar *> gvar, std::vector<std::string> categories)
-//{
-//	std::stable_sort(gvar.begin(), gvar.end(), [](GVar *a, GVar *b) { return a->sortId < b->sortId; });
-//	int  currentCategory = -1;
-//	bool categoryOpen    = false;
-//	for (uint32_t i = 0; i < gvar.size(); i++)
-//	{
-//		GVar *gv = gvar[i];
-//		if (currentCategory < gv->sortId)
-//		{
-//			std::string name;
-//			if (categories.size() > gv->sortId)
-//			{
-//				name = categories[gv->sortId];
-//			}
-//			else
-//			{
-//				name = "Unknown_" + gv->sortId;
-//			}
-//			categoryOpen = ImGui::CollapsingHeader(name.c_str());
-//		}
-//		if (categoryOpen)
-//		{
-//			ImGui::PushItemWidth(ImGui::GetWindowSize().x * 0.5);
-//			addGVar(gv);
-//		}
-//		currentCategory = gvar[i]->sortId;
-//	}
-//	//ImGui::ShowDemoWindow();
-//}
-//}        // namespace gvar_gui
-//
-//
-//namespace plot_gui
-//{
-//void buildGui(VkRect2D_OP viewport, uint32_t plotCount)
-//{
-//	if (!gState.guiRendered)
-//	{
-//		gState.imguiWrapper->newFrame();
-//		gState.guiRendered = true;
-//	}
-//	ImGui::SetNextWindowPos({(float) viewport.offset.x, (float) viewport.offset.y});
-//	ImGui::SetNextWindowSize({(float) viewport.extent.width, (float) viewport.extent.height});
-//	ImGui::Begin("PlotGui", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
-//
-//	for (size_t i = 0; i < plotCount; i++)
-//	{
-//		//ImGui::PlotLines("##plot", gState.plotData[i].data(), gState.plotData[i].size(), 0, nullptr, FLT_MAX, FLT_MAX, ImVec2(0, 80));
-//	
-//
-//	}
-//
-//
-//	ImGui::End();
-//}
-//}
-//
-//namespace shader_console_gui
-//{
-//void buildGui(VkRect2D_OP viewport)
-//{
-//	if (gState.shaderLog == "")
-//		return;
-//	if (!gState.guiRendered)
-//	{
-//		gState.imguiWrapper->newFrame();
-//		gState.guiRendered = true;
-//	}
-//	ImGui::SetNextWindowPos({(float) viewport.offset.x, (float) viewport.offset.y});
-//	ImGui::SetNextWindowSize({(float) viewport.extent.width, (float) viewport.extent.height});
-//	ImGui::Begin("ShaderLog", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
-//	ImGui::TextWrapped(gState.shaderLog.c_str());
-//	ImGui::End();
-//}
-//}        // namespace shader_console_gui
-
-
+void endGui()
+{
+	ImGui::End();
+}
 
 }        // namespace vka
