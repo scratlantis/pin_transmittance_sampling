@@ -48,7 +48,6 @@ int main()
 	VkExtent3D     mediumExtent{mediumExtent1D, mediumExtent1D, mediumExtent1D};
 	Image          medium = createImage(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, mediumExtent);
 	cmdTransitionLayout(cmdBuf, medium, VK_IMAGE_LAYOUT_GENERAL);
-	getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);
 	GLSLMediumInstance mediumInstance{};
 	mediumInstance.mat = getMatrix(vec3(-0.2, -0.2, -0.2), vec3(0, 0, 0), 0.4);
 	mediumInstance.invMat = glm::inverse(mediumInstance.mat);
@@ -57,34 +56,13 @@ int main()
 	cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
 	//// Clear accumulation target
 	cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0, 0.0, 1.0, 1.0));
-	//// Test plot
-	 
-	//std::hash<std::string> hash_fn;
-	//Buffer                 plotBuf, plotDataBuf, plotCountBuf;
-	//// fetch
-	//gState.feedbackDataCache->fetch(plotBuf, hash_fn("plot"));
-	//gState.feedbackDataCache->fetch(plotDataBuf, hash_fn("plotData"));
-	//gState.feedbackDataCache->fetch(plotCountBuf, hash_fn("plotCount"));
-	//// write
-	//shader_plot::GLSLYListPlot plot{};
-	//plot.offset   = 0;
-	//plot.count  = 10;
-	//plot.stride = 0.1f;
-	//plot.dataType = PLOT_DATA_TYPE_FLOAT;
-	//cmdWriteCopy(cmdBuf, plotBuf, &plot, sizeof(shader_plot::GLSLYListPlot));
-	//float plotData[10] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
-	//cmdWriteCopy(cmdBuf, plotDataBuf, plotData, 10 * sizeof(float));
-	//cmdInitBuffer(cmdBuf, plotCountBuf, 1, sizeof(uint32_t));
-	
-	//// Debug args
-	TraceDebugArgs debugArgs{};
-	debugArgs.maxPlotCount = 10;
-	debugArgs.maxPlotValueCount = 1000;
 	executeImmediat(cmdBuf);
 	// Main Loop
 	uint32_t frameCount = 0;
+	vec2 lastClickPos = vec2(1.0);
 	while (!gState.io.shouldTerminate())
 	{
+		bool firstFrame = frameCount == 0;
 		bool shaderRecompiled = false;
 		if (gState.io.keyPressedEvent[GLFW_KEY_R])
 		{
@@ -92,11 +70,16 @@ int main()
 			gState.io.buildShaderLib();
 			shaderRecompiled = true;
 		}
-		bool viewHasChanged = cam.keyControl(0.016);
-		viewHasChanged = (gState.io.mouse.rightPressed && cam.mouseControl(0.016)) || viewHasChanged;
-		viewHasChanged      = viewHasChanged || gState.io.swapchainRecreated();
-
-		std::vector<bool> settingsChanged = buildGui();
+		bool leftClickInView = false;
+		if (mouseInView(viewDimensions) && gState.io.mouse.leftPressedEvent())
+		{
+			lastClickPos = mouseViewCoord(viewDimensions);
+			leftClickInView = true;
+		}
+		bool viewHasChanged                  = mouseInView(viewDimensions) && cam.keyControl(0.016);
+		viewHasChanged                       = (mouseInView(viewDimensions)  && gState.io.mouse.rightPressed && cam.mouseControl(0.016)) || viewHasChanged;
+		viewHasChanged                       = viewHasChanged || gState.io.swapchainRecreated();
+		std::vector<bool> settingsChanged    = buildGui();
 		bool              anySettingsChanged = orOp(settingsChanged);
 
 		CmdBuffer cmdBuf       = createCmdBuffer(gState.frame->stack);
@@ -104,12 +87,13 @@ int main()
 		Image     swapchainImg = getSwapchainImage();
 		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.25, 0.25, 0.3, 1.0)).exec(cmdBuf);
 		// Reset accumulation
-		if (viewHasChanged || anySettingsChanged || shaderRecompiled)
+		if (viewHasChanged || anySettingsChanged || shaderRecompiled || firstFrame)
 		{
 			cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0,0.0,0.0,0.0));
 		}
+		bool resetHistogram = viewHasChanged || anySettingsChanged || shaderRecompiled || leftClickInView || firstFrame;
 		// Regenerate noise
-		if (settingsChanged[GUI_CAT_NOISE] || shaderRecompiled)
+		if (settingsChanged[GUI_CAT_NOISE] || shaderRecompiled || firstFrame)
 		{
 			perlinArgs.frequency = perlinFrequency.val.v_float;
 			getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);
@@ -120,29 +104,36 @@ int main()
 			camCI.pos      = cam.getPosition();
 			camCI.frontDir = cam.getViewDirection();
 			camCI.upDir    = cam.getViewUpDirection();
-			camCI.seed     = frameCount;
-			camCI.extent = img_pt->getExtent2D();
-			camCI.yFovDeg = 60.0;
-			camCI.zNear  = 0.1;
-			camCI.zFar = 100.0;
+			camCI.frameIdx = frameCount;
+			camCI.extent   = img_pt->getExtent2D();
+			camCI.yFovDeg  = 60.0;
+			camCI.zNear    = 0.1;
+			camCI.zFar     = 100.0;
 
 			TraceArgs traceArgs{};
-			traceArgs.sampleCount          = 1;
-			traceArgs.maxDepth             = 5;
-			traceArgs.rayMarchStepSize     = 0.1;
-			traceArgs.cameraCI             = camCI;
-			traceArgs.sceneData            = scene;
-			traceArgs.mediumInstanceBuffer = mediumInstanceBuffer;
-			traceArgs.mediumTexture        = medium;
+			traceArgs.sampleCount               = 1;
+			traceArgs.maxDepth                  = 5;
+			traceArgs.rayMarchStepSize          = 0.1;
+			traceArgs.cameraCI                  = camCI;
+			traceArgs.sceneData                 = scene;
+			traceArgs.mediumInstanceBuffer      = mediumInstanceBuffer;
+			traceArgs.mediumTexture             = medium;
+			traceArgs.enableDebugging           = true;
+			traceArgs.debugArgs.pixelPos        = lastClickPos;
+			traceArgs.debugArgs.enableHistogram = true;
 
-			if ( mouseInView(viewDimensions) && gState.io.mouse.leftPressedEvent())
+			if (leftClickInView)
 			{
-				debugArgs.pixelPos = mouseViewCoord(viewDimensions);
-				traceArgs.pDebugArgs           = &debugArgs;
+				traceArgs.debugArgs.enablePlot        = true;
+				traceArgs.debugArgs.maxPlotCount      = 10;
+				traceArgs.debugArgs.maxPlotValueCount = 1000;
 			}
-			else
+
+			if (resetHistogram)
 			{
-				traceArgs.pDebugArgs = nullptr;
+				traceArgs.debugArgs.resetHistogram = true;
+				traceArgs.debugArgs.maxHistCount   = 10;
+				traceArgs.debugArgs.maxHistValueCount = 1000;
 			}
 
 			cmdTrace(cmdBuf, img_pt, traceArgs);

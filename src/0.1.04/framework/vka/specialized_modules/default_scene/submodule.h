@@ -12,7 +12,7 @@ struct CameraCI
 	vec3       pos;
 	vec3       frontDir;
 	vec3       upDir;
-	uint       seed;
+	uint       frameIdx;
 	VkExtent2D extent;
 	float      yFovDeg;
 	float      zNear;

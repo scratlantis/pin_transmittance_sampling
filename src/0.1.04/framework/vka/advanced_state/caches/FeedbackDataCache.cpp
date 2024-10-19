@@ -19,7 +19,8 @@ bool FeedbackDataCache::fetch(Buffer &buf, hash_t key)
 bool FeedbackDataCache::fetchHostData(void *&data, hash_t key, uint32_t* pSize)
 {
 	Buffer deviceBuf, hostBuffer;
-	if (dataCache.fetch(deviceBuf, key) && pHostCache->fetch(deviceBuf, hostBuffer))
+	bool found = dataCache.fetch(deviceBuf, key);
+	if (found && pHostCache->fetch(deviceBuf, hostBuffer))
 	{
 		data = hostBuffer->map();
 		if (pSize)

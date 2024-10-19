@@ -33,6 +33,21 @@ std::vector<bool> buildGui()
 			addPlots<shader_plot::GLSLYListPlot>(static_cast<shader_plot::GLSLYListPlot *>(pPlot), plotCount, pPlotData);
 		}
 	}
+	// Historgams
+	if (ImGui::CollapsingHeader("Histograms"))
+	{
+		void *pHist, *pHistData, *pHistCount;
+		std::hash<std::string> h;
+		bool dataAquired =
+			gState.feedbackDataCache->fetchHostData(pHist, h("hist"))
+			&& gState.feedbackDataCache->fetchHostData(pHistData, h("histData"))
+			&& gState.feedbackDataCache->fetchHostData(pHistCount, h("histCount"));
+		if (dataAquired)
+		{
+			uint32_t histCount = *static_cast<uint32_t *>(pHistCount);
+			addPlots<shader_plot::GLSLHistogram>(static_cast<shader_plot::GLSLHistogram *>(pHist), histCount, pHistData);
+		}
+	}
 	endGui();
 	// Shader Log Gui
 	if (gState.shaderLog.size() > 0)

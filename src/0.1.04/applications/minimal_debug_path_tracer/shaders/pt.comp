@@ -222,14 +222,35 @@ void main()
 
 	totalIllumination /= float(SAMPLE_COUNT);
 	imageStore(colorOut, ivec2(gl_GlobalInvocationID.xy), vec4(totalIllumination, 1.0));
-#ifdef DEBUG
+#ifdef Y_LIST_PLOT_SMD_H
 	if(invocationIsSelected())
 	{
-		debugPrintfEXT("Init plot!\n");
-		initPlot();
+		initPlot(0.1);
 		addValue(totalIllumination.r);
 		addValue(totalIllumination.g);
 		addValue(totalIllumination.b);
+		nextPlot();
+		addValue(totalIllumination.b);
+		addValue(totalIllumination.g);
+		addValue(totalIllumination.r);
+		addValue(totalIllumination.r);
+		nextPlot();
+		addValue(totalIllumination.b);
+		addValue(totalIllumination.g);
+		addValue(totalIllumination.r);
+		addValue(totalIllumination.r);
+		nextPlot();
+		addValue(totalIllumination.b);
+		addValue(totalIllumination.g);
+		addValue(totalIllumination.r);
+		addValue(totalIllumination.r);
+	}
+#endif
+#ifdef HISTOGRAM_SMD_H
+	if(invocationIsSelected())
+	{
+		initHist(50, 1000, 0.0, 3.0);
+		setValue(dot(totalIllumination, vec3(1.0)), getFrameIdx());
 	}
 #endif
 }

@@ -23,7 +23,7 @@ namespace vka
 			GLSLCameraInstance camInst{};
 	        camInst.view = glm::lookAt(ci.pos, ci.pos + glm::normalize(ci.frontDir), glm::normalize(ci.upDir));
 	        camInst.invView = glm::inverse(camInst.view);
-	        camInst.seed = ci.seed;
+	        camInst.frameIdx = ci.frameIdx;
 			camInstBuf->addUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 			cmdWriteCopy(cmdBuf, camInstBuf, &camInst, sizeof(GLSLCameraInstance));
 		}

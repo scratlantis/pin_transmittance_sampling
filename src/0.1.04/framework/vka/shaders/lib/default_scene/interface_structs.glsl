@@ -15,7 +15,7 @@ struct GLSLCameraInstance
 {
 	mat4 view;
 	mat4 invView;
-	uint seed;
+	uint frameIdx;
 	uint padding[3];
 };
 

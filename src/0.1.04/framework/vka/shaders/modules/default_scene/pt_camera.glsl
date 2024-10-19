@@ -32,7 +32,12 @@ Ray genPrimaryRay(uvec2 pixel, inout uint seed)
 
 uint getSeed()
 {
-	return invocationID() + invocationCount() * camInst.seed;
+	return invocationID() + invocationCount() * camInst.frameIdx;
+}
+
+uint getFrameIdx()
+{
+	return camInst.frameIdx;
 }
 
 

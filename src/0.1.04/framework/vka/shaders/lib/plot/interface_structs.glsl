@@ -1,5 +1,7 @@
-#define PLOT_FLAG_ACCUMULATE 1
+#ifndef PLOT_INTERFACE_STRUCTS_H
+#define PLOT_INTERFACE_STRUCTS_H
 
+#define PLOT_FLAG_ACCUMULATE 1
 #define PLOT_DATA_TYPE_FLOAT 0
 #define PLOT_DATA_TYPE_UINT 1
 struct GLSLYListPlot
@@ -7,14 +9,26 @@ struct GLSLYListPlot
 // general fields
 	uint count;
 	uint offset;
-	float stride;
 	uint invocationID;
-
 	uint plotID;
-	uint flags;
+
 	uint dataType;
-// special fields
-	uint accumulationCount;
-	//uint padding[1];
+	float stride;
+	uint padding[2];
 };
 
+struct GLSLHistogram
+{
+	uint count;
+	uint offset;
+	uint invocationID;
+	uint plotID;
+
+	uint dataType;
+	uint bins;
+	float rMin;
+	float rMax;
+	//uint padding[2];
+};
+
+#endif

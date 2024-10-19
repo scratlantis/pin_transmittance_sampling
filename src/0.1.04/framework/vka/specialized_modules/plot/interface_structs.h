@@ -17,19 +17,19 @@ namespace vka
 	{
 	    void operator()(const shader_plot::GLSLYListPlot &plot, void *plotData)
 	    {
-			std::string label = "none";
+		    std::string label = "Line Plot " + std::to_string(plot.plotID);
 		    if (plot.count > 0)
 		    {
 			    switch (plot.dataType)
 			    {
 				    case PLOT_DATA_TYPE_FLOAT:
-					    if (ImPlot::BeginPlot("Line Plots"))
+					    if (ImPlot::BeginPlot(label.c_str()))
 					    {
 						    ImPlot::SetupAxes("x", "y");
 							ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
-						    ImPlot::PlotShaded("f(x)", static_cast<float *>(plotData), static_cast<int>(plot.count), -INFINITY, plot.stride);
+						    ImPlot::PlotShaded("f(x)", static_cast<float *>(plotData) + plot.offset, static_cast<int>(plot.count), -INFINITY, plot.stride, 0.0, 0, 0);
 						    ImPlot::PopStyleVar();
-						    ImPlot::PlotLine("f(x)", static_cast<float *>(plotData), static_cast<int>(plot.count), plot.stride);
+						    ImPlot::PlotLine("f(x)", static_cast<float *>(plotData) + plot.offset, static_cast<int>(plot.count), plot.stride, 0.0, 0, 0);
 						    ImPlot::EndPlot();
 					    }
 					    break;
@@ -40,4 +40,30 @@ namespace vka
 		    }
 	    }
 	};
-}		// namespace vka
+
+	template <>
+    struct render_plot<shader_plot::GLSLHistogram>
+    {
+	    void operator()(const shader_plot::GLSLHistogram &plot, void *plotData)
+	    {
+		    std::string label = "Line Plot " + std::to_string(plot.plotID);
+		    if (plot.count > 0)
+		    {
+			    switch (plot.dataType)
+			    {
+				    case PLOT_DATA_TYPE_FLOAT:
+					    if (ImPlot::BeginPlot(label.c_str()))
+					    {
+						    ImPlot::PlotHistogram("f(x)", static_cast<float *>(plotData) + plot.offset, static_cast<int>(plot.count), plot.bins, 1.0,
+						                          plot.rMin != plot.rMax ? ImPlotRange(plot.rMin, plot.rMax) : ImPlotRange());
+						    ImPlot::EndPlot();
+					    }
+					    break;
+				    default:
+					    DEBUG_BREAK;
+					    break;
+			    }
+		    }
+	    }
+    };
+    }		// namespace vka
