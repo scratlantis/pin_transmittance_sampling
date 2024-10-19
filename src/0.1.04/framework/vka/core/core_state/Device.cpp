@@ -28,7 +28,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL printf_debug_utils_message_callback(
     void                                       *pUserData)
 {
 	std::string message = std::string(pCallbackData->pMessage);
-	message = message.substr(message.find_last_of("|") + 1);
+	message = message.substr(message.find_last_of("|") + 2);
 	std::cout << message.c_str();
 	return VK_FALSE;
 }

@@ -17,10 +17,22 @@ struct Mouse
 	glm::vec2 pos;
 	bool      leftPressed;
 	bool      leftEvent;
+	bool      leftPressedEvent()
+	{
+		return leftEvent && leftPressed;
+	}
 	bool      rightPressed;
 	bool      rightEvent;
+	bool      rightPressedEvent()
+	{
+		return rightEvent && rightPressed;
+	}
 	bool	  middlePressed;
 	bool	  middleEvent;
+	bool      middlePressedEvent()
+	{
+		return middleEvent && middlePressed;
+	}
 	double scrollChange;
 	void   resetEvents()
 	{

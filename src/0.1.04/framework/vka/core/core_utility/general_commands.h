@@ -23,6 +23,7 @@ void cmdWriteCopy(CmdBuffer cmdBuf, Buffer buf, const void *data, VkDeviceSize s
 void cmdUploadCopy(CmdBuffer cmdBuf, Buffer src, Buffer dst);
 void cmdFillBuffer(CmdBuffer cmdBuf, Buffer dst, VkDeviceSize offset, VkDeviceSize size, uint32_t data);
 void cmdFillBuffer(CmdBuffer cmdBuf, Buffer dst, uint32_t data);
+void cmdZeroBuffer(CmdBuffer cmdBuf, Buffer dst);
 void cmdInitBuffer(CmdBuffer cmdBuf, Buffer buf, void *pData, uint32_t size);
 void cmdInitBuffer(CmdBuffer cmdBuf, Buffer buf, uint32_t data, uint32_t size);
     // Image

@@ -4,6 +4,7 @@
 #include "../../lib/local_structs.glsl"
 #include "../../lib/random.glsl"
 #include "../../lib/default_scene/interface_structs.glsl"
+#include "../../lib/compute_shader_base.glsl"
 
 layout(binding = PT_CAMERA_BINDING_OFFSET) uniform CAM									 
 {																		 
@@ -31,7 +32,7 @@ Ray genPrimaryRay(uvec2 pixel, inout uint seed)
 
 uint getSeed()
 {
-	return gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * cam.width + cam.width * cam.height * camInst.seed;
+	return invocationID() + invocationCount() * camInst.seed;
 }
 
 

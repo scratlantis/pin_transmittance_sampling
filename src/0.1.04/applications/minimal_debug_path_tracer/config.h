@@ -9,7 +9,7 @@ using namespace vka::pbr;
 
 
 
-//#define USE_SHADER_PRINT_F
+#define USE_SHADER_PRINT_F
 #define RAY_TRACING_SUPPORT
 //#define USE_ATOMICS
 #define USE_VULKAN_1_3

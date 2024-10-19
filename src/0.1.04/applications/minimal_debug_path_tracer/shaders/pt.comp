@@ -222,4 +222,14 @@ void main()
 
 	totalIllumination /= float(SAMPLE_COUNT);
 	imageStore(colorOut, ivec2(gl_GlobalInvocationID.xy), vec4(totalIllumination, 1.0));
+#ifdef DEBUG
+	if(invocationIsSelected())
+	{
+		debugPrintfEXT("Init plot!\n");
+		initPlot();
+		addValue(totalIllumination.r);
+		addValue(totalIllumination.g);
+		addValue(totalIllumination.b);
+	}
+#endif
 }

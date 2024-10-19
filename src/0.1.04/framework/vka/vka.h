@@ -16,3 +16,4 @@
 #include <vka/specialized_modules/default_scene/submodule.h>
 #include <vka/specialized_modules/debug/submodule.h>
 #include <vka/specialized_modules/plot/interface_structs.h>
+#include <vka/specialized_modules/plot/submodule.h>

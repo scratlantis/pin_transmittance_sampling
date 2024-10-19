@@ -59,23 +59,27 @@ int main()
 	cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0, 0.0, 1.0, 1.0));
 	//// Test plot
 	 
-	std::hash<std::string> hash_fn;
-	Buffer                 plotBuf, plotDataBuf, plotCountBuf;
-	// fetch
-	gState.feedbackDataCache->fetch(plotBuf, hash_fn("plot"));
-	gState.feedbackDataCache->fetch(plotDataBuf, hash_fn("plotData"));
-	gState.feedbackDataCache->fetch(plotCountBuf, hash_fn("plotCount"));
-	// write
-	shader_plot::GLSLYListPlot plot{};
-	plot.offset   = 0;
-	plot.count  = 10;
-	plot.stride = 0.1f;
-	plot.dataType = PLOT_DATA_TYPE_FLOAT;
-	cmdWriteCopy(cmdBuf, plotBuf, &plot, sizeof(shader_plot::GLSLYListPlot));
-	float plotData[10] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
-	cmdWriteCopy(cmdBuf, plotDataBuf, plotData, 10 * sizeof(float));
-	cmdInitBuffer(cmdBuf, plotCountBuf, 1, sizeof(uint32_t));
-
+	//std::hash<std::string> hash_fn;
+	//Buffer                 plotBuf, plotDataBuf, plotCountBuf;
+	//// fetch
+	//gState.feedbackDataCache->fetch(plotBuf, hash_fn("plot"));
+	//gState.feedbackDataCache->fetch(plotDataBuf, hash_fn("plotData"));
+	//gState.feedbackDataCache->fetch(plotCountBuf, hash_fn("plotCount"));
+	//// write
+	//shader_plot::GLSLYListPlot plot{};
+	//plot.offset   = 0;
+	//plot.count  = 10;
+	//plot.stride = 0.1f;
+	//plot.dataType = PLOT_DATA_TYPE_FLOAT;
+	//cmdWriteCopy(cmdBuf, plotBuf, &plot, sizeof(shader_plot::GLSLYListPlot));
+	//float plotData[10] = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+	//cmdWriteCopy(cmdBuf, plotDataBuf, plotData, 10 * sizeof(float));
+	//cmdInitBuffer(cmdBuf, plotCountBuf, 1, sizeof(uint32_t));
+	
+	//// Debug args
+	TraceDebugArgs debugArgs{};
+	debugArgs.maxPlotCount = 10;
+	debugArgs.maxPlotValueCount = 1000;
 	executeImmediat(cmdBuf);
 	// Main Loop
 	uint32_t frameCount = 0;
@@ -130,6 +134,16 @@ int main()
 			traceArgs.sceneData            = scene;
 			traceArgs.mediumInstanceBuffer = mediumInstanceBuffer;
 			traceArgs.mediumTexture        = medium;
+
+			if ( mouseInView(viewDimensions) && gState.io.mouse.leftPressedEvent())
+			{
+				debugArgs.pixelPos = mouseViewCoord(viewDimensions);
+				traceArgs.pDebugArgs           = &debugArgs;
+			}
+			else
+			{
+				traceArgs.pDebugArgs = nullptr;
+			}
 
 			cmdTrace(cmdBuf, img_pt, traceArgs);
 		}
