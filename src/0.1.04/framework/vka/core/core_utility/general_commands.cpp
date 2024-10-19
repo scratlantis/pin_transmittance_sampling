@@ -73,6 +73,22 @@ void cmdFillBuffer(CmdBuffer cmdBuf, Buffer dst, uint32_t data)
 	vkCmdFillBuffer(cmdBuf->getHandle(), dst->getHandle(), 0, VK_WHOLE_SIZE, data);
 }
 
+void cmdInitBuffer(CmdBuffer cmdBuf, Buffer buf, void* pData, uint32_t size)
+{
+	buf->addUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	buf->changeSize(size);
+	buf->recreate();
+    uint32_t data = *reinterpret_cast<uint32_t*>(pData);
+	cmdFillBuffer(cmdBuf, buf, data);
+}
+
+void cmdInitBuffer(CmdBuffer cmdBuf, Buffer buf, uint32_t data, uint32_t size)
+{
+	buf->addUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+	buf->changeSize(size);
+	buf->recreate();
+	cmdFillBuffer(cmdBuf, buf, data);
+}
 
 
 // Image

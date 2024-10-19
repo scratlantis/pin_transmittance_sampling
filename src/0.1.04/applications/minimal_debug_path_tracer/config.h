@@ -8,6 +8,7 @@ using namespace vka;
 using namespace vka::pbr;
 
 
+
 //#define USE_SHADER_PRINT_F
 #define RAY_TRACING_SUPPORT
 //#define USE_ATOMICS

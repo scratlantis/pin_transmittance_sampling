@@ -19,3 +19,30 @@ target_include_directories(ktx INTERFACE CSV_WRITER/include)
 
 add_library(nlohmann_json INTERFACE)
 target_include_directories(nlohmann_json INTERFACE NLOMANN_JSON/include)
+
+# glfw
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+add_subdirectory(GLFW/glfw-3.3.4)
+
+# imgui
+FILE(GLOB SRCS_IMGUI
+"IMGUI/*.cpp"
+"IMGUI/*.h"
+"IMGUI/backends/imgui_impl_vulkan.h"
+"IMGUI/backends/imgui_impl_vulkan.cpp"
+"IMGUI/backends/imgui_impl_glfw.h"
+"IMGUI/backends/imgui_impl_glfw.cpp")
+add_library(imgui STATIC ${SRCS_IMGUI})
+target_include_directories(imgui PUBLIC IMGUI IMGUI/backends)
+target_include_directories(imgui PRIVATE ${Vulkan_INCLUDE_DIRS})
+target_link_libraries(imgui glfw Vulkan::Vulkan)
+
+# implot
+FILE(GLOB SRCS_IMPLOT
+"IMPLOT/*.cpp"
+"IMPLOT/*.h")
+add_library(implot STATIC ${SRCS_IMPLOT})
+target_include_directories(implot PUBLIC  IMPLOT )
+target_link_libraries(implot imgui)

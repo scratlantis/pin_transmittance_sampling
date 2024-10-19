@@ -139,6 +139,11 @@ void GlfwWindow::initImGui()
 	ImGui_ImplGlfw_InitForVulkan(window, true);
 }
 
+void GlfwWindow::destroyImGui()
+{
+	ImGui_ImplGlfw_Shutdown();
+}
+
 void GlfwWindow::newFrameImGui()
 {
 	ImGui_ImplGlfw_NewFrame();

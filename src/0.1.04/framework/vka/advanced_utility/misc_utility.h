@@ -14,4 +14,5 @@ Image            getSwapchainImage();
 void             clearShaderCache();
 void             waitIdle();
 
+
 }		// namespace vka
