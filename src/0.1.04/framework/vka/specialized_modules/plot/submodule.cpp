@@ -53,7 +53,7 @@ void cmdResetHistogram(CmdBuffer cmdBuf, Buffer histBuf, Buffer histDataBuf, Buf
 	histCountBuf->recreate();
 
 	cmdZeroBuffer(cmdBuf, histBuf);
-	cmdZeroBuffer(cmdBuf, histDataBuf);
+	cmdFillBuffer<float>(cmdBuf, histDataBuf, std::numeric_limits<float>::max());
 	cmdZeroBuffer(cmdBuf, histCountBuf);
 }
 }        // namespace shader_plot

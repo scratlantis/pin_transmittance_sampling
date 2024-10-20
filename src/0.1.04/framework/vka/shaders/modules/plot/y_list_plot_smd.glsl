@@ -40,12 +40,12 @@ void nextPlot()
 	plots[plot_count - 1].count = 0;
 }
 
-void setStride(float stride)
+void setPlotStride(float stride)
 {
 	plots[plot_count - 1].stride = stride;
 }
 
-void addValue(float value)
+void addPlotValue(float value)
 {
 	plot_data[plots[plot_count - 1].offset + plots[plot_count - 1].count] = value;
 	plots[plot_count - 1].count++;

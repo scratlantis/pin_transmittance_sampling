@@ -54,8 +54,9 @@ namespace vka
 				    case PLOT_DATA_TYPE_FLOAT:
 					    if (ImPlot::BeginPlot(label.c_str()))
 					    {
-						    ImPlot::PlotHistogram("f(x)", static_cast<float *>(plotData) + plot.offset, static_cast<int>(plot.count), plot.bins, 1.0,
-						                          plot.rMin != plot.rMax ? ImPlotRange(plot.rMin, plot.rMax) : ImPlotRange());
+						    ImPlot::SetupAxes("x", "y", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
+						    ImPlot::PlotHistogram("", static_cast<float *>(plotData) + plot.offset, static_cast<int>(plot.count), plot.bins, 1.0,
+						                          plot.rMin != plot.rMax ? ImPlotRange(plot.rMin, plot.rMax) : ImPlotRange(), ImPlotHistogramFlags_NoOutliers);
 						    ImPlot::EndPlot();
 					    }
 					    break;

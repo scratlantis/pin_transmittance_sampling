@@ -73,6 +73,7 @@ void cmdFillBuffer(CmdBuffer cmdBuf, Buffer dst, uint32_t data)
 	vkCmdFillBuffer(cmdBuf->getHandle(), dst->getHandle(), 0, VK_WHOLE_SIZE, data);
 }
 
+
 void cmdZeroBuffer(CmdBuffer cmdBuf, Buffer dst)
 {
 	cmdFillBuffer(cmdBuf, dst, 0);

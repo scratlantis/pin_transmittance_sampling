@@ -1,6 +1,6 @@
 // Must be cpp compatible
-#ifndef INTERFACE_STRUCTS_H
-#define INTERFACE_STRUCTS_H
+#ifndef DEFAULT_SCENE_INTERFACE_STRUCTS_H
+#define DEFAULT_SCENE_INTERFACE_STRUCTS_H
 
 struct GLSLCamera
 {

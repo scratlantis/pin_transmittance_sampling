@@ -3,6 +3,8 @@ using namespace default_scene;
 
 #include "shaders/interface_structs.glsl"
 
+const uint32_t maxIndirectRaysPerBounce = 2; // 1 * Envmap + 1 * Area light
+
 struct TraceDebugArgs
 {
 	vec2     pixelPos;
@@ -36,14 +38,28 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	gState.dataCache->fetch(camBuf, hasher("cam_buf"));
 	gState.dataCache->fetch(camInstBuf, hasher("cam_inst_buf"));
 	cmdUpdateCamera(cmdBuf, camBuf, camInstBuf, args.cameraCI);
-
+	// Plot resources:
 	Buffer selectionBuf, plotBuf, plotDataBuf, plotCountBuf;
+	// Histogram resources:
 	Buffer histBuf, histDataBuf, histCountBuf;
+	// Shader state resources:
+	Buffer indirectBounceBuf, directRayBuf, stateBuf;
 	bool   histogramBuffersInitialized = true;
 	if (args.enableDebugging)
 	{
-		gState.dataCache->fetch(selectionBuf, hasher("selection"));
-		shader_debug::cmdSelectInvocation(cmdBuf, selectionBuf, args.debugArgs.pixelPos);
+		// Ivocation selection
+		{
+			gState.dataCache->fetch(selectionBuf, hasher("selection"));
+			shader_debug::cmdSelectInvocation(cmdBuf, selectionBuf, args.debugArgs.pixelPos);
+		}
+		// Path tracing shader state
+		{
+			gState.feedbackDataCache->fetch(indirectBounceBuf, hasher("indirectBounce"));
+			gState.feedbackDataCache->fetch(directRayBuf, hasher("directRay"));
+			gState.feedbackDataCache->fetch(stateBuf, hasher("state"));
+			shader_debug::cmdResetPtShaderState(cmdBuf, indirectBounceBuf, directRayBuf, stateBuf, args.maxDepth, maxIndirectRaysPerBounce);
+		}
+
 		if (args.debugArgs.enablePlot)
 		{
 			gState.feedbackDataCache->fetch(plotBuf, hasher("plot"));
@@ -78,6 +94,7 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	{
 		cmd.pipelineDef.shaderDef.args.push_back({"DEBUG", ""});
 		shader_debug::bindInvocationSelection(cmd, selectionBuf);
+		shader_debug::bindPtShaderState(cmd, indirectBounceBuf, directRayBuf, stateBuf);
 		if (args.debugArgs.enablePlot)
 		{
 			shader_plot::bindYListPlot(cmd, plotBuf, plotDataBuf, plotCountBuf);

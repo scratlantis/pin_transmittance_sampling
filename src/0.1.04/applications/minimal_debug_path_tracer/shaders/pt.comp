@@ -2,7 +2,7 @@
 layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
 layout(binding = LOCAL_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
 
-
+#include "../lib/lib/pt_smd_lib.glsl"
 
 Range traceMediumConservative(Ray ray)
 {
@@ -76,22 +76,27 @@ float traceTransmittance(Ray ray, inout uint seed)
 void sampleDirectIllumAreaLight(vec3 pos, inout uint seed, out vec3 L_i, out vec3 omega_i)
 {
 	Ray ray = genDirectIllumRayAreaLight(pos, seed);
-	L_i = traceTransmittance(ray, seed) * ray.weight;
+	float transmittance = traceTransmittance(ray, seed);
+	L_i = transmittance * ray.weight;
 	omega_i = ray.direction;
+	
+	SI_setTransmittance(transmittance)
+	SI_setSourceDistance(ray.tmax)
 }
 #endif
 
 void sampleDirectIllumEnvMap(vec3 pos, inout uint seed, out vec3 L_i, out vec3 omega_i)
 {
 	Ray ray = genDirectIllumRayEnvMap(pos, seed);
-	L_i = traceTransmittance(ray, seed) * ray.weight;
+	float transmittance = traceTransmittance(ray, seed);
+	L_i = transmittance * ray.weight;
 	omega_i = ray.direction;
+
+	SI_setTransmittance(transmittance)
+	SI_setSourceDistance(ray.tmax)
 }
 
-const uint PATH_TERMINATED_EMISSION = 0;
-const uint PATH_TERMINATED_INFINITY = 1;
-const uint PATH_SURFACE_SCATTER = 2;
-const uint PATH_MEDIUM_SCATTER = 3;
+
 
 Ray nextBounce(
 	Ray ray, uint bounce, uint cullMask,
@@ -106,21 +111,21 @@ Ray nextBounce(
 
 	if(tGeom < rMedium.rMin)
 	{
-		hitType = PATH_SURFACE_SCATTER;
+		hitType = PATH_VERTEX_TYPE_SURFACE_SCATTER;
 		evalHit(hitData, matData, tangentFrame);
 		nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
 		nextRay.weight *= ray.weight;
 	}
 	else if( rMedium.rMin == TMAX )
 	{
-		hitType = PATH_TERMINATED_INFINITY;
+		hitType = PATH_VERTEX_TYPE_LEAF_INFINITY;
 	}
 	else
 	{
 		float tMedium = traceMedium(ray, rMedium, bounce, seed);
 		if(tGeom < tMedium)
 		{
-			hitType = PATH_SURFACE_SCATTER;
+			hitType = PATH_VERTEX_TYPE_SURFACE_SCATTER;
 			evalHit(hitData, matData, tangentFrame);
 
 			nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
@@ -128,11 +133,11 @@ Ray nextBounce(
 		}
 		else if( tMedium == TMAX )
 		{
-			hitType = PATH_TERMINATED_INFINITY;
+			hitType = PATH_VERTEX_TYPE_LEAF_INFINITY;
 		}
 		else
 		{
-			hitType = PATH_MEDIUM_SCATTER;
+			hitType = PATH_VERTEX_TYPE_VOLUME_SCATTER;
 			tangentFrame[3] = ray.origin + tMedium * ray.direction;
 			matData.albedo = volInst.albedo;
 
@@ -151,10 +156,11 @@ void main()
 	}
 	uint seed = getSeed();
 	vec3 totalIllumination = vec3(0.0);
-
 	for(uint j = 0; j < SAMPLE_COUNT; j++)
 	{
+		SI_resetPts()
 		Ray ray = genPrimaryRay(gl_GlobalInvocationID.xy, seed);
+		SI_initPts(ray)
 		for(uint i = 0; i < MAX_BOUNCES; i++)
 		{
 			uint hitType;
@@ -163,13 +169,14 @@ void main()
 			uint cullMask = 0xFF;
 
 			Ray nextRay = nextBounce(ray, i, cullMask, seed, hitType, matData, tangentFrame);
+			SI_nextBounce(nextRay, hitType)
 			vec3 L_o = vec3(0.0);
-			if(hitType == PATH_TERMINATED_EMISSION)
+			if(hitType == PATH_VERTEX_TYPE_LEAF)
 			{
 				totalIllumination += ray.weight * matData.emission;
 				break;
 			}
-			else if(hitType == PATH_TERMINATED_INFINITY)
+			else if(hitType == PATH_VERTEX_TYPE_LEAF_INFINITY)
 			{
 				if(i == 0)
 				{
@@ -177,7 +184,7 @@ void main()
 				}
 				break;
 			}
-			else if(hitType == PATH_SURFACE_SCATTER) 
+			else if(hitType == PATH_VERTEX_TYPE_SURFACE_SCATTER) 
 			{
 				if(i == 0) // Emission only from the first hit. Other emissions from light sources are collected via NEE
 				{
@@ -185,72 +192,74 @@ void main()
 				}
 				vec3 brdf = lampertBRDF(matData.albedo);
 				vec3 L_i, omega_i;
+				float cosTerm;
 				// Direct illumination from area lights
 				#if AREA_LIGHT_COUNT > 0
 				{
+					SI_nextSample(RAY_DOMAIN_AREA_LIGHT)
+
 					sampleDirectIllumAreaLight(tangentFrame[3], seed, L_i, omega_i);
-					L_o += brdf * L_i * pos_dot(tangentFrame[2], omega_i);
+					cosTerm = pos_dot(tangentFrame[2], omega_i);
+					L_o += brdf * L_i * cosTerm;
+
+					SI_setBSDF(brdf)
+					SI_setCosineTerm(cosTerm)
+					SI_setIncomingRadiance(L_i)
 				}
 				#endif
 				// Direct illumination from envMap
 				{
+					SI_nextSample(RAY_DOMAIN_ENV_MAP)
+
 					sampleDirectIllumEnvMap(tangentFrame[3], seed, L_i, omega_i);
-					L_o += brdf * L_i * pos_dot(tangentFrame[2], omega_i);
+					cosTerm = pos_dot(tangentFrame[2], omega_i);
+					L_o += brdf * L_i * cosTerm;
+
+					SI_setBSDF(brdf)
+					SI_setCosineTerm(cosTerm)
+					SI_setIncomingRadiance(L_i)
 				}
 			}
-			else if(hitType == PATH_MEDIUM_SCATTER)
+			else if(hitType == PATH_VERTEX_TYPE_VOLUME_SCATTER)
 			{
 				// Direct illumination from area lights
 				vec3 bsdf = uniformScatterBSDF(volInst.albedo);
 				vec3 L_i, omega_i;
 				#if AREA_LIGHT_COUNT > 0
 				{
+					SI_nextSample(RAY_DOMAIN_AREA_LIGHT)
+
 					sampleDirectIllumAreaLight(tangentFrame[3], seed, L_i, omega_i);
 					L_o += bsdf * L_i;
+
+					SI_setBSDF(bsdf)
+					SI_setIncomingRadiance(L_i)
 				}
 				#endif
 				// Direct illumination from envMap
 				{
+					SI_nextSample(RAY_DOMAIN_ENV_MAP)
+
 					sampleDirectIllumEnvMap(tangentFrame[3], seed, L_i, omega_i);
 					L_o += bsdf * L_i;
+
+					SI_setBSDF(bsdf)
+					SI_setIncomingRadiance(L_i)
 				}
 			}
 			totalIllumination += ray.weight * L_o;
 			ray = nextRay;
 		}
+		SI_finalizeSample()
 	}
 
 	totalIllumination /= float(SAMPLE_COUNT);
 	imageStore(colorOut, ivec2(gl_GlobalInvocationID.xy), vec4(totalIllumination, 1.0));
-#ifdef Y_LIST_PLOT_SMD_H
-	if(invocationIsSelected())
-	{
-		initPlot(0.1);
-		addValue(totalIllumination.r);
-		addValue(totalIllumination.g);
-		addValue(totalIllumination.b);
-		nextPlot();
-		addValue(totalIllumination.b);
-		addValue(totalIllumination.g);
-		addValue(totalIllumination.r);
-		addValue(totalIllumination.r);
-		nextPlot();
-		addValue(totalIllumination.b);
-		addValue(totalIllumination.g);
-		addValue(totalIllumination.r);
-		addValue(totalIllumination.r);
-		nextPlot();
-		addValue(totalIllumination.b);
-		addValue(totalIllumination.g);
-		addValue(totalIllumination.r);
-		addValue(totalIllumination.r);
-	}
-#endif
-#ifdef HISTOGRAM_SMD_H
-	if(invocationIsSelected())
-	{
-		initHist(50, 1000, 0.0, 3.0);
-		setValue(dot(totalIllumination, vec3(1.0)), getFrameIdx());
-	}
-#endif
+
+	SI_initHist(200, 10000, 0.0, 5.0)
+	SI_setHistValue(totalIllumination.r, getFrameIdx())
+	SI_nextHist()
+	SI_setHistValue(totalIllumination.g, getFrameIdx())
+	SI_nextHist()
+	SI_setHistValue(totalIllumination.b, getFrameIdx())
 }

@@ -40,9 +40,9 @@ void nextHist()
 	hist[hist_count - 1].offset += hist[hist_count - 1].count;
 }
 
-void setValue(float val, uint sampleIdx)
+void setHistValue(float val, uint sampleIdx)
 {
-	uint idx =( hist[hist_count - 1].offset + sampleIdx ) % hist[hist_count - 1].count;
+	uint idx = hist[hist_count - 1].offset + sampleIdx % hist[hist_count - 1].count;
 	hist_data[idx] = val;
 }
 

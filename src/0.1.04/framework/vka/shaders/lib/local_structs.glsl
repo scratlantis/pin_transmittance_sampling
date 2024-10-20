@@ -9,6 +9,11 @@
 #define TMAX 1000.0
 #endif
 
+const uint PATH_VERTEX_TYPE_LEAF = 0;
+const uint PATH_VERTEX_TYPE_LEAF_INFINITY = 1;
+const uint PATH_VERTEX_TYPE_SURFACE_SCATTER = 2;
+const uint PATH_VERTEX_TYPE_VOLUME_SCATTER = 3;
+
 struct Ray
 {
 	vec3 origin;

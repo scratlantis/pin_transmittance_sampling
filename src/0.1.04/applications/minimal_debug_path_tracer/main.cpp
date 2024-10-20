@@ -133,7 +133,7 @@ int main()
 			{
 				traceArgs.debugArgs.resetHistogram = true;
 				traceArgs.debugArgs.maxHistCount   = 10;
-				traceArgs.debugArgs.maxHistValueCount = 1000;
+				traceArgs.debugArgs.maxHistValueCount = 100000;
 			}
 
 			cmdTrace(cmdBuf, img_pt, traceArgs);
