@@ -121,6 +121,8 @@ int main()
 			traceArgs.enableDebugging           = true;
 			traceArgs.debugArgs.pixelPos        = lastClickPos;
 			traceArgs.debugArgs.enableHistogram = true;
+			traceArgs.debugArgs.enablePtPlot    = true;
+			traceArgs.debugArgs.ptPlotOptions.writeTotalContribution = true;
 
 			if (leftClickInView)
 			{

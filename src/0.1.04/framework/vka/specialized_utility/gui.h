@@ -16,7 +16,6 @@ void setGuiDimensions(Rect2D<float> rect);
 void beginGui(std::string name, Rect2D<float> rect, uint32_t flags, bool *isOpen);
 
 void endGui();
-
 template <class T>
 void addPlots(T *pPlots, uint32_t plotCount, void *pPlotData)
 {

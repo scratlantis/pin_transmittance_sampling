@@ -28,7 +28,10 @@ struct GLSLHistogram
 	uint bins;
 	float rMin;
 	float rMax;
-	//uint padding[2];
+
+	uint dataDim; // must be multiple of histDim
+	uint histDim; // 1 or 2
+	uint padding[2];
 };
 
 #endif

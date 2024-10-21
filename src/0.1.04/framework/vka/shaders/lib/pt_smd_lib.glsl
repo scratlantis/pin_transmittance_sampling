@@ -3,7 +3,7 @@
 
 #ifndef PT_USCENE_H
 #ifndef PT_USCENE_MOCK_H
-#include "../modules/pt_uscene_mock.glsl"
+#include "../modules/mock/pt_uscene_mock.glsl"
 #endif
 #endif
 

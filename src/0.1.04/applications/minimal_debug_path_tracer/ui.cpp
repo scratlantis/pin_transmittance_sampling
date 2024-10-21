@@ -48,7 +48,27 @@ std::vector<bool> buildGui()
 			addPlots<shader_plot::GLSLHistogram>(static_cast<shader_plot::GLSLHistogram *>(pHist), histCount, pHistData);
 		}
 	}
+	// Pt Plots
+	if (ImGui::CollapsingHeader("Pt Plot"))
+	{
+		void                  *pHist, *pHistData, *pHistCount;
+		std::hash<std::string> h;
+		bool                   histDataAquired =
+		    gState.feedbackDataCache->fetchHostData(pHist, h("hist"))
+			&& gState.feedbackDataCache->fetchHostData(pHistData, h("histData"))
+			&& gState.feedbackDataCache->fetchHostData(pHistCount, h("histCount"));
+
+		void *ptPlot;
+		bool  ptPlotDataAquired = gState.feedbackDataCache->fetchHostData(ptPlot, h("ptPlot"));
+
+		if (histDataAquired && ptPlotDataAquired)
+		{
+			render_plot_family<pt_plot::GLSLPtPlot>{}(*static_cast<pt_plot::GLSLPtPlot *>(ptPlot), pHist, pHistData);
+		}
+	}
+
 	endGui();
+	//ImPlot::ShowDemoWindow();
 	// Shader Log Gui
 	if (gState.shaderLog.size() > 0)
 	{

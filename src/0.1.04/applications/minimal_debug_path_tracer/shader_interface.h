@@ -7,14 +7,16 @@ const uint32_t maxIndirectRaysPerBounce = 2; // 1 * Envmap + 1 * Area light
 
 struct TraceDebugArgs
 {
-	vec2     pixelPos;
-	bool     enablePlot;
-	uint32_t maxPlotCount;
-	uint32_t maxPlotValueCount;
-	bool     enableHistogram;
-	bool     resetHistogram;
-	uint32_t maxHistCount;
-	uint32_t maxHistValueCount;
+	vec2                   pixelPos;
+	bool                   enablePlot;
+	uint32_t               maxPlotCount;
+	uint32_t               maxPlotValueCount;
+	bool                   enableHistogram;
+	bool                   resetHistogram;
+	uint32_t               maxHistCount;
+	uint32_t               maxHistValueCount;
+	bool                   enablePtPlot;
+	pt_plot::PtPlotOptions ptPlotOptions;
 };
 
 struct TraceArgs
@@ -44,6 +46,8 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	Buffer histBuf, histDataBuf, histCountBuf;
 	// Shader state resources:
 	Buffer indirectBounceBuf, directRayBuf, stateBuf;
+	// Pt Plot resources:
+	Buffer ptPlotOptionsBuf, ptPlotBuf;
 	bool   histogramBuffersInitialized = true;
 	if (args.enableDebugging)
 	{
@@ -59,7 +63,7 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 			gState.feedbackDataCache->fetch(stateBuf, hasher("state"));
 			shader_debug::cmdResetPtShaderState(cmdBuf, indirectBounceBuf, directRayBuf, stateBuf, args.maxDepth, maxIndirectRaysPerBounce);
 		}
-
+		// Y list Plot
 		if (args.debugArgs.enablePlot)
 		{
 			gState.feedbackDataCache->fetch(plotBuf, hasher("plot"));
@@ -67,6 +71,7 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 			gState.feedbackDataCache->fetch(plotCountBuf, hasher("plotCount"));
 			shader_plot::cmdResetYListPlot(cmdBuf, plotBuf, plotDataBuf, plotCountBuf, args.debugArgs.maxPlotCount, args.debugArgs.maxPlotValueCount);
 		}
+		// Historgram resources
 		if (args.debugArgs.enableHistogram)
 		{
 			histogramBuffersInitialized      = gState.feedbackDataCache->fetch(histBuf, hasher("hist")) && histogramBuffersInitialized;
@@ -78,6 +83,13 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 				histogramBuffersInitialized = true;
 				shader_plot::cmdResetHistogram(cmdBuf, histBuf, histDataBuf, histCountBuf, args.debugArgs.maxHistCount, args.debugArgs.maxHistValueCount);
 			}
+		}
+		if (args.debugArgs.enablePtPlot)
+		{
+			gState.feedbackDataCache->fetch(ptPlotOptionsBuf, hasher("ptPlotOptions"));
+			gState.feedbackDataCache->fetch(ptPlotBuf, hasher("ptPlot"));
+			pt_plot::cmdConfigurePtPlot(cmdBuf, ptPlotOptionsBuf, ptPlotBuf, args.debugArgs.ptPlotOptions);
+
 		}
 	}
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
@@ -103,6 +115,10 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 		{
 			VKA_ASSERT(histogramBuffersInitialized);
 			shader_plot::bindHistogram(cmd, histBuf, histDataBuf, histCountBuf);
+		}
+		if (args.debugArgs.enablePtPlot)
+		{
+			pt_plot::bindPtPlot(cmd, ptPlotOptionsBuf, ptPlotBuf);
 		}
 	}
 
