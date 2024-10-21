@@ -27,9 +27,9 @@ struct GLSLPtPlotDirectSample
 // init to -1
 struct GLSLPlotIndirectRay
 {
-	int indirectDir; // 2D Histogram
-	int indirectT; // 1D Histogram
-	int indirectWeight; // Combined 1D Histogram
+	int dir; // 2D Histogram
+	int t; // 1D Histogram
+	int weight; // Combined 1D Histogram
 	int padding0;
 };
 

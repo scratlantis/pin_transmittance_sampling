@@ -25,6 +25,22 @@ struct render_plot_family<pt_plot::GLSLPtPlot>
 			uint32_t id = plotFamily.totalContribution;
 			render_plot<shader_plot::GLSLHistogram>{}(pHist[id], pPlotData);
 		}
+		if (plotFamily.indirectRay.dir != -1)
+		{
+			uint32_t id = plotFamily.indirectRay.dir;
+			render_plot<shader_plot::GLSLHistogram>{}(pHist[id], pPlotData);
+		}
+		if (plotFamily.indirectRay.t != -1)
+		{
+			uint32_t id = plotFamily.indirectRay.t;
+			render_plot<shader_plot::GLSLHistogram>{}(pHist[id], pPlotData);
+		}
+		if (plotFamily.indirectRay.weight != -1)
+		{
+			uint32_t id = plotFamily.indirectRay.weight;
+			render_plot<shader_plot::GLSLHistogram>{}(pHist[id], pPlotData);
+		}
+
 	}
 };
 

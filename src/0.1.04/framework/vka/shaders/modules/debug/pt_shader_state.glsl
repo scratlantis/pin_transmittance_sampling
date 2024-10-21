@@ -47,6 +47,7 @@ void  nextBounce(Ray ray, uint hitType)
 	pt_state.bounce++;
 }
 
+
 void finalizeSample()
 {
 	if(pt_state.directRayCount == 0) return;
@@ -112,6 +113,11 @@ void setTransmittance(float transmittance)
 void setSourceDistance(float sourceDistance)
 {
 	direct_rays[pt_state.directRayCount - 1].sourceDistance = sourceDistance;
+}
+
+void setTotalContribution(vec3 totalContribution)
+{
+	pt_state.totalContribution = totalContribution;
 }
 
 #endif

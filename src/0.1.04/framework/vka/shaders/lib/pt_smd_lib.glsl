@@ -49,6 +49,7 @@
 
 #define SI_setTransmittance( transmittance ) SINGLE_INVOCATION ( setTransmittance( transmittance ); )
 #define SI_setSourceDistance( sourceDistance ) SINGLE_INVOCATION ( setSourceDistance( sourceDistance ); )
+#define SI_setTotalContribution( totalContribution ) SINGLE_INVOCATION ( setTotalContribution( totalContribution ); )
 #else
 #define SI_initPts( primaryRay )
 #define SI_nextBounce( ray, hitType )
@@ -60,6 +61,21 @@
 #define SI_setTransmittance( transmittance )
 #define SI_setCosineTerm( clampedCosine )
 #define SI_setSourceDistance( sourceDistance )
+#define SI_setTotalContribution( totalContribution )
+#endif
+
+#define SI_writePtPlot()
+#ifdef PT_PLOT_INTERFACE_SMD_H
+#ifdef HISTOGRAM_SMD_H
+#ifdef PT_SHADER_STATE_H
+#ifdef GENERATE_PT_STATE_HISTOGRAM_H
+
+#undef SI_writePtPlot
+#define SI_writePtPlot() SINGLE_INVOCATION ( writePtPlot(); )
+
+#endif
+#endif
+#endif
 #endif
 
 #endif

@@ -18,38 +18,34 @@ std::vector<bool> buildGui()
 			changed.back() = GVar::addToGui(gvars, name);
 		}
 	}
-	// Plots
-	if (ImGui::CollapsingHeader("Plots"))
-	{
-		void *pPlot, *pPlotData, *pPlotCount;
-		std::hash<std::string> h;
-		bool dataAquired =
-			gState.feedbackDataCache->fetchHostData(pPlot, h("plot"))
-			&& gState.feedbackDataCache->fetchHostData(pPlotData, h("plotData"))
-			&& gState.feedbackDataCache->fetchHostData(pPlotCount, h("plotCount"));
-		if (dataAquired)
-		{
-			uint32_t plotCount = *static_cast<uint32_t *>(pPlotCount);
-			addPlots<shader_plot::GLSLYListPlot>(static_cast<shader_plot::GLSLYListPlot *>(pPlot), plotCount, pPlotData);
-		}
-	}
-	// Historgams
-	if (ImGui::CollapsingHeader("Histograms"))
-	{
-		void *pHist, *pHistData, *pHistCount;
-		std::hash<std::string> h;
-		bool dataAquired =
-			gState.feedbackDataCache->fetchHostData(pHist, h("hist"))
-			&& gState.feedbackDataCache->fetchHostData(pHistData, h("histData"))
-			&& gState.feedbackDataCache->fetchHostData(pHistCount, h("histCount"));
-		if (dataAquired)
-		{
-			uint32_t histCount = *static_cast<uint32_t *>(pHistCount);
-			addPlots<shader_plot::GLSLHistogram>(static_cast<shader_plot::GLSLHistogram *>(pHist), histCount, pHistData);
-		}
-	}
+	//// Plots
+	//if (ImGui::CollapsingHeader("Plots"))
+	//{
+	//	void                  *pPlot, *pPlotData, *pPlotCount;
+	//	std::hash<std::string> h;
+	//	bool                   dataAquired =
+	//	    gState.feedbackDataCache->fetchHostData(pPlot, h("plot")) && gState.feedbackDataCache->fetchHostData(pPlotData, h("plotData")) && gState.feedbackDataCache->fetchHostData(pPlotCount, h("plotCount"));
+	//	if (dataAquired)
+	//	{
+	//		uint32_t plotCount = *static_cast<uint32_t *>(pPlotCount);
+	//		addPlots<shader_plot::GLSLYListPlot>(static_cast<shader_plot::GLSLYListPlot *>(pPlot), plotCount, pPlotData);
+	//	}
+	//}
+	//// Historgams
+	//if (ImGui::CollapsingHeader("Histograms"))
+	//{
+	//	void                  *pHist, *pHistData, *pHistCount;
+	//	std::hash<std::string> h;
+	//	bool                   dataAquired =
+	//	    gState.feedbackDataCache->fetchHostData(pHist, h("hist")) && gState.feedbackDataCache->fetchHostData(pHistData, h("histData")) && gState.feedbackDataCache->fetchHostData(pHistCount, h("histCount"));
+	//	if (dataAquired)
+	//	{
+	//		uint32_t histCount = *static_cast<uint32_t *>(pHistCount);
+	//		addPlots<shader_plot::GLSLHistogram>(static_cast<shader_plot::GLSLHistogram *>(pHist), histCount, pHistData);
+	//	}
+	//}
 	// Pt Plots
-	if (ImGui::CollapsingHeader("Pt Plot"))
+	if (ImGui::CollapsingHeader("Plot"))
 	{
 		void                  *pHist, *pHistData, *pHistCount;
 		std::hash<std::string> h;

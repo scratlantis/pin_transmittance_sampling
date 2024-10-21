@@ -24,14 +24,15 @@ struct GLSLHistogram
 	uint invocationID;
 	uint plotID;
 
-	uint dataType;
-	uint bins;
-	float rMin;
-	float rMax;
+	vec2 rMin;
+	vec2 rMax;
 
+	vec2 bins;
+	uint dataType;
 	uint dataDim; // must be multiple of histDim
+
 	uint histDim; // 1 or 2
-	uint padding[2];
+	uint padding[3];
 };
 
 #endif

@@ -65,6 +65,9 @@ struct GLSLPtState
 
 	vec3 weight;
 	uint directRayCount;
+
+	vec3 totalContribution;
+	uint padding2;
 };
 
 #endif

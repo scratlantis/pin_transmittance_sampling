@@ -7,27 +7,70 @@
 #ifdef HISTOGRAM_SMD_H
 #ifdef PT_SHADER_STATE_H
 
-//#include "../../modules/pt_plot/pt_plot_interface_smd.glsl"
 
-void testGetter()
+void writePtPlot()
 {
-	GLSLPtPlotOptions options = ptPlotGetOptions();
-	if(options.writeTotalContribution != 0)
-	{
-		//debugPrintfEXT("Was here!\n");
-	}
-
 	initHist(200, 10000, 0.0, 5.0);
-	if(pt_state.bounce > 1)
+	hist[hist_count - 1].histDim = 1;
+	hist[hist_count - 1].bins = vec2(200);
+	hist[hist_count - 1].rMin = vec2(0.0);
+	hist[hist_count - 1].rMax = vec2(5.0);
+	if(ptPlotOptions.writeTotalContribution != 0)
 	{
-		float t = distance(indirect_bounces[0].bouncePos, indirect_bounces[1].bouncePos);
-		setHistValue(t, getFrameIdx());
+		setHistValue(pt_state.totalContribution, getFrameIdx());
+		ptPlot.totalContribution = int(hist_count - 1);
+	}
+	vec3 origin = pt_state.primaryOrigin;
+	if(ptPlotOptions.bounce > 0)
+	{
+		origin = indirect_bounces[ptPlotOptions.bounce - 1].bouncePos;
+	}
+	bool writePlot = pt_state.bounce > ptPlotOptions.bounce;
+
+	nextHist();
+	hist[hist_count - 1].histDim = 2;
+	hist[hist_count - 1].bins = vec2(100, 50);
+	hist[hist_count - 1].rMin = vec2(-PI, 0);
+	hist[hist_count - 1].rMax = vec2(PI);
+	if(ptPlotOptions.writeIndirectDir != 0)
+	{
+		if(writePlot)
+		{
+			vec2 sphericalDir = cartesianToSpherical(indirect_bounces[ptPlotOptions.bounce].bounceDir);
+			setHistValue(sphericalDir, getFrameIdx());
+		}
+		ptPlot.indirectRay.dir = int(hist_count - 1);
 	}
 
-	GLSLPtPlot plot;
-	plot.totalContribution = 0;
-	ptPlotSetPlot(plot);
-	ptPlot.totalContribution = 0;
+	nextHist();
+	hist[hist_count - 1].histDim = 1;
+	hist[hist_count - 1].bins = vec2(200);
+	hist[hist_count - 1].rMin = vec2(0.0);
+	hist[hist_count - 1].rMax = vec2(2.0);
+	if(ptPlotOptions.writeIndirectT != 0)
+	{
+		if(writePlot)
+		{
+			float t = distance(origin, indirect_bounces[1].bouncePos);
+			setHistValue(t, getFrameIdx());
+		}
+		ptPlot.indirectRay.t = int(hist_count - 1);
+	}
+
+	nextHist();
+	hist[hist_count - 1].histDim = 1;
+	hist[hist_count - 1].bins = vec2(200);
+	hist[hist_count - 1].rMin = vec2(0.0);
+	hist[hist_count - 1].rMax = vec2(2.0);
+	if(ptPlotOptions.writeIndirectWeight != 0)
+	{
+		if(writePlot)
+		{
+			setHistValue(indirect_bounces[ptPlotOptions.bounce].localWeight, getFrameIdx());
+		}
+		ptPlot.indirectRay.weight = int(hist_count - 1);
+	}
+	
 }
 
 #endif

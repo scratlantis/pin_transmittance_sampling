@@ -6,7 +6,13 @@ const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders";
 using namespace glm;
 
-GVar perlinFrequency{"Perlin frequency", 4.f, GVAR_FLOAT_RANGE, GUI_CAT_NOISE, {1.f, 10.f}};
+GVar gvar_perlin_frequency{"Perlin frequency", 4.f, GVAR_FLOAT_RANGE, GUI_CAT_NOISE, {1.f, 10.f}};
+
+GVar gvar_pt_plot_write_total_contribution{"Write total contribution", false, GVAR_BOOL, GUI_CAT_PT_PLOT};
+GVar gvar_pt_plot_write_indirect_dir{"Write indirect direction", false, GVAR_BOOL, GUI_CAT_PT_PLOT};
+GVar gvar_pt_plot_write_indirect_t{"Write indirect t", false, GVAR_BOOL, GUI_CAT_PT_PLOT};
+GVar gvar_pt_plot_write_indirect_weight{"Write indirect weight", false, GVAR_BOOL, GUI_CAT_PT_PLOT};
+GVar gvar_pt_plot_bounce{"Select Bounce", 0, GVAR_UINT_RANGE, GUI_CAT_PT_PLOT, {0, 5}};
 
 int main()
 {
@@ -42,7 +48,7 @@ int main()
 	perlinArgs.scale         = 1000.0;
 	perlinArgs.min           = 0.0;
 	perlinArgs.max           = 100.0;
-	perlinArgs.frequency          = perlinFrequency.val.v_float;
+	perlinArgs.frequency          = gvar_perlin_frequency.val.v_float;
 	perlinArgs.falloffAtEdge = true;
 	const uint32_t mediumExtent1D = 64;
 	VkExtent3D     mediumExtent{mediumExtent1D, mediumExtent1D, mediumExtent1D};
@@ -91,11 +97,11 @@ int main()
 		{
 			cmdFill(cmdBuf, img_pt_accumulation, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.0,0.0,0.0,0.0));
 		}
-		bool resetHistogram = viewHasChanged || anySettingsChanged || shaderRecompiled || leftClickInView || firstFrame;
+		bool resetPlots = viewHasChanged || anySettingsChanged || shaderRecompiled || leftClickInView || firstFrame;
 		// Regenerate noise
 		if (settingsChanged[GUI_CAT_NOISE] || shaderRecompiled || firstFrame)
 		{
-			perlinArgs.frequency = perlinFrequency.val.v_float;
+			perlinArgs.frequency = gvar_perlin_frequency.val.v_float;
 			getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);
 		}
 		// Path tracing
@@ -122,7 +128,12 @@ int main()
 			traceArgs.debugArgs.pixelPos        = lastClickPos;
 			traceArgs.debugArgs.enableHistogram = true;
 			traceArgs.debugArgs.enablePtPlot    = true;
-			traceArgs.debugArgs.ptPlotOptions.writeTotalContribution = true;
+
+			traceArgs.debugArgs.ptPlotOptions.writeTotalContribution = gvar_pt_plot_write_total_contribution.val.v_bool;
+			traceArgs.debugArgs.ptPlotOptions.writeIndirectDir       = gvar_pt_plot_write_indirect_dir.val.v_bool;
+			traceArgs.debugArgs.ptPlotOptions.writeIndirectT         = gvar_pt_plot_write_indirect_t.val.v_bool;
+			traceArgs.debugArgs.ptPlotOptions.writeIndirectWeight    = gvar_pt_plot_write_indirect_weight.val.v_bool;
+			traceArgs.debugArgs.ptPlotOptions.bounce                 = gvar_pt_plot_bounce.val.v_uint;
 
 			if (leftClickInView)
 			{
@@ -131,11 +142,11 @@ int main()
 				traceArgs.debugArgs.maxPlotValueCount = 1000;
 			}
 
-			if (resetHistogram)
+			if (resetPlots)
 			{
 				traceArgs.debugArgs.resetHistogram = true;
 				traceArgs.debugArgs.maxHistCount   = 10;
-				traceArgs.debugArgs.maxHistValueCount = 100000;
+				traceArgs.debugArgs.maxHistValueCount = 1000000;
 			}
 
 			cmdTrace(cmdBuf, img_pt, traceArgs);

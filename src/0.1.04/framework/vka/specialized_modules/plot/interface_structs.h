@@ -54,10 +54,31 @@ namespace vka
 				    case PLOT_DATA_TYPE_FLOAT:
 					    if (ImPlot::BeginPlot(label.c_str()))
 					    {
-						    ImPlot::SetupAxes("x", "y", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
-						    ImPlot::PlotHistogram("", static_cast<float *>(plotData) + plot.offset, static_cast<int>(plot.count), plot.bins, 1.0,
-						                          plot.rMin != plot.rMax ? ImPlotRange(plot.rMin, plot.rMax) : ImPlotRange(), ImPlotHistogramFlags_NoOutliers);
-						    ImPlot::EndPlot();
+						    ImPlot::SetupAxes("x", "y", 0, ImPlotAxisFlags_AutoFit);
+						    if (plot.histDim == 1)
+						    {
+							    std::vector<ImVec4> fillStyles = {ImVec4(1, 0, 0, 0.25), ImVec4(0, 1, 0, 0.25), ImVec4(0, 0, 1, 0.25)};
+							    VKA_ASSERT(plot.dataDim <= 3);
+							    for (int i = 0; i < plot.dataDim; i++)
+							    {
+									if (plot.dataDim > 1)
+									{
+										ImPlot::SetNextFillStyle(fillStyles[i]);
+									}
+								    ImPlot::PlotHistogram(("plot_" + std::to_string(i)).c_str(), static_cast<float *>(plotData) + plot.offset + i * plot.count,
+								                          static_cast<int>(plot.count), plot.bins.x, 1.0,
+								                          ImPlotRange(plot.rMin.x, plot.rMax.x), ImPlotHistogramFlags_NoOutliers);
+							    }
+						    }
+						    else if (plot.histDim == 2)
+						    {
+							    ImPlot::PushColormap("Hot");
+							    uint32_t maxCount = ImPlot::PlotHistogram2D("", static_cast<float *>(plotData) + plot.offset, static_cast<float *>(plotData) + plot.offset + plot.count,
+							                            static_cast<int>(plot.count), plot.bins.x, plot.bins.y,
+							                            ImPlotRect(plot.rMin.x, plot.rMax.x, plot.rMin.y, plot.rMax.y), 0);// ImPlotHistogramFlags_NoOutliers | ImPlotHistogramFlags_Density
+							    ImPlot::PopColormap();
+						    }
+							ImPlot::EndPlot();
 					    }
 					    break;
 				    default:
