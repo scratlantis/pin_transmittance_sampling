@@ -107,10 +107,26 @@ struct GVar
 	static std::vector<GVar *> filterMask(std::vector<GVar *> gvar, uint32_t mask);
 	static std::vector<GVar *> filterSortID(std::vector<GVar *> gvar, uint32_t sortID);
 	static bool addToGui(std::vector<GVar *> gvar, std::string category);
-	static void store(std::vector<GVar *> gvar, std::string path);
-	static void load(std::vector<GVar *> gvar, std::string path);
-
+	static void                store(std::vector<GVar *> gvar, std::string path);
+	static void                load(std::vector<GVar *> gvar, std::string path);
 	static std::vector<GVar *> getAll();
+
+	template <typename CAT>
+	static std::vector<bool> addAllToGui()
+	{
+		std::vector<bool> changed;
+		for (CAT cat = eIterator_begin<CAT>()(); cat != eIterator_end<CAT>()(); cat = eIterator_next<CAT>()(cat))
+		{
+			std::string         name  = eString_val<CAT>()(cat);
+			std::vector<GVar *> gvars = GVar::filterSortID(GVar::getAll(), cat);
+			changed.push_back(false);
+			if (ImGui::CollapsingHeader(name.c_str()))
+			{
+				changed.back() = GVar::addToGui(gvars, name);
+			}
+		}
+		return changed;
+	}
 };
 
 }        // namespace vka
