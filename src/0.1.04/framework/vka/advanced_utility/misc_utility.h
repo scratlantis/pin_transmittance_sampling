@@ -17,4 +17,5 @@ void             clearShaderCache();
 void             waitIdle();
 
 
-}		// namespace vka
+
+}        // namespace vka

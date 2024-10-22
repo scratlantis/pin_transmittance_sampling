@@ -1,6 +1,7 @@
 #include "misc.h"
 #include <glm/ext/matrix_transform.hpp>
 #include "io.h"
+#include "misc.h"
 namespace vka
 {
 
@@ -320,5 +321,4 @@ std::string getGLSLFormat(VkFormat format)
 	}
 }
 
-
-}
+}        // namespace vka

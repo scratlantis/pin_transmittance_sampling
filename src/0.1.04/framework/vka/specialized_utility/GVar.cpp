@@ -84,7 +84,6 @@ bool GVar_Val::equals(const GVar_Val &other, GVar_Type type) const
 	}
 	else
 	{
-		DEBUG_BREAK;
 		return true;
 	}
 }

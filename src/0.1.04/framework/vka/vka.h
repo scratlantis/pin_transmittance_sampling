@@ -18,3 +18,4 @@
 #include <vka/specialized_modules/plot/interface_structs.h>
 #include <vka/specialized_modules/plot/submodule.h>
 #include <vka/specialized_modules/pt_plot/submodule.h>
+#include <vka/profiling/ImageEstimatorComparator.h>
