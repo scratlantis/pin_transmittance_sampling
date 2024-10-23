@@ -8,7 +8,7 @@
 #endif
 
 #ifndef RAY_MARCHE_STEP_SIZE
-#define RAY_MARCHE_STEP_SIZE 0.2
+#define RAY_MARCHE_STEP_SIZE 0.1
 #endif
 
 #define PT_SCALAR_FIELD_BINDING_COUNT 1
@@ -26,7 +26,7 @@ float rayMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint s
 	for(uint i = 0; i < max_steps; i++)
 	{
 		t += stepSize;
-		vec3 pos = origin + direction * (t-stepSize*unormNext(seed));
+		vec3 pos = origin + direction * t;
 
 		// Sample density
 		float density = texture(volSmp, pos).r;
@@ -57,9 +57,7 @@ float rayMarcheMediumTransmittance(vec3 origin, vec3 direction, float maxLenght,
 	for(uint i = 0; i < max_steps; i++)
 	{
 		t += stepSize;
-		//vec3 pos = origin + direction * (t-stepSize*unormNext(seed));
-		vec3 pos = origin + direction * (t-stepSize*0.5);
-		//vec3 pos = origin + direction * t;
+		vec3 pos = origin + direction * t;
 
 		// Sample density
 		float density = texture(volSmp, pos).r;

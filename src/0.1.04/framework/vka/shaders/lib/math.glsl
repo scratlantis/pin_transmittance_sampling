@@ -69,6 +69,25 @@ uint flatten(uvec3 idx, uint size)
 	return  idx.x + idx.y*size + idx.z*size*size;
 }
 
+uint flatten(uvec2 idx, uint size)
+{
+	return  idx.x + idx.y*size;
+}
+
+uint gridIdx(vec3 pos, uint gridSize)
+{
+	vec3 clampedPos = clamp(pos, 0.0, 0.9999);
+	uvec3 indexVec = uvec3(clampedPos * vec3(gridSize));
+	return flatten(indexVec, gridSize);
+}
+
+uint gridIdx(vec2 pos, uint gridSize)
+{
+	vec2 clampedPos = clamp(pos, 0.0, 0.9999);
+	uvec2 indexVec = uvec2(clampedPos * vec2(gridSize));
+	return flatten(indexVec, gridSize);
+}
+
 vec3 sphericalToCartesian(float phi, float theta)
 {
 	return vec3(sin(phi)*cos(theta), sin(phi)*sin(theta), cos(phi));
@@ -78,6 +97,26 @@ vec2 cartesianToSpherical(vec3 v)
 {
 	return vec2(atan(v.y, v.x), acos(v.z));
 }
+
+
+vec2 invertSpherical(vec2 spherical)
+{
+	return vec2(mod(spherical.x + PI, 2.0*PI), PI - spherical.y);
+}
+
+vec2 normalizeSpherical(vec2 spherical)
+{
+	float phi = mod(spherical.x + 2.0*PI, 2.0*PI);
+	float theta = mod(spherical.y + 2.0*PI, 2.0*PI);
+	if(theta > PI)
+	{
+		theta = 2.0*PI - theta;
+		phi = mod(phi + PI, 2.0*PI);
+	}
+	return vec2(phi, theta);
+}
+
+
 
 vec2 projectRaySegment(vec3 targetBegin, vec3 targetEnd, vec3 srcBegin, vec3 srcEnd)
 {

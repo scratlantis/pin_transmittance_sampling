@@ -1,0 +1,59 @@
+#include "interface_structs.glsl"
+#include "../../../lib/lib/pt_common.glsl"
+
+layout(binding = LOCAL_BINDING_OFFSET) buffer PIN_GRID
+{
+	GLSLPinCacheEntry pin_grid[];
+};
+
+void generatePin(uint seed, out vec3 start, out vec3 end)
+{
+	vec3 direction = normalize(random3D(seed + 0x362123)-vec3(0.5));
+	vec3 origin = random3D(seed + 0x491630);
+	unitCubeIntersection(origin, direction, start, end);
+}
+
+#ifndef PIN_WRITE_STEP_SIZE
+#define PIN_WRITE_STEP_SIZE 0.1
+#endif
+
+
+void main()
+{
+	if(!validInvocation()) return;
+	uint seed = invocationID();
+	vec3 start, end;
+	generatePin(seed, start, end);
+
+	uint stepCount = PIN_MASK_SIZE * 32; // 32 bits per mask field
+	float stepLength = distance(end,start) / float(stepCount);
+	vec3 dir = normalize(end-start);
+	GLSLPinCacheEntry pin;
+	for(uint i = 0; i<stepCount; i++)
+	{
+		vec3 pos = start + dir * float(i) * stepLength;
+		float transmittance = rayMarcheMediumTransmittance(pos, dir, stepLength, seed); // Must set volume resolution, and step size
+		if(transmittance < unormNext(seed))
+		{
+			writeToMask(i, pin);
+		}
+	}
+
+	const maxSteps = sqrt(3.0) * 2.0 / PIN_WRITE_STEP_SIZE;
+	float stepSize = PIN_WRITE_STEP_SIZE * unormNext(seed);
+	float t = 0.0;
+	float maxLenght = distance(start, end);
+	for(uint i = 0; i < max_steps; i++)
+	{
+		t += stepSize;
+		if( t > maxLenght)
+		{
+			break;
+		}
+		vec3 pos = clamp(start + dir * t, 0.0, 0.9999);
+		uint offset = pin_cache_offset(pos, dir);
+		pin_grid[offset] = pin;
+	}
+}
+
+
