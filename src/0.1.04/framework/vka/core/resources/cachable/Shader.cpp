@@ -14,7 +14,7 @@ DEFINE_EQUALS_OVERLOAD(ShaderDefinition, ResourceIdentifier)
 
 bool ShaderDefinition::operator==(const ShaderDefinition &other) const
 {
-	return path == other.path && cmpVector(args, other.args);
+	return path == other.path && cmpVector(args, other.args) && cmpVector(libs, other.libs);
 }
 
 std::string ShaderDefinition::fileID() const
@@ -29,6 +29,12 @@ std::string ShaderDefinition::fileID() const
 			id.append("=");
 		}
 		id.append(args[i].value);
+	}
+
+	for (size_t i = 0; i < libs.size(); i++)
+	{
+		id.append("_");
+		id.append(libs[i]);
 	}
 	return id;
 }
@@ -48,6 +54,60 @@ std::string ShaderDefinition::fileName() const
 	return name;
 }
 
+std::string ShaderDefinition::suffix() const
+{
+	return path.substr(path.find_last_of(".") + 1);
+}
+
+std::string ShaderDefinition::preprocessedPath() const
+{
+	bool insideLib = path.compare(0, cVkaShaderRoot.size(), cVkaShaderRoot) == 0;
+	VKA_ASSERT(insideLib || path.compare(0, gAppShaderRoot.size(), gAppShaderRoot) == 0);
+
+	if (insideLib)
+	{
+		std::string localPath = path.substr(cVkaShaderRoot.size());
+		if (localPath.find_last_of("/") == std::string::npos)
+		{
+			localPath = "";
+		}
+		else
+		{
+			localPath = localPath.substr(0, localPath.find_last_of("/") + 1);
+		}
+		return gShaderOutputDir + "/preprocessed/lib/" + localPath
+			+ fileIDShort() + "." + suffix();
+	}
+	else
+	{
+		std::string localPath = path.substr(gAppShaderRoot.size() + 1);
+		if (localPath.find_last_of("/") == std::string::npos)
+		{
+			localPath = "";
+		}
+		else
+		{
+			localPath = localPath.substr(0, localPath.find_last_of("/") + 1);
+		}
+		return gShaderOutputDir + "/preprocessed/app/" + localPath + fileIDShort() + "." + suffix();
+	}
+}
+
+std::string ShaderDefinition::preprocessedLibPath(const std::string &path)
+{
+	bool insideLib = path.compare(0, cVkaShaderRoot.size(), cVkaShaderRoot) == 0;
+	VKA_ASSERT(insideLib || path.compare(0, gAppShaderRoot.size(), gAppShaderRoot) == 0);
+
+	if (insideLib)
+	{
+		return gShaderOutputDir + "/preprocessed/lib/" + path.substr(cVkaShaderRoot.size());
+	}
+	else
+	{
+		return gShaderOutputDir + "/preprocessed/app/" + path.substr(gAppShaderRoot.size());
+	}
+}
+
 void Shader_R::free()
 {
 	vkDestroyShaderModule(gState.device.logical, handle, nullptr);
@@ -59,13 +119,42 @@ Shader_R::Shader_R(IResourceCache *pCache, ShaderDefinition const &definition) :
 	createModule(definition);
 }
 
+void Shader_R::preprocess(ShaderDefinition const& def)
+{
+	std::string shaderPrefix = "#version 460\n#extension GL_GOOGLE_include_directive : enable\n";
+	uint32_t    linesAdded      = 2;
+	std::string shaderPath = def.preprocessedPath();
+	std::string shaderTargetDir = shaderPath.substr(0, shaderPath.find_last_of("/"));
+	std::filesystem::create_directories(shaderTargetDir);
+
+	std::string shaderCode = std::string(readTextFile(def.path).data());
+	for (auto& lib : def.libs)
+	{
+		std::string libPath = ShaderDefinition::preprocessedLibPath(lib);
+		std::string relativePath = getRelativePath(shaderTargetDir, libPath);
+		std::string include = "#include \"" + relativePath + "\"\n";
+		linesAdded++;
+		shaderPrefix += include;
+	}
+	// Add newlines to make sure the add line count is a multiple of 10, makes it easier to read the debugging log line numbers
+	uint32_t roundUpLineCount = 10 - (linesAdded % 10);
+	for (uint32_t i = 0; i < roundUpLineCount; i++)
+	{
+		shaderPrefix += "\n";
+	}
+
+	shaderCode = shaderPrefix + shaderCode;
+	writeFile(shaderPath, shaderCode);
+}
+
+
 void Shader_R::compile(ShaderDefinition const &def)
 {
 	std::stringstream shader_src_path;
 	std::stringstream shader_spv_path;
 	std::stringstream shader_log_path;
 	std::stringstream cmdShaderCompile;
-	shader_src_path << def.path;
+	shader_src_path << def.preprocessedPath();
 
 	shader_spv_path << gShaderOutputDir << "/spv";
 	std::filesystem::create_directories(shader_spv_path.str());
@@ -98,12 +187,13 @@ void Shader_R::createModule(ShaderDefinition const &def)
 {
 	printVka(("Loading shader: " + def.fileName()).c_str());
 	std::vector<char> shader_log;
+	preprocess(def);
 	compile(def);
 	std::stringstream shader_log_path;
 	shader_log_path << gShaderOutputDir << "/log/" << def.fileIDShort() << "_log.txt";
 	std::string shader_log_path_str = shader_log_path.str();
-	shader_log = readFile(shader_log_path_str);
-	if (shader_log.size() > 0)
+	shader_log                      = readTextFile(shader_log_path_str);
+	if (shader_log.size() > 1)
 	{
 		printVka("Error compiling shader '%s' : %s", def.fileIDShort().c_str(), shader_log.data());
 		gState.shaderLog += "\nShader compile error:\n";

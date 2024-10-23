@@ -18,9 +18,9 @@
 #define VALIDATION true
 
 #ifdef _WIN32
-#	define GLSLC_COMMAND "glslc.exe --target-env=vulkan1.2"
+#	define GLSLC_COMMAND "glslc.exe --target-env=vulkan1.3"
 #else        // not _WIN32
-#	define GLSLC_COMMAND "glslc --target-env vulkan1.2"
+#	define GLSLC_COMMAND "glslc --target-env vulkan1.3"
 #endif        // _WIN32
 
 #define INTEL_VENDOR_ID 8086
@@ -117,19 +117,6 @@
 		}                                       \
 	};
 #define ZERO_PAD(TYPE) TYPE##_ZERO_PAD
-
-#define DECLARE_HASH(TYPE, FUNC)                  \
-	namespace std                                 \
-	{                                             \
-	template <>                                   \
-	struct hash<TYPE>                             \
-	{                                             \
-		size_t operator()(TYPE const &type) const \
-		{                                         \
-			return type.FUNC();                   \
-		}                                         \
-	};                                            \
-	}
 
 #define DEFINE_EQUALS_OVERLOAD(CHILD_TYPE, PARENT_TYPE)             \
 	bool CHILD_TYPE## ::operator==(const PARENT_TYPE & other) const \

@@ -17,10 +17,22 @@ struct Mouse
 	glm::vec2 pos;
 	bool      leftPressed;
 	bool      leftEvent;
+	bool      leftPressedEvent()
+	{
+		return leftEvent && leftPressed;
+	}
 	bool      rightPressed;
 	bool      rightEvent;
+	bool      rightPressedEvent()
+	{
+		return rightEvent && rightPressed;
+	}
 	bool	  middlePressed;
 	bool	  middleEvent;
+	bool      middlePressedEvent()
+	{
+		return middleEvent && middlePressed;
+	}
 	double scrollChange;
 	void   resetEvents()
 	{
@@ -91,6 +103,7 @@ class IOController
 	void    updateSwapchain();
 	bool    swapchainRecreated();
 	bool    shouldTerminate();
+	void    buildShaderLib();
 	Window *getWindow();
 
 	DELETE_COPY_CONSTRUCTORS(IOController);

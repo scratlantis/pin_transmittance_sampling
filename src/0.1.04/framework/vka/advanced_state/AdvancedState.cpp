@@ -2,6 +2,7 @@
 #include <vka/core/core_state/ResourcePool.h>
 #include <vka/core/core_utility/cmd_buffer_utility.h>
 #include <vka/core/core_utility/general_commands.h>
+#include <implot.h>
 namespace vka
 {
 void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Window *window, AdvancedStateConfig &config)
@@ -9,6 +10,10 @@ void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Wind
 	CoreState::init(deviceCI, ioControllerCI, window);
 	swapchainAttachmentPool = new ResourcePool();
 	heap                    = new ResourcePool();
+	hostCachedHeap          = new ResourcePool();
+	hostCacheLocalPool      = new ResourcePool();
+	hostCache               = new HostCache(hostCachedHeap, hostCacheLocalPool);
+	feedbackDataCache       = new FeedbackDataCache(hostCache);
 	framebufferCache        = new FramebufferCache();
 	modelCache              = new ModelCache(heap, config.modelPath, config.modelUsage);
 	textureCache            = new TextureCache(heap, config.texturePath);
@@ -32,11 +37,19 @@ void AdvancedState::destroy()
 		imguiWrapper->destroy();
 		guiEnabled = false;
 	};
+	if (guiConfigured)
+	{
+		ImPlot::DestroyContext();
+		ImGui::DestroyContext();
+		guiConfigured = false;
+	}
 	for (auto &frame : frames)
 	{
 		frame.stack->clear();
 	}
 	heap->clear();
+	hostCachedHeap->clear();
+	hostCacheLocalPool->clear();
 	delete framebufferCache;
 	delete modelCache;
 	delete textureCache;

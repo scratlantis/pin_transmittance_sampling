@@ -149,7 +149,8 @@ VkAccelerationStructureBuildGeometryInfoKHR AccelerationStructure_R::getBuildInf
 void AccelerationStructure_R::configureScratchBuffer(Buffer_R *scratchBuffer) const
 {
 	VkPhysicalDeviceAccelerationStructurePropertiesKHR asProp = getAccelerationStructureProperties();
-	scratchBuffer->changeSize(std::max(scratchBuffer->getSize(), getBuildSize() + asProp.minAccelerationStructureScratchOffsetAlignment));
+	// * 2 because i dont know why, validation layer complains for tlas, idk, should probably find out :P
+	scratchBuffer->changeSize(std::max(scratchBuffer->getSize(), alignUp(2 * getBuildSize() + asProp.minAccelerationStructureScratchOffsetAlignment, asProp.minAccelerationStructureScratchOffsetAlignment)));
 	scratchBuffer->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
 	scratchBuffer->addUsage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
 }

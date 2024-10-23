@@ -186,4 +186,18 @@ bool IOController::shouldTerminate()
 {
 	return window->shouldClose();
 }
+
+void IOController::buildShaderLib()
+{
+	std::string shaderRootDir = gShaderOutputDir + "/preprocessed";
+	std::filesystem::create_directories(shaderRootDir + "/app");
+	std::filesystem::create_directories(shaderRootDir + "/lib");
+
+	const std::function<bool(std::filesystem::path)> &isIncludableShader =
+	    [](std::filesystem::path path) {
+		    return path.extension() == ".glsl";
+	    };
+	copyRecursive(gAppShaderRoot, shaderRootDir + "/app", isIncludableShader);
+	copyRecursive(cVkaShaderRoot, shaderRootDir + "/lib", isIncludableShader);
+}
 }        // namespace vka

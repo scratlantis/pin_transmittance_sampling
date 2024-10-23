@@ -8,12 +8,14 @@ namespace vka
 
 struct DeviceCI
 {
-	std::string               applicationName;
-	uint32_t                  universalQueueCount;
-	uint32_t                  computeQueueCount;
-	std::vector<const char *> enabledInstanceExtensions;
-	std::vector<const char *> enabledDeviceExtensions;
-	StructureChain            enabledFeatures;
+	std::string                               applicationName;
+	uint32_t                                  universalQueueCount;
+	uint32_t                                  computeQueueCount;
+	std::vector<const char *>                 enabledInstanceExtensions;
+	std::vector<const char *>                 enabledDeviceExtensions;
+	StructureChain                            enabledDeviceFeatures;
+	StructureChain                            enabledInstanceFeatures;
+	std::vector<VkValidationFeatureEnableEXT> enabledValidationFeatures;
 };
 
 class Device
@@ -22,6 +24,8 @@ class Device
 	VkDevice             logical;
 	VkPhysicalDevice     physical;
 	VkInstance           instance;
+	VkDebugUtilsMessengerEXT printfDebugMessenger;
+	VkDebugUtilsMessengerEXT validationDebugMessenger;
 	std::vector<VkQueue> universalQueues;
 	int                  universalQueueFamily;
 	std::vector<VkQueue> computeQueues;

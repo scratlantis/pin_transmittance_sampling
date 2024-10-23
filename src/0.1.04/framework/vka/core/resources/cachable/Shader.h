@@ -35,6 +35,8 @@ class ShaderDefinition : public ResourceIdentifier
 	    path(path), args(args){};
 	std::string             path;
 	std::vector<ShaderArgs> args;
+	std::vector<std::string> libs;
+
 
 	bool   operator==(const ResourceIdentifier &other) const override;
 	bool   operator==(const ShaderDefinition &other) const;
@@ -42,8 +44,11 @@ class ShaderDefinition : public ResourceIdentifier
 
 	std::string fileID() const;
 	std::string fileIDShort() const;
-
 	std::string fileName() const;
+	std::string suffix() const;
+
+	std::string preprocessedPath() const;
+	static std::string preprocessedLibPath(const std::string &path);
 
   protected:
 };
@@ -51,6 +56,7 @@ class ShaderDefinition : public ResourceIdentifier
 class Shader_R : public Cachable_T<VkShaderModule>
 {
   private:
+	void preprocess(ShaderDefinition const &def);
 	void compile(ShaderDefinition const &def);
 	void createModule(ShaderDefinition const &def);
 
@@ -59,7 +65,7 @@ class Shader_R : public Cachable_T<VkShaderModule>
 	Shader_R(IResourceCache *pCache, ShaderDefinition const &definition);
 };
 
-static VkPipelineShaderStageCreateInfo makeShaderStageCI(const ShaderDefinition const &def, VkShaderModule shaderModule)
+static VkPipelineShaderStageCreateInfo makeShaderStageCI(const ShaderDefinition &def, VkShaderModule shaderModule)
 {
 	{
 		VkPipelineShaderStageCreateInfo ci{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO};

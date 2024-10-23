@@ -13,3 +13,9 @@
 #include <vka/core/core_utility/general_commands.h>
 #include <vka/controller/camera/FixedCamera.h>
 #include <vka/pbr/universal/UScene.h>
+#include <vka/specialized_modules/default_scene/submodule.h>
+#include <vka/specialized_modules/debug/submodule.h>
+#include <vka/specialized_modules/plot/interface_structs.h>
+#include <vka/specialized_modules/plot/submodule.h>
+#include <vka/specialized_modules/pt_plot/submodule.h>
+#include <vka/profiling/ImageEstimatorComparator.h>

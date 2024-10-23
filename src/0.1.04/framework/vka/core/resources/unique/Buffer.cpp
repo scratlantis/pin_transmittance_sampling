@@ -58,6 +58,7 @@ bool Buffer_R::isMappable() const
 
 const Buffer_R Buffer_R::recreate()
 {
+	VKA_ASSERT(newState.size != 0);
 	Buffer_R bufferCopy = *this;
 	if (handle != VK_NULL_HANDLE && state.size == newState.size && state.usage == newState.usage && state.memProperty.vma == newState.memProperty.vma)
 	{
@@ -148,7 +149,7 @@ BufferRange Buffer_R::getRange() const
 	return range;
 }
 
-const Buffer_R *Buffer_R::getSubBuffer(BufferRange range) const
+Buffer_R *Buffer_R::getSubBuffer(BufferRange range) const
 {
 	Buffer_R *subBuffer = new Buffer_R(*this);
 	subBuffer->range	= range;

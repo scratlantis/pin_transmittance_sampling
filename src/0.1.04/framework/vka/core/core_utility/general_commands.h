@@ -23,7 +23,19 @@ void cmdWriteCopy(CmdBuffer cmdBuf, Buffer buf, const void *data, VkDeviceSize s
 void cmdUploadCopy(CmdBuffer cmdBuf, Buffer src, Buffer dst);
 void cmdFillBuffer(CmdBuffer cmdBuf, Buffer dst, VkDeviceSize offset, VkDeviceSize size, uint32_t data);
 void cmdFillBuffer(CmdBuffer cmdBuf, Buffer dst, uint32_t data);
-// Image
+void cmdZeroBuffer(CmdBuffer cmdBuf, Buffer dst);
+void cmdInitBuffer(CmdBuffer cmdBuf, Buffer buf, void *pData, uint32_t size);
+void cmdInitBuffer(CmdBuffer cmdBuf, Buffer buf, uint32_t data, uint32_t size);
+
+template <typename T>
+void cmdFillBuffer(CmdBuffer cmdBuf, Buffer dst, T data)
+{
+	static_assert(sizeof(T) == 4, "Size is not correct");
+	uint32_t data_ = *reinterpret_cast<uint32_t *>(&data);
+	cmdFillBuffer(cmdBuf, dst, data_);
+}
+
+    // Image
 void cmdImageMemoryBarrier(CmdBuffer cmdBuf, Image image, VkImageLayout newLayout, uint32_t baseLayer = 0, uint32_t layerCount = 1);
 void cmdTransitionLayout(CmdBuffer cmdBuf, Image image, VkImageLayout newLayout, uint32_t baseLayer = 0, uint32_t layerCount = 1);
 void cmdCopyBufferToImage(CmdBuffer cmdBuf, Buffer src, Image dst, uint32_t layer = 0, uint32_t mipLevel = 0);

@@ -1,6 +1,6 @@
 #pragma once
 #include "../Resource.h"
-#include <vma/vk_mem_alloc.h>
+#include <vk_mem_alloc.h>
 
 namespace vka
 {
@@ -117,6 +117,10 @@ class Buffer_R : public Resource_T<VkBuffer>
 	{
 		newState.usage = usage;
 	};
+	ResourceType type() const override
+	{
+		return RESOURCE_TYPE_BUFFER;
+	}
 	~Buffer_R()
 	{
 		free();
@@ -143,7 +147,7 @@ class Buffer_R : public Resource_T<VkBuffer>
 	VmaMemoryUsage     getMemoryType() const;
 
 	BufferRange     getRange() const;
-	const Buffer_R*  getSubBuffer(BufferRange range) const;
+	Buffer_R*  getSubBuffer(BufferRange range) const;
 	VkDeviceAddress getDeviceAddress() const;
 	
 

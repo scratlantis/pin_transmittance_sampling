@@ -110,7 +110,7 @@ void buildGui()
 		gState.imguiWrapper->newFrame();
 		gState.guiRendered = true;
 	}
-	//ImGui::ShowDemoWindow();
+	ImGui::ShowDemoWindow();
 
 	
 	setGuiDimensions(leftGuiDimensions);

@@ -195,4 +195,33 @@ ComputeCmd getCmdPlot(Buffer src, Image dst, uint32_t offset, glm::vec3 color)
 	cmd.pushDescriptor(dst, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 	return cmd;
 }
+
+
+ComputeCmd getCmdPerlinNoise(Image target, PerlinNoiseArgs args)
+{
+	ComputeCmd cmd(target->getExtent(), cVkaShaderPath + "perlin_noise_3D.comp");
+	VKA_ASSERT(target->getFormat() == VK_FORMAT_R32_SFLOAT)
+	VKA_ASSERT(!args.blend); // Not yet implemented.
+	cmd.pushDescriptor(target, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	struct PushStruct
+	{
+		uint32_t seed;
+		float    scale;
+		float    minVal;
+		float    maxVal;
+		float    frequency;
+		uint32_t falloffAtEdge;
+		uint32_t blendOp;
+	} pc;
+	pc.seed         = args.seed;
+	pc.scale        = args.scale;
+	pc.minVal       = args.min;
+	pc.maxVal       = args.max;
+	pc.frequency     = args.frequency;
+	pc.falloffAtEdge = args.falloffAtEdge ? 1 : 0;
+	pc.blendOp      = static_cast<uint32_t>(args.blendOp) + 1; // 0 is overwrite.
+	cmd.pushConstant(&pc, sizeof(PushStruct));
+	return cmd;
+}
+
 }        // namespace vka

@@ -24,7 +24,7 @@ void USceneBuilderBase::addModel(CmdBuffer cmdBuf, std::string path, Buffer inst
 }
 
 
-USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uint32_t sceneLoadFlags = 0)
+USceneData USceneBuilderBase::create(CmdBuffer cmdBuf, IResourcePool *pPool, uint32_t sceneLoadFlags)
 {
 	cmdBarrier(cmdBuf,
 	           VK_PIPELINE_STAGE_TRANSFER_BIT,

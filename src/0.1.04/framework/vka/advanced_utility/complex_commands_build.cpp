@@ -62,6 +62,14 @@ CmdBufferState ComputeCmd::getCmdBufferState() const
 }
 
 
+void ComputeCmd::pushBaseModule(glm::uvec3 invocationCount)
+{
+	pipelineDef.shaderDef.libs.push_back(cVkaShaderLibPath + "compute_shader_base.glsl");
+	pipelineDef.shaderDef.args.push_back({ShaderArgs("INVOCATION_COUNT_X", invocationCount.x)});
+	pipelineDef.shaderDef.args.push_back({ShaderArgs("INVOCATION_COUNT_Y", invocationCount.y)});
+	pipelineDef.shaderDef.args.push_back({ShaderArgs("INVOCATION_COUNT_Z", invocationCount.z)});
+}
+
 
 // Constructors
 ComputeCmd::ComputeCmd(uint32_t taskSize, const std::string path, std::vector<ShaderArgs> args)
@@ -72,6 +80,7 @@ ComputeCmd::ComputeCmd(uint32_t taskSize, const std::string path, std::vector<Sh
 	pipelineDef.specialisationEntrySizes = glm3VectorSizes();
 	pipelineDef.specializationData       = getByteVector(workGroupSize);
 	pipelineDef.shaderDef                = ShaderDefinition(path, args);
+	pushBaseModule(resolution);
 }
 
 ComputeCmd::ComputeCmd(glm::uvec2 taskSize, std::string path, std::vector<ShaderArgs> args)
@@ -82,6 +91,7 @@ ComputeCmd::ComputeCmd(glm::uvec2 taskSize, std::string path, std::vector<Shader
 	pipelineDef.specialisationEntrySizes = glm3VectorSizes();
 	pipelineDef.specializationData       = getByteVector(workGroupSize);
 	pipelineDef.shaderDef                = ShaderDefinition(path, args);
+	pushBaseModule(resolution);
 }
 
 ComputeCmd::ComputeCmd(VkExtent2D taskSize, std::string path, std::vector<ShaderArgs> args)
@@ -92,6 +102,7 @@ ComputeCmd::ComputeCmd(VkExtent2D taskSize, std::string path, std::vector<Shader
 	pipelineDef.specialisationEntrySizes = glm3VectorSizes();
 	pipelineDef.specializationData       = getByteVector(workGroupSize);
 	pipelineDef.shaderDef                = ShaderDefinition(path, args);
+	pushBaseModule(resolution);
 }
 
 ComputeCmd::ComputeCmd(glm::uvec3 taskSize, std::string path, std::vector<ShaderArgs> args)
@@ -102,6 +113,7 @@ ComputeCmd::ComputeCmd(glm::uvec3 taskSize, std::string path, std::vector<Shader
 	pipelineDef.specialisationEntrySizes = glm3VectorSizes();
 	pipelineDef.specializationData       = getByteVector(workGroupSize);
 	pipelineDef.shaderDef                = ShaderDefinition(path, args);
+	pushBaseModule(resolution);
 }
 
 ComputeCmd::ComputeCmd(VkExtent3D taskSize, std::string path, std::vector<ShaderArgs> args)
@@ -112,6 +124,7 @@ ComputeCmd::ComputeCmd(VkExtent3D taskSize, std::string path, std::vector<Shader
 	pipelineDef.specialisationEntrySizes = glm3VectorSizes();
 	pipelineDef.specializationData       = getByteVector(workGroupSize);
 	pipelineDef.shaderDef                = ShaderDefinition(path, args);
+	pushBaseModule(resolution);
 }
 
 
@@ -237,6 +250,23 @@ void DrawCmd::pushVertexData(BufferRef buffer, VertexDataLayout layout)
 {
 	additionalVertexBuffers.push_back(buffer);
 	addInput(pipelineDef, layout, VK_VERTEX_INPUT_RATE_VERTEX);
+}
+
+void ComputeCmd::pushSubmodule(const std::string path, std::vector<ShaderArgs> args)
+{
+	pipelineDef.shaderDef.libs.push_back(path);
+	uint32_t nameLength = path.find_last_of(".") - path.find_last_of("/") - 1;
+	std::string name       = path.substr(path.find_last_of("/") + 1, nameLength);
+	for (auto &c : name)
+		c = toupper(c);
+	name = name + "_BINDING_OFFSET";
+	pipelineDef.shaderDef.args.push_back({ShaderArgs(name, static_cast<uint32_t>(descriptors.size()))});
+	pipelineDef.shaderDef.args.insert(pipelineDef.shaderDef.args.end(), args.begin(), args.end());
+}
+
+void ComputeCmd::startLocalBindings()
+{
+	pipelineDef.shaderDef.args.push_back({"LOCAL_BINDING_OFFSET", static_cast<uint32_t>(descriptors.size())});
 }
 
 void ComputeCmd::pushDescriptor(BufferRef buffer, VkDescriptorType type)
