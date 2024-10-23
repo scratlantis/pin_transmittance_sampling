@@ -110,7 +110,8 @@ struct GVar
 	static void                store(std::vector<GVar *> gvar, std::string path);
 	static void                load(std::vector<GVar *> gvar, std::string path);
 	static std::vector<GVar *> getAll();
-
+	static void                loadAll(std::string path);
+	static void                storeAll(std::string path);
 	template <typename CAT>
 	static std::vector<bool> addAllToGui()
 	{

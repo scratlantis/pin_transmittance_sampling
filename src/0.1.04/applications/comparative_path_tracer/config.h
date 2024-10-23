@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/gtc/matrix_transform.hpp>
 #include <vka/vka.h>
+#include "constants.h"
 static const std::string shaderPath = std::string(APP_SRC_DIR) + "/shaders/";
 static const std::string configPath = std::string(CONFIG_DIR) + "/";
 

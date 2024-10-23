@@ -3,7 +3,7 @@ using namespace default_scene;
 
 #include "shaders/interface_structs.glsl"
 
-const uint32_t maxIndirectRaysPerBounce = 2; // 1 * Envmap + 1 * Area light
+
 
 struct TraceDebugArgs
 {
@@ -13,6 +13,7 @@ struct TraceDebugArgs
 	uint32_t               maxPlotValueCount;
 	bool                   enableHistogram;
 	bool                   resetHistogram;
+	uint32_t               histogramDataOffset;
 	uint32_t               maxHistCount;
 	uint32_t               maxHistValueCount;
 	bool                   enablePtPlot;
@@ -114,6 +115,12 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 		if (args.debugArgs.enableHistogram)
 		{
 			VKA_ASSERT(histogramBuffersInitialized);
+			if (args.debugArgs.histogramDataOffset > 0)
+			{
+				BufferRange range = histDataBuf->getRange();
+				range.offset += args.debugArgs.histogramDataOffset;
+				histDataBuf = histDataBuf->getSubBuffer(range);
+			}
 			shader_plot::bindHistogram(cmd, histBuf, histDataBuf, histCountBuf);
 		}
 		if (args.debugArgs.enablePtPlot)

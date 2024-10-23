@@ -389,6 +389,10 @@ void GVar::load(std::vector<GVar *> gvar, std::string path)
 {
 	json          j;
 	std::ifstream i(path);
+	if (!i.is_open())
+	{
+		return;
+	}
 	i >> j;
 	for (auto gv : gvar)
 	{
@@ -398,6 +402,16 @@ void GVar::load(std::vector<GVar *> gvar, std::string path)
 std::vector<GVar *> GVar::getAll()
 {
 	return all;
+}
+
+void GVar::loadAll(std::string path)
+{
+	load(all, path);
+}
+
+void GVar::storeAll(std::string path)
+{
+	store(all, path);
 }
 
 }        // namespace vka

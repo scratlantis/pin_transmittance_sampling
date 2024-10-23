@@ -38,8 +38,8 @@ void ImageEstimatorComparator::showSplitView(CmdBuffer cmdBuf, Image target, flo
 	dstAreaRight.extent.width -= dstAreaLeft.extent.width;
 
 	// Bar in the middle
-	dstAreaLeft.extent.width -= 1;
-	dstAreaRight.extent.width -= 1;
+	if (dstAreaLeft.extent.width != 0) dstAreaLeft.extent.width -= 1;
+	if (dstAreaRight.extent.width != 0) dstAreaRight.extent.width -= 1;
 	dstAreaRight.offset.x += 1;
 
 	if (dstAreaRight.extent.width == 0 || dstAreaRight.extent.width == 0)

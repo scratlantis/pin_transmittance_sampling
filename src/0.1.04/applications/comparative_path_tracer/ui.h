@@ -1,11 +1,6 @@
 #pragma once
 #include "config.h"
 
-const float viewMargin = 0.001;
-const Rect2D<float> viewDimensions    = {0.3, viewMargin, 0.7 - 1.0 * viewMargin, 1.0 - 2.0 * viewMargin};
-const Rect2D<float> leftGuiDimensions = {0.f + viewMargin, viewDimensions.y, viewDimensions.x - 2.0 * viewMargin, viewDimensions.height};
-const Rect2D<float> topGuiDimensions  = {0, 0, 0.5, viewDimensions.y};
-
 
 enum GuiCatergories
 {
@@ -21,3 +16,12 @@ std::vector<bool> buildGui();
 
 
 
+extern GVar gvar_perlin_frequency;
+extern GVar gvar_pt_plot_write_total_contribution;
+extern GVar gvar_pt_plot_write_indirect_dir;
+extern GVar gvar_pt_plot_write_indirect_t;
+extern GVar gvar_pt_plot_write_indirect_weight;
+extern GVar gvar_pt_plot_bounce;
+extern GVar gvar_mse;
+extern GVar gvar_timing_left;
+extern GVar gvar_timing_right;

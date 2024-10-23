@@ -6,16 +6,7 @@ const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders";
 using namespace glm;
 
-GVar gvar_perlin_frequency{"Perlin frequency", 4.f, GVAR_FLOAT_RANGE, GUI_CAT_NOISE, {1.f, 10.f}};
 
-GVar gvar_pt_plot_write_total_contribution{"Write total contribution", false, GVAR_BOOL, GUI_CAT_PT_PLOT};
-GVar gvar_pt_plot_write_indirect_dir{"Write indirect direction", false, GVAR_BOOL, GUI_CAT_PT_PLOT};
-GVar gvar_pt_plot_write_indirect_t{"Write indirect t", false, GVAR_BOOL, GUI_CAT_PT_PLOT};
-GVar gvar_pt_plot_write_indirect_weight{"Write indirect weight", false, GVAR_BOOL, GUI_CAT_PT_PLOT};
-GVar gvar_pt_plot_bounce{"Select Bounce", 0, GVAR_UINT_RANGE, GUI_CAT_PT_PLOT, {0, 5}};
-GVar gvar_mse{"MSE: %.8f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
-GVar gvar_timing_left{"Timing Left: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
-GVar gvar_timing_right{"Timing Left: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
 
 int main()
 {
@@ -26,6 +17,8 @@ int main()
 	AdvancedStateConfig config   = DefaultAdvancedStateConfig();
 	gState.init(deviceCI, ioCI, &window, config);
 	enableGui();
+	//// Load settings
+	GVar::loadAll(configPath + "last_session.json");
 	//// Image Estimator Comparator
 	ImageEstimatorComparator iec = ImageEstimatorComparator(VK_FORMAT_R32G32B32A32_SFLOAT, viewDimensions.width, viewDimensions.height);
 	//// Init other stuff
@@ -66,6 +59,7 @@ int main()
 	// Main Loop
 	uint32_t frameCount = 0;
 	vec2 lastClickPos = vec2(1.0);
+	float splitViewCoef = 0.5;
 	while (!gState.io.shouldTerminate())
 	{
 		//// Get Updates
@@ -88,14 +82,20 @@ int main()
 		viewHasChanged                       = viewHasChanged || gState.io.swapchainRecreated();
 		std::vector<bool> settingsChanged    = buildGui();
 		bool              anySettingsChanged = orOp(settingsChanged);
+		if (mouseInView(viewDimensions) && gState.io.mouse.leftPressed)
+		{
+			splitViewCoef += gState.io.mouse.change.x/(float)getScissorRect(viewDimensions).extent.width;
+			splitViewCoef = glm::clamp(splitViewCoef, 0.f, 1.f);
+		}
 		//// Process Updates
 		CmdBuffer cmdBuf       = createCmdBuffer(gState.frame->stack);
-		// Reset accumulation
+		//// Reset accumulation
 		if (viewHasChanged || anySettingsChanged || shaderRecompiled || firstFrame)
 		{
 			iec.cmdReset(cmdBuf);
 		}
-		bool resetPlots = viewHasChanged || anySettingsChanged || shaderRecompiled || leftClickInView || firstFrame;
+		bool resetPlots = viewHasChanged || anySettingsChanged || shaderRecompiled || firstFrame;
+		resetPlots      = resetPlots || (leftClickInView && gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL]);
 		// Regenerate noise
 		if (settingsChanged[GUI_CAT_NOISE] || shaderRecompiled || firstFrame)
 		{
@@ -135,26 +135,33 @@ int main()
 		if (leftClickInView)
 		{
 			traceArgs.debugArgs.enablePlot        = true;
-			traceArgs.debugArgs.maxPlotCount      = 10;
-			traceArgs.debugArgs.maxPlotValueCount = 1000;
+			traceArgs.debugArgs.maxPlotCount      = maxPlotCount;
+			traceArgs.debugArgs.maxPlotValueCount = maxPlotValueCount;
 		}
 
 		if (resetPlots)
 		{
 			traceArgs.debugArgs.resetHistogram = true;
-			traceArgs.debugArgs.maxHistCount   = 10;
-			traceArgs.debugArgs.maxHistValueCount = 1000000;
+			traceArgs.debugArgs.maxHistCount      = maxHistogramCount;
+			traceArgs.debugArgs.maxHistValueCount = maxHistValueCount;
 		}
-		iec.cmdRun<TraceArgs>(cmdBuf, cmdTrace, traceArgs, traceArgs, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
+
+		TraceArgs traceArgs2 = traceArgs;
+		traceArgs2.debugArgs.histogramDataOffset = maxHistValueCount / 2;
+		traceArgs2.maxDepth                      = 2;
+
+		iec.cmdRun<TraceArgs>(cmdBuf, cmdTrace, traceArgs, traceArgs2, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
 		//// Show results
 		gvar_mse.val.v_float = iec.getMSE();
 		Image swapchainImg = getSwapchainImage();
 		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.25, 0.25, 0.3, 1.0)).exec(cmdBuf);
-		iec.showSplitView(cmdBuf, swapchainImg, 0.5, getScissorRect(viewDimensions));
+		iec.showSplitView(cmdBuf, swapchainImg, splitViewCoef, getScissorRect(viewDimensions));
 		cmdRenderGui(cmdBuf, swapchainImg);
 
 		swapBuffers({cmdBuf});
 		frameCount++;
 	}
+	//// Save settings
+	GVar::storeAll(configPath + "last_session.json");
 	gState.destroy();
 }

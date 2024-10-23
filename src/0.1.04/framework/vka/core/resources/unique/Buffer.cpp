@@ -149,7 +149,7 @@ BufferRange Buffer_R::getRange() const
 	return range;
 }
 
-const Buffer_R *Buffer_R::getSubBuffer(BufferRange range) const
+Buffer_R *Buffer_R::getSubBuffer(BufferRange range) const
 {
 	Buffer_R *subBuffer = new Buffer_R(*this);
 	subBuffer->range	= range;
