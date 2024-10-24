@@ -12,6 +12,7 @@ extern GVar gvar_pt_plot_write_indirect_t;
 extern GVar gvar_pt_plot_write_indirect_weight;
 
 extern GVar gvar_perlin_frequency;
+extern GVar gvar_perlin_scale;
 extern GVar gvar_pt_plot_bounce;
 
 extern GVar gvar_mse;
@@ -23,6 +24,8 @@ extern GVar gvar_pin_dir_grid_size;
 extern GVar gvar_pin_ray_march_step_size;
 extern GVar gvar_pin_write_pin_step_size;
 extern GVar gvar_pin_update_rate;
+extern GVar gvar_ray_march_step_size;
+extern GVar gvar_bounce_count;
 
 int main()
 {
@@ -55,12 +58,12 @@ int main()
 #endif
 	//// Load Medium
 	PerlinNoiseArgs perlinArgs{};
-	perlinArgs.scale         = 1000.0;
+	perlinArgs.scale              = gvar_perlin_scale.val.v_float;
 	perlinArgs.min           = 0.0;
 	perlinArgs.max           = 100.0;
 	perlinArgs.frequency          = gvar_perlin_frequency.val.v_float;
 	perlinArgs.falloffAtEdge = true;
-	const uint32_t mediumExtent1D = 64;
+	const uint32_t mediumExtent1D = 64*4;
 	VkExtent3D     mediumExtent{mediumExtent1D, mediumExtent1D, mediumExtent1D};
 	Image          medium = createImage(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, mediumExtent);
 	cmdTransitionLayout(cmdBuf, medium, VK_IMAGE_LAYOUT_GENERAL);
@@ -116,6 +119,7 @@ int main()
 		if (settingsChanged[GUI_CAT_NOISE] || shaderRecompiled || firstFrame)
 		{
 			perlinArgs.frequency = gvar_perlin_frequency.val.v_float;
+			perlinArgs.scale     = gvar_perlin_scale.val.v_float;
 			getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);
 		}
 		//// Run Path Tracing
@@ -131,8 +135,8 @@ int main()
 
 		TraceArgs traceArgs{};
 		traceArgs.sampleCount               = 1;
-		traceArgs.maxDepth                  = 5;
-		traceArgs.rayMarchStepSize          = 0.1;
+		traceArgs.maxDepth                  = gvar_bounce_count.val.v_uint;
+		traceArgs.rayMarchStepSize          = gvar_ray_march_step_size.val.v_float;
 		traceArgs.cameraCI                  = camCI;
 		traceArgs.sceneData                 = scene;
 		traceArgs.mediumInstanceBuffer      = mediumInstanceBuffer;
@@ -163,6 +167,7 @@ int main()
 		}
 
 		TraceArgs traceArgs2 = traceArgs;
+		traceArgs2.debugArgs.histogramDataOffset = getLeftHistogramOffset();
 		traceArgs2.enablePins = true;
 		traceArgs2.pinArgs.posGridSize = gvar_pin_pos_grid_size.val.v_uint;
 		traceArgs2.pinArgs.dirGridSize = gvar_pin_dir_grid_size.val.v_uint;
@@ -170,6 +175,7 @@ int main()
 		traceArgs2.pinArgs.rayMarchStepSize = gvar_pin_ray_march_step_size.val.v_float;
 		traceArgs2.pinArgs.writePinStepSize = gvar_pin_write_pin_step_size.val.v_float;
 		traceArgs2.pinArgs.bitMaskIterations = gvar_bitmask_iterations.val.v_uint;
+		traceArgs2.pinArgs.executionID       = frameCount;
 
 		iec.cmdRun<TraceArgs>(cmdBuf, cmdTrace, traceArgs, traceArgs2, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
 		//// Show results

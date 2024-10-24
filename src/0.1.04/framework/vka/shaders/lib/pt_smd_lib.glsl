@@ -79,7 +79,8 @@
 #endif
 
 #ifdef DEBUG
-#define SI_printf( x ) SINGLE_INVOCATION ( debugPrintfEXT( x ); )
+#define SI_print( x ) SINGLE_INVOCATION ( debugPrintfEXT( x ); )
+#define SI_printf( x, y ) SINGLE_INVOCATION ( debugPrintfEXT( x, y ); )
 #endif
 
 #endif

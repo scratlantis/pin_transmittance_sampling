@@ -14,3 +14,9 @@ const uint32_t maxHistValueCount = 1000000; // = 1M * 4Byte = 4MB
 const uint32_t maxPlotCount      = 10;
 const uint32_t maxPlotValueCount = 10000;
 
+static uint32_t getLeftHistogramOffset()
+{
+	uint32_t alignment = getDeviceProperties().limits.minStorageBufferOffsetAlignment;
+	return alignUp(maxHistValueCount * 4, alignment)/4;
+}
+

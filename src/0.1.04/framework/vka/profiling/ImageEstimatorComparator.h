@@ -51,7 +51,7 @@ namespace vka
 		    estimator(cmdBuf, localTargetRight, argsRight);
 		}
 	    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-		tqManager.updateTimings();
+	    timeQueryFinished = tqManager.updateTimings();
 		if (timigsLeft)
 		{
 		    *timigsLeft = tqManager.timings[0];

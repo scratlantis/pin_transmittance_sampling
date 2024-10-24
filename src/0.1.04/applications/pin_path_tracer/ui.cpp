@@ -1,6 +1,8 @@
 #include "ui.h"
 
 GVar gvar_perlin_frequency{"Perlin frequency", 4.f, GVAR_FLOAT_RANGE, GUI_CAT_NOISE, {1.f, 10.f}};
+GVar gvar_perlin_scale{"Perlin scale", 1000.f, GVAR_FLOAT_RANGE, GUI_CAT_NOISE, {0.f, 4000.f}};
+
 GVar gvar_pt_plot_write_total_contribution{"Write total contribution", false, GVAR_BOOL, GUI_CAT_PT_PLOT};
 GVar gvar_pt_plot_write_indirect_dir{"Write indirect direction", false, GVAR_BOOL, GUI_CAT_PT_PLOT};
 GVar gvar_pt_plot_write_indirect_t{"Write indirect t", false, GVAR_BOOL, GUI_CAT_PT_PLOT};
@@ -8,7 +10,7 @@ GVar gvar_pt_plot_write_indirect_weight{"Write indirect weight", false, GVAR_BOO
 GVar gvar_pt_plot_bounce{"Select Bounce", 0, GVAR_UINT_RANGE, GUI_CAT_PT_PLOT, {0, 5}};
 GVar gvar_mse{"MSE: %.8f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
 GVar gvar_timing_left{"Timing Left: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
-GVar gvar_timing_right{"Timing Left: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
+GVar gvar_timing_right{"Timing Right: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
 
 
 GVar gvar_bitmask_propability{"Bitmask propability", 0.f, GVAR_UNORM, GUI_CAT_DEBUG};
@@ -19,7 +21,8 @@ GVar gvar_pin_dir_grid_size{"Pin Dir Grid Size", 8U, GVAR_UINT_RANGE, GUI_CAT_PI
 GVar gvar_pin_ray_march_step_size{"Pin Ray March Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_write_pin_step_size{"Pin Write Pin Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_update_rate{"Pin Update Rate", 1000U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 10000U}};
-
+GVar gvar_ray_march_step_size{"Ray March Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.01f, 1.f}};
+GVar gvar_bounce_count{"Bounce Count", 5U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {1U, 16U}};
 uint32_t getPlotCount()
 {
 	return gvar_pt_plot_write_total_contribution.val.bool32()
@@ -34,19 +37,19 @@ std::vector<bool> buildGui()
 	//// GVars
 	std::vector<bool> changed = GVar::addAllToGui<GuiCatergories>();
 
-	//// Historgams
-	if (ImGui::CollapsingHeader("Histograms"))
-	{
-		void                  *pHist, *pHistData, *pHistCount;
-		std::hash<std::string> h;
-		bool                   dataAquired =
-		    gState.feedbackDataCache->fetchHostData(pHist, h("hist")) && gState.feedbackDataCache->fetchHostData(pHistData, h("histData")) && gState.feedbackDataCache->fetchHostData(pHistCount, h("histCount"));
-		if (dataAquired)
-		{
-			uint32_t histCount = *static_cast<uint32_t *>(pHistCount);
-			addPlots<shader_plot::GLSLHistogram>(static_cast<shader_plot::GLSLHistogram *>(pHist), histCount, pHistData);
-		}
-	}
+	////// Historgams
+	//if (ImGui::CollapsingHeader("Histograms"))
+	//{
+	//	void                  *pHist, *pHistData, *pHistCount;
+	//	std::hash<std::string> h;
+	//	bool                   dataAquired =
+	//	    gState.feedbackDataCache->fetchHostData(pHist, h("hist")) && gState.feedbackDataCache->fetchHostData(pHistData, h("histData")) && gState.feedbackDataCache->fetchHostData(pHistCount, h("histCount"));
+	//	if (dataAquired)
+	//	{
+	//		uint32_t histCount = *static_cast<uint32_t *>(pHistCount);
+	//		addPlots<shader_plot::GLSLHistogram>(static_cast<shader_plot::GLSLHistogram *>(pHist), histCount, pHistData);
+	//	}
+	//}
 
 	//// Plots
 	if (ImGui::CollapsingHeader("Plots"))
@@ -67,7 +70,7 @@ std::vector<bool> buildGui()
 			ImPlotSubplotFlags flags = ImPlotSubplotFlags_NoLegend
 				| ImPlotSubplotFlags_ColMajor
 				//| ImPlotSubplotFlags_LinkCols
-				| ImPlotSubplotFlags_LinkRows
+				//| ImPlotSubplotFlags_LinkRows
 				//| ImPlotSubplotFlags_LinkAllX
 				//| ImPlotSubplotFlags_LinkAllY
 				;
@@ -75,7 +78,7 @@ std::vector<bool> buildGui()
 			if (getPlotCount() > 0 && ImPlot::BeginSubplots("##Plots", getPlotCount(), 2, ImVec2(-1, 800), flags))
 			{
 				render_plot_family<pt_plot::GLSLPtPlot>{}(*static_cast<pt_plot::GLSLPtPlot *>(ptPlot), pHist, pHistData);
-				unsigned char *pHistData2 = reinterpret_cast<unsigned char *>(pHistData) + maxHistValueCount/2;
+				unsigned char *pHistData2 = reinterpret_cast<unsigned char *>(pHistData) + getLeftHistogramOffset();
 				render_plot_family<pt_plot::GLSLPtPlot>{}(*static_cast<pt_plot::GLSLPtPlot *>(ptPlot), pHist, pHistData2);
 				ImPlot::EndSubplots();
 			}

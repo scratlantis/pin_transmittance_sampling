@@ -13,6 +13,7 @@ struct PinUpdateArgs
 	float    writePinStepSize;
 	uint32_t posGridSize;
 	uint32_t dirGridSize;
+	uint32_t executionID;
 };
 
 struct PinSampleArgs
@@ -30,6 +31,7 @@ struct PinArgs
 	uint32_t posGridSize;
 	uint32_t dirGridSize;
 	uint32_t bitMaskIterations;
+	uint32_t executionID;
 
 	PinUpdateArgs getUpdateArgs() const
 	{
@@ -39,6 +41,7 @@ struct PinArgs
 		args.writePinStepSize = writePinStepSize;
 		args.posGridSize      = posGridSize;
 		args.dirGridSize      = dirGridSize;
+		args.executionID      = executionID;
 		return args;
 	}
 

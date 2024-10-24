@@ -10,6 +10,12 @@ layout(binding = LOCAL_BINDING_OFFSET) buffer PIN_GRID
 
 layout(constant_id = LOCAL_SPEC_CONST_OFFSET) const float scPinWriteStepSize = 0.1;
 
+struct PushStruct
+{
+	uint executionID;
+};
+
+layout(push_constant) uniform PC {PushStruct pc;};
 
 void generatePin(uint seed, out vec3 start, out vec3 end)
 {
@@ -23,7 +29,7 @@ void generatePin(uint seed, out vec3 start, out vec3 end)
 void main()
 {
 	if(!validInvocation()) return;
-	uint seed = invocationID();
+	uint seed = invocationID() + invocationCount() * pc.executionID;
 	vec3 start, end;
 	generatePin(seed, start, end);
 
@@ -31,15 +37,19 @@ void main()
 	float stepLength = distance(end,start) / float(stepCount);
 	vec3 dir = normalize(end-start);
 	GLSLPinCacheEntry pin;
+	pin.mask[0] = 0;
+	float minTransmittance = 1.0;
 	for(uint i = 0; i<stepCount; i++)
 	{
 		vec3 pos = start + dir * float(i) * stepLength;
 		float transmittance = rayMarcheMediumTransmittance(pos, dir, stepLength, seed); // Must set volume resolution, and step size
+		minTransmittance = min(minTransmittance, transmittance);
 		if(transmittance < unormNext(seed))
 		{
 			writeToMask(i, pin);
 		}
 	}
+	pin.maxColProb = 1.0 - minTransmittance;
 
 	const uint maxSteps = uint(sqrt(3.0) * 2.0 / scPinWriteStepSize);
 	float stepSize = scPinWriteStepSize * unormNext(seed);

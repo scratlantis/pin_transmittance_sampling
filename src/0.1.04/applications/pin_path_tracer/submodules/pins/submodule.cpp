@@ -27,6 +27,12 @@ void cmdUpdatePinGrid(CmdBuffer cmdBuf, Buffer pinGridBuf, Image scalarField, Pi
 	cmd.pushSpecializationConst(args.writePinStepSize);
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_POS_GRID_SIZE", args.posGridSize});
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_DIR_GRID_SIZE", args.dirGridSize});
+	struct PushStruct
+	{
+		uint32_t executionID;
+	} pc;
+	pc.executionID = args.executionID;
+	cmd.pushConstant(&pc, sizeof(PushStruct));
 	cmd.exec(cmdBuf);
 };
 

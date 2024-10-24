@@ -18,7 +18,7 @@ float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint
 	GLSLPinCacheEntry pin = pin_grid[pinIdx];
 	if(pin.maxColProb == MAX_FLOAT)
 	{
-		SI_printf("Invalid pin\n");
+		//SI_printf("Invalid pin\n");
 		return TMAX;
 	}
 	uint sampleMask = randomBitMask(pin.maxColProb, scBitMaskIterations, seed);
@@ -41,14 +41,23 @@ float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint
 	sampleCoef /= distance(start, end);
 
 	uint sampleOffset = uint(clamp(sampleCoef, 0.0, 0.9999) * 32);
+	float delta = clamp(sampleCoef, 0.0, 0.9999) * 32.0-floor(clamp(sampleCoef, 0.0, 0.9999) * 32.0);
+
 	pinMask = pinMask << sampleOffset;
 	uint finalMask = sampleMask & pinMask;
 	uint sampledDiscreteDist = findMSB(finalMask);
+	if(sampledDiscreteDist == -1)
+	{
+		return TMAX;
+	}
+	sampledDiscreteDist = 31 - sampledDiscreteDist;
+	//SI_printf("Was here %d\n",sampledDiscreteDist);
 	if(sampledDiscreteDist > 32 - sampleOffset)
 	{
 		return TMAX;
 	}
-	float sampledDist = sampledDiscreteDist / 32.0 * distance(start, end);
+	float sampledDist = ((sampledDiscreteDist + unormNext(seed)) / 32.0) * distance(start, end);
+
 	if(sampledDist > maxLength)
 	{
 		return TMAX;

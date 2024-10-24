@@ -1,6 +1,7 @@
 #pragma once
 #include "core_state/CoreState.h"
 #include "core_state/GlfwWindow.h"
+#include "core_state/device_properties.h"
 #include "core_utility/acceleration_structure_utility.h"
 #include "core_utility/buffer_utility.h"
 #include "core_utility/image_utility.h"
