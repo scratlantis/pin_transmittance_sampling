@@ -1,24 +1,31 @@
 #ifndef PIN_SMD_H
 #define PIN_SMD_H
 
+#include "interface_structs.glsl"
+
 layout(binding = PIN_SMD_BINDING_OFFSET) readonly buffer PIN_GRID
 {
-	GLSLPinCacheEntry pin_grid;
+	GLSLPinCacheEntry pin_grid[];
 };
-
 #include "pin_common.glsl"
 
 
-#define BIT_MASK_ITERATIONS = 5;
+layout(constant_id = PIN_SMD_SPEC_CONST_OFFSET) const uint scBitMaskIterations = 5;
+
 float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
-	uint pinIdx = pin_cache_offset(pos,dir);
+	uint pinIdx = pin_cache_offset(origin,direction);
 	GLSLPinCacheEntry pin = pin_grid[pinIdx];
-	uint sampleMask = randomBitMask(maxColProb, BIT_MASK_ITERATIONS, seed);
+	if(pin.maxColProb == MAX_FLOAT)
+	{
+		SI_printf("Invalid pin\n");
+		return TMAX;
+	}
+	uint sampleMask = randomBitMask(pin.maxColProb, scBitMaskIterations, seed);
 
 	bool inverseDir;
-	inverseDir = cartesianToSpherical(dir).y > PI * 0.5;
-	vec3 pinStart, pinEnd;
+	inverseDir = cartesianToSpherical(direction).y > PI * 0.5;
+	vec3 start, end;
 	unitCubeIntersection(origin, direction, start, end);
 	float sampleCoef;
 	uint pinMask = pin.mask[0];
@@ -34,11 +41,9 @@ float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint
 	sampleCoef /= distance(start, end);
 
 	uint sampleOffset = uint(clamp(sampleCoef, 0.0, 0.9999) * 32);
-	uint pinMask = pinMask << sampleOffset;
+	pinMask = pinMask << sampleOffset;
 	uint finalMask = sampleMask & pinMask;
-
 	uint sampledDiscreteDist = findMSB(finalMask);
-
 	if(sampledDiscreteDist > 32 - sampleOffset)
 	{
 		return TMAX;
@@ -50,7 +55,7 @@ float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint
 	}
 	return sampledDist;
 };
-}
+
 
 
 #endif

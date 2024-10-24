@@ -14,7 +14,11 @@ GVar gvar_timing_right{"Timing Left: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_MET
 GVar gvar_bitmask_propability{"Bitmask propability", 0.f, GVAR_UNORM, GUI_CAT_DEBUG};
 GVar gvar_bitmask_iterations{"Bitmask iterations", 5U, GVAR_UINT_RANGE, GUI_CAT_DEBUG, {1U, 10U}};
 
-
+GVar gvar_pin_pos_grid_size{"Pin Pos Grid Size", 10U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 32U}};
+GVar gvar_pin_dir_grid_size{"Pin Dir Grid Size", 8U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 32U}};
+GVar gvar_pin_ray_march_step_size{"Pin Ray March Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
+GVar gvar_pin_write_pin_step_size{"Pin Write Pin Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
+GVar gvar_pin_update_rate{"Pin Update Rate", 1000U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 10000U}};
 
 uint32_t getPlotCount()
 {

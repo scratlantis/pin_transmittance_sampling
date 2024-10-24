@@ -1,10 +1,15 @@
 #include "interface_structs.glsl"
-#include "../../../lib/lib/pt_common.glsl"
-
 layout(binding = LOCAL_BINDING_OFFSET) buffer PIN_GRID
 {
 	GLSLPinCacheEntry pin_grid[];
 };
+
+#include "../../../lib/lib/pt_common.glsl"
+#include "pin_common.glsl"
+
+
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET) const float scPinWriteStepSize = 0.1;
+
 
 void generatePin(uint seed, out vec3 start, out vec3 end)
 {
@@ -13,9 +18,6 @@ void generatePin(uint seed, out vec3 start, out vec3 end)
 	unitCubeIntersection(origin, direction, start, end);
 }
 
-#ifndef PIN_WRITE_STEP_SIZE
-#define PIN_WRITE_STEP_SIZE 0.1
-#endif
 
 
 void main()
@@ -39,11 +41,11 @@ void main()
 		}
 	}
 
-	const maxSteps = sqrt(3.0) * 2.0 / PIN_WRITE_STEP_SIZE;
-	float stepSize = PIN_WRITE_STEP_SIZE * unormNext(seed);
+	const uint maxSteps = uint(sqrt(3.0) * 2.0 / scPinWriteStepSize);
+	float stepSize = scPinWriteStepSize * unormNext(seed);
 	float t = 0.0;
 	float maxLenght = distance(start, end);
-	for(uint i = 0; i < max_steps; i++)
+	for(uint i = 0; i < maxSteps; i++)
 	{
 		t += stepSize;
 		if( t > maxLenght)

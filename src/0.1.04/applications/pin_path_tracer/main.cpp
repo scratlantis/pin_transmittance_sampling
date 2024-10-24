@@ -3,10 +3,26 @@
 #include "ui.h"
 AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
-const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders";
+const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders/";
 using namespace glm;
 
+extern GVar gvar_pt_plot_write_total_contribution;
+extern GVar gvar_pt_plot_write_indirect_dir;
+extern GVar gvar_pt_plot_write_indirect_t;
+extern GVar gvar_pt_plot_write_indirect_weight;
 
+extern GVar gvar_perlin_frequency;
+extern GVar gvar_pt_plot_bounce;
+
+extern GVar gvar_mse;
+extern GVar gvar_timing_left;
+extern GVar gvar_timing_right;
+
+extern GVar gvar_pin_pos_grid_size;
+extern GVar gvar_pin_dir_grid_size;
+extern GVar gvar_pin_ray_march_step_size;
+extern GVar gvar_pin_write_pin_step_size;
+extern GVar gvar_pin_update_rate;
 
 int main()
 {
@@ -147,8 +163,13 @@ int main()
 		}
 
 		TraceArgs traceArgs2 = traceArgs;
-		traceArgs2.debugArgs.histogramDataOffset = maxHistValueCount / 2;
-		traceArgs2.maxDepth                      = 2;
+		traceArgs2.enablePins = true;
+		traceArgs2.pinArgs.posGridSize = gvar_pin_pos_grid_size.val.v_uint;
+		traceArgs2.pinArgs.dirGridSize = gvar_pin_dir_grid_size.val.v_uint;
+		traceArgs2.pinArgs.count = gvar_pin_update_rate.val.v_uint;
+		traceArgs2.pinArgs.rayMarchStepSize = gvar_pin_ray_march_step_size.val.v_float;
+		traceArgs2.pinArgs.writePinStepSize = gvar_pin_write_pin_step_size.val.v_float;
+		traceArgs2.pinArgs.bitMaskIterations = gvar_bitmask_iterations.val.v_uint;
 
 		iec.cmdRun<TraceArgs>(cmdBuf, cmdTrace, traceArgs, traceArgs2, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
 		//// Show results

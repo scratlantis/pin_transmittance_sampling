@@ -10,6 +10,7 @@
 
 #define MAX_FLOAT intBitsToFloat(2139095039)
 
+
 mat4x3 tangentFrameFromPosNormal(vec3 pos, vec3 normal)
 {
 	vec3 tangent = (cross(normal, vec3(1.0, 0.0, 0.0)));

@@ -9,10 +9,6 @@ struct PushStruct
 };
 layout(push_constant) uniform PC {PushStruct pc;};
 
-
-#include "../lib/lib/pt_plot/generate_pt_state_histogram.glsl"
-#include "../lib/lib/pt_smd_lib.glsl"
-
 Range traceMediumConservative(Ray ray)
 {
 	vec3 localOrigin = (volInst.invMat * vec4(ray.origin, 1.0)).xyz;

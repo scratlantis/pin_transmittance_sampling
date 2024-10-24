@@ -78,4 +78,8 @@
 #endif
 #endif
 
+#ifdef DEBUG
+#define SI_printf( x ) SINGLE_INVOCATION ( debugPrintfEXT( x ); )
+#endif
+
 #endif
