@@ -6,11 +6,12 @@ enum GuiCatergories
 {
 	GUI_CAT_NOISE,
 	GUI_CAT_PT_PLOT,
-	GUI_CAT_METRICS
+	GUI_CAT_METRICS,
+	GUI_CAT_DEBUG,
 };
-const std::vector<std::string> GuiCatergories_names_ = {"Noise", "Plot Settings", "Metrics"};
+const std::vector<std::string> GuiCatergories_names_ = {"Noise", "Plot Settings", "Metrics", "Debug"};
 ENUM_ADD_STRING_VALUES(GuiCatergories, GuiCatergories_names_)
-ENUM_ADD_ITERATOR(GuiCatergories, GUI_CAT_NOISE, GUI_CAT_METRICS)
+ENUM_ADD_ITERATOR(GuiCatergories, GUI_CAT_NOISE, GUI_CAT_DEBUG)
 
 std::vector<bool> buildGui();
 

@@ -4,6 +4,9 @@ using namespace default_scene;
 #include "shaders/interface_structs.glsl"
 
 
+extern GVar gvar_bitmask_propability;
+extern GVar gvar_bitmask_iterations;
+
 
 struct TraceDebugArgs
 {
@@ -134,5 +137,14 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	cmd.pushDescriptor(args.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	cmd.pipelineDef.shaderDef.args.push_back({"MAX_BOUNCES", args.maxDepth});
 	cmd.pipelineDef.shaderDef.args.push_back({"SAMPLE_COUNT", args.sampleCount});
+
+	struct PushStruct
+	{
+		float bitMaskPropability;
+		uint32_t bitMaskIterations;
+	} pc;
+	pc.bitMaskPropability = gvar_bitmask_propability.val.v_float;
+	pc.bitMaskIterations  = gvar_bitmask_iterations.val.v_uint;
+	cmd.pushConstant(&pc, sizeof(PushStruct));
 	cmd.exec(cmdBuf);
 }
