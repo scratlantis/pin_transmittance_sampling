@@ -1,9 +1,14 @@
 #include "interface_structs.glsl"
+#include "estimator_selector.glsl"
 layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
 layout(binding = LOCAL_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
 
-#include "../lib/lib/pt_plot/generate_pt_state_histogram.glsl"
-#include "../lib/lib/pt_smd_lib.glsl"
+struct PushStruct
+{
+	float bitMaskPropability;
+	uint bitMaskIterations;
+};
+layout(push_constant) uniform PC {PushStruct pc;};
 
 Range traceMediumConservative(Ray ray)
 {
@@ -42,8 +47,15 @@ float traceMedium(Ray ray, Range range, uint bounce, inout uint seed)
 	vec3 localExit = (volInst.invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
 	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
 	float localTMax = distance(localOrigin, localExit);
-
-	float tLocal = rayMarcheMedium(localOrigin, localDir, localTMax, seed);
+	float tLocal;
+	if(bounce == 0)
+	{
+		tLocal = rayMarcheMedium(localOrigin, localDir, localTMax, seed);
+	}
+	else
+	{
+		tLocal = SAMPLE_DISTANCE(localOrigin, localDir, localTMax, seed);
+	}
 	if(tLocal == TMAX)
 	{
 		return TMAX;
@@ -257,5 +269,14 @@ void main()
 	totalIllumination /= float(SAMPLE_COUNT);
 	imageStore(colorOut, ivec2(gl_GlobalInvocationID.xy), vec4(totalIllumination, 1.0));
 	SI_setTotalContribution(totalIllumination)
+
+	//SI_initHist(200, 10000, 0.0, 1.0);
+
+	//uint bitmask = randomBitMask(pc.bitMaskPropability, pc.bitMaskIterations, seed);
+	//float bitMaskP = estimateBitPropability(bitmask);
+	//SI_setHistValue(bitMaskP, getFrameIdx());
+	//SI_nextHist();
+
+
 	SI_writePtPlot()
 }

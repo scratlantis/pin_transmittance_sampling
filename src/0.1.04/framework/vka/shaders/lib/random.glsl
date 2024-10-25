@@ -121,4 +121,78 @@ float perlinNoise(vec3 val)
 }
 
 
+
+//uint randomBitMask(float p, uint bits, uint inout seed)
+//{
+//	const uint ieeeMantissa = 0x007FFFFFu; // binary32 mantissa bitmask	uint pBits  = floatBitsToUint(p);
+//	const uint exponentBitMask = 0x7F800000u; // binary32 exponent bitmask
+//	const uint exponentBitOffset = 23;
+//	const int exponentBias = 127;
+//
+//	uint exponent = (pBits & exponentBitMask) >> exponentBitOffset;
+//	exponent = int(exponent) - exponentBias;
+//
+//	
+//
+//	uint iterations = 1 - exponent;
+//
+//	uint pBits  = floatBitsToUint(x)
+//	uint pBitsShifted  = pBits << 9; // 9 Bits = 1 (Sign) + 8 (Exponent)
+//
+//	uint h = hash(seed);
+//	seed = h;
+//	uint mask = h;
+//	float currentP = 0.5;
+//	[[unroll]]
+//	for(uint i = 0; i<iterations; i++)
+//	{
+//		h = hash(seed);
+//		seed = h;
+//		if(currentP > p)
+//		{
+//			mask |= h;
+//			currentP = 1.0 - (1.0-currentP)*0.5;
+//		}
+//		else
+//		{
+//			mask &= h;
+//			currentP = currentP*0.5;
+//		}
+//	}
+//}
+
+
+// iteratively construct a bit mask with P(mask[i] = 1) = p
+uint randomBitMask(float p, uint iterations, inout uint seed)
+{
+	uint upperMask = 0xFFFFFFFFU; // 32 bits all 1
+	uint lowerMask = 0x00000000U; // 32 bits all 0
+	float upperP = 1.0;
+	float lowerP = 0.0;
+	uint middleMask;
+	for(uint i = 0; i<iterations; i++)
+	{
+		uint h = hash(seed); // We assume P(h[i] = 1) = 0.5
+		seed = h;
+		middleMask = h & lowerMask | (~h) & upperMask;
+		float middleP = mix(lowerP, upperP, 0.5);
+		if(middleP > p)
+		{
+			upperMask = middleMask;
+			upperP = middleP;
+		}
+		else
+		{
+			lowerMask = middleMask;
+			lowerP = middleP;
+		}
+	}
+	return middleMask;
+}
+
+float estimateBitPropability(uint mask)
+{
+	return float(bitCount(mask))/32.0;
+}
+
 #endif

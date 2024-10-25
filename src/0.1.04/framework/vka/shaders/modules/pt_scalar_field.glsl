@@ -14,14 +14,14 @@
 #define PT_SCALAR_FIELD_BINDING_COUNT 1
 layout(binding = PT_SCALAR_FIELD_BINDING_OFFSET) uniform sampler3D volSmp;
 
-float rayMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
+float rayMarcheMedium(vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
 	float rng = unormNext(seed);
 	const float max_steps = sqrt(3.0) * 2.0 / RAY_MARCHE_STEP_SIZE;
 	float t = 0.0;
 	float transmittance = 1.0;
 	float stepSize = RAY_MARCHE_STEP_SIZE * unormNext(seed);
-	stepSize = min(stepSize, maxLenght);
+	stepSize = min(stepSize, maxLength);
 
 	for(uint i = 0; i < max_steps; i++)
 	{
@@ -38,7 +38,7 @@ float rayMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint s
 			return t;
 		}
 
-		stepSize = min(RAY_MARCHE_STEP_SIZE, maxLenght - t);
+		stepSize = min(RAY_MARCHE_STEP_SIZE, maxLength - t);
 		if( stepSize < EPSILON)
 		{
 			return TMAX;
@@ -47,13 +47,13 @@ float rayMarcheMedium(vec3 origin, vec3 direction, float maxLenght, inout uint s
 	return TMAX;
 }
 
-float rayMarcheMediumTransmittance(vec3 origin, vec3 direction, float maxLenght, inout uint seed)
+float rayMarcheMediumTransmittance(vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
 	const float max_steps = sqrt(3.0) * 2.0 / RAY_MARCHE_STEP_SIZE;
 	float t = 0.0;
 	float transmittance = 1.0;
 	float stepSize = RAY_MARCHE_STEP_SIZE * unormNext(seed);
-	stepSize = min(stepSize, maxLenght);
+	stepSize = min(stepSize, maxLength);
 	for(uint i = 0; i < max_steps; i++)
 	{
 		t += stepSize;
@@ -63,7 +63,7 @@ float rayMarcheMediumTransmittance(vec3 origin, vec3 direction, float maxLenght,
 		float density = texture(volSmp, pos).r;
 		transmittance *= exp(-density * stepSize);
 
-		stepSize = min(RAY_MARCHE_STEP_SIZE, maxLenght - t);
+		stepSize = min(RAY_MARCHE_STEP_SIZE, maxLength - t);
 		if( stepSize < EPSILON)
 		{
 			return transmittance;

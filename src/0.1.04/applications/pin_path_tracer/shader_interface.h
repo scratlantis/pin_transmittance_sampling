@@ -2,7 +2,10 @@
 using namespace default_scene;
 
 #include "shaders/interface_structs.glsl"
+#include <submodules/pins/submodule.h>
 
+extern GVar gvar_bitmask_propability;
+extern GVar gvar_bitmask_iterations;
 
 
 struct TraceDebugArgs
@@ -22,15 +25,17 @@ struct TraceDebugArgs
 
 struct TraceArgs
 {
-	uint32_t        sampleCount;
-	uint32_t        maxDepth;
-	float           rayMarchStepSize;
-	CameraCI        cameraCI;
-	USceneData      sceneData;
-	Buffer          mediumInstanceBuffer;
-	Image           mediumTexture;
-	bool            enableDebugging;
-	TraceDebugArgs	debugArgs;
+	uint32_t            sampleCount;
+	uint32_t            maxDepth;
+	float               rayMarchStepSize;
+	CameraCI            cameraCI;
+	USceneData          sceneData;
+	Buffer              mediumInstanceBuffer;
+	Image               mediumTexture;
+	bool                enableDebugging;
+	TraceDebugArgs      debugArgs;
+	bool                enablePins;
+	pins::PinArgs       pinArgs;
 };
 
 
@@ -49,7 +54,12 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	Buffer indirectBounceBuf, directRayBuf, stateBuf;
 	// Pt Plot resources:
 	Buffer ptPlotOptionsBuf, ptPlotBuf;
+	// Pins
+	Buffer pinGridBuf;
+
 	bool   histogramBuffersInitialized = true;
+	VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	VkAccessFlags accessFlags = VK_ACCESS_TRANSFER_WRITE_BIT;
 	if (args.enableDebugging)
 	{
 		// Ivocation selection
@@ -93,7 +103,14 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 
 		}
 	}
-	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+	if (args.enablePins)
+	{
+		gState.dataCache->fetch(pinGridBuf, hasher("pinGridBuf"));
+		pins::cmdUpdatePinGrid(cmdBuf, pinGridBuf, args.mediumTexture, args.pinArgs.getUpdateArgs());
+		waitStage |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		accessFlags |= VK_ACCESS_SHADER_WRITE_BIT;
+	}
+	cmdBarrier(cmdBuf, waitStage, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, VK_ACCESS_SHADER_READ_BIT);
 
 	ComputeCmd cmd(target->getExtent2D(), shaderPath + "pt.comp", {{"FORMAT1", getGLSLFormat(target->getFormat())}});
 	bindCamera(cmd, camBuf, camInstBuf);
@@ -128,11 +145,26 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 			pt_plot::bindPtPlot(cmd, ptPlotOptionsBuf, ptPlotBuf);
 		}
 	}
-
-	cmd.startLocalBindings();
+	cmd.pushSubmodule(cVkaShaderLibPath + "pt_plot/generate_pt_state_histogram.glsl");
+	cmd.pushSIDebugHeader();
+	// Pins
+	if (args.enablePins)
+	{
+		pins::cmdBindPins(cmd, pinGridBuf, args.pinArgs.getSampleArgs());
+	}
+	cmd.pushLocal();
 	cmd.pushDescriptor(target, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 	cmd.pushDescriptor(args.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	cmd.pipelineDef.shaderDef.args.push_back({"MAX_BOUNCES", args.maxDepth});
 	cmd.pipelineDef.shaderDef.args.push_back({"SAMPLE_COUNT", args.sampleCount});
+
+	struct PushStruct
+	{
+		float bitMaskPropability;
+		uint32_t bitMaskIterations;
+	} pc;
+	pc.bitMaskPropability = gvar_bitmask_propability.val.v_float;
+	pc.bitMaskIterations  = gvar_bitmask_iterations.val.v_uint;
+	cmd.pushConstant(&pc, sizeof(PushStruct));
 	cmd.exec(cmdBuf);
 }

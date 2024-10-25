@@ -154,8 +154,7 @@ class Buffer_R : public Resource_T<VkBuffer>
 	void           free(){};
 	void           createHandles();
 	void           detachChildResources();
-	const Buffer_R recreate();
-	void           update();
+	bool recreate();
 	friend class BufferMapping;
 };
 }        // namespace vka

@@ -259,14 +259,22 @@ void ComputeCmd::pushSubmodule(const std::string path, std::vector<ShaderArgs> a
 	std::string name       = path.substr(path.find_last_of("/") + 1, nameLength);
 	for (auto &c : name)
 		c = toupper(c);
-	name = name + "_BINDING_OFFSET";
-	pipelineDef.shaderDef.args.push_back({ShaderArgs(name, static_cast<uint32_t>(descriptors.size()))});
+	std::string bindingOffset = name + "_BINDING_OFFSET";
+	std::string specConstOffset = name + "_SPEC_CONST_OFFSET";
+	pipelineDef.shaderDef.args.push_back({ShaderArgs(bindingOffset, static_cast<uint32_t>(descriptors.size()))});
+	pipelineDef.shaderDef.args.push_back({ShaderArgs(specConstOffset, static_cast<uint32_t>(pipelineDef.specialisationEntrySizes.size()))});
 	pipelineDef.shaderDef.args.insert(pipelineDef.shaderDef.args.end(), args.begin(), args.end());
 }
 
-void ComputeCmd::startLocalBindings()
+void ComputeCmd::pushSIDebugHeader()
+{
+	pipelineDef.shaderDef.libs.push_back(cVkaShaderLibPath + "pt_smd_lib.glsl");
+}
+
+void ComputeCmd::pushLocal()
 {
 	pipelineDef.shaderDef.args.push_back({"LOCAL_BINDING_OFFSET", static_cast<uint32_t>(descriptors.size())});
+	pipelineDef.shaderDef.args.push_back({"LOCAL_SPEC_CONST_OFFSET", static_cast<uint32_t>(pipelineDef.specialisationEntrySizes.size())});
 }
 
 void ComputeCmd::pushDescriptor(BufferRef buffer, VkDescriptorType type)
@@ -337,6 +345,26 @@ void ComputeCmd::pushConstant(void *data, VkDeviceSize size)
 	memcpy(pushConstantsData.data() + pushConstantsData.size() - size, data, size);
 	addPushConstant(pipelineDef, size);
 }
+
+void ComputeCmd::pushSpecializationConst(void *data, uint32_t size)
+{
+	pipelineDef.specialisationEntrySizes.push_back(size);
+	pipelineDef.specializationData.insert(
+	    pipelineDef.specializationData.end(),
+	    reinterpret_cast<char *>(data),
+		reinterpret_cast<char *>(data) + size);
+}
+
+void ComputeCmd::pushSpecializationConst(uint32_t val)
+{
+	pushSpecializationConst(&val, sizeof(uint32_t));
+}
+
+void ComputeCmd::pushSpecializationConst(float val)
+{
+	pushSpecializationConst(&val, sizeof(float));
+}
+
 
 void DrawCmd::pushConstant(void *data, VkDeviceSize size, VkShaderStageFlags stageFlags)
 {

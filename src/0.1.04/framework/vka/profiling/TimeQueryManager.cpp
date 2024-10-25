@@ -41,7 +41,7 @@ bool TimeQueryManager::updateTimings()
 	if (firstUse)
 	{
 		firstUse = false;
-		return false;
+		return true;
 	}
 	VkResult result = vkGetQueryPoolResults(
 	    gState.device.logical,

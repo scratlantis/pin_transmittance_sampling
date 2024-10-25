@@ -32,15 +32,6 @@ void cmdCopyBufferRegion(CmdBuffer cmdBuf, BufferRef src, BufferRef dst, uint32_
 	vkCmdCopyBuffer(cmdBuf->getHandle(), src->getHandle(), dst->getHandle(), 1, &copyRegion);
 }
 
-void cmdUpload(CmdBuffer cmdBuf, Buffer buf)
-{
-	VKA_ASSERT(buf->getMemoryType() != VMA_MEMORY_USAGE_GPU_ONLY);
-    buf->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
-    buf->addUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-    const Buffer_R localBuf = buf->recreate();
-	cmdCopyBuffer(cmdBuf, &localBuf, buf);
-}
-
 void cmdWriteCopy(CmdBuffer cmdBuf, Buffer buf, const void* data, VkDeviceSize size)
 {
 	buf->addUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT);

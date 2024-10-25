@@ -22,6 +22,7 @@ void ImageEstimatorComparator::cmdReset(CmdBuffer cmdBuf)
 	cmdFill(cmdBuf, localAccumulationTargetLeft, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, glm::vec4(0.0));
 	cmdFill(cmdBuf, localAccumulationTargetRight, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, glm::vec4(0.0));
 	tqManager.cmdResetQueryPool(cmdBuf);
+	timeQueryFinished = true;
 }
 void ImageEstimatorComparator::showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea)
 {
