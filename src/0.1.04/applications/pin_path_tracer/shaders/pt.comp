@@ -48,7 +48,7 @@ float traceMedium(Ray ray, Range range, uint bounce, inout uint seed)
 	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
 	float localTMax = distance(localOrigin, localExit);
 	float tLocal;
-	if(bounce == 0)
+	if(false && bounce == 0)
 	{
 		tLocal = rayMarcheMedium(localOrigin, localDir, localTMax, seed);
 	}

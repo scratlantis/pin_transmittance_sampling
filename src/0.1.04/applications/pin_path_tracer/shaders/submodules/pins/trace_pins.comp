@@ -47,6 +47,7 @@ void main()
 		if(transmittance < unormNext(seed))
 		{
 			writeToMask(i, pin);
+			//pin.mask[0] = 0xFFFFFFFF;
 		}
 	}
 	pin.maxColProb = 1.0 - minTransmittance;

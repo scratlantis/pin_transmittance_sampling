@@ -22,8 +22,11 @@ uint pin_cache_offset(vec3 pos, vec3 dir)
 		sphericalCoords = invertSpherical(sphericalCoords);
 	}
 	vec2 dirGridCoords;
-	dirGridCoords.y = sphericalCoords.y * 0.5 * INV_PI;
-	dirGridCoords.x = sin(PI*0.5 - sphericalCoords.x);
+	//dirGridCoords.y = sphericalCoords.y * 0.5 * INV_PI;
+	//dirGridCoords.y = sphericalCoords.y * 2.0 * INV_PI;
+	dirGridCoords.y = sin(PI*0.5 - sphericalCoords.y);
+	dirGridCoords.x = sphericalCoords.x * INV_PI*0.5;
+	//dirGridCoords.x = sin(PI*0.5 - sphericalCoords.x);
 	uint dirOffset = gridIdx(dirGridCoords, PIN_DIR_GRID_SIZE);
 	return posOffset * PIN_DIR_GRID_SIZE * PIN_DIR_GRID_SIZE + dirOffset;
 }
