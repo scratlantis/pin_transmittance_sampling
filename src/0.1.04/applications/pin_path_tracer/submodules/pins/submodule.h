@@ -4,7 +4,7 @@ using namespace glm;
 
 namespace pins
 {
-#include <shaders/submodules/pins/interface_structs.glsl>
+//#include <shaders/submodules/pins/interface_structs.glsl>
 
 struct PinUpdateArgs
 {
@@ -14,6 +14,7 @@ struct PinUpdateArgs
 	uint32_t posGridSize;
 	uint32_t dirGridSize;
 	uint32_t executionID;
+	uint32_t bitMaskSize;
 };
 
 struct PinSampleArgs
@@ -21,6 +22,8 @@ struct PinSampleArgs
 	uint32_t bitMaskIterations;
 	uint32_t posGridSize;
 	uint32_t dirGridSize;
+	bool	disableBitmaskSampling; // For debugging
+	uint32_t bitMaskSize;
 };
 
 struct PinArgs
@@ -31,7 +34,9 @@ struct PinArgs
 	uint32_t posGridSize;
 	uint32_t dirGridSize;
 	uint32_t bitMaskIterations;
+	uint32_t bitMaskSize;
 	uint32_t executionID;
+	bool     disableBitmaskSampling;
 
 	PinUpdateArgs getUpdateArgs() const
 	{
@@ -42,15 +47,22 @@ struct PinArgs
 		args.posGridSize      = posGridSize;
 		args.dirGridSize      = dirGridSize;
 		args.executionID      = executionID;
+		args.bitMaskSize      = bitMaskSize;
+		if (disableBitmaskSampling)
+		{
+			args.count = 0;
+		}
 		return args;
 	}
 
 	PinSampleArgs getSampleArgs() const
 	{
 		PinSampleArgs args{};
-		args.bitMaskIterations = bitMaskIterations;
-		args.posGridSize       = posGridSize;
-		args.dirGridSize       = dirGridSize;
+		args.bitMaskIterations      = bitMaskIterations;
+		args.posGridSize            = posGridSize;
+		args.dirGridSize            = dirGridSize;
+		args.disableBitmaskSampling = disableBitmaskSampling;
+		args.bitMaskSize            = bitMaskSize;
 		return args;
 	}
 };

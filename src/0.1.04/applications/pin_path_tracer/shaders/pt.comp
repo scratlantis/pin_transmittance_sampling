@@ -10,6 +10,11 @@ struct PushStruct
 };
 layout(push_constant) uniform PC {PushStruct pc;};
 
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET) const uint maxDepth = 10;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 1) const uint minDepth = 0;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 2) const uint fixedSeed = 1;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 3) const uint firstRandomBounce = 0;
+
 Range traceMediumConservative(Ray ray)
 {
 	vec3 localOrigin = (volInst.invMat * vec4(ray.origin, 1.0)).xyz;
@@ -41,14 +46,16 @@ Range traceMediumConservative(Ray ray)
 	return range;
 }
 
+
+
 float traceMedium(Ray ray, Range range, uint bounce, inout uint seed)
-{
+{	
 	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
 	vec3 localExit = (volInst.invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
 	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
 	float localTMax = distance(localOrigin, localExit);
 	float tLocal;
-	if(false && bounce == 0)
+	if(bounce == 0)
 	{
 		tLocal = rayMarcheMedium(localOrigin, localDir, localTMax, seed);
 	}
@@ -76,7 +83,11 @@ float traceMediumTransmittance(Ray ray, Range range, inout uint seed)
 
 float traceTransmittance(Ray ray, inout uint seed)
 {
+	#ifndef SKIP_GEOMETRY
 	float geomTransmittance = traceGeometryTransmittance(ray, 0x0F);
+	#else
+	float geomTransmittance = 1.0;
+	#endif
 	if(geomTransmittance == 0.0) return geomTransmittance;
 
 	Range rMedium = traceMediumConservative(ray);
@@ -118,7 +129,11 @@ Ray nextBounce(
 {
 	Ray nextRay;
 	HitData hitData;
+	#ifndef SKIP_GEOMETRY
 	float tGeom = traceGeometry(ray, cullMask, hitData);
+	#else
+	float tGeom = TMAX;
+	#endif
 	Range rMedium = traceMediumConservative(ray);
 	rMedium.rMax = min(rMedium.rMax, tGeom);
 
@@ -161,21 +176,35 @@ Ray nextBounce(
 	return nextRay;
 }
 
+
+
 void main()
 {
 	if(!validInvocation())
 	{
 		return;
 	}
-	uint seed = getSeed();
+	uint seed = invocationID() + fixedSeed;
+	if(firstRandomBounce == 0)
+	{
+		seed = getSeed();
+	}
+
 	vec3 totalIllumination = vec3(0.0);
+
+	SI_initHist(50, 1000, 0.0, 2.0);
+
 	for(uint j = 0; j < SAMPLE_COUNT; j++)
 	{
 		SI_resetPts()
 		Ray ray = genPrimaryRay(gl_GlobalInvocationID.xy, seed);
 		SI_initPts(ray)
-		for(uint i = 0; i < MAX_BOUNCES; i++)
+		for(uint i = 0; i < maxDepth; i++)
 		{
+			if(firstRandomBounce != 0 && firstRandomBounce == i)
+			{
+				seed = getSeed();
+			}
 			uint hitType;
 			MaterialData matData;
 			mat4x3 tangentFrame;
@@ -208,6 +237,7 @@ void main()
 				float cosTerm;
 				// Direct illumination from area lights
 				#if AREA_LIGHT_COUNT > 0
+				#ifndef SKIP_GEOMETRY
 				{
 					SI_nextSample(RAY_DOMAIN_AREA_LIGHT)
 
@@ -219,6 +249,7 @@ void main()
 					SI_setCosineTerm(cosTerm)
 					SI_setIncomingRadiance(L_i)
 				}
+				#endif
 				#endif
 				// Direct illumination from envMap
 				{
@@ -260,7 +291,11 @@ void main()
 					SI_setIncomingRadiance(L_i)
 				}
 			}
-			totalIllumination += ray.weight * L_o;
+			if(minDepth <= i)
+			{
+				totalIllumination += ray.weight * L_o;
+			}
+
 			ray = nextRay;
 		}
 		SI_finalizeSample()
@@ -269,14 +304,5 @@ void main()
 	totalIllumination /= float(SAMPLE_COUNT);
 	imageStore(colorOut, ivec2(gl_GlobalInvocationID.xy), vec4(totalIllumination, 1.0));
 	SI_setTotalContribution(totalIllumination)
-
-	//SI_initHist(200, 10000, 0.0, 1.0);
-
-	//uint bitmask = randomBitMask(pc.bitMaskPropability, pc.bitMaskIterations, seed);
-	//float bitMaskP = estimateBitPropability(bitmask);
-	//SI_setHistValue(bitMaskP, getFrameIdx());
-	//SI_nextHist();
-
-
 	SI_writePtPlot()
 }

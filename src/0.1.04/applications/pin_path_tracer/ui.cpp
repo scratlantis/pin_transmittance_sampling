@@ -16,13 +16,30 @@ GVar gvar_timing_right{"Timing Right: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_ME
 GVar gvar_bitmask_propability{"Bitmask propability", 0.f, GVAR_UNORM, GUI_CAT_DEBUG};
 GVar gvar_bitmask_iterations{"Bitmask iterations", 5U, GVAR_UINT_RANGE, GUI_CAT_DEBUG, {1U, 10U}};
 
-GVar gvar_pin_pos_grid_size{"Pin Pos Grid Size", 10U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 32U}};
-GVar gvar_pin_dir_grid_size{"Pin Dir Grid Size", 8U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 32U}};
+GVar gvar_pin_pos_grid_size{"Pin Pos Grid Size", 10U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 64U}};
+GVar gvar_pin_dir_grid_size{"Pin Dir Grid Size", 8U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 256U}};
 GVar gvar_pin_ray_march_step_size{"Pin Ray March Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_write_pin_step_size{"Pin Write Pin Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
-GVar gvar_pin_update_rate{"Pin Update Rate", 1000U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 10000U}};
+GVar gvar_pin_update_rate{"Pin Update Rate", 1000U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 100000U}};
+GVar gvar_pin_disable_bit_mask_sampling{"Disable bitmask sampling", false, GVAR_BOOL, GUI_CAT_PINS};
+GVar gvar_pin_bit_mask_size{"Bit mask size", 1U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 4U}};
+
+
 GVar gvar_ray_march_step_size{"Ray March Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.01f, 1.f}};
 GVar gvar_bounce_count{"Bounce Count", 5U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {1U, 16U}};
+GVar gvar_min_bounce{"Min Bounce", 0U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 16U}};
+GVar gvar_skip_geometry{"Skip geometry", false, GVAR_BOOL, GUI_CAT_PATH_TRACING};
+
+GVar gvar_fixed_seed{"Fixed seed", 0U, GVAR_UINT_RANGE, GUI_CAT_PT_RANDOMIZATION, {0U, 10000U}};
+GVar gvar_first_random_bounce{"First random bounce", 0U, GVAR_UINT_RANGE, GUI_CAT_PT_RANDOMIZATION, {0U, 16U}};
+
+
+GVar gvar_tone_mapping_enable{"Tone mapping", true, GVAR_BOOL, GUI_CAT_TONE_MAPPING};
+GVar gvar_tone_mapping_whitepoint{"Tone mapping whitepoint", 4.f, GVAR_FLOAT_RANGE, GUI_CAT_TONE_MAPPING, {1.f, 10.f}};
+GVar gvar_tone_mapping_exposure{"Tone mapping exposure", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_TONE_MAPPING, {0.001f, 1.f}};
+
+
+
 uint32_t getPlotCount()
 {
 	return gvar_pt_plot_write_total_contribution.val.bool32()
@@ -37,19 +54,20 @@ std::vector<bool> buildGui()
 	//// GVars
 	std::vector<bool> changed = GVar::addAllToGui<GuiCatergories>();
 
-	////// Historgams
-	//if (ImGui::CollapsingHeader("Histograms"))
-	//{
-	//	void                  *pHist, *pHistData, *pHistCount;
-	//	std::hash<std::string> h;
-	//	bool                   dataAquired =
-	//	    gState.feedbackDataCache->fetchHostData(pHist, h("hist")) && gState.feedbackDataCache->fetchHostData(pHistData, h("histData")) && gState.feedbackDataCache->fetchHostData(pHistCount, h("histCount"));
-	//	if (dataAquired)
-	//	{
-	//		uint32_t histCount = *static_cast<uint32_t *>(pHistCount);
-	//		addPlots<shader_plot::GLSLHistogram>(static_cast<shader_plot::GLSLHistogram *>(pHist), histCount, pHistData);
-	//	}
-	//}
+	//// Historgams
+	if (ImGui::CollapsingHeader("Histograms"))
+	{
+		void                  *pHist, *pHistData, *pHistCount;
+		std::hash<std::string> h;
+		bool                   dataAquired =
+		    gState.feedbackDataCache->fetchHostData(pHist, h("hist")) && gState.feedbackDataCache->fetchHostData(pHistData, h("histData")) && gState.feedbackDataCache->fetchHostData(pHistCount, h("histCount"));
+		if (dataAquired)
+		{
+			uint32_t histCount = *static_cast<uint32_t *>(pHistCount);
+			pHistData = reinterpret_cast<unsigned char *>(pHistData) + getLeftHistogramOffset();
+			addPlots<shader_plot::GLSLHistogram>(static_cast<shader_plot::GLSLHistogram *>(pHist), histCount, pHistData);
+		}
+	}
 
 	//// Plots
 	if (ImGui::CollapsingHeader("Plots"))

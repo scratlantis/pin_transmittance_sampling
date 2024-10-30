@@ -26,6 +26,17 @@ extern GVar gvar_pin_write_pin_step_size;
 extern GVar gvar_pin_update_rate;
 extern GVar gvar_ray_march_step_size;
 extern GVar gvar_bounce_count;
+extern GVar gvar_min_bounce;
+extern GVar gvar_skip_geometry;
+
+extern GVar gvar_tone_mapping_enable;
+extern GVar gvar_tone_mapping_whitepoint;
+extern GVar gvar_tone_mapping_exposure;
+extern GVar gvar_pin_disable_bit_mask_sampling;
+extern GVar gvar_pin_bit_mask_size;
+
+extern GVar gvar_fixed_seed;
+extern GVar gvar_first_random_bounce;
 
 int main()
 {
@@ -47,7 +58,8 @@ int main()
 	//// Load stuff:
 	CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
 	//// Load Geometry
-	sceneBuilder.loadEnvMap("/envmap/2k/autumn_field_2k.hdr", glm::uvec2(64, 64));
+	//sceneBuilder.loadEnvMap("/envmap/2k/autumn_field_2k.hdr", glm::uvec2(64, 64));
+	sceneBuilder.loadEnvMap("/envmap/2k/overcast_soil_puresky_2k.hdr", glm::uvec2(64, 64));
 #ifdef RAY_TRACING_SUPPORT
 	GLSLInstance instance{};
 	instance.cullMask = 0xFF;
@@ -145,12 +157,16 @@ int main()
 		traceArgs.debugArgs.pixelPos        = lastClickPos;
 		traceArgs.debugArgs.enableHistogram = true;
 		traceArgs.debugArgs.enablePtPlot    = true;
+		traceArgs.debugArgs.minDepth        = gvar_min_bounce.val.v_uint;
+		traceArgs.debugArgs.skipGeometry    = gvar_skip_geometry.val.v_bool;
 
 		traceArgs.debugArgs.ptPlotOptions.writeTotalContribution = gvar_pt_plot_write_total_contribution.val.v_bool;
 		traceArgs.debugArgs.ptPlotOptions.writeIndirectDir       = gvar_pt_plot_write_indirect_dir.val.v_bool;
 		traceArgs.debugArgs.ptPlotOptions.writeIndirectT         = gvar_pt_plot_write_indirect_t.val.v_bool;
 		traceArgs.debugArgs.ptPlotOptions.writeIndirectWeight    = gvar_pt_plot_write_indirect_weight.val.v_bool;
 		traceArgs.debugArgs.ptPlotOptions.bounce                 = gvar_pt_plot_bounce.val.v_uint;
+		traceArgs.debugArgs.fixedSeed = gvar_fixed_seed.val.v_uint;
+		traceArgs.debugArgs.firstRandomBounce = gvar_first_random_bounce.val.v_uint;
 
 		if (leftClickInView)
 		{
@@ -176,13 +192,20 @@ int main()
 		traceArgs2.pinArgs.writePinStepSize = gvar_pin_write_pin_step_size.val.v_float;
 		traceArgs2.pinArgs.bitMaskIterations = gvar_bitmask_iterations.val.v_uint;
 		traceArgs2.pinArgs.executionID       = frameCount;
+		traceArgs2.pinArgs.disableBitmaskSampling = gvar_pin_disable_bit_mask_sampling.val.v_bool;
+		traceArgs2.pinArgs.bitMaskSize = gvar_pin_bit_mask_size.val.v_uint;
+
 
 		iec.cmdRun<TraceArgs>(cmdBuf, cmdTrace, traceArgs, traceArgs2, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
 		//// Show results
 		gvar_mse.val.v_float = iec.getMSE();
 		Image swapchainImg = getSwapchainImage();
-		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, vec4(0.25, 0.25, 0.3, 1.0)).exec(cmdBuf);
-		iec.showSplitView(cmdBuf, swapchainImg, splitViewCoef, getScissorRect(viewDimensions));
+		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.25, 0.25, 0.3, 1.0)).exec(cmdBuf);
+		IECToneMappingArgs toneMappingArgs{};
+		toneMappingArgs.useTonemapping = gvar_tone_mapping_enable.val.v_bool;
+		toneMappingArgs.whitePoint     = gvar_tone_mapping_whitepoint.val.v_float;
+		toneMappingArgs.exposure       = gvar_tone_mapping_exposure.val.v_float;
+		iec.showSplitView(cmdBuf, swapchainImg, splitViewCoef, getScissorRect(viewDimensions), toneMappingArgs);
 		cmdRenderGui(cmdBuf, swapchainImg);
 
 		swapBuffers({cmdBuf});

@@ -82,6 +82,13 @@ uint gridIdx(vec3 pos, uint gridSize)
 	return flatten(indexVec, gridSize);
 }
 
+vec2 gridPos2D(uint idx, uint gridSize)
+{
+	uint x = idx % gridSize;
+	uint y = idx / gridSize;
+	return vec2(x, y) / float(gridSize);
+}
+
 uint gridIdx(vec2 pos, uint gridSize)
 {
 	vec2 clampedPos = clamp(pos, 0.0, 0.9999);
@@ -89,10 +96,27 @@ uint gridIdx(vec2 pos, uint gridSize)
 	return flatten(indexVec, gridSize);
 }
 
+vec3 gridPos3D(uint idx, uint gridSize)
+{
+	uint x = idx % gridSize;
+	uint y = (idx / gridSize) % gridSize;
+	uint z = idx / (gridSize * gridSize);
+	return vec3(x, y, z) / float(gridSize);
+}
+
+
+
 vec3 sphericalToCartesian(float phi, float theta)
 {
 	return vec3(sin(phi)*cos(theta), sin(phi)*sin(theta), cos(phi));
 }
+
+vec3 sphericalToCartesian(vec2 v)
+{
+	return vec3(sin(v.y)*cos(v.x), sin(v.y)*sin(v.x), cos(v.y));
+}
+
+
 // civ
 vec2 cartesianToSpherical(vec3 v)
 {

@@ -120,49 +120,8 @@ float perlinNoise(vec3 val)
 	return mix(cellNoiseZ[0], cellNoiseZ[1], a.z);
 }
 
-
-
-//uint randomBitMask(float p, uint bits, uint inout seed)
-//{
-//	const uint ieeeMantissa = 0x007FFFFFu; // binary32 mantissa bitmask	uint pBits  = floatBitsToUint(p);
-//	const uint exponentBitMask = 0x7F800000u; // binary32 exponent bitmask
-//	const uint exponentBitOffset = 23;
-//	const int exponentBias = 127;
-//
-//	uint exponent = (pBits & exponentBitMask) >> exponentBitOffset;
-//	exponent = int(exponent) - exponentBias;
-//
-//	
-//
-//	uint iterations = 1 - exponent;
-//
-//	uint pBits  = floatBitsToUint(x)
-//	uint pBitsShifted  = pBits << 9; // 9 Bits = 1 (Sign) + 8 (Exponent)
-//
-//	uint h = hash(seed);
-//	seed = h;
-//	uint mask = h;
-//	float currentP = 0.5;
-//	[[unroll]]
-//	for(uint i = 0; i<iterations; i++)
-//	{
-//		h = hash(seed);
-//		seed = h;
-//		if(currentP > p)
-//		{
-//			mask |= h;
-//			currentP = 1.0 - (1.0-currentP)*0.5;
-//		}
-//		else
-//		{
-//			mask &= h;
-//			currentP = currentP*0.5;
-//		}
-//	}
-//}
-
-
 // iteratively construct a bit mask with P(mask[i] = 1) = p
+#if 1
 uint randomBitMask(float p, uint iterations, inout uint seed)
 {
 	uint upperMask = 0xFFFFFFFFU; // 32 bits all 1
@@ -189,6 +148,21 @@ uint randomBitMask(float p, uint iterations, inout uint seed)
 	}
 	return middleMask;
 }
+#else
+uint randomBitMask(float p, uint iterations, inout uint seed)
+{
+	uint mask = 0;
+	for(uint i = 0; i<32; i++)
+	{
+		float rng = unormNext(seed);
+		if(rng < p)
+		{
+			mask |= 1 << i;
+		}
+	}
+	return mask;
+}
+#endif
 
 float estimateBitPropability(uint mask)
 {

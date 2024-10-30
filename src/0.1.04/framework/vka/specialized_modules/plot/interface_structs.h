@@ -47,7 +47,8 @@ namespace vka
 	  private:
 		  void floatPlot(const shader_plot::GLSLHistogram& plot, void* plotData)
 		  {
-		      ImPlot::SetupAxes("x", "y", 0, ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoTickLabels);
+		      //ImPlot::SetupAxes("x", "y", 0, ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoTickLabels);
+		      ImPlot::SetupAxes("x", "y", 0, ImPlotAxisFlags_AutoFit);
 		      if (plot.histDim == 1)
 		      {
 			      std::vector<ImVec4> fillStyles = {ImVec4(1, 0, 0, 0.25), ImVec4(0, 1, 0, 0.25), ImVec4(0, 0, 1, 0.25)};

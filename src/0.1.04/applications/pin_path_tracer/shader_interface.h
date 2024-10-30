@@ -10,6 +10,10 @@ extern GVar gvar_bitmask_iterations;
 
 struct TraceDebugArgs
 {
+	uint32_t               fixedSeed;
+	uint32_t			   firstRandomBounce;
+	bool				   skipGeometry;
+	uint32_t               minDepth;	
 	vec2                   pixelPos;
 	bool                   enablePlot;
 	uint32_t               maxPlotCount;
@@ -155,8 +159,17 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	cmd.pushLocal();
 	cmd.pushDescriptor(target, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 	cmd.pushDescriptor(args.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	cmd.pipelineDef.shaderDef.args.push_back({"MAX_BOUNCES", args.maxDepth});
+	cmd.pushSpecializationConst(args.maxDepth);
+	cmd.pushSpecializationConst(args.debugArgs.minDepth);
+	cmd.pushSpecializationConst(args.debugArgs.fixedSeed);
+	cmd.pushSpecializationConst(args.debugArgs.firstRandomBounce);
+
+
 	cmd.pipelineDef.shaderDef.args.push_back({"SAMPLE_COUNT", args.sampleCount});
+	if (args.debugArgs.skipGeometry)
+	{
+		cmd.pipelineDef.shaderDef.args.push_back({"SKIP_GEOMETRY", ""});
+	}
 
 	struct PushStruct
 	{

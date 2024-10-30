@@ -5,6 +5,12 @@
 
 namespace vka
 {
+	struct IECToneMappingArgs
+	{
+		bool  useTonemapping;
+		float whitePoint;
+		float exposure;
+	};
 	class ImageEstimatorComparator
 	{
 	  public:
@@ -17,7 +23,9 @@ namespace vka
 		template <class EstimatorArgs>
 	    void cmdRun(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator, EstimatorArgs argsLeft, EstimatorArgs argsRight, float *timigsLeft, float *timigsRight);
 
-	    void showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea);
+		
+
+	    void  showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea, IECToneMappingArgs toneMappingArgs = {});
 		void showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
 	    float getMSE();
 

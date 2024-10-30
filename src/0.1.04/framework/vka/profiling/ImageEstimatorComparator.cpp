@@ -24,8 +24,12 @@ void ImageEstimatorComparator::cmdReset(CmdBuffer cmdBuf)
 	tqManager.cmdResetQueryPool(cmdBuf);
 	timeQueryFinished = true;
 }
-void ImageEstimatorComparator::showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea)
+
+
+
+void ImageEstimatorComparator::showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea, IECToneMappingArgs toneMappingArgs)
 {
+
 	VkRect2D_OP srcAreaLeft = VkRect2D_OP(localAccumulationTargetLeft->getExtent2D());
 	srcAreaLeft.extent.width *= splittCoef;
 	VkRect2D_OP srcAreaRight = VkRect2D_OP(localAccumulationTargetRight->getExtent2D());
@@ -43,7 +47,46 @@ void ImageEstimatorComparator::showSplitView(CmdBuffer cmdBuf, Image target, flo
 	if (dstAreaRight.extent.width != 0) dstAreaRight.extent.width -= 1;
 	dstAreaRight.offset.x += 1;
 
+	MapImgArgs args{};
+	args.normalize = true;
+	args.useTonemapping = toneMappingArgs.useTonemapping;
+	args.whitePoint = toneMappingArgs.whitePoint;
+	args.exposure = toneMappingArgs.exposure;
+	args.useScissors    = true;
+	args.dstLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
 	if (dstAreaRight.extent.width == 0 || dstAreaRight.extent.width == 0)
+	{
+		args.srcArea = srcAreaLeft;
+		args.dstArea = dstAreaLeft;
+		getCmdMapImg(localAccumulationTargetLeft, target, args).exec(cmdBuf);
+	}
+	else if (dstAreaLeft.extent.width > 0 && srcAreaLeft.extent.width > 0)
+	{
+		srcAreaLeft.extent.width -= 1;
+		srcAreaRight.extent.width -= 1;
+		srcAreaRight.offset.x += 1;
+
+		args.srcArea = srcAreaLeft;
+		args.dstArea = dstAreaLeft;
+		getCmdMapImg(localAccumulationTargetLeft, target, args).exec(cmdBuf);
+
+		args.srcArea = srcAreaRight;
+		args.dstArea = dstAreaRight;
+		getCmdMapImg(localAccumulationTargetRight, target, args).exec(cmdBuf);
+	}
+	else
+	{
+		srcAreaRight.extent.width -= 1;
+		srcAreaRight.offset.x += 1;
+
+		args.srcArea = srcAreaRight;
+		args.dstArea = dstAreaRight;
+		getCmdMapImg(localAccumulationTargetRight, target, args).exec(cmdBuf);
+	}
+
+
+	/*if (dstAreaRight.extent.width == 0 || dstAreaRight.extent.width == 0)
 	{
 		getCmdNormalize(localAccumulationTargetLeft, target, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, srcAreaLeft, dstAreaLeft).exec(cmdBuf);
 	}
@@ -61,7 +104,7 @@ void ImageEstimatorComparator::showSplitView(CmdBuffer cmdBuf, Image target, flo
 		srcAreaRight.extent.width -= 1;
 		srcAreaRight.offset.x += 1;
 		getCmdNormalize(localAccumulationTargetRight, target, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, srcAreaRight, dstAreaRight).exec(cmdBuf);
-	}
+	}*/
 }
 void ImageEstimatorComparator::showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea)
 {

@@ -17,11 +17,11 @@ struct PushStruct
 
 layout(push_constant) uniform PC {PushStruct pc;};
 
-void generatePin(uint seed, out vec3 start, out vec3 end)
+bool generatePin(uint seed, out vec3 start, out vec3 end)
 {
 	vec3 direction = normalize(random3D(seed + 0x362123)-vec3(0.5));
-	vec3 origin = random3D(seed + 0x491630);
-	unitCubeIntersection(origin, direction, start, end);
+	vec3 origin = 2.0*(random3D(seed + 0x491630))-vec3(0.5);
+	return unitCubeIntersection(origin, direction, start, end);
 }
 
 
@@ -31,13 +31,25 @@ void main()
 	if(!validInvocation()) return;
 	uint seed = invocationID() + invocationCount() * pc.executionID;
 	vec3 start, end;
-	generatePin(seed, start, end);
+	if(!generatePin(seed, start, end)) return;
+	vec3 dir = normalize(end-start);
+
+	bool inverseDir = cartesianToSpherical(dir).y > PI * 0.5;
+	if(inverseDir)
+	{
+		vec3 tmp = start;
+		start = end;
+		end = tmp;
+		dir = -dir;
+	}
+
+
 
 	uint stepCount = PIN_MASK_SIZE * 32; // 32 bits per mask field
 	float stepLength = distance(end,start) / float(stepCount);
-	vec3 dir = normalize(end-start);
+
 	GLSLPinCacheEntry pin;
-	pin.mask[0] = 0;
+	resetMask(pin);
 	float minTransmittance = 1.0;
 	for(uint i = 0; i<stepCount; i++)
 	{
@@ -46,8 +58,7 @@ void main()
 		minTransmittance = min(minTransmittance, transmittance);
 		if(transmittance < unormNext(seed))
 		{
-			writeToMask(i, pin);
-			//pin.mask[0] = 0xFFFFFFFF;
+			writeToMask(stepCount - i, pin);
 		}
 	}
 	pin.maxColProb = 1.0 - minTransmittance;

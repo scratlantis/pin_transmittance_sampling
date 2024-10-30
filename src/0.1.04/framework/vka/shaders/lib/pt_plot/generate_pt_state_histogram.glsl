@@ -45,13 +45,21 @@ void writePtPlot()
 	nextHist();
 	hist[hist_count - 1].histDim = 1;
 	hist[hist_count - 1].bins = vec2(200);
-	hist[hist_count - 1].rMin = vec2(0.0);
-	hist[hist_count - 1].rMax = vec2(2.0);
+	hist[hist_count - 1].rMin = vec2(-1.0);
+	hist[hist_count - 1].rMax = vec2(1.0);
 	if(ptPlotOptions.writeIndirectT != 0)
 	{
 		if(writePlot)
 		{
-			float t = distance(origin, indirect_bounces[1].bouncePos);
+			float t;
+			if(indirect_bounces[ptPlotOptions.bounce].pathVertexType != PATH_VERTEX_TYPE_LEAF_INFINITY)
+			{
+				t = distance(origin, indirect_bounces[ptPlotOptions.bounce].bouncePos);
+			}
+			else
+			{
+				t = -0.2;
+			}
 			setHistValue(t, getFrameIdx());
 		}
 		ptPlot.indirectRay.t = int(hist_count - 1);
