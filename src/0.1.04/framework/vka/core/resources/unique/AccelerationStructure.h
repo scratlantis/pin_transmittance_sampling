@@ -50,9 +50,9 @@ class AccelerationStructure_R : public Resource_T<VkAccelerationStructureKHR>
 	void   track(IResourcePool *pPool) override;
 	hash_t hash() const override;
 
-	void createHandles();
+	virtual void createHandles();
 	void detachChildResources();
-	void            recreate();
+	virtual void     recreate();
 	VkDeviceAddress getDeviceAddress() const;
 };
 
@@ -86,12 +86,14 @@ class TopLevelAS_R : public AccelerationStructure_R
   protected:
 	VkAccelerationStructureBuildRangeInfoKHR buildRange = {};
 	VkAccelerationStructureGeometryKHR       buildGeom  = {};
+	uint32_t                                 instanceCount;
 	TopLevelAS_R(const TopLevelAS_R &rhs)               = default;
 
   private:
 	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfoInternal() const;
 	VkDeviceSize                                getBuildSize() const;
 	virtual VkAccelerationStructureTypeKHR      getType() const;
+
 
   public:
 	TopLevelAS_R() = default;
@@ -100,5 +102,7 @@ class TopLevelAS_R : public AccelerationStructure_R
 	void                                                                  setInstanceData(Buffer_R *instanceBuffer);
 	virtual std::vector<const VkAccelerationStructureBuildRangeInfoKHR *> getBuildRangePtrs() const;
 	const TopLevelAS_R                                                    getShallowCopy() const;
+	void                                                                  createHandles() override;
+	void                                                                  recreate() override;
 };
 }        // namespace vka

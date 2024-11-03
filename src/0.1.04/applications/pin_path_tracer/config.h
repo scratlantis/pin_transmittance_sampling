@@ -4,6 +4,7 @@
 #include "constants.h"
 static const std::string shaderPath = std::string(APP_SRC_DIR) + "/shaders/";
 static const std::string configPath = std::string(CONFIG_DIR) + "/";
+static const std::string scalarFieldPath = std::string(RESOURCE_BASE_DIR) + "/scalarFields/";
 
 using namespace vka;
 using namespace vka::pbr;
@@ -44,9 +45,15 @@ struct DefaultDeviceCI : DeviceCI
 		VkPhysicalDeviceVulkan12Features features12{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
 		features12.bufferDeviceAddress             = VK_TRUE;
 		features12.descriptorBindingPartiallyBound = VK_TRUE;
+		features12.storageBuffer8BitAccess         = VK_TRUE;
+		features12.shaderInt8         = VK_TRUE;
 		enabledDeviceFeatures.addNode(features12);
-
-
+		VkPhysicalDeviceVulkan11Features features11{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
+		features11.storageBuffer16BitAccess = VK_TRUE;
+		enabledDeviceFeatures.addNode(features11);
+		VkPhysicalDeviceFeatures2 features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+		features.features.shaderInt16 = VK_TRUE;
+		enabledDeviceFeatures.addNode(features);
 #ifdef USE_ATOMICS
 		enabledDeviceExtensions.push_back(VK_EXT_SHADER_ATOMIC_FLOAT_EXTENSION_NAME);
 		enabledDeviceExtensions.push_back(VK_EXT_SHADER_IMAGE_ATOMIC_INT64_EXTENSION_NAME);

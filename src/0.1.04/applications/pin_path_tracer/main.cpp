@@ -59,7 +59,8 @@ int main()
 	CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
 	//// Load Geometry
 	//sceneBuilder.loadEnvMap("/envmap/2k/autumn_field_2k.hdr", glm::uvec2(64, 64));
-	sceneBuilder.loadEnvMap("/envmap/2k/overcast_soil_puresky_2k.hdr", glm::uvec2(64, 64));
+	//sceneBuilder.loadEnvMap("/envmap/2k/overcast_soil_puresky_2k.hdr", glm::uvec2(64, 64));
+	sceneBuilder.loadEnvMap("/envmap/2k/hochsal_field_2k.hdr", glm::uvec2(64, 64));
 #ifdef RAY_TRACING_SUPPORT
 	GLSLInstance instance{};
 	instance.cullMask = 0xFF;
@@ -75,8 +76,10 @@ int main()
 	perlinArgs.max           = 100.0;
 	perlinArgs.frequency          = gvar_perlin_frequency.val.v_float;
 	perlinArgs.falloffAtEdge = true;
-	const uint32_t mediumExtent1D = 64*4;
-	VkExtent3D     mediumExtent{mediumExtent1D, mediumExtent1D, mediumExtent1D};
+	const uint32_t mediumExtent1D = 302;
+	//VkExtent3D     mediumExtent{mediumExtent1D, mediumExtent1D, mediumExtent1D};
+	//VkExtent3D mediumExtent{128, 256, 256};
+	VkExtent3D mediumExtent{512, 512, 361};
 	Image          medium = createImage(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, mediumExtent);
 	cmdTransitionLayout(cmdBuf, medium, VK_IMAGE_LAYOUT_GENERAL);
 	GLSLMediumInstance mediumInstance{};
@@ -130,9 +133,16 @@ int main()
 		// Regenerate noise
 		if (settingsChanged[GUI_CAT_NOISE] || shaderRecompiled || firstFrame)
 		{
-			perlinArgs.frequency = gvar_perlin_frequency.val.v_float;
+			/*perlinArgs.frequency = gvar_perlin_frequency.val.v_float;
 			perlinArgs.scale     = gvar_perlin_scale.val.v_float;
-			getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);
+			getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);*/
+			Buffer scalarBuf;
+			//gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "csafe_heptane_302x302x302_uint8.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+			//gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "chameleon_1024x1024x1080_uint16.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+			//gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "vis_male_128x256x256_uint8.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+			gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "bunny_512x512x361_uint16.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+			getCmdLoadScalarField(scalarBuf, medium, gvar_perlin_scale.val.v_float).exec(cmdBuf);
 		}
 		//// Run Path Tracing
 		CameraCI camCI{};

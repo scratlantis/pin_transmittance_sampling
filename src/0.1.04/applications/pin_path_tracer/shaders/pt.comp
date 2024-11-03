@@ -72,16 +72,27 @@ float traceMedium(Ray ray, Range range, uint bounce, inout uint seed)
 	return distance(ray.origin, worldHitPos);
 }
 
-float traceMediumTransmittance(Ray ray, Range range, inout uint seed)
+float traceMediumTransmittance(Ray ray, Range range, uint bounce, inout uint seed)
 {
 	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
 	vec3 localExit = (volInst.invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
 	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
 	float localTMax = distance(localOrigin, localExit);
-	return rayMarcheMediumTransmittance(localOrigin, localDir, localTMax, seed);
+	float transmittance;
+	if(bounce == 0)
+	{
+		transmittance = rayMarcheMediumTransmittance(localOrigin, localDir, localTMax, seed);
+	}
+	else
+	{
+		transmittance = SAMPLE_TRANSMITTANCE(localOrigin, localDir, localTMax, seed);
+	}
+	return transmittance;
+
+	//return rayMarcheMediumTransmittance(localOrigin, localDir, localTMax, seed);
 }
 
-float traceTransmittance(Ray ray, inout uint seed)
+float traceTransmittance(Ray ray, uint bounce, inout uint seed)
 {
 	#ifndef SKIP_GEOMETRY
 	float geomTransmittance = traceGeometryTransmittance(ray, 0x0F);
@@ -93,14 +104,14 @@ float traceTransmittance(Ray ray, inout uint seed)
 	Range rMedium = traceMediumConservative(ray);
 	if(rMedium.rMin == TMAX) return geomTransmittance;
 
-	return geomTransmittance * traceMediumTransmittance(ray, rMedium, seed);
+	return geomTransmittance * traceMediumTransmittance(ray, rMedium, bounce, seed);
 }
 
 #if AREA_LIGHT_COUNT > 0
-void sampleDirectIllumAreaLight(vec3 pos, inout uint seed, out vec3 L_i, out vec3 omega_i)
+void sampleDirectIllumAreaLight(vec3 pos, uint bounce, inout uint seed, out vec3 L_i, out vec3 omega_i)
 {
 	Ray ray = genDirectIllumRayAreaLight(pos, seed);
-	float transmittance = traceTransmittance(ray, seed);
+	float transmittance = traceTransmittance(ray, bounce, seed);
 	L_i = transmittance * ray.weight;
 	omega_i = ray.direction;
 	
@@ -109,10 +120,10 @@ void sampleDirectIllumAreaLight(vec3 pos, inout uint seed, out vec3 L_i, out vec
 }
 #endif
 
-void sampleDirectIllumEnvMap(vec3 pos, inout uint seed, out vec3 L_i, out vec3 omega_i)
+void sampleDirectIllumEnvMap(vec3 pos, uint bounce, inout uint seed, out vec3 L_i, out vec3 omega_i)
 {
 	Ray ray = genDirectIllumRayEnvMap(pos, seed);
-	float transmittance = traceTransmittance(ray, seed);
+	float transmittance = traceTransmittance(ray, bounce, seed);
 	L_i = transmittance * ray.weight;
 	omega_i = ray.direction;
 
@@ -241,7 +252,7 @@ void main()
 				{
 					SI_nextSample(RAY_DOMAIN_AREA_LIGHT)
 
-					sampleDirectIllumAreaLight(tangentFrame[3], seed, L_i, omega_i);
+					sampleDirectIllumAreaLight(tangentFrame[3], i, seed, L_i, omega_i);
 					cosTerm = pos_dot(tangentFrame[2], omega_i);
 					L_o += brdf * L_i * cosTerm;
 
@@ -255,7 +266,7 @@ void main()
 				{
 					SI_nextSample(RAY_DOMAIN_ENV_MAP)
 
-					sampleDirectIllumEnvMap(tangentFrame[3], seed, L_i, omega_i);
+					sampleDirectIllumEnvMap(tangentFrame[3], i, seed, L_i, omega_i);
 					cosTerm = pos_dot(tangentFrame[2], omega_i);
 					L_o += brdf * L_i * cosTerm;
 
@@ -273,7 +284,7 @@ void main()
 				{
 					SI_nextSample(RAY_DOMAIN_AREA_LIGHT)
 
-					sampleDirectIllumAreaLight(tangentFrame[3], seed, L_i, omega_i);
+					sampleDirectIllumAreaLight(tangentFrame[3], i, seed, L_i, omega_i);
 					L_o += bsdf * L_i;
 
 					SI_setBSDF(bsdf)
@@ -284,7 +295,7 @@ void main()
 				{
 					SI_nextSample(RAY_DOMAIN_ENV_MAP)
 
-					sampleDirectIllumEnvMap(tangentFrame[3], seed, L_i, omega_i);
+					sampleDirectIllumEnvMap(tangentFrame[3], i, seed, L_i, omega_i);
 					L_o += bsdf * L_i;
 
 					SI_setBSDF(bsdf)

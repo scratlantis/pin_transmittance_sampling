@@ -89,7 +89,7 @@ TopLevelAS_R::TopLevelAS_R(IResourcePool *pPool) :
 
 void TopLevelAS_R::setInstanceCount(uint32_t count)
 {
-	buildRange.primitiveCount = count;
+	instanceCount = count;
 }
 
 void TopLevelAS_R::setInstanceData(Buffer_R *instanceBuffer)
@@ -131,6 +131,25 @@ VkDeviceSize TopLevelAS_R::getBuildSize() const
 VkAccelerationStructureTypeKHR TopLevelAS_R::getType() const
 {
 	return VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+}
+
+void TopLevelAS_R::createHandles()
+{
+	buildRange.primitiveCount = instanceCount;
+	AccelerationStructure_R::createHandles();
+}
+
+void TopLevelAS_R::recreate()
+{
+	if (instanceCount == 0)
+	{
+		throw std::runtime_error("TopLevelAS_R::recreate() called with instanceCount == 0");
+	}
+	else if (asRes != nullptr && instanceCount == buildRange.primitiveCount)
+	{
+		return;
+	}
+	AccelerationStructure_R::recreate();
 }
 
 bool AccelerationStructure_R::isBuilt() const

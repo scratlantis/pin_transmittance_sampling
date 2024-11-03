@@ -64,7 +64,13 @@ float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint
 #else
 float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
-	uint pinIdx = pin_cache_offset(origin,direction);
+	vec3 jitteredOrigin = origin + (vec3(0.5) - random3D(seed)) * 1.0 / PIN_POS_GRID_SIZE;
+	vec3 jitteredDirection = direction + (vec3(0.5) - random3D(seed)) * 1.0 / PIN_DIR_GRID_SIZE;
+	jitteredOrigin = clamp(jitteredOrigin, vec3(0.0), vec3(1.0));
+	jitteredDirection = normalize(jitteredDirection);
+
+	uint pinIdx = pin_cache_offset(jitteredOrigin,jitteredDirection);
+
 	GLSLPinCacheEntry pin = pin_grid[pinIdx];
 	if(pin.maxColProb == MAX_FLOAT)
 	{
@@ -112,8 +118,6 @@ float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint
 	}
 	intersectionBit -= int(sampleOffset);
 	float sampledDist = float(intersectionBit + unormNext(seed)) * perBitDistance;
-	//sampledDist+=0.02;
-	SI_printf("Sampled distance: %f.3\n", sampledDist);
 	//SI_printf("Sampled distance: %f.3\n", sampledDist);
 	if(sampledDist > maxLength)
 	{
@@ -121,6 +125,58 @@ float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint
 	}
 	return sampledDist;
 };
+
+float pinSampleTransmittance(vec3 origin, vec3 direction, float maxLength, inout uint seed)
+{
+	vec3 jitteredOrigin = origin + (vec3(0.5) - random3D(seed)) * 1.0 / PIN_POS_GRID_SIZE;
+	vec3 jitteredDirection = direction + (vec3(0.5) - random3D(seed)) * 1.0 / PIN_DIR_GRID_SIZE;
+	jitteredOrigin = clamp(jitteredOrigin, vec3(0.0), vec3(1.0));
+	jitteredDirection = normalize(jitteredDirection);
+
+	uint pinIdx = pin_cache_offset(jitteredOrigin,jitteredDirection);
+
+	GLSLPinCacheEntry pin = pin_grid[pinIdx];
+	if(pin.maxColProb == MAX_FLOAT)
+	{
+		return 1.0;
+	}
+
+	bool inverseDir = cartesianToSpherical(direction).y > PI * 0.5;
+	vec3 start, end;
+	unitCubeIntersection(origin, direction, start, end);
+
+	float sampleCoef = distance(origin, start) / distance(start, end);
+	uint sampleOffset = uint(clamp(sampleCoef, 0.0, 0.9999) * 32 * PIN_MASK_SIZE);
+	float perBitDistance = distance(start, end) / float(PIN_MASK_SIZE * 32);
+
+	uint maskOffset = sampleOffset / 32;
+	uint currentBitOffset = sampleOffset%32;
+
+	int intersectionBit = -1;
+
+	uint oneBitCnt = 0;
+
+	for(uint i = maskOffset; i < PIN_MASK_SIZE; i++)
+	{
+		uint pinMask;
+		if(inverseDir)
+		{
+			pinMask = bitfieldReverse(pin.mask[PIN_MASK_SIZE-(i+1)]);
+		}
+		else
+		{
+			pinMask = pin.mask[i];
+		}
+		pinMask = pinMask << currentBitOffset;
+		oneBitCnt += bitCount(pinMask);
+		currentBitOffset = 0;
+	}
+	float maxTransmittance = 1.0 - pin.maxColProb;
+	float transmittance = pow(maxTransmittance, float(oneBitCnt));
+	//SI_printf("Sampled transmittance: %f.3\n", transmittance);
+	return transmittance;
+};
+
 #endif
 
 #else

@@ -352,4 +352,39 @@ void cmdDraw(CmdBuffer cmdBuf, uint32_t vertexCount, uint32_t instanceCount, uin
 {
     vkCmdDraw(cmdBuf->getHandle(), vertexCount, instanceCount, firstVertex, firstInstance);
 }
+
+BLAS cmdBuildBoxBlas(CmdBuffer cmdBuf, IResourcePool *pPool)
+{
+	VkAabbPositionsKHR aabbPositionsKHR{};
+	aabbPositionsKHR.minX = 0.0;
+	aabbPositionsKHR.minY = 0.0;
+	aabbPositionsKHR.minZ = 0.0;
+	aabbPositionsKHR.maxX = 1.0;
+	aabbPositionsKHR.maxY = 1.0;
+	aabbPositionsKHR.maxZ = 1.0;
+
+	VkAccelerationStructureGeometryAabbsDataKHR aabbsKHR{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR};
+	aabbsKHR.stride           = sizeof(VkAabbPositionsKHR);
+	aabbsKHR.data.hostAddress = &aabbPositionsKHR;
+
+	VkAccelerationStructureGeometryKHR geometryKHR{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
+	geometryKHR.geometryType   = VK_GEOMETRY_TYPE_AABBS_KHR;
+	geometryKHR.geometry.aabbs = aabbsKHR;
+	geometryKHR.flags          = 0;
+
+	VkAccelerationStructureBuildRangeInfoKHR rangeKHR{};
+	rangeKHR.primitiveCount  = 1;
+	rangeKHR.primitiveOffset = 0;
+	rangeKHR.firstVertex     = 0;
+	rangeKHR.transformOffset = 0;
+	std::vector<VkAccelerationStructureGeometryKHR> geometry{geometryKHR};
+    std::vector<VkAccelerationStructureBuildRangeInfoKHR> range{rangeKHR};
+
+	BLAS blas = new BottomLevelAS_R(pPool);
+	blas->setGeometry(geometry);
+	blas->setBuildRange(range);
+	blas->createHandles();
+	cmdBuildAccelerationStructure(cmdBuf, blas, createStagingBuffer());
+    return blas;
+}
 }        // namespace vka

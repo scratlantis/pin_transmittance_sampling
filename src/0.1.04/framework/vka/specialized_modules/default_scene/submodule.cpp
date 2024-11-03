@@ -56,9 +56,15 @@ namespace vka
 		{
 	        cmd.pushSubmodule(cVkaShaderModulePath + "pt_scalar_field.glsl");
 			cmd.pushDescriptor(scalarField, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-			cmd.pipelineDef.shaderDef.args.push_back({"RAY_MARCH_STEP_SIZE", std::to_string(rayMarchStepSize)});
-	        VKA_ASSERT(scalarField->getExtent().width == scalarField->getExtent().height && scalarField->getExtent().depth == scalarField->getExtent().height);
+			cmd.pipelineDef.shaderDef.args.push_back({"RAY_MARCHE_STEP_SIZE", std::to_string(rayMarchStepSize)});
+	        //VKA_ASSERT(scalarField->getExtent().width == scalarField->getExtent().height && scalarField->getExtent().depth == scalarField->getExtent().height);
 	        cmd.pipelineDef.shaderDef.args.push_back({"VOLUME_RESOLUTION", scalarField->getExtent().width});
+		}
+
+		void bindBoxIntersector(ComputeCmd& cmd, TLAS tlas)
+		{
+	        cmd.pushSubmodule(cVkaShaderModulePath + "pt_box_intersector.glsl");
+			cmd.pushDescriptor(tlas);
 		}
 	}
 }

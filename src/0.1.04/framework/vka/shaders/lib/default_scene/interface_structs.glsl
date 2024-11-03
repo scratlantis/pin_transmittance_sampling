@@ -57,6 +57,7 @@ struct GLSLInstance
 	uint cullMask;
 
 	uint type;
-	uint padding[3];
+	uint geometryIndex;
+	uint padding[2];
 };
 #endif // INTERFACE_H

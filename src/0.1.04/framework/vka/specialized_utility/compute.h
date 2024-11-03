@@ -39,4 +39,7 @@ struct PerlinNoiseArgs
 };
 
 ComputeCmd getCmdPerlinNoise(Image target, PerlinNoiseArgs args);
+
+
+ComputeCmd getCmdLoadScalarField(Buffer src, Image dst, float scale);
 }        // namespace vka

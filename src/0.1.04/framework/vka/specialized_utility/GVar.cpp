@@ -258,7 +258,7 @@ void GVar::readFromJson(json &j)
 			val.v_vec3[2] = j[id][2];
 			break;
 		case GVAR_DISPLAY_VALUE:
-			val.v_float = j[id];
+			//val.v_float = j[id];
 			break;
 		case GVAR_ENUM:
 			val.v_int  = j[id];

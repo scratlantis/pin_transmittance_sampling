@@ -22,6 +22,7 @@ void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Wind
 	depthBufferCache        = new DepthBufferCache(heap);
 	dataCache               = new DataCache(heap);
 	imguiTextureIDCache     = new ImGuiTextureIDCache(heap);
+	binaryLoadCache			= new BinaryLoadCache(heap);
 }
 
 void AdvancedState::destroy()
