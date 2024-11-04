@@ -24,10 +24,10 @@ void minHeapInit(inout MinHeap q)
 	}
 }
 
-void minHeapInsert(inout MinHeap q, uint idx, int id, float val)
+void minHeapInsert(inout MinHeap q, int idx, int id, float val)
 {
 	[[unroll]]
-	for (int i = MIN_HEAP_SIZE - 2; i >= idx; i++)
+	for (int i = MIN_HEAP_SIZE - 2; i >= idx; i--)
 	{
 		q.id[i + 1] = q.id[i];
 		q.val[i + 1] = q.val[i];

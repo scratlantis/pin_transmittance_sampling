@@ -12,27 +12,27 @@
 layout(binding = PT_BOX_INTERSECTION_BINDING_OFFSET) uniform accelerationStructureEXT boxAs;
 
 
-bool foundContainigBox(rayQueryEXT rq, vec3 pos)
-{
-	return (rayQueryGetIntersectionTypeEXT(rq, false) == gl_RayQueryCandidateIntersectionAABBEXT)
-			&& inUnitCube(rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(pos,1.0));
-}
+//bool foundContainigBox(rayQueryEXT rq, vec3 pos)
+//{
+//	return (rayQueryGetIntersectionTypeEXT(rq, false) == gl_RayQueryCandidateIntersectionAABBEXT)
+//			&& inUnitCube(rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(pos,1.0));
+//}
 
-int[4] containigBoxes(vec3 pos)
-{
-	rayQueryEXT rq;
-	rayQueryInitializeEXT(rq, boxAs, 0, 0xFF, pos, 0, vec3(0.0,1.0,0.0), 0);
-	uint i = 0;
-	int ids[4] = {-1,-1,-1,-1};
-	while(rayQueryProceedEXT(rq))
-	{
-		if(foundContainigBox(rq, pos))
-		{
-			ids[i++] = rayQueryGetIntersectionInstanceCustomIndexEXT(rq, false);;
-		}
-	}
-	return ids;
-}
+//int[4] containigBoxes(vec3 pos)
+//{
+//	rayQueryEXT rq;
+//	rayQueryInitializeEXT(rq, boxAs, 0, 0xFF, pos, 0, vec3(0.0,1.0,0.0), 0);
+//	uint i = 0;
+//	int ids[4] = {-1,-1,-1,-1};
+//	while(rayQueryProceedEXT(rq))
+//	{
+//		if(foundContainigBox(rq, pos))
+//		{
+//			ids[i++] = rayQueryGetIntersectionInstanceCustomIndexEXT(rq, false);;
+//		}
+//	}
+//	return ids;
+//}
 
 bool foundIntersectingBox(rayQueryEXT rq, vec3 origin, vec3 direction, out float t)
 {
@@ -58,6 +58,7 @@ int[4] intersectingBoxes(vec3 origin, vec3 direction, float maxLenght)
 	MinHeap ids;
 	minHeapInit(ids);
 	float t;
+
 	while(rayQueryProceedEXT(rq))
 	{
 		if(foundIntersectingBox(rq, origin, direction, t))
@@ -66,6 +67,11 @@ int[4] intersectingBoxes(vec3 origin, vec3 direction, float maxLenght)
 			minHeapAdd(ids, id, t);
 		}
 	}
+	//int[4] mediumHits = {0, 1, 2, 3};
+	//return mediumHits;
+
+
+
 	return ids.id;
 }
 

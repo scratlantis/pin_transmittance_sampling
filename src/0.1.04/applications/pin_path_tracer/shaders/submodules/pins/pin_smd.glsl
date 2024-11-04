@@ -193,6 +193,18 @@ float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint
 	SI_setHistValue(dot(newDirection, direction), getFrameIdx())
 	return rayMarcheMedium(newOrigin, newDirection, maxLength, seed);
 };
+float pinSampleTransmittance(vec3 origin, vec3 direction, float maxLength, inout uint seed)
+{
+	uint pinIdx = pin_cache_offset(origin,direction);
+	vec3 newOrigin = pin_pos(pinIdx);
+	vec3 newDirection = pin_dir(pinIdx);
+	if(dot(newDirection, direction) < 0.0)
+	{
+		newDirection = -newDirection;
+	}
+	SI_setHistValue(dot(newDirection, direction), getFrameIdx())
+	return rayMarcheMediumTransmittance(newOrigin, newDirection, maxLength, seed);
+};
 #endif
 
 

@@ -53,7 +53,7 @@ GLSLInstance getInstanceData(HitData hitData)
 	return instances[hitData.instanceCustomID];
 }
 
-float traceGeometry(Ray ray, uint cullMask,inout HitData hData)
+float traceGeometry(Ray ray, uint cullMask, inout HitData hData)
 {
 	rayQueryEXT rq;
 	rayQueryInitializeEXT(rq, as, gl_RayFlagsOpaqueEXT, cullMask, ray.origin, ray.tmin, ray.direction, ray.tmax);

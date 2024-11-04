@@ -1,8 +1,13 @@
 #include "interface_structs.glsl"
 #include "estimator_selector.glsl"
+
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_query : enable
+
 layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
-layout(binding = LOCAL_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
-//layout(binding = LOCAL_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst[];};
+//layout(binding = LOCAL_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
+layout(binding = LOCAL_BINDING_OFFSET + 1) buffer VOLUME_INSTANCE { GLSLMediumInstance volInst[];};
+layout(binding = LOCAL_BINDING_OFFSET + 2) uniform accelerationStructureEXT boxAs;
 
 struct PushStruct
 {
@@ -16,25 +21,161 @@ layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 1) const uint minDepth = 0;
 layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 2) const uint fixedSeed = 1;
 layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 3) const uint firstRandomBounce = 0;
 
-Range traceMediumConservative(Ray ray)
+
+
+const uint TRACE_FLAG_FORCE_RAYMARCHE = 1;
+
+float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out HitData hitData, out uint hitType)
 {
-	vec3 localOrigin = (volInst.invMat * vec4(ray.origin, 1.0)).xyz;
-	vec3 localDir = (volInst.invMat * vec4(ray.direction, 0.0)).xyz;
+	// Trace Geometry
+	#ifndef SKIP_GEOMETRY
+	float tGeom = traceGeometry(ray, cullMask, hitData);
+	#else
+	float tGeom = TMAX;
+	#endif
+	ray.tmax = min(ray.tmax, tGeom);
+	if(ray.tmax == TMAX)
+	{
+		hitType = PATH_VERTEX_TYPE_LEAF_INFINITY;
+	}
+	else
+	{
+		hitType = PATH_VERTEX_TYPE_SURFACE_SCATTER;
+	}
+	// Trace Medium
+	rayQueryEXT rq;
+	rayQueryInitializeEXT(rq, boxAs, 0, cullMask, ray.origin, ray.tmin, ray.direction, ray.tmax);
+	while(rayQueryProceedEXT(rq))
+	{
+		if (rayQueryGetIntersectionTypeEXT(rq, false) == gl_RayQueryCandidateIntersectionAABBEXT)
+		{
+			vec3 localPos = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(ray.origin, 1.0);
+			vec3 localDir = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(ray.direction, 0.0);
+			localDir = normalize(localDir);
+			vec3 localEntry, localExit;
+			if(unitCubeIntersection(localPos, localDir, localEntry, localExit))
+			{
+				vec3 endPoint = ray.origin + ray.direction * ray.tmax;
+				vec3 localEndPoint = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(endPoint, 1.0);
+
+				float localTmax = distance(localEndPoint, localPos);
+				float localTEntry = distance(localEntry, localPos);
+				if(localTmax > localTEntry)
+				{
+					float maxLength = min(localTmax - localTEntry, distance(localEntry, localExit));
+					float tLocal;
+					if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
+					{
+						tLocal = rayMarcheMedium(localEntry, localDir, maxLength, seed);
+					}
+					else
+					{
+						tLocal = SAMPLE_DISTANCE(localEntry, localDir, maxLength, seed);
+					}
+					if(tLocal != TMAX)
+					{
+						vec3 localCollisionPos = localEntry + tLocal * localDir;
+						vec3 collisionPos = rayQueryGetIntersectionObjectToWorldEXT(rq, false) * vec4(localCollisionPos, 1.0);
+						float tMedium = distance(ray.origin, collisionPos);
+						if(tMedium < tGeom )
+						{
+							rayQueryGenerateIntersectionEXT(rq, tMedium);
+						}
+					}
+				}
+			}
+		}
+	}
+	if(rayQueryGetIntersectionTypeEXT(rq, true) == gl_RayQueryCommittedIntersectionGeneratedEXT )
+	{
+		hitType = PATH_VERTEX_TYPE_VOLUME_SCATTER;
+		hitData.instanceCustomID = rayQueryGetIntersectionInstanceCustomIndexEXT(rq, true);
+		return rayQueryGetIntersectionTEXT(rq, true);
+	}
+	return tGeom;
+}
+
+float traceTransmittance(Ray ray, uint flags, uint cullMask, inout uint seed)
+{
+	// Trace Geometry
+	#ifndef SKIP_GEOMETRY
+	float geomTransmittance = traceGeometryTransmittance(ray, cullMask);
+	if(geomTransmittance == 0.0)
+	{
+		return 0.0;
+	}
+	#endif
+	// Trace Medium
+	rayQueryEXT rq;
+	rayQueryInitializeEXT(rq, boxAs, 0, cullMask, ray.origin, ray.tmin, ray.direction, ray.tmax);
+	float totalTransmittance = 1.0;
+	while(rayQueryProceedEXT(rq))
+	{
+		if (rayQueryGetIntersectionTypeEXT(rq, false) == gl_RayQueryCandidateIntersectionAABBEXT)
+			{
+			vec3 localPos = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(ray.origin, 1.0);
+			vec3 localDir = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(ray.direction, 0.0);
+			localDir = normalize(localDir);
+			vec3 localEntry, localExit;
+			if(unitCubeIntersection(localPos, localDir, localEntry, localExit))
+			{
+				vec3 endPoint = ray.origin + ray.direction * ray.tmax;
+				vec3 localEndPoint = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(endPoint, 1.0);
+
+				float localTmax = distance(localEndPoint, localPos);
+				float localTEntry = distance(localEntry, localPos);
+				if(localTmax > localTEntry)
+				{
+					float maxLength = min(localTmax - localTEntry, distance(localEntry, localExit));
+					float localTransmittance;
+					if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
+					{
+						localTransmittance = rayMarcheMediumTransmittance(localEntry, localDir, maxLength, seed);
+					}
+					else
+					{
+						localTransmittance = SAMPLE_TRANSMITTANCE(localEntry, localDir, maxLength, seed);
+					}
+					totalTransmittance *= localTransmittance;
+					if(totalTransmittance < EPSILON)
+					{
+						rayQueryTerminateEXT(rq);
+					}
+				}
+			}
+		}
+	}
+	return totalTransmittance;
+
+}
+
+
+
+
+
+
+
+
+#if 0
+Range getMediumRange(Ray ray, uint idx)
+{
+	vec3 localOrigin = (volInst[idx].invMat * vec4(ray.origin, 1.0)).xyz;
+	vec3 localDir = (volInst[idx].invMat * vec4(ray.direction, 0.0)).xyz;
 	vec3 localEntry, localExit;
 	Range range;
 	bool intersect = unitCubeIntersection(localOrigin, localDir, localEntry, localExit);
 	if(intersect && distance(localEntry, localExit) > distance(localOrigin, localExit)) 
 	{
 		// Inside Cube
-		vec3 worldExitPos = (volInst.mat * vec4(localExit, 1.0)).xyz;
+		vec3 worldExitPos = (volInst[idx].mat * vec4(localExit, 1.0)).xyz;
 		range.rMin = 0.0;
 		range.rMax = distance(ray.origin, worldExitPos);
 	}
 	else if(intersect)
 	{
 	    // Intersect Cube
-		vec3 worldEntryPos = (volInst.mat * vec4(localEntry, 1.0)).xyz;
-		vec3 worldExitPos = (volInst.mat * vec4(localExit, 1.0)).xyz;
+		vec3 worldEntryPos = (volInst[idx].mat * vec4(localEntry, 1.0)).xyz;
+		vec3 worldExitPos = (volInst[idx].mat * vec4(localExit, 1.0)).xyz;
 		range.rMin = distance(ray.origin, worldEntryPos);
 		range.rMax = distance(ray.origin, worldExitPos);
 	}
@@ -47,45 +188,11 @@ Range traceMediumConservative(Ray ray)
 	return range;
 }
 
-
-Range getMediumRange(Ray ray, GLSLMediumInstance inst)
-{
-	vec3 localOrigin = (inst.invMat * vec4(ray.origin, 1.0)).xyz;
-	vec3 localDir = (inst.invMat * vec4(ray.direction, 0.0)).xyz;
-	vec3 localEntry, localExit;
-	Range range;
-	bool intersect = unitCubeIntersection(localOrigin, localDir, localEntry, localExit);
-	if(intersect && distance(localEntry, localExit) > distance(localOrigin, localExit)) 
-	{
-		// Inside Cube
-		vec3 worldExitPos = (inst.mat * vec4(localExit, 1.0)).xyz;
-		range.rMin = 0.0;
-		range.rMax = distance(ray.origin, worldExitPos);
-	}
-	else if(intersect)
-	{
-	    // Intersect Cube
-		vec3 worldEntryPos = (inst.mat * vec4(localEntry, 1.0)).xyz;
-		vec3 worldExitPos = (inst.mat * vec4(localExit, 1.0)).xyz;
-		range.rMin = distance(ray.origin, worldEntryPos);
-		range.rMax = distance(ray.origin, worldExitPos);
-	}
-	else
-	{
-		// Miss Cube
-		range.rMin = TMAX;
-		range.rMax = TMAX;
-	}
-	return range;
-}
-
-
-
-float traceMedium(Ray ray, Range range, uint bounce, inout uint seed)
+float traceMedium(Ray ray, Range range, uint bounce, uint idx, inout uint seed)
 {	
-	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
-	vec3 localExit = (volInst.invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
-	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
+	vec3 localOrigin = (volInst[idx].invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
+	vec3 localExit = (volInst[idx].invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
+	vec3 localDir = normalize(volInst[idx].invMat * vec4(ray.direction, 0.0)).xyz;
 	float localTMax = distance(localOrigin, localExit);
 	float tLocal;
 	if(bounce == 0)
@@ -101,15 +208,15 @@ float traceMedium(Ray ray, Range range, uint bounce, inout uint seed)
 		return TMAX;
 	}
 
-	vec3 worldHitPos = (volInst.mat * vec4(localOrigin + tLocal * localDir, 1.0)).xyz;
+	vec3 worldHitPos = (volInst[idx].mat * vec4(localOrigin + tLocal * localDir, 1.0)).xyz;
 	return distance(ray.origin, worldHitPos);
 }
 
-float traceMediumTransmittance(Ray ray, Range range, uint bounce, inout uint seed)
+float traceMediumTransmittance(Ray ray, Range range, uint bounce, uint idx, inout uint seed)
 {
-	vec3 localOrigin = (volInst.invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
-	vec3 localExit = (volInst.invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
-	vec3 localDir = normalize(volInst.invMat * vec4(ray.direction, 0.0)).xyz;
+	vec3 localOrigin = (volInst[idx].invMat * vec4(ray.origin + range.rMin * ray.direction, 1.0)).xyz;
+	vec3 localExit = (volInst[idx].invMat * vec4(ray.origin + range.rMax * ray.direction, 1.0)).xyz;
+	vec3 localDir = normalize(volInst[idx].invMat * vec4(ray.direction, 0.0)).xyz;
 	float localTMax = distance(localOrigin, localExit);
 	float transmittance;
 	if(bounce == 0)
@@ -121,30 +228,43 @@ float traceMediumTransmittance(Ray ray, Range range, uint bounce, inout uint see
 		transmittance = SAMPLE_TRANSMITTANCE(localOrigin, localDir, localTMax, seed);
 	}
 	return transmittance;
-
-	//return rayMarcheMediumTransmittance(localOrigin, localDir, localTMax, seed);
 }
 
 float traceTransmittance(Ray ray, uint bounce, inout uint seed)
 {
-	#ifndef SKIP_GEOMETRY
 	float geomTransmittance = traceGeometryTransmittance(ray, 0x0F);
-	#else
-	float geomTransmittance = 1.0;
-	#endif
-	if(geomTransmittance == 0.0) return geomTransmittance;
+	if(geomTransmittance == 0.0) return 0.0;
 
-	Range rMedium = traceMediumConservative(ray);
-	if(rMedium.rMin == TMAX) return geomTransmittance;
+	int[4] mediumHits = intersectingBoxes(ray.origin, ray.direction, ray.tmax);
+	float totalTansmittance = 1.0;
+	for(uint i = 0; i < 4; i++)
+	{
+		if(mediumHits[i] != -1)
+		{
+			Range rMedium = getMediumRange(ray, mediumHits[i]);
+			rMedium.rMax = min(rMedium.rMax, ray.tmax);
+			if(rMedium.rMin > rMedium.rMax) continue;
 
-	return geomTransmittance * traceMediumTransmittance(ray, rMedium, bounce, seed);
+			float localTransmittance = traceMediumTransmittance(ray, rMedium, bounce, mediumHits[i], seed);
+			totalTansmittance *= localTransmittance;
+		}
+		else
+		{
+			break;
+		}
+
+		if(totalTansmittance < EPSILON) return 0.0;
+	}
+	return totalTansmittance;
 }
+#endif
+
 
 #if AREA_LIGHT_COUNT > 0
-void sampleDirectIllumAreaLight(vec3 pos, uint bounce, inout uint seed, out vec3 L_i, out vec3 omega_i)
+void sampleDirectIllumAreaLight(vec3 pos, uint flags, uint cullMask, inout uint seed, out vec3 L_i, out vec3 omega_i)
 {
 	Ray ray = genDirectIllumRayAreaLight(pos, seed);
-	float transmittance = traceTransmittance(ray, bounce, seed);
+	float transmittance = traceTransmittance(ray, flags, cullMask, seed);
 	L_i = transmittance * ray.weight;
 	omega_i = ray.direction;
 	
@@ -153,10 +273,10 @@ void sampleDirectIllumAreaLight(vec3 pos, uint bounce, inout uint seed, out vec3
 }
 #endif
 
-void sampleDirectIllumEnvMap(vec3 pos, uint bounce, inout uint seed, out vec3 L_i, out vec3 omega_i)
+void sampleDirectIllumEnvMap(vec3 pos, uint flags, uint cullMask, inout uint seed, out vec3 L_i, out vec3 omega_i)
 {
 	Ray ray = genDirectIllumRayEnvMap(pos, seed);
-	float transmittance = traceTransmittance(ray, bounce, seed);
+	float transmittance = traceTransmittance(ray, flags, cullMask, seed);
 	L_i = transmittance * ray.weight;
 	omega_i = ray.direction;
 
@@ -165,128 +285,83 @@ void sampleDirectIllumEnvMap(vec3 pos, uint bounce, inout uint seed, out vec3 L_
 }
 
 
-
-
-//Ray nextBounce2(
-//	Ray ray, uint bounce, uint cullMask,
-//	inout uint seed,
-//	out uint hitType, out MaterialData matData, out mat4x3 tangentFrame)
-//{
-//	Ray nextRay;
-//	HitData hitData;
-//	uint volumeHitIdx = 0;
-//
-//	float currentTMin = TMAX;
-//	hitType = PATH_VERTEX_TYPE_LEAF_INFINITY;
-//	#ifndef SKIP_GEOMETRY
-//	currentTMin = traceGeometry(ray, cullMask, hitData);
-//	hitType = (currentTMin == TMAX) ? PATH_VERTEX_TYPE_LEAF_INFINITY : PATH_VERTEX_TYPE_SURFACE_SCATTER;
-//	#endif
-//	int[4] mediumHits = intersectingBoxes(ray.origin, ray.direction, tGeom);
-//	for(uint i = 0; i < 4; i++)
-//	{
-//		if(mediumHits[i] != -1)
-//		{
-//			Range rMedium = getMediumRange(ray, volInst[mediumHits[i]]);
-//			if(rMedium.rMin < currentTMin)
-//			{
-//				rMedium.rMax = min(rMedium.rMax, currentTMin);
-//				float tMedium = traceMedium(ray, rMedium, bounce, seed);
-//				if(tMedium < currentTMin)
-//				{
-//					currentTMin = tMedium;
-//					hitType = PATH_VERTEX_TYPE_VOLUME_SCATTER;
-//					volumeHitIdx = mediumHits[i];
-//				}
-//			}
-//		}
-//		else
-//		{
-//			break;
-//		}
-//	}
-//	if(hitType == PATH_VERTEX_TYPE_SURFACE_SCATTER)
-//	{
-//		evalHit(hitData, matData, tangentFrame);
-//		nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
-//	}
-//	else if(hitType == PATH_VERTEX_TYPE_VOLUME_SCATTER)
-//	{
-//		tangentFrame[3] = ray.origin + tMedium * ray.direction;
-//		matData.albedo = volInst.albedo;
-//		nextRay = scatterUniform(matData.albedo, tangentFrame[3], seed);
-//	}
-//	nextRay.weight *= ray.weight;
-//	return nextRay;
-//}
-
-
-
 Ray nextBounce(
-	Ray ray, uint bounce, uint cullMask,
+	Ray ray, uint flags, uint cullMask,
 	inout uint seed,
 	out uint hitType, out MaterialData matData, out mat4x3 tangentFrame)
 {
 	Ray nextRay;
 	HitData hitData;
-	#ifndef SKIP_GEOMETRY
-	float tGeom = traceGeometry(ray, cullMask, hitData);
-	#else
-	float tGeom = TMAX;
-	#endif
-	Range rMedium;
-	rMedium.rMin = TMAX;
-	rMedium.rMax = TMAX;
-	#if 1
-	int[4] mediumHits = intersectingBoxes(ray.origin, ray.direction, tGeom);
-	//int[4] mediumHits = containigBoxes(ray.origin);
-	if(mediumHits[0] == 0)
+	float t = traceDistance(ray, flags, cullMask, seed, hitData, hitType);
+	
+	if(hitType == PATH_VERTEX_TYPE_SURFACE_SCATTER)
 	{
-		rMedium = traceMediumConservative(ray);
-	}
-	#else
-	rMedium = traceMediumConservative(ray);
-	#endif
-	rMedium.rMax = min(rMedium.rMax, tGeom);
-	if(tGeom < rMedium.rMin)
-	{
-		hitType = PATH_VERTEX_TYPE_SURFACE_SCATTER;
 		evalHit(hitData, matData, tangentFrame);
 		nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
-		nextRay.weight *= ray.weight;
 	}
-	else if( rMedium.rMin == TMAX )
+	else if(hitType == PATH_VERTEX_TYPE_VOLUME_SCATTER)
 	{
-		hitType = PATH_VERTEX_TYPE_LEAF_INFINITY;
+		tangentFrame[3] = ray.origin + t * ray.direction;
+		matData.albedo = volInst[hitData.instanceCustomID].albedo;
+		nextRay = scatterUniform(matData.albedo, tangentFrame[3], seed);
 	}
-	else
-	{
-		float tMedium = traceMedium(ray, rMedium, bounce, seed);
-		if(tGeom < tMedium)
-		{
-			hitType = PATH_VERTEX_TYPE_SURFACE_SCATTER;
-			evalHit(hitData, matData, tangentFrame);
-
-			nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
-			nextRay.weight *= ray.weight;
-		}
-		else if( tMedium == TMAX )
-		{
-			hitType = PATH_VERTEX_TYPE_LEAF_INFINITY;
-		}
-		else
-		{
-			hitType = PATH_VERTEX_TYPE_VOLUME_SCATTER;
-			tangentFrame[3] = ray.origin + tMedium * ray.direction;
-			matData.albedo = volInst.albedo;
-
-			nextRay = scatterUniform(matData.albedo, tangentFrame[3], seed);
-			nextRay.weight *= ray.weight;
-		}
-	}
+	nextRay.weight *= ray.weight;
 	return nextRay;
 }
 
+#if 0
+Ray nextBounce(
+	Ray ray, uint bounce, uint cullMask,
+	inout uint seed,
+	out uint hitType, out MaterialData matData, out mat4x3 tangentFrame, out uint hitInstanceID)
+{
+	Ray nextRay;
+	HitData hitData;
+
+	float currentTMin = TMAX;
+	hitType = PATH_VERTEX_TYPE_LEAF_INFINITY;
+	#ifndef SKIP_GEOMETRY
+	currentTMin = traceGeometry(ray, cullMask, hitData);
+	hitType = (currentTMin == TMAX) ? PATH_VERTEX_TYPE_LEAF_INFINITY : PATH_VERTEX_TYPE_SURFACE_SCATTER;
+	#endif
+	int[4] mediumHits = intersectingBoxes(ray.origin, ray.direction, currentTMin);
+	for(uint i = 0; i < 4; i++)
+	{
+		if(mediumHits[i] != -1)
+		{
+			Range rMedium = getMediumRange(ray, mediumHits[i]);
+			if(rMedium.rMin < currentTMin)
+			{
+				rMedium.rMax = min(rMedium.rMax, currentTMin);
+				float tMedium = traceMedium(ray, rMedium, bounce, mediumHits[i], seed);
+				if(tMedium < currentTMin)
+				{
+					currentTMin = tMedium;
+					hitType = PATH_VERTEX_TYPE_VOLUME_SCATTER;
+					hitInstanceID = mediumHits[i];
+				}
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+	if(hitType == PATH_VERTEX_TYPE_SURFACE_SCATTER)
+	{
+		evalHit(hitData, matData, tangentFrame);
+		nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
+	}
+	else if(hitType == PATH_VERTEX_TYPE_VOLUME_SCATTER)
+	{
+		tangentFrame[3] = ray.origin + currentTMin * ray.direction;
+		matData.albedo = volInst[hitInstanceID].albedo;
+		nextRay = scatterUniform(matData.albedo, tangentFrame[3], seed);
+	}
+	nextRay.weight *= ray.weight;
+	return nextRay;
+}
+#endif
 
 
 void main()
@@ -320,9 +395,11 @@ void main()
 			MaterialData matData;
 			mat4x3 tangentFrame;
 			uint cullMask = 0xFF;
+			uint flags = i == 0 ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
 
-			Ray nextRay = nextBounce(ray, i, cullMask, seed, hitType, matData, tangentFrame);
+			Ray nextRay = nextBounce(ray, flags, cullMask, seed, hitType, matData, tangentFrame);
 			SI_nextBounce(nextRay, hitType)
+
 			vec3 L_o = vec3(0.0);
 			if(hitType == PATH_VERTEX_TYPE_LEAF)
 			{
@@ -352,7 +429,7 @@ void main()
 				{
 					SI_nextSample(RAY_DOMAIN_AREA_LIGHT)
 
-					sampleDirectIllumAreaLight(tangentFrame[3], i, seed, L_i, omega_i);
+					sampleDirectIllumAreaLight(tangentFrame[3], flags, cullMask, seed, L_i, omega_i);
 					cosTerm = pos_dot(tangentFrame[2], omega_i);
 					L_o += brdf * L_i * cosTerm;
 
@@ -366,7 +443,7 @@ void main()
 				{
 					SI_nextSample(RAY_DOMAIN_ENV_MAP)
 
-					sampleDirectIllumEnvMap(tangentFrame[3], i, seed, L_i, omega_i);
+					sampleDirectIllumEnvMap(tangentFrame[3], flags, cullMask, seed, L_i, omega_i);
 					cosTerm = pos_dot(tangentFrame[2], omega_i);
 					L_o += brdf * L_i * cosTerm;
 
@@ -378,24 +455,26 @@ void main()
 			else if(hitType == PATH_VERTEX_TYPE_VOLUME_SCATTER)
 			{
 				// Direct illumination from area lights
-				vec3 bsdf = uniformScatterBSDF(volInst.albedo);
+				vec3 bsdf = uniformScatterBSDF(matData.albedo);
 				vec3 L_i, omega_i;
 				#if AREA_LIGHT_COUNT > 0
+				#ifndef SKIP_GEOMETRY
 				{
 					SI_nextSample(RAY_DOMAIN_AREA_LIGHT)
 
-					sampleDirectIllumAreaLight(tangentFrame[3], i, seed, L_i, omega_i);
+					sampleDirectIllumAreaLight(tangentFrame[3], flags, cullMask, seed, L_i, omega_i);
 					L_o += bsdf * L_i;
 
 					SI_setBSDF(bsdf)
 					SI_setIncomingRadiance(L_i)
 				}
 				#endif
+				#endif
 				// Direct illumination from envMap
 				{
 					SI_nextSample(RAY_DOMAIN_ENV_MAP)
 
-					sampleDirectIllumEnvMap(tangentFrame[3], i, seed, L_i, omega_i);
+					sampleDirectIllumEnvMap(tangentFrame[3], flags, cullMask, seed, L_i, omega_i);
 					L_o += bsdf * L_i;
 
 					SI_setBSDF(bsdf)

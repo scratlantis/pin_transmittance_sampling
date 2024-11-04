@@ -1,6 +1,8 @@
 #include "config.h"
 #include "shader_interface.h"
 #include "ui.h"
+#include <random>
+#include <random>
 AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders/";
@@ -61,8 +63,8 @@ int main()
 	CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
 	//// Load Geometry
 	//sceneBuilder.loadEnvMap("/envmap/2k/autumn_field_2k.hdr", glm::uvec2(64, 64));
-	//sceneBuilder.loadEnvMap("/envmap/2k/overcast_soil_puresky_2k.hdr", glm::uvec2(64, 64));
-	sceneBuilder.loadEnvMap("/envmap/2k/hochsal_field_2k.hdr", glm::uvec2(64, 64));
+	sceneBuilder.loadEnvMap("/envmap/2k/overcast_soil_puresky_2k.hdr", glm::uvec2(64, 64));
+	//sceneBuilder.loadEnvMap("/envmap/2k/hochsal_field_2k.hdr", glm::uvec2(64, 64));
 #ifdef RAY_TRACING_SUPPORT
 	GLSLInstance instance{};
 	instance.cullMask = 0xFF;
@@ -84,17 +86,34 @@ int main()
 	//VkExtent3D mediumExtent{512, 512, 361};
 	Image          medium = createImage(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, mediumExtent);
 	cmdTransitionLayout(cmdBuf, medium, VK_IMAGE_LAYOUT_GENERAL);
+
+	// Medium instances
 	GLSLMediumInstance mediumInstance{};
 	mediumInstance.mat = getMatrix(vec3(-0.2, -0.2, -0.2), vec3(0, 0, 0), 0.4);
 	mediumInstance.invMat = glm::inverse(mediumInstance.mat);
 	mediumInstance.albedo  = vec3(1.0, 1.0, 1.0);
 	mediumInstance.cullMask = 0xFF;
 	Buffer mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
+
+	uint32_t                              mediumInstanceCount = 50;
+	std::vector<GLSLMediumInstance>       mediumInstances(mediumInstanceCount);
+	std::mt19937                          rngGen(42);
+	std::uniform_real_distribution<float> dist(0.0, 1.0);
+	for (uint32_t i = 0; i < mediumInstanceCount; i++)
+	{
+		mediumInstances[i]        = mediumInstance;
+		vec3  randomPos           = vec3(dist(rngGen), dist(rngGen), dist(rngGen)) - vec3(0.5);
+		float randomScale         = dist(rngGen) * 0.2 + 0.1;
+		mediumInstances[i].mat    = getMatrix(randomPos, vec3(0, 0, 0), randomScale);
+		mediumInstances[i].invMat = glm::inverse(mediumInstances[i].mat);
+	}
+	cmdWriteCopy(cmdBuf, mediumInstanceBuffer, mediumInstances.data(), mediumInstances.size() * sizeof(GLSLMediumInstance));
+
+
 
 	BLAS boxBlas = cmdBuildBoxBlas(cmdBuf, gState.heap);
-	TLAS boxTlas = createTopLevelAS(gState.heap, 1);
-	default_scene::cmdBuildBoxIntersector<GLSLMediumInstance>(cmdBuf, boxBlas, mediumInstanceBuffer, 1, boxTlas);
+	TLAS boxTlas = createTopLevelAS(gState.heap, mediumInstanceCount);
+	default_scene::cmdBuildBoxIntersector<GLSLMediumInstance>(cmdBuf, boxBlas, mediumInstanceBuffer, mediumInstanceCount, boxTlas);
 
 	executeImmediat(cmdBuf);
 	gState.updateSwapchainAttachments();

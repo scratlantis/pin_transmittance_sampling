@@ -140,7 +140,7 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	bindMockScene(cmd);
 #endif
 	bindScalarField(cmd, args.mediumTexture, args.rayMarchStepSize);
-	default_scene::bindBoxIntersector(cmd, args.mediumTlas);
+	//default_scene::bindBoxIntersector(cmd, args.mediumTlas);
 	if (args.enableDebugging)
 	{
 		cmd.pipelineDef.shaderDef.args.push_back({"DEBUG", ""});
@@ -175,7 +175,9 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	}
 	cmd.pushLocal();
 	cmd.pushDescriptor(target, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-	cmd.pushDescriptor(args.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	cmd.pushDescriptor(args.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(args.mediumTlas);
+
 	cmd.pushSpecializationConst(args.maxDepth);
 	cmd.pushSpecializationConst(args.debugArgs.minDepth);
 	cmd.pushSpecializationConst(args.debugArgs.fixedSeed);
