@@ -22,7 +22,7 @@
 #endif
 
 
-#define PT_USCENE_BINDING_COUNT 13
+#define PT_USCENE_BINDING_COUNT 14
 layout(binding = PT_USCENE_BINDING_OFFSET + 0) readonly buffer VERTICES { GLSLVertex vertices[]; };
 layout(binding = PT_USCENE_BINDING_OFFSET + 1) readonly buffer INDICES { uint indices[]; };
 layout(binding = PT_USCENE_BINDING_OFFSET + 2) readonly buffer MODEL_OFFSETS { VKAModelDataOffset modelOffsets[]; };
@@ -36,6 +36,8 @@ layout(binding = PT_USCENE_BINDING_OFFSET + 9) uniform sampler smp;
 layout(binding = PT_USCENE_BINDING_OFFSET + 10) uniform texture2D tex[];
 layout(binding = PT_USCENE_BINDING_OFFSET + 11) uniform sampler2D envMap;
 layout(binding = PT_USCENE_BINDING_OFFSET + 12) readonly buffer ENV_MAP_PDF {float envMapPdf[];};
+//layout(binding = PT_USCENE_BINDING_OFFSET + 13) uniform accelerationStructureEXT otherAs;
+//layout(binding = PT_USCENE_BINDING_OFFSET + 13) readonly buffer TEST123 { GLSLVertex vertices123[]; };
 
 struct HitData
 {

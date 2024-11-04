@@ -59,6 +59,16 @@ bool unitCubeIntersection(vec3 origin, vec3 direction,inout vec3 entry, inout ve
 	return inside || !(tMax < 0 || tMin > tMax);
 }
 
+bool inRange(vec3 v, vec3 minV, vec3 maxV)
+{
+	return v.x >= minV.x && v.x <= maxV.x && v.y >= minV.y && v.y <= maxV.y && v.z >= minV.z && v.z <= maxV.z;
+}
+
+bool inUnitCube(vec3 v)
+{
+	return v.x >= 0.0 && v.x <= 1.0 && v.y >= 0.0 && v.y <= 1.0 && v.z >= 0.0 && v.z <= 1.0;
+}
+
 
 uint flatten(uvec3 idx, uvec3 size)
 {

@@ -44,6 +44,7 @@ namespace vka
 	        cmd.pushDescriptor(pScene->envMap, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	        cmd.pushDescriptor(pScene->envMapPdfBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
+
 	        cmd.pipelineDef.shaderDef.args.push_back({"ENVMAP_PDF_BINS_X", pScene->envMapSubdivisions.x});
 	        cmd.pipelineDef.shaderDef.args.push_back({"ENVMAP_PDF_BINS_Y", pScene->envMapSubdivisions.y});
 	        cmd.pipelineDef.shaderDef.args.push_back({"AREA_LIGHT_COUNT", pScene->areaLightCount});
@@ -63,7 +64,7 @@ namespace vka
 
 		void bindBoxIntersector(ComputeCmd& cmd, TLAS tlas)
 		{
-	        cmd.pushSubmodule(cVkaShaderModulePath + "pt_box_intersector.glsl");
+	        cmd.pushSubmodule(cVkaShaderModulePath + "default_scene/pt_box_intersection.glsl");
 			cmd.pushDescriptor(tlas);
 		}
 	}

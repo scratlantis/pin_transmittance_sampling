@@ -363,9 +363,14 @@ BLAS cmdBuildBoxBlas(CmdBuffer cmdBuf, IResourcePool *pPool)
 	aabbPositionsKHR.maxY = 1.0;
 	aabbPositionsKHR.maxZ = 1.0;
 
+    Buffer aabbBuffer = createBuffer(gState.frame->stack, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR);
+	cmdWriteCopy(cmdBuf, aabbBuffer, &aabbPositionsKHR, sizeof(VkAabbPositionsKHR));
+
+    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR);
+
 	VkAccelerationStructureGeometryAabbsDataKHR aabbsKHR{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_AABBS_DATA_KHR};
 	aabbsKHR.stride           = sizeof(VkAabbPositionsKHR);
-	aabbsKHR.data.hostAddress = &aabbPositionsKHR;
+	aabbsKHR.data.deviceAddress = aabbBuffer->getDeviceAddress();
 
 	VkAccelerationStructureGeometryKHR geometryKHR{VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR};
 	geometryKHR.geometryType   = VK_GEOMETRY_TYPE_AABBS_KHR;

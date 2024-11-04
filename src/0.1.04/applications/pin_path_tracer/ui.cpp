@@ -15,6 +15,7 @@ GVar gvar_timing_right{"Timing Right: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_ME
 
 GVar gvar_bitmask_propability{"Bitmask propability", 0.f, GVAR_UNORM, GUI_CAT_DEBUG};
 GVar gvar_bitmask_iterations{"Bitmask iterations", 5U, GVAR_UINT_RANGE, GUI_CAT_DEBUG, {1U, 10U}};
+GVar gvar_enable_debuging{"Enable Debuging", false, GVAR_BOOL, GUI_CAT_DEBUG};
 
 GVar gvar_pin_pos_grid_size{"Pin Pos Grid Size", 10U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 64U}};
 GVar gvar_pin_dir_grid_size{"Pin Dir Grid Size", 8U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 256U}};

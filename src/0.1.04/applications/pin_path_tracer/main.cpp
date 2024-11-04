@@ -38,6 +38,8 @@ extern GVar gvar_pin_bit_mask_size;
 extern GVar gvar_fixed_seed;
 extern GVar gvar_first_random_bounce;
 
+extern GVar gvar_enable_debuging;
+
 int main()
 {
 	//// Global State Initialization. See config.h for more details.
@@ -77,17 +79,23 @@ int main()
 	perlinArgs.frequency          = gvar_perlin_frequency.val.v_float;
 	perlinArgs.falloffAtEdge = true;
 	const uint32_t mediumExtent1D = 302;
-	//VkExtent3D     mediumExtent{mediumExtent1D, mediumExtent1D, mediumExtent1D};
+	VkExtent3D     mediumExtent{mediumExtent1D, mediumExtent1D, mediumExtent1D};
 	//VkExtent3D mediumExtent{128, 256, 256};
-	VkExtent3D mediumExtent{512, 512, 361};
+	//VkExtent3D mediumExtent{512, 512, 361};
 	Image          medium = createImage(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, mediumExtent);
 	cmdTransitionLayout(cmdBuf, medium, VK_IMAGE_LAYOUT_GENERAL);
 	GLSLMediumInstance mediumInstance{};
 	mediumInstance.mat = getMatrix(vec3(-0.2, -0.2, -0.2), vec3(0, 0, 0), 0.4);
 	mediumInstance.invMat = glm::inverse(mediumInstance.mat);
 	mediumInstance.albedo  = vec3(1.0, 1.0, 1.0);
-	Buffer mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+	mediumInstance.cullMask = 0xFF;
+	Buffer mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 	cmdWriteCopy(cmdBuf, mediumInstanceBuffer, &mediumInstance, sizeof(GLSLMediumInstance));
+
+	BLAS boxBlas = cmdBuildBoxBlas(cmdBuf, gState.heap);
+	TLAS boxTlas = createTopLevelAS(gState.heap, 1);
+	default_scene::cmdBuildBoxIntersector<GLSLMediumInstance>(cmdBuf, boxBlas, mediumInstanceBuffer, 1, boxTlas);
+
 	executeImmediat(cmdBuf);
 	gState.updateSwapchainAttachments();
 	//// Main Loop
@@ -139,8 +147,8 @@ int main()
 			Buffer scalarBuf;
 			//gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "csafe_heptane_302x302x302_uint8.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 			//gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "chameleon_1024x1024x1080_uint16.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-			//gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "vis_male_128x256x256_uint8.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-			gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "bunny_512x512x361_uint16.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+			gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "csafe_heptane_302x302x302_uint8.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+			//gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "bunny_512x512x361_uint16.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 			getCmdLoadScalarField(scalarBuf, medium, gvar_perlin_scale.val.v_float).exec(cmdBuf);
 		}
@@ -163,7 +171,8 @@ int main()
 		traceArgs.sceneData                 = scene;
 		traceArgs.mediumInstanceBuffer      = mediumInstanceBuffer;
 		traceArgs.mediumTexture             = medium;
-		traceArgs.enableDebugging           = true;
+		traceArgs.enableDebugging           = gvar_enable_debuging.val.v_bool;
+		traceArgs.mediumTlas                = boxTlas;
 		traceArgs.debugArgs.pixelPos        = lastClickPos;
 		traceArgs.debugArgs.enableHistogram = true;
 		traceArgs.debugArgs.enablePtPlot    = true;

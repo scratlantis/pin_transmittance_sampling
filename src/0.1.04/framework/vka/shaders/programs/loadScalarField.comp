@@ -8,8 +8,8 @@
 
 #include "../lib/math.glsl"
 
-//layout(binding = 0) readonly buffer OUTPUT{ uint8_t buf[]; };
-layout(binding = 0) readonly buffer OUTPUT{ uint16_t buf[]; };
+layout(binding = 0) readonly buffer OUTPUT{ uint8_t buf[]; };
+//layout(binding = 0) readonly buffer OUTPUT{ uint16_t buf[]; };
 layout(binding = 1, FORMAT) writeonly uniform image3D img;
 
 struct PushStruct
@@ -22,11 +22,12 @@ void main()
 {
 	if(!validInvocation()) return;
 	uint index = invocationID();
-	//uint8_t value = buf[index];
-	//float scalarValue  = float(value) / 255.0;
-	uint16_t value = buf[index];
-	float scalarValue  = float(value) / (255.0 * 255.0);
-	if(value > 255* 128) scalarValue = 0;
+	uint8_t value = buf[index];
+	float scalarValue  = float(value) / 255.0;
+	//uint16_t value = buf[index];
+	//float scalarValue  = float(value) / (255.0 * 255.0);
+	//if(value > 255* 128) scalarValue = 0;
+	//if(value > 127) scalarValue = 0;
 	scalarValue *= pc.floatScale;
 	ivec3 gID = ivec3(gl_GlobalInvocationID);
 	imageStore(img, gID, vec4(scalarValue));

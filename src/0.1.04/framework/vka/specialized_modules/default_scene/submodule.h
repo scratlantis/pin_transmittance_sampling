@@ -24,26 +24,27 @@ void bindScene(ComputeCmd &cmd, const pbr::USceneData *pScene);
 void bindMockScene(ComputeCmd &cmd);
 void bindScalarField(ComputeCmd &cmd, Image scalarField, float rayMarchStepSize);
 
+void bindBoxIntersector(ComputeCmd &cmd, TLAS tlas);
+
 template <typename Instance>
 void cmdBuildBoxIntersector(CmdBuffer cmdBuf, BLAS srcBlas, Buffer srcInstanceBuf, uint32_t instanceCount, TLAS dstTlas)
 {
 	dstTlas->setInstanceCount(instanceCount);
 	dstTlas->recreate();
-	tlasInstanceBuf = createStagingBuffer();
+	Buffer tlasInstanceBuf = createStagingBuffer();
 	tlasInstanceBuf->addUsage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR);
 	tlasInstanceBuf->changeMemoryType(VMA_MEMORY_USAGE_GPU_ONLY);
-	tlasInstanceBuf->recreate();
 	std::vector<VkAccelerationStructureInstanceKHR> tlasInstances(instanceCount);
 	for (size_t i = 0; i < instanceCount; i++)
 	{
 		tlasInstances[i]                                        = {};
 		tlasInstances[i].instanceCustomIndex                    = i;
-		tlasInstances[i].accelerationStructureReference         = srcBlas->getHandle();
+		tlasInstances[i].accelerationStructureReference         = srcBlas->getDeviceAddress();
 	}
 	cmdWriteCopy(cmdBuf, tlasInstanceBuf, tlasInstances.data(), tlasInstances.size() * sizeof(VkAccelerationStructureInstanceKHR));
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
-	get_cmd_write_tlas_instance<Instance>(srcInstanceBuf, tlasInstanceBuf, instanceCount).exec(cmdBuf);
-	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR);
+	instance_type<Instance>().get_cmd_write_tlas_instance(srcInstanceBuf, tlasInstanceBuf, instanceCount).exec(cmdBuf);
+	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR);
 	cmdBuildAccelerationStructure(cmdBuf, dstTlas, tlasInstanceBuf, createStagingBuffer());
 }
 

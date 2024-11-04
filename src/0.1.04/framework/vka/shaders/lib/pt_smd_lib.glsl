@@ -58,8 +58,9 @@
 #define SI_resetPts()
 
 #define SI_setBSDF( bsdf )
-#define SI_setTransmittance( transmittance )
 #define SI_setCosineTerm( clampedCosine )
+#define SI_setIncomingRadiance( L_i )
+#define SI_setTransmittance( transmittance )
 #define SI_setSourceDistance( sourceDistance )
 #define SI_setTotalContribution( totalContribution )
 #endif

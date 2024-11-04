@@ -66,6 +66,8 @@ void cmdBindIndexBuffer(CmdBuffer cmdBuf, VkDeviceSize offset);
 void cmdDrawIndexed(CmdBuffer cmdBuf, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance);
 void cmdDraw(CmdBuffer cmdBuf, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
 
+BLAS cmdBuildBoxBlas(CmdBuffer cmdBuf, IResourcePool *pPool);
+
 
 
 }        // namespace vka

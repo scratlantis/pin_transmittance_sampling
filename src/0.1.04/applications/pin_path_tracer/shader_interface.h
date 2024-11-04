@@ -4,6 +4,20 @@ using namespace default_scene;
 #include "shaders/interface_structs.glsl"
 #include <submodules/pins/submodule.h>
 
+
+template <>
+struct instance_type<GLSLMediumInstance>
+{
+	ComputeCmd get_cmd_write_tlas_instance(Buffer instanceBuffer, Buffer tlasInstanceBuffer, uint32_t instanceCount)
+	{
+		ComputeCmd cmd(instanceCount, shaderPath + "medium_instance_to_tlas_instance.comp", {{"INPUT_SIZE", instanceCount}});
+		cmd.pushDescriptor(instanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		cmd.pushDescriptor(tlasInstanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		return cmd;
+	}
+};
+
+
 extern GVar gvar_bitmask_propability;
 extern GVar gvar_bitmask_iterations;
 
@@ -39,6 +53,7 @@ struct TraceArgs
 	bool                enableDebugging;
 	TraceDebugArgs      debugArgs;
 	bool                enablePins;
+	TLAS                mediumTlas;
 	pins::PinArgs       pinArgs;
 };
 
@@ -120,10 +135,12 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	bindCamera(cmd, camBuf, camInstBuf);
 #ifdef RAY_TRACING_SUPPORT
 	bindScene(cmd, &args.sceneData);
+	cmd.pushDescriptor(args.mediumTlas);
 #else
 	bindMockScene(cmd);
 #endif
 	bindScalarField(cmd, args.mediumTexture, args.rayMarchStepSize);
+	default_scene::bindBoxIntersector(cmd, args.mediumTlas);
 	if (args.enableDebugging)
 	{
 		cmd.pipelineDef.shaderDef.args.push_back({"DEBUG", ""});

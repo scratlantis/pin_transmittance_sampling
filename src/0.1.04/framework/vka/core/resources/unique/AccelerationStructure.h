@@ -26,6 +26,7 @@ class AccelerationStructure_R : public Resource_T<VkAccelerationStructureKHR>
 
 	virtual VkAccelerationStructureBuildGeometryInfoKHR getBuildInfoInternal() const = 0;
 	virtual VkDeviceSize                                getBuildSize() const         = 0;
+	virtual VkDeviceSize                                getScratchSize() const       = 0;
 	virtual VkAccelerationStructureTypeKHR              getType() const              = 0;
 
   public:
@@ -66,6 +67,7 @@ class BottomLevelAS_R : public AccelerationStructure_R
 
 	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfoInternal() const;
 	VkDeviceSize                                getBuildSize() const;
+	VkDeviceSize                                getScratchSize() const;
 	virtual VkAccelerationStructureTypeKHR      getType() const;
 
   public:
@@ -92,6 +94,8 @@ class TopLevelAS_R : public AccelerationStructure_R
   private:
 	VkAccelerationStructureBuildGeometryInfoKHR getBuildInfoInternal() const;
 	VkDeviceSize                                getBuildSize() const;
+	VkDeviceSize                                getScratchSize() const;
+
 	virtual VkAccelerationStructureTypeKHR      getType() const;
 
 
