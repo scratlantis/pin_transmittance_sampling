@@ -9,10 +9,14 @@ layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorO
 layout(binding = LOCAL_BINDING_OFFSET + 1) buffer VOLUME_INSTANCE { GLSLMediumInstance volInst[];};
 layout(binding = LOCAL_BINDING_OFFSET + 2) uniform accelerationStructureEXT boxAs;
 
+//#define SKIP_ENVMAP
+
 struct PushStruct
 {
 	float bitMaskPropability;
 	uint bitMaskIterations;
+	float areaLightEmissionScale;
+	float envMapEmissionScale;
 };
 layout(push_constant) uniform PC {PushStruct pc;};
 
@@ -155,7 +159,7 @@ void sampleDirectIllumAreaLight(vec3 pos, uint flags, uint cullMask, inout uint 
 {
 	Ray ray = genDirectIllumRayAreaLight(pos, seed);
 	float transmittance = traceTransmittance(ray, flags, cullMask, seed);
-	L_i = transmittance * ray.weight;
+	L_i = transmittance * ray.weight * pc.areaLightEmissionScale;
 	omega_i = ray.direction;
 	
 	SI_setTransmittance(transmittance)
@@ -167,7 +171,7 @@ void sampleDirectIllumEnvMap(vec3 pos, uint flags, uint cullMask, inout uint see
 {
 	Ray ray = genDirectIllumRayEnvMap(pos, seed);
 	float transmittance = traceTransmittance(ray, flags, cullMask, seed);
-	L_i = transmittance * ray.weight;
+	L_i = transmittance * ray.weight * pc.envMapEmissionScale;
 	omega_i = ray.direction;
 
 	SI_setTransmittance(transmittance)
@@ -245,7 +249,7 @@ void main()
 			{
 				if(i == 0)
 				{
-					totalIllumination += ray.weight * sampleEnvMap(ray.direction);
+					totalIllumination += ray.weight * sampleEnvMap(ray.direction) * pc.envMapEmissionScale;
 				}
 				break;
 			}
@@ -253,7 +257,7 @@ void main()
 			{
 				if(i == 0) // Emission only from the first hit. Other emissions from light sources are collected via NEE
 				{
-					L_o += matData.emission;
+					L_o += matData.emission * pc.areaLightEmissionScale;
 				}
 				vec3 brdf = lampertBRDF(matData.albedo);
 				vec3 L_i, omega_i;
@@ -275,6 +279,7 @@ void main()
 				#endif
 				#endif
 				// Direct illumination from envMap
+				#ifndef SKIP_ENVMAP
 				{
 					SI_nextSample(RAY_DOMAIN_ENV_MAP)
 
@@ -286,6 +291,7 @@ void main()
 					SI_setCosineTerm(cosTerm)
 					SI_setIncomingRadiance(L_i)
 				}
+				#endif
 			}
 			else if(hitType == PATH_VERTEX_TYPE_VOLUME_SCATTER)
 			{
@@ -306,6 +312,7 @@ void main()
 				#endif
 				#endif
 				// Direct illumination from envMap
+				#ifndef SKIP_ENVMAP
 				{
 					SI_nextSample(RAY_DOMAIN_ENV_MAP)
 
@@ -315,6 +322,7 @@ void main()
 					SI_setBSDF(bsdf)
 					SI_setIncomingRadiance(L_i)
 				}
+				#endif
 			}
 			if(minDepth <= i)
 			{

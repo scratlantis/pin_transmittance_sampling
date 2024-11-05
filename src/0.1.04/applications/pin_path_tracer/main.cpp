@@ -41,6 +41,8 @@ extern GVar gvar_fixed_seed;
 extern GVar gvar_first_random_bounce;
 
 extern GVar gvar_enable_debuging;
+extern GVar gvar_emission_scale_al;
+extern GVar gvar_emission_scale_env_map;
 
 int main()
 {
@@ -63,13 +65,14 @@ int main()
 	CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
 	//// Load Geometry
 	//sceneBuilder.loadEnvMap("/envmap/2k/autumn_field_2k.hdr", glm::uvec2(64, 64));
-	sceneBuilder.loadEnvMap("/envmap/2k/overcast_soil_puresky_2k.hdr", glm::uvec2(64, 64));
+	sceneBuilder.loadEnvMap("/envmap/2k/cloudy_dusky_sky_dome_2k.hdr", glm::uvec2(64, 64));
 	//sceneBuilder.loadEnvMap("/envmap/2k/hochsal_field_2k.hdr", glm::uvec2(64, 64));
 #ifdef RAY_TRACING_SUPPORT
 	GLSLInstance instance{};
 	instance.cullMask = 0xFF;
 	instance.mat      = getMatrix(vec3(0, 0.2, -0.3), vec3(0.0, 180.0, 0.0), 0.1);
-	sceneBuilder.addModel(cmdBuf, "cornell_box/cornell_box.obj", &instance, 1);
+	//sceneBuilder.addModel(cmdBuf, "cornell_box/cornell_box.obj", &instance, 1);
+	sceneBuilder.addModel(cmdBuf, "under_the_c/scene_1.obj", &instance, 1);
 	scene = sceneBuilder.create(cmdBuf, gState.heap);
 	scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
 #endif
@@ -102,9 +105,10 @@ int main()
 	for (uint32_t i = 0; i < mediumInstanceCount; i++)
 	{
 		mediumInstances[i]        = mediumInstance;
-		vec3  randomPos           = vec3(dist(rngGen), dist(rngGen), dist(rngGen)) - vec3(0.5);
-		float randomScale         = dist(rngGen) * 0.2 + 0.1;
-		mediumInstances[i].mat    = getMatrix(randomPos, vec3(0, 0, 0), randomScale);
+		vec3  randomPos           = vec3(3.0)*(vec3(dist(rngGen), dist(rngGen), dist(rngGen)) - vec3(0.5));
+		randomPos.y               = 0.2;
+		float randomScale         = dist(rngGen) * 0.8 + 0.1;
+		mediumInstances[i].mat    = getMatrix(randomPos, vec3(0, 0, -90), randomScale);
 		mediumInstances[i].invMat = glm::inverse(mediumInstances[i].mat);
 	}
 	cmdWriteCopy(cmdBuf, mediumInstanceBuffer, mediumInstances.data(), mediumInstances.size() * sizeof(GLSLMediumInstance));
@@ -192,6 +196,8 @@ int main()
 		traceArgs.mediumTexture             = medium;
 		traceArgs.enableDebugging           = gvar_enable_debuging.val.v_bool;
 		traceArgs.mediumTlas                = boxTlas;
+		traceArgs.envMapEmissionScale       = gvar_emission_scale_env_map.val.v_float;
+		traceArgs.areaLightEmissionScale    = gvar_emission_scale_al.val.v_float;
 		traceArgs.debugArgs.pixelPos        = lastClickPos;
 		traceArgs.debugArgs.enableHistogram = true;
 		traceArgs.debugArgs.enablePtPlot    = true;

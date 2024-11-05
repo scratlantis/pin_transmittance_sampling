@@ -80,13 +80,18 @@ struct AreaLight
 	glm::vec3 v2; // Vertices
 	float intensity; // Area * intensity
 
+	glm::vec3 color;
+	uint32_t  padding4[1];
+
 };
 static_assert(offsetof(AreaLight, normal) == 1 * 16, "Offset is not correct");
 static_assert(offsetof(AreaLight, v0) == 2 * 16, "Offset is not correct");
 static_assert(offsetof(AreaLight, v1) == 3 * 16, "Offset is not correct");
 static_assert(offsetof(AreaLight, v2) == 4 * 16, "Offset is not correct");
 static_assert(offsetof(AreaLight, intensity) == 4 * 16 + 3 * 4, "Offset is not correct");
-static_assert(sizeof(AreaLight) == 5 * 16, "Size is not correct");
+static_assert(offsetof(AreaLight, color) == 5 * 16, "Offset is not correct");
+
+static_assert(sizeof(AreaLight) == 6 * 16, "Size is not correct");
 
 
 struct VertexDataLayout

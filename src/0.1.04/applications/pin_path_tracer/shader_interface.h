@@ -54,6 +54,8 @@ struct TraceArgs
 	TraceDebugArgs      debugArgs;
 	bool                enablePins;
 	TLAS                mediumTlas;
+	float               areaLightEmissionScale;
+	float               envMapEmissionScale;
 	pins::PinArgs       pinArgs;
 };
 
@@ -194,9 +196,13 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	{
 		float bitMaskPropability;
 		uint32_t bitMaskIterations;
+		float    areaLightEmissionScale;
+		float    envMapEmissionScale;
 	} pc;
 	pc.bitMaskPropability = gvar_bitmask_propability.val.v_float;
 	pc.bitMaskIterations  = gvar_bitmask_iterations.val.v_uint;
+	pc.areaLightEmissionScale = args.areaLightEmissionScale;
+	pc.envMapEmissionScale = args.envMapEmissionScale;
 	cmd.pushConstant(&pc, sizeof(PushStruct));
 	cmd.exec(cmdBuf);
 }

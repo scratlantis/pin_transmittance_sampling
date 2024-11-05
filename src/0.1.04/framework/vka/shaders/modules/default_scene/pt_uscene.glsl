@@ -104,7 +104,7 @@ void evalHit(HitData hitData, inout MaterialData matData, inout mat4x3 tangentFr
 	matData.albedo = mat.albedo;
 	//matData.albedo = vec3(0.5);
 	matData.specular = mat.specular;
-	matData.emission = 20.0 * mat.emission;
+	matData.emission = mat.emission;
 	matData.roughness = mat.roughness;
 	matData.f0 = mat.f0;
 
@@ -144,7 +144,7 @@ Ray genDirectIllumRayAreaLight(vec3 pos, inout uint seed)
 	ray.direction = normalize(samplePos-ray.origin);
 	ray.tmin = TMIN;
 	ray.tmax = distance(samplePos, ray.origin)-TMIN;
-	ray.weight = vec3(areaLight.intensity * 10.0) / pdf;
+	ray.weight = areaLight.color * vec3(areaLight.intensity) / pdf;
 	return ray;
 }
 #endif

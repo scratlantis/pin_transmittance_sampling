@@ -30,6 +30,8 @@ GVar gvar_ray_march_step_size{"Ray March Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI
 GVar gvar_bounce_count{"Bounce Count", 5U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {1U, 16U}};
 GVar gvar_min_bounce{"Min Bounce", 0U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 16U}};
 GVar gvar_skip_geometry{"Skip geometry", false, GVAR_BOOL, GUI_CAT_PATH_TRACING};
+GVar gvar_emission_scale_al{"Area light emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.0f, 100.f}};
+GVar gvar_emission_scale_env_map{"Env map emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.0f, 10.f}};
 
 GVar gvar_fixed_seed{"Fixed seed", 0U, GVAR_UINT_RANGE, GUI_CAT_PT_RANDOMIZATION, {0U, 10000U}};
 GVar gvar_first_random_bounce{"First random bounce", 0U, GVAR_UINT_RANGE, GUI_CAT_PT_RANDOMIZATION, {0U, 16U}};
