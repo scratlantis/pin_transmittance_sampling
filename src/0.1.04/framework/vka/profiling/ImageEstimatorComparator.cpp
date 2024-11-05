@@ -23,6 +23,8 @@ void ImageEstimatorComparator::cmdReset(CmdBuffer cmdBuf)
 	cmdFill(cmdBuf, localAccumulationTargetRight, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, glm::vec4(0.0));
 	tqManager.cmdResetQueryPool(cmdBuf);
 	timeQueryFinished = true;
+	totalTimingLeft = 0.0f;
+	totalTimingRight = 0.0f;
 }
 
 

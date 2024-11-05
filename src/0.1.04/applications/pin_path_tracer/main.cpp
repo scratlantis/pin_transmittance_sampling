@@ -234,7 +234,7 @@ int main()
 		traceArgs2.pinArgs.bitMaskSize = gvar_pin_bit_mask_size.val.v_uint;
 
 
-		iec.cmdRun<TraceArgs>(cmdBuf, cmdTrace, traceArgs, traceArgs2, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
+		iec.cmdRunEqualTime<TraceArgs>(cmdBuf, cmdTrace, traceArgs, traceArgs2, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
 		//// Show results
 		gvar_mse.val.v_float = iec.getMSE();
 		Image swapchainImg = getSwapchainImage();
