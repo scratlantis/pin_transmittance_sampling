@@ -9,6 +9,7 @@ namespace pins
 struct PinUpdateArgs
 {
 	uint32_t count;
+	bool     updateAll;
 	float    rayMarchStepSize;
 	float    writePinStepSize;
 	uint32_t posGridSize;
@@ -29,6 +30,7 @@ struct PinSampleArgs
 struct PinArgs
 {
 	uint32_t count;
+	bool     updateAll;
 	float    rayMarchStepSize;
 	float    writePinStepSize;
 	uint32_t posGridSize;
@@ -42,6 +44,7 @@ struct PinArgs
 	{
 		PinUpdateArgs args{};
 		args.count          = count;
+		args.updateAll      = updateAll;
 		args.rayMarchStepSize = rayMarchStepSize;
 		args.writePinStepSize = writePinStepSize;
 		args.posGridSize      = posGridSize;

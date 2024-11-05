@@ -22,7 +22,17 @@ void cmdUpdatePinGrid(CmdBuffer cmdBuf, Buffer pinGridBuf, Image scalarField, Pi
 	{
 		return;
 	}
-	ComputeCmd cmd(args.count, shaderPath + "submodules/pins/trace_pins.comp");
+
+	ComputeCmd cmd;
+	if (args.updateAll)
+	{
+		cmd = ComputeCmd(uvec3(args.posGridSize), shaderPath + "submodules/pins/trace_pins2.comp");
+	}
+	else
+	{
+		cmd = ComputeCmd(args.count, shaderPath + "submodules/pins/trace_pins.comp");
+	}
+
 	cmd.pushSubmodule(cVkaShaderModulePath + "pt_scalar_field.glsl");
 	default_scene::bindScalarField(cmd, scalarField, args.rayMarchStepSize);
 	cmd.pushLocal();

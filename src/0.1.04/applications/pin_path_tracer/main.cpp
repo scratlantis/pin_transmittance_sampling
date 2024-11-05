@@ -26,6 +26,9 @@ extern GVar gvar_pin_dir_grid_size;
 extern GVar gvar_pin_ray_march_step_size;
 extern GVar gvar_pin_write_pin_step_size;
 extern GVar gvar_pin_update_rate;
+extern GVar gvar_pin_update_all;
+
+
 extern GVar gvar_ray_march_step_size;
 extern GVar gvar_bounce_count;
 extern GVar gvar_min_bounce;
@@ -238,6 +241,7 @@ int main()
 		traceArgs2.pinArgs.executionID       = frameCount;
 		traceArgs2.pinArgs.disableBitmaskSampling = gvar_pin_disable_bit_mask_sampling.val.v_bool;
 		traceArgs2.pinArgs.bitMaskSize = gvar_pin_bit_mask_size.val.v_uint;
+		traceArgs2.pinArgs.updateAll = gvar_pin_update_all.val.v_bool;
 
 
 		iec.cmdRunEqualTime<TraceArgs>(cmdBuf, cmdTrace, traceArgs, traceArgs2, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);

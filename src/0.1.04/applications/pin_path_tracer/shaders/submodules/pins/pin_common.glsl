@@ -44,6 +44,27 @@ vec3 pin_dir(uint idx)
 	return sphericalToCartesian(sphericalCoords);
 }
 
+void cell_range(uint idx, out vec3 posMin, out vec3 posMax, out vec2 angleMin, out vec2 angleMax)
+{
+	uint posIdx = idx / (PIN_DIR_GRID_SIZE * PIN_DIR_GRID_SIZE);
+	posMin = gridPos3D(posIdx, PIN_POS_GRID_SIZE);
+	posMax = posMin + vec3(1.0/PIN_POS_GRID_SIZE);
+	
+	uint dirIdx = idx % (PIN_DIR_GRID_SIZE * PIN_DIR_GRID_SIZE);
+	vec2 dirGridCoords = gridPos2D(dirIdx, PIN_DIR_GRID_SIZE);
+
+	float phiMin = dirGridCoords.x * PI*2.0; // phi
+	float phiMax = phiMin + PI*2.0 * (1.0 / float(PIN_DIR_GRID_SIZE));
+
+	float thetaMin = PI*0.5 - asin(dirGridCoords.y + 1.0/float(PIN_DIR_GRID_SIZE) );
+	float thetaMax = PI*0.5 - asin(dirGridCoords.y);
+
+
+	angleMin = vec2(phiMin, thetaMin);
+	angleMax = vec2(phiMax, thetaMax);
+}
+
+
 void writeToMask(uint idx, inout GLSLPinCacheEntry pin)
 {
 	uint dataWordIdx = idx/32;

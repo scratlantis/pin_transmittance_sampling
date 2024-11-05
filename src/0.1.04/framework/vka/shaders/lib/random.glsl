@@ -73,6 +73,11 @@ vec3 random3D(uint seed)
 	return vec3(unormNext(seed),unormNext(seed),unormNext(seed));
 }
 
+vec2 random2D(uint seed)
+{
+	return vec2(unormNext(seed),unormNext(seed));
+}
+
 void applyJitter(float coefPos, float coefAngle, inout vec3 pos, inout vec3 dir)
 {
 	pos += (random3D(pos)-vec3(0.5)) * coefPos*1.0;
