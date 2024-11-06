@@ -10,58 +10,7 @@ layout(binding = PIN_SMD_BINDING_OFFSET) readonly buffer PIN_GRID
 #include "pin_common.glsl"
 layout(constant_id = PIN_SMD_SPEC_CONST_OFFSET) const uint scBitMaskIterations = 5;
 
-#ifndef DISABLE_BITMASK_SAMPLING
-
-#if 0
-float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint seed)
-{
-	uint pinIdx = pin_cache_offset(origin,direction);
-	GLSLPinCacheEntry pin = pin_grid[pinIdx];
-	if(pin.maxColProb == MAX_FLOAT)
-	{
-		return TMAX;
-	}
-	uint sampleMask = randomBitMask(pin.maxColProb, scBitMaskIterations, seed);
-
-	bool inverseDir = cartesianToSpherical(direction).y > PI * 0.5;
-	vec3 start, end;
-	unitCubeIntersection(origin, direction, start, end);
-
-
-	uint pinMask = pin.mask[0];
-
-
-	if(inverseDir)
-	{
-		pinMask = bitfieldReverse(pinMask);
-		//debugPrintfEXT( "Was Here! %d\n", seed);
-	}
-	float sampleCoef = distance(origin, start) / distance(start, end);
-
-	uint sampleOffset = uint(clamp(sampleCoef, 0.0, 0.9999) * 32);
-	float delta = clamp(sampleCoef, 0.0, 0.9999) * 32.0*-floor(clamp(sampleCoef, 0.0, 0.9999) * 32.0);
-
-	pinMask = pinMask << sampleOffset;
-	uint finalMask = sampleMask & pinMask;
-	uint sampledDiscreteDist = findMSB(finalMask);
-	if(sampledDiscreteDist == -1)
-	{
-		return TMAX;
-	}
-	sampledDiscreteDist = 31 - sampledDiscreteDist;
-	if(sampledDiscreteDist > 32 - sampleOffset)
-	{
-		return TMAX;
-	}
-	float sampledDist = ((sampledDiscreteDist + unormNext(seed)) / 32.0) * distance(start, end);
-	
-	if(sampledDist > maxLength)
-	{
-		return TMAX;
-	}
-	return sampledDist;
-};
-#else
+#ifndef DISABLE_BITMASK_DISTANCE_SAMPLING
 float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
 	vec3 jitteredOrigin = origin + (vec3(0.5) - random3D(seed)) * 1.0 / PIN_POS_GRID_SIZE;
@@ -118,6 +67,8 @@ float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint
 	}
 	intersectionBit -= int(sampleOffset);
 	float sampledDist = float(intersectionBit + unormNext(seed)) * perBitDistance;
+	//float sampledDist = float(intersectionBit + 0) * perBitDistance;
+	//float sampledDist = float(intersectionBit - unormNext(seed)) * perBitDistance;
 	//SI_printf("Sampled distance: %f.3\n", sampledDist);
 	if(sampledDist > maxLength)
 	{
@@ -125,7 +76,22 @@ float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint
 	}
 	return sampledDist;
 };
+#else
+float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint seed)
+{
+	uint pinIdx = pin_cache_offset(origin,direction);
+	vec3 newOrigin = pin_pos(pinIdx);
+	vec3 newDirection = pin_dir(pinIdx);
+	if(dot(newDirection, direction) < 0.0)
+	{
+		newDirection = -newDirection;
+	}
+	SI_setHistValue(dot(newDirection, direction), getFrameIdx())
+	return rayMarcheMedium(newOrigin, newDirection, maxLength, seed);
+};
+#endif
 
+#ifndef DISABLE_BITMASK_TRANSMITTANCE_SAMPLING
 float pinSampleTransmittance(vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
 	vec3 jitteredOrigin = origin + (vec3(0.5) - random3D(seed)) * 1.0 / PIN_POS_GRID_SIZE;
@@ -177,22 +143,7 @@ float pinSampleTransmittance(vec3 origin, vec3 direction, float maxLength, inout
 	return transmittance;
 };
 
-#endif
-
 #else
-// Mock implementation, uses scalar field
-float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint seed)
-{
-	uint pinIdx = pin_cache_offset(origin,direction);
-	vec3 newOrigin = pin_pos(pinIdx);
-	vec3 newDirection = pin_dir(pinIdx);
-	if(dot(newDirection, direction) < 0.0)
-	{
-		newDirection = -newDirection;
-	}
-	SI_setHistValue(dot(newDirection, direction), getFrameIdx())
-	return rayMarcheMedium(newOrigin, newDirection, maxLength, seed);
-};
 float pinSampleTransmittance(vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
 	uint pinIdx = pin_cache_offset(origin,direction);

@@ -6,7 +6,7 @@ namespace pins
 void cmdUpdatePinGrid(CmdBuffer cmdBuf, Buffer pinGridBuf, Image scalarField, PinUpdateArgs args)
 {
 	uint32_t pinGridSize = cubed(args.posGridSize) * squared(args.dirGridSize)
-		* (sizeof(float) + args.bitMaskSize * sizeof(uint32_t));
+		* (sizeof(float)*1 + args.bitMaskSize * sizeof(uint32_t));
 		//* sizeof(GLSLPinCacheEntry);
 	pinGridBuf->addUsage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	pinGridBuf->changeSize(pinGridSize);
@@ -58,9 +58,13 @@ void cmdBindPins(ComputeCmd &cmd, Buffer pinGridBuf, PinSampleArgs args)
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_POS_GRID_SIZE", args.posGridSize});
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_DIR_GRID_SIZE", args.dirGridSize});
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_MASK_SIZE", args.bitMaskSize});
-	if (args.disableBitmaskSampling)
+	if (args.disableBitmaskDistanceSampling)
 	{
-		cmd.pipelineDef.shaderDef.args.push_back({"DISABLE_BITMASK_SAMPLING", ""});
+		cmd.pipelineDef.shaderDef.args.push_back({"DISABLE_BITMASK_DISTANCE_SAMPLING", ""});
+	}
+	if (args.disableBitmaskTransmittanceSampling)
+	{
+		cmd.pipelineDef.shaderDef.args.push_back({"DISABLE_BITMASK_TRANSMITTANCE_SAMPLING", ""});
 	}
 };
 }        // namespace pins

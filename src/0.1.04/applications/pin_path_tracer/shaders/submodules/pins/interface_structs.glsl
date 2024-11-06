@@ -7,6 +7,8 @@
 struct GLSLPinCacheEntry
 {
 	float maxColProb; //Maximum Collision probability per quantisation step
+	//float distancePos;
+	//float distanceNeg;
 	uint mask[PIN_MASK_SIZE];
 };
 

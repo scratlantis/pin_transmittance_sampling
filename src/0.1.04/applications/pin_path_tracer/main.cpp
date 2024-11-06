@@ -37,8 +37,10 @@ extern GVar gvar_skip_geometry;
 extern GVar gvar_tone_mapping_enable;
 extern GVar gvar_tone_mapping_whitepoint;
 extern GVar gvar_tone_mapping_exposure;
-extern GVar gvar_pin_disable_bit_mask_sampling;
 extern GVar gvar_pin_bit_mask_size;
+extern GVar gvar_pin_disable_bit_mask_distance_sampling;
+extern GVar gvar_pin_disable_bit_mask_transmittance_sampling;
+
 
 extern GVar gvar_fixed_seed;
 extern GVar gvar_first_random_bounce;
@@ -75,7 +77,7 @@ int main()
 	instance.cullMask = 0xFF;
 	instance.mat      = getMatrix(vec3(0, 0.2, -0.3), vec3(0.0, 180.0, 0.0), 0.1);
 	//sceneBuilder.addModel(cmdBuf, "cornell_box/cornell_box.obj", &instance, 1);
-	sceneBuilder.addModel(cmdBuf, "under_the_c/scene_1.obj", &instance, 1);
+	sceneBuilder.addModel(cmdBuf, "under_the_c/scene_2.obj", &instance, 1);
 	scene = sceneBuilder.create(cmdBuf, gState.heap);
 	scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
 #endif
@@ -239,9 +241,10 @@ int main()
 		traceArgs2.pinArgs.writePinStepSize = gvar_pin_write_pin_step_size.val.v_float;
 		traceArgs2.pinArgs.bitMaskIterations = gvar_bitmask_iterations.val.v_uint;
 		traceArgs2.pinArgs.executionID       = frameCount;
-		traceArgs2.pinArgs.disableBitmaskSampling = gvar_pin_disable_bit_mask_sampling.val.v_bool;
+		traceArgs2.pinArgs.disableBitmaskDistanceSampling = gvar_pin_disable_bit_mask_distance_sampling.val.v_bool;
+		traceArgs2.pinArgs.disableBitmaskTransmittanceSampling = gvar_pin_disable_bit_mask_transmittance_sampling.val.v_bool;
 		traceArgs2.pinArgs.bitMaskSize = gvar_pin_bit_mask_size.val.v_uint;
-		traceArgs2.pinArgs.updateAll = gvar_pin_update_all.val.v_bool;
+		traceArgs2.pinArgs.updateAll                           = gvar_pin_update_all.val.v_bool || resetPlots;
 
 
 		iec.cmdRunEqualTime<TraceArgs>(cmdBuf, cmdTrace, traceArgs, traceArgs2, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);

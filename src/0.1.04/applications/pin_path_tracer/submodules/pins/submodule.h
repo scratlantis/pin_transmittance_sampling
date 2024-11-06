@@ -23,7 +23,8 @@ struct PinSampleArgs
 	uint32_t bitMaskIterations;
 	uint32_t posGridSize;
 	uint32_t dirGridSize;
-	bool	disableBitmaskSampling; // For debugging
+	bool     disableBitmaskDistanceSampling;        // For debugging
+	bool     disableBitmaskTransmittanceSampling;    // For debugging
 	uint32_t bitMaskSize;
 };
 
@@ -38,7 +39,8 @@ struct PinArgs
 	uint32_t bitMaskIterations;
 	uint32_t bitMaskSize;
 	uint32_t executionID;
-	bool     disableBitmaskSampling;
+	bool     disableBitmaskDistanceSampling;
+	bool     disableBitmaskTransmittanceSampling;
 
 	PinUpdateArgs getUpdateArgs() const
 	{
@@ -51,7 +53,7 @@ struct PinArgs
 		args.dirGridSize      = dirGridSize;
 		args.executionID      = executionID;
 		args.bitMaskSize      = bitMaskSize;
-		if (disableBitmaskSampling)
+		if (disableBitmaskDistanceSampling && disableBitmaskTransmittanceSampling)
 		{
 			args.count = 0;
 		}
@@ -61,11 +63,12 @@ struct PinArgs
 	PinSampleArgs getSampleArgs() const
 	{
 		PinSampleArgs args{};
-		args.bitMaskIterations      = bitMaskIterations;
-		args.posGridSize            = posGridSize;
-		args.dirGridSize            = dirGridSize;
-		args.disableBitmaskSampling = disableBitmaskSampling;
-		args.bitMaskSize            = bitMaskSize;
+		args.bitMaskIterations                   = bitMaskIterations;
+		args.posGridSize                         = posGridSize;
+		args.dirGridSize                         = dirGridSize;
+		args.disableBitmaskDistanceSampling      = disableBitmaskDistanceSampling;
+		args.disableBitmaskTransmittanceSampling = disableBitmaskTransmittanceSampling;
+		args.bitMaskSize                         = bitMaskSize;
 		return args;
 	}
 };

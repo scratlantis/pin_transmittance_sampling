@@ -22,7 +22,9 @@ GVar gvar_pin_dir_grid_size{"Pin Dir Grid Size", 8U, GVAR_UINT_RANGE, GUI_CAT_PI
 GVar gvar_pin_ray_march_step_size{"Pin Ray March Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_write_pin_step_size{"Pin Write Pin Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_update_rate{"Pin Update Rate", 1000U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 100000U}};
-GVar gvar_pin_disable_bit_mask_sampling{"Disable bitmask sampling", false, GVAR_BOOL, GUI_CAT_PINS};
+GVar gvar_pin_disable_bit_mask_distance_sampling{"Disable bitmask distance sampling", false, GVAR_BOOL, GUI_CAT_PINS};
+GVar gvar_pin_disable_bit_mask_transmittance_sampling{"Disable bitmask transmittance sampling", false, GVAR_BOOL, GUI_CAT_PINS};
+
 GVar gvar_pin_bit_mask_size{"Bit mask size", 1U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 4U}};
 GVar gvar_pin_update_all{"Update all bitmasks per frame", false, GVAR_BOOL, GUI_CAT_PINS};
 

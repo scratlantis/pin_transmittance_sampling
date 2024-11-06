@@ -67,7 +67,14 @@ void main()
 				}
 			}
 			pin.maxColProb = 1.0 - minTransmittance;
+
+			//pin.distancePos = rayMarcheMedium(origin, dir, distance(origin, end), seed);
+			//pin.distanceNeg = rayMarcheMedium(end, -dir, distance(origin, start), seed);
+
 			pin_grid[idx] = pin;
+
+
+
 		}
 	}
 }
