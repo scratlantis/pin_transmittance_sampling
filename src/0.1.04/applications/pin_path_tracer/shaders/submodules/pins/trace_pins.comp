@@ -51,16 +51,29 @@ void main()
 	GLSLPinCacheEntry pin;
 	resetMask(pin);
 	float minTransmittance = 1.0;
+
+
 	for(uint i = 0; i<stepCount; i++)
 	{
 		vec3 pos = start + dir * float(i) * stepLength;
 		float transmittance = rayMarcheMediumTransmittance(pos, dir, stepLength, seed); // Must set volume resolution, and step size
 		minTransmittance = min(minTransmittance, transmittance);
-		if(transmittance < unormNext(seed))
+	}
+
+
+	for(uint i = 0; i<stepCount; i++)
+	{
+		vec3 pos = start + dir * float(i) * stepLength;
+		float transmittance = rayMarcheMediumTransmittance(pos, dir, stepLength, seed); // Must set volume resolution, and step size
+		
+		float p = (1.0 - transmittance)/(1.0 - minTransmittance);
+
+		if(p > unormNext(seed))
 		{
 			writeToMask(stepCount - i, pin);
 		}
 	}
+
 	pin.maxColProb = 1.0 - minTransmittance;
 
 	const uint maxSteps = uint(sqrt(3.0) * 2.0 / scPinWriteStepSize);
