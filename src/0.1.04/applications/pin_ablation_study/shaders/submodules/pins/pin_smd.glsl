@@ -54,7 +54,6 @@ float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint
 		uint sampleMask = randomBitMask(pin.maxColProb, scBitMaskIterations, seed);
 		uint finalMask = sampleMask & pinMask;
 		uint sampledDiscreteDist = 31 - findMSB(finalMask);
-		SI_printf("Sampled distance: %d\n", currentBitOffset);
 		if(sampledDiscreteDist != 32)
 		{
 			intersectionBit = int(i * 32 + currentBitOffset + sampledDiscreteDist);
@@ -70,7 +69,7 @@ float pinSampleDistance(vec3 origin, vec3 direction, float maxLength, inout uint
 	float sampledDist = float(intersectionBit + unormNext(seed)) * perBitDistance;
 	//float sampledDist = float(intersectionBit + 0) * perBitDistance;
 	//float sampledDist = float(intersectionBit - unormNext(seed)) * perBitDistance;
-	
+	//SI_printf("Sampled distance: %f.3\n", sampledDist);
 	if(sampledDist > maxLength)
 	{
 		return TMAX;

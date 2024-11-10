@@ -10,6 +10,7 @@
 
 #define MAX_FLOAT intBitsToFloat(2139095039)
 
+#define SQRT3 1.73205080757
 
 mat4x3 tangentFrameFromPosNormal(vec3 pos, vec3 normal)
 {
