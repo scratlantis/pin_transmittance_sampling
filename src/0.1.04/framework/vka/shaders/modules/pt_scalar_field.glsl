@@ -64,7 +64,7 @@ float rayMarcheMediumTransmittance(vec3 origin, vec3 direction, float maxLength,
 		transmittance *= exp(-density * stepSize);
 
 		stepSize = min(RAY_MARCHE_STEP_SIZE, maxLength - t);
-		if( stepSize < EPSILON)
+		if( stepSize < 0.00001)
 		{
 			return transmittance;
 		}

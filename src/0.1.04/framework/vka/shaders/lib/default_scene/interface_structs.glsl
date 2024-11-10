@@ -52,12 +52,12 @@ struct GLSLMaterial
 struct GLSLInstance
 {
 	mat4 mat;
+	mat4 invMat;
 
 	vec3 color;
 	uint cullMask;
 
-	uint type;
-	uint geometryIndex;
-	uint padding[2];
+	uint id;
+	uint padding[3];
 };
 #endif // INTERFACE_H

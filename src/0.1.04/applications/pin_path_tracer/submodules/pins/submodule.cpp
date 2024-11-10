@@ -6,7 +6,7 @@ namespace pins
 void cmdUpdatePinGrid(CmdBuffer cmdBuf, Buffer pinGridBuf, Image scalarField, PinUpdateArgs args)
 {
 	uint32_t pinGridSize = cubed(args.posGridSize) * squared(args.dirGridSize)
-		* (sizeof(float)*1 + args.bitMaskSize * sizeof(uint32_t));
+		* (sizeof(float)*3 + args.bitMaskSize * sizeof(uint32_t));
 		//* sizeof(GLSLPinCacheEntry);
 	pinGridBuf->addUsage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	pinGridBuf->changeSize(pinGridSize);
@@ -18,7 +18,7 @@ void cmdUpdatePinGrid(CmdBuffer cmdBuf, Buffer pinGridBuf, Image scalarField, Pi
 		args.count == 1000000;
 	}
 
-	if (args.count == 0)
+	if (args.count == 0 && !args.updateAll)
 	{
 		return;
 	}
@@ -26,7 +26,8 @@ void cmdUpdatePinGrid(CmdBuffer cmdBuf, Buffer pinGridBuf, Image scalarField, Pi
 	ComputeCmd cmd;
 	if (args.updateAll)
 	{
-		cmd = ComputeCmd(uvec3(args.posGridSize), shaderPath + "submodules/pins/trace_pins2.comp");
+		uint32_t invocationCount = cubed(args.posGridSize) * squared(args.dirGridSize);
+		cmd                      = ComputeCmd(invocationCount, shaderPath + "submodules/pins/trace_pins3.comp");
 	}
 	else
 	{

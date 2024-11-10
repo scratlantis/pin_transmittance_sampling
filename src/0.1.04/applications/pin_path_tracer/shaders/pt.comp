@@ -131,6 +131,7 @@ float traceTransmittance(Ray ray, uint flags, uint cullMask, inout uint seed)
 				if(localTmax > localTEntry)
 				{
 					float maxLength = min(localTmax - localTEntry, distance(localEntry, localExit));
+					//maxLength = distance(localEntry, localExit);
 					float localTransmittance;
 					if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
 					{
@@ -255,6 +256,11 @@ void main()
 			}
 			else if(hitType == PATH_VERTEX_TYPE_SURFACE_SCATTER) 
 			{
+				if(dot(ray.direction,tangentFrame[2]) > 0.0)
+				{
+					continue;
+				}
+
 				if(i == 0) // Emission only from the first hit. Other emissions from light sources are collected via NEE
 				{
 					L_o += matData.emission * pc.areaLightEmissionScale;

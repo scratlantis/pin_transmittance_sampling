@@ -112,6 +112,11 @@ float pinSampleTransmittance(vec3 origin, vec3 direction, float maxLength, inout
 	unitCubeIntersection(origin, direction, start, end);
 
 	float sampleCoef = distance(origin, start) / distance(start, end);
+
+	float maxLengthCoef = sampleCoef + (maxLength / distance(start, end));
+	uint maxLengthShift = uint(clamp(1.0 - maxLengthCoef, 0.0, 0.9999) * 32);
+	uint maxLengthBitMask = 0xFFFFFFFF << maxLengthShift;
+
 	uint sampleOffset = uint(clamp(sampleCoef, 0.0, 0.9999) * 32 * PIN_MASK_SIZE);
 	float perBitDistance = distance(start, end) / float(PIN_MASK_SIZE * 32);
 
@@ -133,6 +138,8 @@ float pinSampleTransmittance(vec3 origin, vec3 direction, float maxLength, inout
 		{
 			pinMask = pin.mask[i];
 		}
+		pinMask &= maxLengthBitMask;
+
 		pinMask = pinMask << currentBitOffset;
 		oneBitCnt += bitCount(pinMask);
 		currentBitOffset = 0;
@@ -149,12 +156,25 @@ float pinSampleTransmittance(vec3 origin, vec3 direction, float maxLength, inout
 	uint pinIdx = pin_cache_offset(origin,direction);
 	vec3 newOrigin = pin_pos(pinIdx);
 	vec3 newDirection = pin_dir(pinIdx);
+	bool inverte = dot(newDirection, direction) < 0.0;
 	if(dot(newDirection, direction) < 0.0)
 	{
 		newDirection = -newDirection;
 	}
 	SI_setHistValue(dot(newDirection, direction), getFrameIdx())
-	return rayMarcheMediumTransmittance(newOrigin, newDirection, maxLength, seed);
+	float transmittance1 = rayMarcheMediumTransmittance(newOrigin, newDirection, maxLength, seed);
+
+	GLSLPinCacheEntry pin = pin_grid[pinIdx];
+	float transmittance2;
+	if(inverte)
+	{
+		transmittance2 = pin.transmittanceNeg;
+	}
+		else
+	{
+		transmittance2 = pin.transmittancePos;
+	}
+	return transmittance2;
 };
 #endif
 

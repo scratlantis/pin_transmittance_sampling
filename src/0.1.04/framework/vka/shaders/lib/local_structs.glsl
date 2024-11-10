@@ -2,7 +2,7 @@
 #define LOCAL_STRUCTS_H
 
 #ifndef TMIN
-#define TMIN 0.0001
+#define TMIN 0.00001
 #endif
 
 #ifndef TMAX
