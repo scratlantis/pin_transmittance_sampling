@@ -5,7 +5,6 @@
 #extension GL_EXT_ray_query : enable
 
 layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
-//layout(binding = LOCAL_BINDING_OFFSET + 1) uniform VOLUME_INSTANCE { GLSLMediumInstance volInst;};
 layout(binding = LOCAL_BINDING_OFFSET + 1) buffer VOLUME_INSTANCE { GLSLMediumInstance volInst[];};
 layout(binding = LOCAL_BINDING_OFFSET + 2) uniform accelerationStructureEXT boxAs;
 
@@ -13,8 +12,6 @@ layout(binding = LOCAL_BINDING_OFFSET + 2) uniform accelerationStructureEXT boxA
 
 struct PushStruct
 {
-	float bitMaskPropability;
-	uint bitMaskIterations;
 	float areaLightEmissionScale;
 	float envMapEmissionScale;
 };
@@ -61,24 +58,52 @@ float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out Hit
 			{
 				vec3 endPoint = ray.origin + ray.direction * ray.tmax;
 				vec3 localEndPoint = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(endPoint, 1.0);
-
-				float localTmax = distance(localEndPoint, localPos);
-				float localTEntry = distance(localEntry, localPos);
-				if(localTmax > localTEntry)
+				if(!inUnitCube(localPos))
 				{
-					float maxLength = min(localTmax - localTEntry, distance(localEntry, localExit));
+					float localTmax = distance(localEndPoint, localPos);
+					float localTEntry = distance(localEntry, localPos);
+					if(localTmax > localTEntry)
+					{
+						float maxLength = min(localTmax - localTEntry, distance(localEntry, localExit));
+						float tLocal;
+						if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
+						{
+							tLocal = rayMarcheMedium(localEntry, localDir, maxLength, seed);
+						}
+						else
+						{
+							tLocal = SAMPLE_DISTANCE(localEntry, localDir, maxLength, seed);
+						}
+						if(tLocal != TMAX)
+						{
+							vec3 localCollisionPos = localEntry + tLocal * localDir;
+							vec3 collisionPos = rayQueryGetIntersectionObjectToWorldEXT(rq, false) * vec4(localCollisionPos, 1.0);
+							float tMedium = distance(ray.origin, collisionPos);
+							if(tMedium < tGeom )
+							{
+								rayQueryGenerateIntersectionEXT(rq, tMedium);
+							}
+						}
+					}
+				}
+				else
+				{
+					float localTmax = distance(localEndPoint, localPos);
+					float localTExit = distance(localExit, localPos);
+
+					float maxLength = min(localTExit, localTmax);
 					float tLocal;
 					if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
 					{
-						tLocal = rayMarcheMedium(localEntry, localDir, maxLength, seed);
+						tLocal = rayMarcheMedium(localPos, localDir, maxLength, seed);
 					}
 					else
 					{
-						tLocal = SAMPLE_DISTANCE(localEntry, localDir, maxLength, seed);
+						tLocal = SAMPLE_DISTANCE(localPos, localDir, maxLength, seed);
 					}
 					if(tLocal != TMAX)
 					{
-						vec3 localCollisionPos = localEntry + tLocal * localDir;
+						vec3 localCollisionPos = localPos + tLocal * localDir;
 						vec3 collisionPos = rayQueryGetIntersectionObjectToWorldEXT(rq, false) * vec4(localCollisionPos, 1.0);
 						float tMedium = distance(ray.origin, collisionPos);
 						if(tMedium < tGeom )
@@ -126,20 +151,44 @@ float traceTransmittance(Ray ray, uint flags, uint cullMask, inout uint seed)
 				vec3 endPoint = ray.origin + ray.direction * ray.tmax;
 				vec3 localEndPoint = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(endPoint, 1.0);
 
-				float localTmax = distance(localEndPoint, localPos);
-				float localTEntry = distance(localEntry, localPos);
-				if(localTmax > localTEntry)
+				if(!inUnitCube(localPos))
 				{
-					float maxLength = min(localTmax - localTEntry, distance(localEntry, localExit));
-					//maxLength = distance(localEntry, localExit);
+					float localTmax = distance(localEndPoint, localPos);
+					float localTEntry = distance(localEntry, localPos);
+					if(localTmax > localTEntry)
+					{
+						float maxLength = min(localTmax - localTEntry, distance(localEntry, localExit));
+						//maxLength = distance(localEntry, localExit);
+						float localTransmittance;
+						if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
+						{
+							localTransmittance = rayMarcheMediumTransmittance(localEntry, localDir, maxLength, seed);
+						}
+						else
+						{
+							localTransmittance = SAMPLE_TRANSMITTANCE(localEntry, localDir, maxLength, seed);
+						}
+						totalTransmittance *= localTransmittance;
+						if(totalTransmittance < EPSILON)
+						{
+							rayQueryTerminateEXT(rq);
+						}
+					}
+				}
+				else
+				{
+					float localTmax = distance(localEndPoint, localPos);
+					float localTExit = distance(localExit, localPos);
+
+					float maxLength = min(localTExit, localTmax);
 					float localTransmittance;
 					if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
 					{
-						localTransmittance = rayMarcheMediumTransmittance(localEntry, localDir, maxLength, seed);
+						localTransmittance = rayMarcheMediumTransmittance(localPos, localDir, maxLength, seed);
 					}
 					else
 					{
-						localTransmittance = SAMPLE_TRANSMITTANCE(localEntry, localDir, maxLength, seed);
+						localTransmittance = SAMPLE_TRANSMITTANCE(localPos, localDir, maxLength, seed);
 					}
 					totalTransmittance *= localTransmittance;
 					if(totalTransmittance < EPSILON)
@@ -330,6 +379,7 @@ void main()
 				}
 				#endif
 			}
+
 			if(minDepth <= i)
 			{
 				totalIllumination += ray.weight * L_o;

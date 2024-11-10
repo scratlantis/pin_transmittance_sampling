@@ -92,12 +92,7 @@ std::vector<bool> buildGui()
 		{
 			// clang-format off
 			ImPlotSubplotFlags flags = ImPlotSubplotFlags_NoLegend
-				| ImPlotSubplotFlags_ColMajor
-				//| ImPlotSubplotFlags_LinkCols
-				//| ImPlotSubplotFlags_LinkRows
-				//| ImPlotSubplotFlags_LinkAllX
-				//| ImPlotSubplotFlags_LinkAllY
-				;
+				| ImPlotSubplotFlags_ColMajor;
 			// clang-format on
 			if (getPlotCount() > 0 && ImPlot::BeginSubplots("##Plots", getPlotCount(), 2, ImVec2(-1, 800), flags))
 			{

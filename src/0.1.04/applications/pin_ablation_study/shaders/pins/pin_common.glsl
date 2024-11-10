@@ -10,7 +10,10 @@
 #define PIN_DIR_GRID_SIZE 1
 #endif
 
-#include "../../../lib/lib/math.glsl"
+
+
+
+#include "../../lib/lib/math.glsl"
 
 uint pin_cache_offset(vec3 pos, vec3 dir)
 {

@@ -17,3 +17,5 @@ struct GLSLPinCacheEntryV3
 	float minTransmittance;
 	uint mask;
 };
+
+#endif

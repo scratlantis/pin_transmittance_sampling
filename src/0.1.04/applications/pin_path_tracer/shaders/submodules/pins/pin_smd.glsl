@@ -177,7 +177,7 @@ float pinSampleTransmittance(vec3 origin, vec3 direction, float maxLength, inout
 	{
 		transmittance2 = pin.transmittancePos;
 	}
-	return transmittance2;
+	return transmittance1;
 };
 #endif
 
