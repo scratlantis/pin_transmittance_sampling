@@ -130,6 +130,7 @@ class ComputeCmd
 	void pushConstant(void *data, VkDeviceSize size);
 	void pushSpecializationConst(void *data, uint32_t size);
 	void pushSpecializationConst(uint32_t val);
+	void pushSpecializationConst(int val);
 	void pushSpecializationConst(float val);
 
 

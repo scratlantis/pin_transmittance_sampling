@@ -4,7 +4,6 @@
 
 layout(constant_id = CUSTOM_VOLUME_SAMPLER_SPEC_CONST_OFFSET) const float jitterPos = 0.0;
 layout(constant_id = CUSTOM_VOLUME_SAMPLER_SPEC_CONST_OFFSET + 1) const float jitterDir = 0.0;
-layout(constant_id = CUSTOM_VOLUME_SAMPLER_SPEC_CONST_OFFSET + 2) const float sampleMaskIterations = 5;
 
 // Sample type
 // 0: No quantisation (Compute pin via ray marching)
@@ -76,7 +75,7 @@ float cvsSampleDistance(vec3 origin, vec3 dir, float maxLength, inout uint seed)
 #else
 	PIN_STRUCT pin = pin_grid[pin_cache_offset(origin, dir)];
 #endif
-	return PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, sampleMaskIterations, seed);
+	return PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, seed);
 }
 
 float cvsSampleTransmittance(vec3 origin, vec3 dir, float maxLength, inout uint seed)

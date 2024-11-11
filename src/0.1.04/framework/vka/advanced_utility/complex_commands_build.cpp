@@ -360,6 +360,11 @@ void ComputeCmd::pushSpecializationConst(uint32_t val)
 	pushSpecializationConst(&val, sizeof(uint32_t));
 }
 
+void ComputeCmd::pushSpecializationConst(int val)
+{
+	pushSpecializationConst(&val, sizeof(int));
+}
+
 void ComputeCmd::pushSpecializationConst(float val)
 {
 	pushSpecializationConst(&val, sizeof(float));

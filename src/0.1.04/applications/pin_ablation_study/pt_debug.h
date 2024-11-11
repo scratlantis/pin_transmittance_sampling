@@ -3,10 +3,6 @@
 
 struct TraceDebugArgs
 {
-	uint32_t               fixedSeed;
-	uint32_t               firstRandomBounce;
-	bool                   skipGeometry;
-	uint32_t               minDepth;
 	vec2                   pixelPos;
 	bool                   enablePlot;
 	uint32_t               maxPlotCount;

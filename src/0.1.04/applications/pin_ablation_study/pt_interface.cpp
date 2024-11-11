@@ -15,13 +15,13 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	{
 		debugData = cmdPrepareDebugData(cmdBuf, args);
 	}
-	/*if (args.enablePins)
+	
+	CVSData cvsData = cmdPrepareCVSData(cmdBuf, args); // Commputes pins
+	if (args.cvsArgs.pinArgs.type != PinType::NONE)
 	{
-	    gState.dataCache->fetch(pinGridBuf, hasher("pinGridBuf"));
-	    pins::cmdUpdatePinGrid(cmdBuf, pinGridBuf, args.mediumTexture, args.pinArgs.getUpdateArgs());
-	    waitStage |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-	    accessFlags |= VK_ACCESS_SHADER_WRITE_BIT;
-	}*/
+		waitStage  |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		accessFlags |= VK_ACCESS_SHADER_WRITE_BIT;
+	}
 
 	cmdBarrier(cmdBuf, waitStage, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, VK_ACCESS_SHADER_READ_BIT);
 
@@ -35,25 +35,33 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 		cmd.pushSubmodule(cVkaShaderLibPath + "pt_plot/generate_pt_state_histogram.glsl");
 	}
 	cmd.pushSIDebugHeader();
-	// Pins
-	/*if (args.enablePins)
-	{
-	    pins::cmdBindPins(cmd, pinGridBuf, args.pinArgs.getSampleArgs());
-	}*/
+	bindCVSModule(cmd, cvsData, args.cvsArgs); // Binds pins
 	cmd.pushLocal();
 	cmd.pushDescriptor(target, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 	cmd.pushDescriptor(args.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(args.mediumTlas);
 
 	cmd.pushSpecializationConst(args.maxDepth);
-	cmd.pushSpecializationConst(args.debugArgs.minDepth);
-	cmd.pushSpecializationConst(args.debugArgs.fixedSeed);
-	cmd.pushSpecializationConst(args.debugArgs.firstRandomBounce);
-	cmd.pipelineDef.shaderDef.args.push_back({"SAMPLE_COUNT", args.sampleCount});
-	if (args.debugArgs.skipGeometry)
+	cmd.pushSpecializationConst(args.sampleCount);
+	cmd.pushSpecializationConst(args.minDepth);
+	cmd.pushSpecializationConst(args.fixedSeed);
+	cmd.pushSpecializationConst(args.firstRandomBounce);
+
+	cmd.pushSpecializationConst(args.force_ray_marched_distance_sampling);
+	cmd.pushSpecializationConst(args.force_ray_marched_transmittance_sampling_al);
+	cmd.pushSpecializationConst(args.force_ray_marched_transmittance_sampling_env_map);
+
+
+	if (args.skipGeometry)
 	{
 		cmd.pipelineDef.shaderDef.args.push_back({"SKIP_GEOMETRY", ""});
 	}
+
+	if (args.enableDebugging)
+	{
+		cmd.pipelineDef.shaderDef.args.push_back({"DEBUG", ""});
+	}
+
 	struct PushStruct
 	{
 		float areaLightEmissionScale;

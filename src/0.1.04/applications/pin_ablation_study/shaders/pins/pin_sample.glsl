@@ -120,10 +120,10 @@ float pinSampleTransmittanceV2(GLSLPinCacheEntryV2 pin, vec3 origin, vec3 direct
 	return sampleMaskHitCount(pin.mask, origin, direction, maxLength, seed)) > 0 ? 0.0 : 1.0;
 }
 // V3
-float pinSampleDistanceV3(GLSLPinCacheEntryV3 pin, vec3 origin, vec3 direction, float maxLength, uint sampleMaskIterations, inout uint seed)
+float pinSampleDistanceV3(GLSLPinCacheEntryV3 pin, vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
 	float p = 1.0 - pin.minTransmittance;
-	uint sampleMask = randomBitMask(p, sampleMaskIterations, seed);
+	uint sampleMask = randomBitMask(p, RNG_SAMPLE_MASK_ITERATIONS, seed);
 	uint mask = pin.mask & sampleMask;
 	return sampleMaskDistance(mask, origin, direction, maxLength, seed);
 }
@@ -135,13 +135,13 @@ float pinSampleTransmittanceV3(GLSLPinCacheEntryV3 pin, vec3 origin, vec3 direct
 }
 
 #if PIN_TYPE == 1
-#define PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, sampleMaskIterations, seed) pinSampleDistanceV1(pin, dir)
+#define PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, seed) pinSampleDistanceV1(pin, dir)
 #define PIN_SAMPLE_TRANSMITTANCE(pin, origin, dir, maxLength, seed) pinSampleTransmittanceV1(pin, dir)
 #elif PIN_TYPE == 2
-#define PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, sampleMaskIterations, seed) pinSampleDistanceV2(pin, origin, dir, maxLength, seed)
+#define PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, seed) pinSampleDistanceV2(pin, origin, dir, maxLength, seed)
 #define PIN_SAMPLE_TRANSMITTANCE(pin, origin, dir, maxLength, seed) pinSampleTransmittanceV2(pin, origin, dir, maxLength, seed)
 #elif PIN_TYPE == 3
-#define PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, sampleMaskIterations, seed) pinSampleDistanceV3(pin, origin, dir, maxLength, sampleMaskIterations, seed)
+#define PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, seed) pinSampleDistanceV3(pin, origin, dir, maxLength, seed)
 #define PIN_SAMPLE_TRANSMITTANCE(pin, origin, dir, maxLength, seed) pinSampleTransmittanceV3(pin, origin, dir, maxLength, seed)
 #endif
 

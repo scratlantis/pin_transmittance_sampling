@@ -18,9 +18,16 @@ struct PushStruct
 layout(push_constant) uniform PC {PushStruct pc;};
 
 layout(constant_id = LOCAL_SPEC_CONST_OFFSET) const uint maxDepth = 10;
-layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 1) const uint minDepth = 0;
-layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 2) const uint fixedSeed = 1;
-layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 3) const uint firstRandomBounce = 0;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 1) const uint sampleCount = 1;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 2) const uint minDepth = 0;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 3) const uint fixedSeed = 1;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 4) const uint firstRandomBounce = 0;
+
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 5) const uint force_ray_marched_distance_sampling = 0;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 6) const uint force_ray_marched_transmittance_sampling_al = 0;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 7) const uint force_ray_marched_transmittance_sampling_env_map = 0;
+
+
 
 
 
@@ -72,7 +79,7 @@ float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out Hit
 						}
 						else
 						{
-							tLocal = SAMPLE_DISTANCE(localEntry, localDir, maxLength, seed);
+							tLocal = cvsSampleDistance(localEntry, localDir, maxLength, seed);
 						}
 						if(tLocal != TMAX)
 						{
@@ -99,7 +106,7 @@ float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out Hit
 					}
 					else
 					{
-						tLocal = SAMPLE_DISTANCE(localPos, localDir, maxLength, seed);
+						tLocal = cvsSampleDistance(localPos, localDir, maxLength, seed);
 					}
 					if(tLocal != TMAX)
 					{
@@ -166,7 +173,7 @@ float traceTransmittance(Ray ray, uint flags, uint cullMask, inout uint seed)
 						}
 						else
 						{
-							localTransmittance = SAMPLE_TRANSMITTANCE(localEntry, localDir, maxLength, seed);
+							localTransmittance = cvsSampleTransmittance(localEntry, localDir, maxLength, seed);
 						}
 						totalTransmittance *= localTransmittance;
 						if(totalTransmittance < EPSILON)
@@ -188,7 +195,7 @@ float traceTransmittance(Ray ray, uint flags, uint cullMask, inout uint seed)
 					}
 					else
 					{
-						localTransmittance = SAMPLE_TRANSMITTANCE(localPos, localDir, maxLength, seed);
+						localTransmittance = cvsSampleTransmittance(localPos, localDir, maxLength, seed);
 					}
 					totalTransmittance *= localTransmittance;
 					if(totalTransmittance < EPSILON)
@@ -269,7 +276,7 @@ void main()
 
 	SI_initHist(50, 1000, 0.0, 2.0);
 
-	for(uint j = 0; j < SAMPLE_COUNT; j++)
+	for(uint j = 0; j < sampleCount; j++)
 	{
 		SI_resetPts()
 		Ray ray = genPrimaryRay(gl_GlobalInvocationID.xy, seed);
@@ -284,9 +291,12 @@ void main()
 			MaterialData matData;
 			mat4x3 tangentFrame;
 			uint cullMask = 0xFF;
-			uint flags = i == 0 ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
 
-			Ray nextRay = nextBounce(ray, flags, cullMask, seed, hitType, matData, tangentFrame);
+			uint distanceSampleFlags = force_ray_marched_distance_sampling < i ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
+			uint transmittanceSampleFlagsAl = force_ray_marched_transmittance_sampling_al < i ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
+			uint transmittanceSampleFlagsEnvMap = force_ray_marched_transmittance_sampling_env_map < i ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
+
+			Ray nextRay = nextBounce(ray, distanceSampleFlags, cullMask, seed, hitType, matData, tangentFrame);
 			SI_nextBounce(nextRay, hitType)
 
 			vec3 L_o = vec3(0.0);
@@ -323,7 +333,7 @@ void main()
 				{
 					SI_nextSample(RAY_DOMAIN_AREA_LIGHT)
 
-					sampleDirectIllumAreaLight(tangentFrame[3], flags, cullMask, seed, L_i, omega_i);
+					sampleDirectIllumAreaLight(tangentFrame[3], transmittanceSampleFlagsAl, cullMask, seed, L_i, omega_i);
 					cosTerm = pos_dot(tangentFrame[2], omega_i);
 					L_o += brdf * L_i * cosTerm;
 
@@ -338,7 +348,7 @@ void main()
 				{
 					SI_nextSample(RAY_DOMAIN_ENV_MAP)
 
-					sampleDirectIllumEnvMap(tangentFrame[3], flags, cullMask, seed, L_i, omega_i);
+					sampleDirectIllumEnvMap(tangentFrame[3], transmittanceSampleFlagsEnvMap, cullMask, seed, L_i, omega_i);
 					cosTerm = pos_dot(tangentFrame[2], omega_i);
 					L_o += brdf * L_i * cosTerm;
 
@@ -358,7 +368,7 @@ void main()
 				{
 					SI_nextSample(RAY_DOMAIN_AREA_LIGHT)
 
-					sampleDirectIllumAreaLight(tangentFrame[3], flags, cullMask, seed, L_i, omega_i);
+					sampleDirectIllumAreaLight(tangentFrame[3], transmittanceSampleFlagsAl, cullMask, seed, L_i, omega_i);
 					L_o += bsdf * L_i;
 
 					SI_setBSDF(bsdf)
@@ -371,7 +381,7 @@ void main()
 				{
 					SI_nextSample(RAY_DOMAIN_ENV_MAP)
 
-					sampleDirectIllumEnvMap(tangentFrame[3], flags, cullMask, seed, L_i, omega_i);
+					sampleDirectIllumEnvMap(tangentFrame[3], transmittanceSampleFlagsEnvMap, cullMask, seed, L_i, omega_i);
 					L_o += bsdf * L_i;
 
 					SI_setBSDF(bsdf)
@@ -390,7 +400,7 @@ void main()
 		SI_finalizeSample()
 	}
 
-	totalIllumination /= float(SAMPLE_COUNT);
+	totalIllumination /= float(sampleCount);
 	imageStore(colorOut, ivec2(gl_GlobalInvocationID.xy), vec4(totalIllumination, 1.0));
 	SI_setTotalContribution(totalIllumination)
 	SI_writePtPlot()
