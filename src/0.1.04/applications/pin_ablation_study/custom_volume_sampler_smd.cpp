@@ -18,10 +18,10 @@ CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, const TraceArgs &args)
 			pinStructSize = sizeof(GLSLPinCacheEntryV1);
 			break;
 		case PinType::V2:
-			pinStructSize = sizeof(GLSLPinCacheEntryV1);
+			pinStructSize = sizeof(GLSLPinCacheEntryV2);
 			break;
 		case PinType::V3:
-			pinStructSize = sizeof(GLSLPinCacheEntryV1);
+			pinStructSize = sizeof(GLSLPinCacheEntryV3);
 			break;
 	}
 
@@ -29,7 +29,7 @@ CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, const TraceArgs &args)
 	uint32_t pinGridMemorySize = pinGridCellCount * pinStructSize;
 	VKA_ASSERT(pinGridMemorySize > 0);
 
-	gState.dataCache->fetch(data.pinGridBuffer, hasher("pin_buf"));
+	data.pinGridBuffer = cvsArgs.pinGridBuffer;
 	data.pinGridBuffer->addUsage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	data.pinGridBuffer->changeSize(pinGridMemorySize);
 	CVSUpdateMode updateMode = data.pinGridBuffer->recreate() ? CVSUpdateMode::ALL : cvsArgs.defaultUpdateMode;
@@ -59,7 +59,7 @@ CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, const TraceArgs &args)
 	{
 		uint32_t executionID;
 	} pc;
-	pc.executionID = cvsArgs.frameID;
+	pc.executionID = *args.pExecutionCounter;
 	cmd.pushConstant(&pc, sizeof(PushStruct));
 	cmd.exec(cmdBuf);
 	return data;

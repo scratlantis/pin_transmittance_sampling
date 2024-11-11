@@ -2,10 +2,10 @@
 #include "config.h"
 
 
-enum class CVSUpdateMode
+enum class CVSUpdateMode : uint32_t
 {
-	ALL,
-	TRACE
+	ALL = 0U,
+	TRACE = 1U,
 };
 
 struct TraceUpdateArgs
@@ -46,12 +46,12 @@ struct PinArgs
 
 struct CVSArgs
 {
+	Buffer			pinGridBuffer;
 	CVSUpdateMode   defaultUpdateMode = CVSUpdateMode::TRACE;
 	uint32_t        updateRate        = 1;        // every n-th frame
 	TraceUpdateArgs traceUpdateArgs;
 	float           rayMarchingCoefficient;        // pin ray marche step size relative to the ray march step size in trace args
 	PinGridExtent   pinGridExtent;
-	uint32_t        frameID;
 	PinArgs			pinArgs;
 };
 

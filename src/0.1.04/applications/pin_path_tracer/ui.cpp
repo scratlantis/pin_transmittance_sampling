@@ -117,6 +117,6 @@ std::vector<bool> buildGui()
 		endGui();
 	}
 	//ImPlot::ShowDemoWindow();
-	//ImGui::ShowDemoWindow();
+	ImGui::ShowDemoWindow();
 	return changed;
 }

@@ -1,53 +1,66 @@
 #include "config.h"
-#include "shader_interface.h"
+#include "pt_interface.h"
 #include "ui.h"
-#include <random>
 #include <random>
 AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders/";
 using namespace glm;
 
-extern GVar gvar_pt_plot_write_total_contribution;
-extern GVar gvar_pt_plot_write_indirect_dir;
-extern GVar gvar_pt_plot_write_indirect_t;
-extern GVar gvar_pt_plot_write_indirect_weight;
+// Scene
+GVar gvar_emission_scale_al{"Area light emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE, {0.0f, 100000.f}};
+GVar gvar_emission_scale_env_map{"Env map emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE, {0.0f, 10.f}};
+GVar gvar_skip_geometry{"Skip geometry", false, GVAR_BOOL, GUI_CAT_SCENE};
 
-extern GVar gvar_perlin_frequency;
-extern GVar gvar_perlin_scale;
-extern GVar gvar_pt_plot_bounce;
+// Medium
+GVar gvar_medium_density_scale{"Medium density scale", 1000.f, GVAR_FLOAT_RANGE, GUI_CAT_MEDIUM, {0.f, 4000.f}};
 
-extern GVar gvar_mse;
-extern GVar gvar_timing_left;
-extern GVar gvar_timing_right;
+// Path Tracing
+GVar gvar_ray_march_step_size{"Ray March Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.01f, 1.f}};
+GVar gvar_bounce_count{"Bounce Count", 5U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {1U, 16U}};
+GVar gvar_min_bounce{"Min Bounce", 0U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 16U}};
+GVar gvar_fixed_seed{"Fixed seed", 0U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 10000U}};
+GVar gvar_first_random_bounce{"First random bounce", 0U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 16U}};
 
-extern GVar gvar_pin_pos_grid_size;
-extern GVar gvar_pin_dir_grid_size;
-extern GVar gvar_pin_ray_march_step_size;
-extern GVar gvar_pin_write_pin_step_size;
-extern GVar gvar_pin_update_rate;
-extern GVar gvar_pin_update_all;
+// Tone Mapping
+GVar gvar_tone_mapping_enable{"Tone mapping", true, GVAR_BOOL, GUI_CAT_TONE_MAPPING};
+GVar gvar_tone_mapping_whitepoint{"Tone mapping whitepoint", 4.f, GVAR_FLOAT_RANGE, GUI_CAT_TONE_MAPPING, {1.f, 10.f}};
+GVar gvar_tone_mapping_exposure{"Tone mapping exposure", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_TONE_MAPPING, {0.001f, 1.f}};
 
+// Pins
+GVar gvar_pin_pos_grid_size{"Pin Pos Grid Size", 10U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 64U}};
+GVar gvar_pin_dir_grid_size{"Pin Dir Grid Size", 8U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 256U}};
+GVar gvar_pin_ray_march_step_size_coefficient{"Pin ray march step size coefficient", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
+GVar gvar_pin_write_pin_step_size{"Pin write step size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
+GVar gvar_pin_update_mode{"Pin update mode", false, GVAR_ENUM, GUI_CAT_PINS, std::vector<std::string>({"All", "Trace"})};
+GVar gvar_pin_update_rate{"Pin update rate", 1000U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 100U}};
+GVar gvar_pin_trace_update_ray_count{"Pin trace update ray count", 1000U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 1000000U}};
+GVar gvar_force_rm_distance{"Force distance ray marching", 0U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 16U}};
+GVar gvar_force_rm_transmittance_al{"Force transmittance ray marching for area lights", 0U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 16U}};
+GVar gvar_force_rm_transmittance_env_map{"Force transmittance ray marching for env map", 0U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 16U}};
+GVar gvar_pin_bit_mask_iterations{"Pin sample mask iterations", 5U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 10U}};
+GVar gvar_jitter_pos{"Jitter pos", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.0f, 1.0f}};
+GVar gvar_jitter_dir{"Jitter dir", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.0f, 1.0f}};
 
-extern GVar gvar_ray_march_step_size;
-extern GVar gvar_bounce_count;
-extern GVar gvar_min_bounce;
-extern GVar gvar_skip_geometry;
+// Render Mode
+GVar gvar_pin_mode_left{"Pin Mode Left", 0U, GVAR_UINT_RANGE, GUI_CAT_RENDER_MODE, std::vector<std::string>({"None", "V1", "V2", "V3"})};
+GVar gvar_pin_mode_right{"Pin Mode Right", 3U, GVAR_UINT_RANGE, GUI_CAT_RENDER_MODE, std::vector<std::string>({"None", "V1", "V2", "V3"})};
 
-extern GVar gvar_tone_mapping_enable;
-extern GVar gvar_tone_mapping_whitepoint;
-extern GVar gvar_tone_mapping_exposure;
-extern GVar gvar_pin_bit_mask_size;
-extern GVar gvar_pin_disable_bit_mask_distance_sampling;
-extern GVar gvar_pin_disable_bit_mask_transmittance_sampling;
+GVar gvar_sample_mode_left{"Sample Mode Left", 0U, GVAR_UINT_RANGE, GUI_CAT_RENDER_MODE, std::vector<std::string>({"Unquantised", "Quantised", "Precomputed"})};
+GVar gvar_sample_mode_right{"Sample Mode Right", 2U, GVAR_UINT_RANGE, GUI_CAT_RENDER_MODE, std::vector<std::string>({"Unquantised", "Quantised", "Precomputed"})};
 
+// Metrics
+GVar gvar_mse{"MSE: %.8f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
+GVar gvar_timing_left{"Timing Left: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
+GVar gvar_timing_right{"Timing Right: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
 
-extern GVar gvar_fixed_seed;
-extern GVar gvar_first_random_bounce;
-
-extern GVar gvar_enable_debuging;
-extern GVar gvar_emission_scale_al;
-extern GVar gvar_emission_scale_env_map;
+// Debug
+GVar gvar_enable_debuging{"Enable Debuging", false, GVAR_BOOL, GUI_CAT_DEBUG};
+GVar gvar_pt_plot_write_total_contribution{"Write total contribution", false, GVAR_BOOL, GUI_CAT_DEBUG};
+GVar gvar_pt_plot_write_indirect_dir{"Write indirect direction", false, GVAR_BOOL, GUI_CAT_DEBUG};
+GVar gvar_pt_plot_write_indirect_t{"Write indirect t", false, GVAR_BOOL, GUI_CAT_DEBUG};
+GVar gvar_pt_plot_write_indirect_weight{"Write indirect weight", false, GVAR_BOOL, GUI_CAT_DEBUG};
+GVar gvar_pt_plot_bounce{"Select Bounce", 0, GVAR_UINT_RANGE, GUI_CAT_DEBUG, {0, 5}};
 
 int main()
 {
@@ -76,35 +89,24 @@ int main()
 	GLSLInstance instance{};
 	instance.cullMask = 0xFF;
 	instance.mat      = getMatrix(vec3(0, 0.2, -0.3), vec3(0.0, 180.0, 0.0), 0.1);
-	//sceneBuilder.addModel(cmdBuf, "cornell_box/cornell_box.obj", &instance, 1);
 	sceneBuilder.addModel(cmdBuf, "under_the_c/scene_3.obj", &instance, 1);
 	scene = sceneBuilder.create(cmdBuf, gState.heap);
 	scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
 #endif
-	//// Load Medium
-	PerlinNoiseArgs perlinArgs{};
-	perlinArgs.scale              = gvar_perlin_scale.val.v_float;
-	perlinArgs.min           = 0.0;
-	perlinArgs.max           = 100.0;
-	perlinArgs.frequency          = gvar_perlin_frequency.val.v_float;
-	perlinArgs.falloffAtEdge = true;
+	//// Create medium texture
 	const uint32_t mediumExtent1D = 302;
 	VkExtent3D     mediumExtent{mediumExtent1D, mediumExtent1D, mediumExtent1D};
-	//VkExtent3D mediumExtent{128, 256, 256};
-	//VkExtent3D mediumExtent{512, 512, 361};
 	Image          medium = createImage(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, mediumExtent);
 	cmdTransitionLayout(cmdBuf, medium, VK_IMAGE_LAYOUT_GENERAL);
-
-	// Medium instances
-	GLSLMediumInstance mediumInstance{};
+	//// Create medium instances
+	GLSLInstance mediumInstance{};
 	mediumInstance.mat = getMatrix(vec3(-0.2, -0.2, -0.2), vec3(0, 0, 0), 0.4);
 	mediumInstance.invMat = glm::inverse(mediumInstance.mat);
-	mediumInstance.albedo  = vec3(1.0, 1.0, 1.0);
+	mediumInstance.color  = vec3(1.0, 1.0, 1.0);
 	mediumInstance.cullMask = 0xFF;
 	Buffer mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-
 	uint32_t                              mediumInstanceCount = 50;
-	std::vector<GLSLMediumInstance>       mediumInstances(mediumInstanceCount);
+	std::vector<GLSLInstance>			  mediumInstances(mediumInstanceCount);
 	std::mt19937                          rngGen(42);
 	std::uniform_real_distribution<float> dist(0.0, 1.0);
 	for (uint32_t i = 0; i < mediumInstanceCount; i++)
@@ -116,43 +118,51 @@ int main()
 		mediumInstances[i].mat    = getMatrix(randomPos, vec3(0, 0, -90), randomScale);
 		mediumInstances[i].invMat = glm::inverse(mediumInstances[i].mat);
 	}
-	cmdWriteCopy(cmdBuf, mediumInstanceBuffer, mediumInstances.data(), mediumInstances.size() * sizeof(GLSLMediumInstance));
-
-
-
+	cmdWriteCopy(cmdBuf, mediumInstanceBuffer, mediumInstances.data(), mediumInstances.size() * sizeof(GLSLInstance));
 	BLAS boxBlas = cmdBuildBoxBlas(cmdBuf, gState.heap);
 	TLAS boxTlas = createTopLevelAS(gState.heap, mediumInstanceCount);
-	default_scene::cmdBuildBoxIntersector<GLSLMediumInstance>(cmdBuf, boxBlas, mediumInstanceBuffer, mediumInstanceCount, boxTlas);
-
+	default_scene::cmdBuildBoxIntersector<GLSLInstance>(cmdBuf, boxBlas, mediumInstanceBuffer, mediumInstanceCount, boxTlas);
 	executeImmediat(cmdBuf);
 	gState.updateSwapchainAttachments();
+
 	//// Main Loop
-	uint32_t frameCount = 0;
-	vec2 lastClickPos = vec2(1.0);
-	float splitViewCoef = 0.5;
+	uint32_t      frameCount    = 0;
+	vec2          lastClickPos  = vec2(1.0);
+	float         splitViewCoef = 0.5;
+	uint32_t      executionCounterLeft, executionCounterRight;
+	TraceArgs     commonTraceArgs{};
+	PinType       pinTypeLeft, pinTypeRight;
+	PinSampleMode sampleModeLeft, sampleModeRight;
+	Buffer        leftPinGridBuffer  = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+	Buffer        rightPinGridBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+
 	while (!gState.io.shouldTerminate())
 	{
 		//// Get Updates
-		bool firstFrame = frameCount == 0;
-		bool shaderRecompiled = false;
-		if (gState.io.keyPressedEvent[GLFW_KEY_R])
+		bool              firstFrame         = frameCount == 0;
+		bool              shaderRecompile    = gState.io.keyPressedEvent[GLFW_KEY_R];
+		bool              leftClickInView    = mouseInView(viewDimensions) && gState.io.mouse.leftPressedEvent();
+		bool              leftPressedInView  = mouseInView(viewDimensions) && gState.io.mouse.leftPressed;
+		std::vector<bool> settingsChanged    = buildGui();
+		bool              anySettingsChanged = orOp(settingsChanged);
+		bool              camRotated         = mouseInView(viewDimensions) && cam.keyControl(0.016);
+		bool              camMoved           = mouseInView(viewDimensions) && gState.io.mouse.rightPressed && cam.mouseControl(0.016);
+		bool              viewChange         = camRotated || camMoved || anySettingsChanged || firstFrame || shaderRecompile || gState.io.swapchainRecreated();
+		bool              selectPixel        = leftClickInView && gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL];
+
+
+		if (shaderRecompile)
 		{
 			clearShaderCache();
 			gState.io.buildShaderLib();
-			shaderRecompiled = true;
 		}
-		bool leftClickInView = false;
-		if (mouseInView(viewDimensions) && gState.io.mouse.leftPressedEvent())
+
+		if (selectPixel)
 		{
 			lastClickPos = mouseViewCoord(viewDimensions);
-			leftClickInView = true;
 		}
-		bool viewHasChanged                  = mouseInView(viewDimensions) && cam.keyControl(0.016);
-		viewHasChanged                       = (mouseInView(viewDimensions)  && gState.io.mouse.rightPressed && cam.mouseControl(0.016)) || viewHasChanged;
-		viewHasChanged                       = viewHasChanged || gState.io.swapchainRecreated();
-		std::vector<bool> settingsChanged    = buildGui();
-		bool              anySettingsChanged = orOp(settingsChanged);
-		if (mouseInView(viewDimensions) && gState.io.mouse.leftPressed)
+
+		if (leftPressedInView)
 		{
 			splitViewCoef += gState.io.mouse.change.x/(float)getScissorRect(viewDimensions).extent.width;
 			splitViewCoef = glm::clamp(splitViewCoef, 0.f, 1.f);
@@ -160,26 +170,21 @@ int main()
 		//// Process Updates
 		CmdBuffer cmdBuf       = createCmdBuffer(gState.frame->stack);
 		//// Reset accumulation
-		if (viewHasChanged || anySettingsChanged || shaderRecompiled || firstFrame)
+		if (viewChange)
 		{
 			iec.cmdReset(cmdBuf);
+			executionCounterLeft = 0;
+			executionCounterRight = 0;
 		}
-		bool resetPlots = viewHasChanged || anySettingsChanged || shaderRecompiled || firstFrame;
-		resetPlots      = resetPlots || (leftClickInView && gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL]);
-		// Regenerate noise
-		if (settingsChanged[GUI_CAT_NOISE] || shaderRecompiled || firstFrame)
+		// Process volume data
+		if (settingsChanged[GUI_CAT_MEDIUM] || shaderRecompile || firstFrame)
 		{
-			/*perlinArgs.frequency = gvar_perlin_frequency.val.v_float;
-			perlinArgs.scale     = gvar_perlin_scale.val.v_float;
-			getCmdPerlinNoise(medium, perlinArgs).exec(cmdBuf);*/
 			Buffer scalarBuf;
-			//gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "csafe_heptane_302x302x302_uint8.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-			//gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "chameleon_1024x1024x1080_uint16.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 			gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "csafe_heptane_302x302x302_uint8.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-			//gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "bunny_512x512x361_uint16.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-			getCmdLoadScalarField(scalarBuf, medium, gvar_perlin_scale.val.v_float).exec(cmdBuf);
+			getCmdLoadScalarField(scalarBuf, medium, gvar_medium_density_scale.val.v_float).exec(cmdBuf);
 		}
+
 		//// Run Path Tracing
 		CameraCI camCI{};
 		camCI.pos      = cam.getPosition();
@@ -191,63 +196,86 @@ int main()
 		camCI.zNear    = 0.1;
 		camCI.zFar     = 100.0;
 
-		TraceArgs traceArgs{};
-		traceArgs.sampleCount               = 1;
-		traceArgs.maxDepth                  = gvar_bounce_count.val.v_uint;
-		traceArgs.rayMarchStepSize          = gvar_ray_march_step_size.val.v_float;
-		traceArgs.cameraCI                  = camCI;
-		traceArgs.sceneData                 = scene;
-		traceArgs.mediumInstanceBuffer      = mediumInstanceBuffer;
-		traceArgs.mediumTexture             = medium;
-		traceArgs.enableDebugging           = gvar_enable_debuging.val.v_bool;
-		traceArgs.mediumTlas                = boxTlas;
-		traceArgs.envMapEmissionScale       = gvar_emission_scale_env_map.val.v_float;
-		traceArgs.areaLightEmissionScale    = gvar_emission_scale_al.val.v_float;
-		traceArgs.debugArgs.pixelPos        = lastClickPos;
-		traceArgs.debugArgs.enableHistogram = true;
-		traceArgs.debugArgs.enablePtPlot    = true;
-		traceArgs.debugArgs.minDepth        = gvar_min_bounce.val.v_uint;
-		traceArgs.debugArgs.skipGeometry    = gvar_skip_geometry.val.v_bool;
+		commonTraceArgs.cameraCI               = camCI;
+		commonTraceArgs.sceneData              = scene;
+		commonTraceArgs.mediumInstanceBuffer   = mediumInstanceBuffer;
+		commonTraceArgs.mediumTlas             = boxTlas;
+		commonTraceArgs.mediumTexture          = medium;
 
-		traceArgs.debugArgs.ptPlotOptions.writeTotalContribution = gvar_pt_plot_write_total_contribution.val.v_bool;
-		traceArgs.debugArgs.ptPlotOptions.writeIndirectDir       = gvar_pt_plot_write_indirect_dir.val.v_bool;
-		traceArgs.debugArgs.ptPlotOptions.writeIndirectT         = gvar_pt_plot_write_indirect_t.val.v_bool;
-		traceArgs.debugArgs.ptPlotOptions.writeIndirectWeight    = gvar_pt_plot_write_indirect_weight.val.v_bool;
-		traceArgs.debugArgs.ptPlotOptions.bounce                 = gvar_pt_plot_bounce.val.v_uint;
-		traceArgs.debugArgs.fixedSeed = gvar_fixed_seed.val.v_uint;
-		traceArgs.debugArgs.firstRandomBounce = gvar_first_random_bounce.val.v_uint;
+		commonTraceArgs.areaLightEmissionScale = gvar_emission_scale_al.val.v_float;
+		commonTraceArgs.envMapEmissionScale    = gvar_emission_scale_env_map.val.v_float;
 
-		if (leftClickInView)
+		// require shader recompilation
+		if (firstFrame || leftClickInView || shaderRecompile)
 		{
-			traceArgs.debugArgs.enablePlot        = true;
-			traceArgs.debugArgs.maxPlotCount      = maxPlotCount;
-			traceArgs.debugArgs.maxPlotValueCount = maxPlotValueCount;
+			// general config
+			commonTraceArgs.rayMarchStepSize                                 = gvar_ray_march_step_size.val.v_float;
+			commonTraceArgs.sampleCount                                      = 1;
+			commonTraceArgs.maxDepth                                         = gvar_bounce_count.val.v_uint;
+			commonTraceArgs.minDepth                                         = gvar_min_bounce.val.v_uint;
+			commonTraceArgs.fixedSeed                                        = gvar_fixed_seed.val.v_uint;
+			commonTraceArgs.firstRandomBounce                                = gvar_first_random_bounce.val.v_uint;
+			commonTraceArgs.skipGeometry                                     = gvar_skip_geometry.val.v_bool;
+			commonTraceArgs.force_ray_marched_distance_sampling              = gvar_force_rm_distance.val.v_uint;
+			commonTraceArgs.force_ray_marched_transmittance_sampling_al      = gvar_force_rm_transmittance_al.val.v_uint;
+			commonTraceArgs.force_ray_marched_transmittance_sampling_env_map = gvar_force_rm_transmittance_env_map.val.v_uint;
+
+			// pin config
+			commonTraceArgs.cvsArgs.defaultUpdateMode                = static_cast<CVSUpdateMode>(gvar_pin_update_mode.val.v_uint);
+			commonTraceArgs.cvsArgs.updateRate                       = gvar_pin_update_rate.val.v_uint;
+			commonTraceArgs.cvsArgs.traceUpdateArgs.rayCount         = gvar_pin_trace_update_ray_count.val.v_uint;
+			commonTraceArgs.cvsArgs.traceUpdateArgs.writePinStepSize = gvar_pin_write_pin_step_size.val.v_float;
+			commonTraceArgs.cvsArgs.rayMarchingCoefficient           = gvar_pin_ray_march_step_size_coefficient.val.v_float;
+			commonTraceArgs.cvsArgs.pinGridExtent.positionGridSize   = gvar_pin_pos_grid_size.val.v_uint;
+			commonTraceArgs.cvsArgs.pinGridExtent.directionGridSize  = gvar_pin_dir_grid_size.val.v_uint;
+			commonTraceArgs.cvsArgs.pinArgs.bitMaskIterations        = gvar_pin_bit_mask_iterations.val.v_uint;
+			commonTraceArgs.cvsArgs.pinArgs.jitterPos                = gvar_jitter_pos.val.v_float;
+			commonTraceArgs.cvsArgs.pinArgs.jitterDir                = gvar_jitter_dir.val.v_float;
 		}
 
-		if (resetPlots)
+		// Debugging visualizations
+		commonTraceArgs.enableDebugging = gvar_enable_debuging.val.v_bool;
+		if (commonTraceArgs.enableDebugging)
 		{
-			traceArgs.debugArgs.resetHistogram = true;
-			traceArgs.debugArgs.maxHistCount      = maxHistogramCount;
-			traceArgs.debugArgs.maxHistValueCount = maxHistValueCount;
+			commonTraceArgs.debugArgs.pixelPos        = lastClickPos;
+			commonTraceArgs.debugArgs.enableHistogram = true;
+			commonTraceArgs.debugArgs.enablePtPlot    = true;
+
+			commonTraceArgs.debugArgs.ptPlotOptions.writeTotalContribution = gvar_pt_plot_write_total_contribution.val.v_bool;
+			commonTraceArgs.debugArgs.ptPlotOptions.writeIndirectDir       = gvar_pt_plot_write_indirect_dir.val.v_bool;
+			commonTraceArgs.debugArgs.ptPlotOptions.writeIndirectT         = gvar_pt_plot_write_indirect_t.val.v_bool;
+			commonTraceArgs.debugArgs.ptPlotOptions.writeIndirectWeight    = gvar_pt_plot_write_indirect_weight.val.v_bool;
+			commonTraceArgs.debugArgs.ptPlotOptions.bounce                 = gvar_pt_plot_bounce.val.v_uint;
+
+			if (viewChange || selectPixel)
+			{
+				commonTraceArgs.debugArgs.resetHistogram    = true;
+				commonTraceArgs.debugArgs.maxHistCount      = maxHistogramCount;
+				commonTraceArgs.debugArgs.maxHistValueCount = maxHistValueCount;
+			}
 		}
 
-		TraceArgs traceArgs2 = traceArgs;
-		traceArgs2.debugArgs.histogramDataOffset = getLeftHistogramOffset();
-		traceArgs2.enablePins = true;
-		traceArgs2.pinArgs.posGridSize = gvar_pin_pos_grid_size.val.v_uint;
-		traceArgs2.pinArgs.dirGridSize = gvar_pin_dir_grid_size.val.v_uint;
-		traceArgs2.pinArgs.count = gvar_pin_update_rate.val.v_uint;
-		traceArgs2.pinArgs.rayMarchStepSize = gvar_pin_ray_march_step_size.val.v_float;
-		traceArgs2.pinArgs.writePinStepSize = gvar_pin_write_pin_step_size.val.v_float;
-		traceArgs2.pinArgs.bitMaskIterations = gvar_bitmask_iterations.val.v_uint;
-		traceArgs2.pinArgs.executionID       = frameCount;
-		traceArgs2.pinArgs.disableBitmaskDistanceSampling = gvar_pin_disable_bit_mask_distance_sampling.val.v_bool;
-		traceArgs2.pinArgs.disableBitmaskTransmittanceSampling = gvar_pin_disable_bit_mask_transmittance_sampling.val.v_bool;
-		traceArgs2.pinArgs.bitMaskSize = gvar_pin_bit_mask_size.val.v_uint;
-		traceArgs2.pinArgs.updateAll                           = gvar_pin_update_all.val.v_bool || resetPlots;
+		if (viewChange || firstFrame || shaderRecompile)
+		{
+			pinTypeLeft     = static_cast<PinType>(gvar_pin_mode_left.val.v_uint);
+			pinTypeRight    = static_cast<PinType>(gvar_pin_mode_right.val.v_uint);
+			sampleModeLeft  = static_cast<PinSampleMode>(gvar_sample_mode_left.val.v_uint);
+			sampleModeRight = static_cast<PinSampleMode>(gvar_sample_mode_right.val.v_uint);
+		}
 
+		TraceArgs traceArgsLeft                  = commonTraceArgs;
+		traceArgsLeft.cvsArgs.pinGridBuffer      = leftPinGridBuffer;
+		traceArgsLeft.pExecutionCounter          = &executionCounterLeft;
+		traceArgsLeft.cvsArgs.pinArgs.type       = pinTypeLeft;
+		traceArgsLeft.cvsArgs.pinArgs.sampleMode = sampleModeLeft;
 
-		iec.cmdRunEqualTime<TraceArgs>(cmdBuf, cmdTrace, traceArgs, traceArgs2, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
+		TraceArgs traceArgsRight                  = commonTraceArgs;
+		traceArgsRight.cvsArgs.pinGridBuffer      = rightPinGridBuffer;
+		traceArgsRight.pExecutionCounter          = &executionCounterRight;
+		traceArgsRight.cvsArgs.pinArgs.type       = pinTypeRight;
+		traceArgsRight.cvsArgs.pinArgs.sampleMode = sampleModeRight;
+
+		iec.cmdRunEqualTime<TraceArgs>(cmdBuf, cmdTrace, traceArgsLeft, traceArgsRight, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
 		//// Show results
 		gvar_mse.val.v_float = iec.getMSE();
 		Image swapchainImg = getSwapchainImage();

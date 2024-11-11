@@ -10,7 +10,15 @@ struct TraceArgs
 	CameraCI            cameraCI;
 	USceneData          sceneData;
 
+	// medium:
+	Buffer              mediumInstanceBuffer;
+	TLAS                mediumTlas;
+	Image               mediumTexture;
+
 	// general config:
+
+	// submodule
+	float               rayMarchStepSize;
 
 	// shader runtime
 	float areaLightEmissionScale;
@@ -27,16 +35,9 @@ struct TraceArgs
 	uint32_t force_ray_marched_transmittance_sampling_al;
 	uint32_t force_ray_marched_transmittance_sampling_env_map;
 
-
-	// medium:
-	Buffer              mediumInstanceBuffer;
-	TLAS                mediumTlas;
-	Image               mediumTexture;
-	float               rayMarchStepSize;
+	uint32_t* pExecutionCounter = nullptr;
 
 	// custom medium sampler:
-	
-	// todo:
 	CVSArgs 		   cvsArgs;
 	// debug:
 	bool                enableDebugging;

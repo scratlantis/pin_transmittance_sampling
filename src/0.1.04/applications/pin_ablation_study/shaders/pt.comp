@@ -5,7 +5,7 @@
 #extension GL_EXT_ray_query : enable
 
 layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
-layout(binding = LOCAL_BINDING_OFFSET + 1) buffer VOLUME_INSTANCE { GLSLMediumInstance volInst[];};
+layout(binding = LOCAL_BINDING_OFFSET + 1) buffer VOLUME_INSTANCE { GLSLInstance volInst[];};
 layout(binding = LOCAL_BINDING_OFFSET + 2) uniform accelerationStructureEXT boxAs;
 
 //#define SKIP_ENVMAP
