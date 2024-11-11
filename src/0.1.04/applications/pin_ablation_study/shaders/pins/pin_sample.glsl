@@ -82,6 +82,69 @@ uint sampleMaskHitCount(uint mask, vec3 origin, vec3 direction, float maxLength,
 	//      101110011000000000000000
 	return bitCount(mask); // [0, 32]
 }
+
+
+// V1
+float pinSampleDistanceV1(GLSLPinCacheEntryV1 pin, vec3 direction)
+{
+	bool invertDir = direction.z < 0;
+	if(invertDir)
+	{
+		return pin.collisionDistance.x
+	}
+	else
+	{
+		return pin.collisionDistance.y;
+	}
+}
+float pinSampleTransmittanceV1(GLSLPinCacheEntryV1 pin, vec3 direction)
+{
+	bool invertDir = direction.z < 0;
+	if(invertDir)
+	{
+		return pin.transmittance.x
+	}
+	else
+	{
+		return pin.transmittance.y;
+	}
+}
+// V2
+float pinSampleDistanceV2(GLSLPinCacheEntryV2 pin, vec3 origin, vec3 direction, float maxLength, inout uint seed)
+{
+	return sampleMaskDistance(pin.mask, origin, direction, maxLength, seed);
+}
+
+float pinSampleTransmittanceV2(GLSLPinCacheEntryV2 pin, vec3 origin, vec3 direction, float maxLength, inout uint seed)
+{
+	return sampleMaskHitCount(pin.mask, origin, direction, maxLength, seed)) > 0 ? 0.0 : 1.0;
+}
+// V3
+float pinSampleDistanceV3(GLSLPinCacheEntryV3 pin, vec3 origin, vec3 direction, float maxLength, uint sampleMaskIterations, inout uint seed)
+{
+	float p = 1.0 - pin.minTransmittance;
+	uint sampleMask = randomBitMask(p, sampleMaskIterations, seed);
+	uint mask = pin.mask & sampleMask;
+	return sampleMaskDistance(mask, origin, direction, maxLength, seed);
+}
+float pinSampleTransmittanceV3(GLSLPinCacheEntryV3 pin, vec3 origin, vec3 direction, float maxLength, inout uint seed)
+{
+	uint hitCount = sampleMaskHitCount(pin.mask, origin, direction, maxLength, seed))
+	float transmittance = pow(pin.minTransmittance, hit)
+	return transmittance;
+}
+
+#if PIN_TYPE == 1
+#define PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, sampleMaskIterations, seed) pinSampleDistanceV1(pin, dir)
+#define PIN_SAMPLE_TRANSMITTANCE(pin, origin, dir, maxLength, seed) pinSampleTransmittanceV1(pin, dir)
+#elif PIN_TYPE == 2
+#define PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, sampleMaskIterations, seed) pinSampleDistanceV2(pin, origin, dir, maxLength, seed)
+#define PIN_SAMPLE_TRANSMITTANCE(pin, origin, dir, maxLength, seed) pinSampleTransmittanceV2(pin, origin, dir, maxLength, seed)
+#elif PIN_TYPE == 3
+#define PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, sampleMaskIterations, seed) pinSampleDistanceV3(pin, origin, dir, maxLength, sampleMaskIterations, seed)
+#define PIN_SAMPLE_TRANSMITTANCE(pin, origin, dir, maxLength, seed) pinSampleTransmittanceV3(pin, origin, dir, maxLength, seed)
+#endif
+
 #endif
 
 

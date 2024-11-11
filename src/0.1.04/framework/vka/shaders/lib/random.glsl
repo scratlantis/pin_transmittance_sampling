@@ -62,6 +62,11 @@ vec3 random3D( vec3  v ) {
     );
 }
 
+uint hash3f(vec3 v)
+{
+	return hash(floatBitsToUint(v));
+}
+
 float unormNext(inout uint seed)
 {
     seed = hash(seed);

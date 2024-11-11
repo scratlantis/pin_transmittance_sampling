@@ -76,19 +76,11 @@ GLSLPinCacheEntryV3 pin_create_v3(vec3 origin, vec3 dir, inout uint seed)
 }
 
 
-
-#ifndef PIN_TYPE
-#define PIN_TYPE 1
-#endif
-
 #if PIN_TYPE == 1
-#define PIN_STRUCT GLSLPinCacheEntryV1
 #define CREATE_PIN(origin, dir, seed) pin_create_v1(origin, dir, seed)
 #elif PIN_TYPE == 2
-#define PIN_STRUCT GLSLPinCacheEntryV2
 #define CREATE_PIN(origin, dir, seed) pin_create_v2(origin, dir, seed)
 #elif PIN_TYPE == 3
-#define PIN_STRUCT GLSLPinCacheEntryV3
 #define CREATE_PIN(origin, dir, seed) pin_create_v3(origin, dir, seed)
 #endif
 

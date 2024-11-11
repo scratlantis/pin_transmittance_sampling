@@ -1,6 +1,6 @@
 #include "pin_create.glsl"
 
-layout(binding = LOCAL_BINDING_OFFSET) buffer PIN_GRID
+layout(binding = LOCAL_BINDING_OFFSET) writeonly buffer PIN_GRID
 {
 	PIN_STRUCT pin_grid[];
 };
