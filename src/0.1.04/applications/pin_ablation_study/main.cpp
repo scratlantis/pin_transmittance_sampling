@@ -88,7 +88,7 @@ int main()
 	GLSLInstance instance{};
 	instance.cullMask = 0xFF;
 	instance.mat      = getMatrix(vec3(0, 0.2, -0.3), vec3(0.0, 180.0, 0.0), 0.1);
-	sceneBuilder.addModel(cmdBuf, "under_the_c/scene_3.obj", &instance, 1);
+	sceneBuilder.addModel(cmdBuf, "under_the_c/scene_1.obj", &instance, 1);
 	scene = sceneBuilder.create(cmdBuf, gState.heap);
 	scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
 #endif

@@ -22,7 +22,7 @@ float cvsSampleDistance(vec3 origin, vec3 dir, float maxLength, inout uint seed)
 // quantisation
 #if SAMPLE_TYPE != 0
 	apply_jitter(origin, dir, jitterPos, jitterDir, seed);
-	quantise_to_pin_grid(origin, dir);
+	quantise_to_pin_grid_with_jitter(origin, dir, seed);
 #endif
 // fixed seed per grid cell (simulate pin usage)
 #if(SAMPLE_TYPE == 2)
@@ -40,7 +40,7 @@ float cvsSampleTransmittance(vec3 origin, vec3 dir, float maxLength, inout uint 
 // quantisation
 #if SAMPLE_TYPE != 0
 	apply_jitter(origin, dir, jitterPos, jitterDir, seed);
-	quantise_to_pin_grid(origin, dir);
+	quantise_to_pin_grid_with_jitter(origin, dir, seed);
 #endif
 // fixed seed per grid cell (simulate pin usage)
 #if(SAMPLE_TYPE == 2)

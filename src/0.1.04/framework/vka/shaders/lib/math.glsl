@@ -117,11 +117,21 @@ vec3 gridPos3D(uint idx, uint gridSize)
 
 
 
+//vec3 sphericalToCartesian(float phi, float theta)
+//{
+//	return vec3(sin(phi)*cos(theta), sin(phi)*sin(theta), cos(phi));
+//}
+
+
 vec3 sphericalToCartesian(float phi, float theta)
 {
-	return vec3(sin(phi)*cos(theta), sin(phi)*sin(theta), cos(phi));
+	return vec3(sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta));
 }
 
+//vec3 sphericalToCartesian(vec2 v)
+//{
+//	return vec3(sin(v.y)*cos(v.x), sin(v.y)*sin(v.x), cos(v.y));
+//}
 vec3 sphericalToCartesian(vec2 v)
 {
 	return vec3(sin(v.y)*cos(v.x), sin(v.y)*sin(v.x), cos(v.y));
