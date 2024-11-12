@@ -48,6 +48,7 @@ float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out Hit
 		hitType = PATH_VERTEX_TYPE_SURFACE_SCATTER;
 	}
 	// Trace Medium
+	float tMediumMin = tGeom;
 	rayQueryEXT rq;
 	rayQueryInitializeEXT(rq, boxAs, 0, cullMask, ray.origin, ray.tmin, ray.direction, ray.tmax);
 	while(rayQueryProceedEXT(rq))
@@ -83,9 +84,10 @@ float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out Hit
 							vec3 localCollisionPos = localEntry + tLocal * localDir;
 							vec3 collisionPos = rayQueryGetIntersectionObjectToWorldEXT(rq, false) * vec4(localCollisionPos, 1.0);
 							float tMedium = distance(ray.origin, collisionPos);
-							if(tMedium < tGeom )
+							if(tMedium < tMediumMin)
 							{
 								rayQueryGenerateIntersectionEXT(rq, tMedium);
+								tMediumMin = tMedium;
 							}
 						}
 					}
@@ -110,9 +112,10 @@ float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out Hit
 						vec3 localCollisionPos = localPos + tLocal * localDir;
 						vec3 collisionPos = rayQueryGetIntersectionObjectToWorldEXT(rq, false) * vec4(localCollisionPos, 1.0);
 						float tMedium = distance(ray.origin, collisionPos);
-						if(tMedium < tGeom )
+						if(tMedium < tMediumMin )
 						{
 							rayQueryGenerateIntersectionEXT(rq, tMedium);
+							tMediumMin = tMedium;
 						}
 					}
 				}
@@ -289,9 +292,9 @@ void main()
 			mat4x3 tangentFrame;
 			uint cullMask = 0xFF;
 
-			uint distanceSampleFlags = force_ray_marched_distance_sampling < i ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
-			uint transmittanceSampleFlagsAl = force_ray_marched_transmittance_sampling_al < i ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
-			uint transmittanceSampleFlagsEnvMap = force_ray_marched_transmittance_sampling_env_map < i ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
+			uint distanceSampleFlags = force_ray_marched_distance_sampling > i ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
+			uint transmittanceSampleFlagsAl = force_ray_marched_transmittance_sampling_al > i ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
+			uint transmittanceSampleFlagsEnvMap = force_ray_marched_transmittance_sampling_env_map > i ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
 
 			Ray nextRay = nextBounce(ray, distanceSampleFlags, cullMask, seed, hitType, matData, tangentFrame);
 			SI_nextBounce(nextRay, hitType)
@@ -396,7 +399,6 @@ void main()
 		}
 		SI_finalizeSample()
 	}
-
 	totalIllumination /= float(sampleCount);
 	imageStore(colorOut, ivec2(gl_GlobalInvocationID.xy), vec4(totalIllumination, 1.0));
 	SI_setTotalContribution(totalIllumination)

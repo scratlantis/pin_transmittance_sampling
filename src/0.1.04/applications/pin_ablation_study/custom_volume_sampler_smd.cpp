@@ -75,7 +75,7 @@ void bindCVSModule(ComputeCmd &cmd, const CVSData &data, const CVSArgs &args)
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_POS_GRID_SIZE", args.pinGridExtent.positionGridSize});
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_DIR_GRID_SIZE", args.pinGridExtent.directionGridSize});
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_TYPE", static_cast<uint32_t>(args.pinArgs.type)});
-	cmd.pipelineDef.shaderDef.args.push_back({"PIN_SAMPLE_MODE", static_cast<uint32_t>(args.pinArgs.sampleMode)});
+	cmd.pipelineDef.shaderDef.args.push_back({"SAMPLE_TYPE", static_cast<uint32_t>(args.pinArgs.sampleMode)});
 	cmd.pipelineDef.shaderDef.args.push_back({"RNG_SAMPLE_MASK_ITERATIONS", args.pinArgs.bitMaskIterations});
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_TYPE", static_cast<uint32_t>(args.pinArgs.type)});
 	cmd.pushSpecializationConst(args.pinArgs.jitterPos);

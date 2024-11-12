@@ -32,8 +32,8 @@ GVar gvar_pin_pos_grid_size{"Pin Pos Grid Size", 10U, GVAR_UINT_RANGE, GUI_CAT_P
 GVar gvar_pin_dir_grid_size{"Pin Dir Grid Size", 8U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 256U}};
 GVar gvar_pin_ray_march_step_size_coefficient{"Pin ray march step size coefficient", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_write_pin_step_size{"Pin write step size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
-GVar gvar_pin_update_mode{"Pin update mode", 0, GVAR_ENUM, GUI_CAT_PINS, std::vector<std::string>({"All", "Trace"})};
-GVar gvar_pin_update_rate{"Pin update rate", 1000U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 100U}};
+GVar gvar_pin_update_mode{"Pin update mode", 1U, GVAR_ENUM, GUI_CAT_PINS, std::vector<std::string>({"All", "Trace"})};
+GVar gvar_pin_update_rate{"Pin update rate", 1U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 100U}};
 GVar gvar_pin_trace_update_ray_count{"Pin trace update ray count", 1000U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 1000000U}};
 GVar gvar_force_rm_distance{"Force distance ray marching", 0U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 16U}};
 GVar gvar_force_rm_transmittance_al{"Force transmittance ray marching for area lights", 0U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 16U}};

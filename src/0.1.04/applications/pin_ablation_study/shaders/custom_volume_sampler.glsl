@@ -14,13 +14,15 @@ layout(constant_id = CUSTOM_VOLUME_SAMPLER_SPEC_CONST_OFFSET + 1) const float ji
 // 0: No pins
 // 1-3: Pins V1-V3 (Precomputed pins)
 
+
+
 #if PIN_TYPE == 0
 float cvsSampleDistance(vec3 origin, vec3 dir, float maxLength, inout uint seed)
 {
 // quantisation
 #if SAMPLE_TYPE != 0
 	apply_jitter(origin, dir, jitterPos, jitterDir, seed);
-	quantise_to_pin_grid(origin, dir, maxLength, seed);
+	quantise_to_pin_grid(origin, dir);
 #endif
 // fixed seed per grid cell (simulate pin usage)
 #if(SAMPLE_TYPE == 2)
@@ -38,7 +40,7 @@ float cvsSampleTransmittance(vec3 origin, vec3 dir, float maxLength, inout uint 
 // quantisation
 #if SAMPLE_TYPE != 0
 	apply_jitter(origin, dir, jitterPos, jitterDir, seed);
-	quantise_to_pin_grid(origin, dir, maxLength, seed);
+	quantise_to_pin_grid(origin, dir);
 #endif
 // fixed seed per grid cell (simulate pin usage)
 #if(SAMPLE_TYPE == 2)
@@ -55,7 +57,7 @@ float cvsSampleTransmittance(vec3 origin, vec3 dir, float maxLength, inout uint 
 #else
 
 // require pins
-layout(binding = LOCAL_BINDING_OFFSET) readonly buffer PIN_GRID
+layout(binding = CUSTOM_VOLUME_SAMPLER_BINDING_OFFSET) readonly buffer PIN_GRID
 {
 	PIN_STRUCT pin_grid[];
 };
@@ -67,7 +69,7 @@ float cvsSampleDistance(vec3 origin, vec3 dir, float maxLength, inout uint seed)
 #endif
 // quantisation
 #if SAMPLE_TYPE == 1
-	quantise_to_pin_grid(origin, dir, maxLength, seed);
+	quantise_to_pin_grid(origin, dir);
 #endif
 // compute pin
 #if SAMPLE_TYPE != 2
@@ -75,6 +77,7 @@ float cvsSampleDistance(vec3 origin, vec3 dir, float maxLength, inout uint seed)
 #else
 	PIN_STRUCT pin = pin_grid[pin_cache_offset(origin, dir)];
 #endif
+//SI_printf("PIN_TYPE %d\n",PIN_TYPE);
 	return PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, seed);
 }
 
@@ -85,7 +88,7 @@ float cvsSampleTransmittance(vec3 origin, vec3 dir, float maxLength, inout uint 
 #endif
 // quantisation
 #if SAMPLE_TYPE == 1
-	quantise_to_pin_grid(origin, dir, maxLength, seed);
+	quantise_to_pin_grid(origin, dir);
 #endif
 // compute pin
 #if SAMPLE_TYPE != 2
@@ -93,6 +96,7 @@ float cvsSampleTransmittance(vec3 origin, vec3 dir, float maxLength, inout uint 
 #else
 	PIN_STRUCT pin = pin_grid[pin_cache_offset(origin, dir)];
 #endif
+
 	return PIN_SAMPLE_TRANSMITTANCE(pin, origin, dir, maxLength, seed);
 }
 

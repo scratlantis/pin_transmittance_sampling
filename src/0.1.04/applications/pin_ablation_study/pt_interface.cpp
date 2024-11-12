@@ -71,5 +71,5 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	pc.envMapEmissionScale    = args.envMapEmissionScale;
 	cmd.pushConstant(&pc, sizeof(PushStruct));
 	cmd.exec(cmdBuf);
-	*args.pExecutionCounter++;
+	*args.pExecutionCounter = *args.pExecutionCounter + 1;
 }

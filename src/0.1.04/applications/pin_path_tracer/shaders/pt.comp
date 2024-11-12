@@ -29,6 +29,24 @@ layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 3) const uint firstRandomBounce =
 
 const uint TRACE_FLAG_FORCE_RAYMARCHE = 1;
 
+vec3 visualizeAABBs(Ray ray)
+{
+	rayQueryEXT rq;
+	vec3 color = vec3(0.0);
+	rayQueryInitializeEXT(rq, boxAs, 0, 0xFF, ray.origin, ray.tmin, ray.direction, ray.tmax);
+	uint cnt = 1;
+	while(rayQueryProceedEXT(rq))
+	{
+		if (rayQueryGetIntersectionTypeEXT(rq, false) == gl_RayQueryCandidateIntersectionAABBEXT)
+		{
+			uint id = rayQueryGetIntersectionInstanceCustomIndexEXT(rq, false);
+			color += 0.2 * random3D(id+(cnt++)*100);
+		}
+	}
+	return color;
+}
+
+
 float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out HitData hitData, out uint hitType)
 {
 	// Trace Geometry
@@ -47,6 +65,7 @@ float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out Hit
 		hitType = PATH_VERTEX_TYPE_SURFACE_SCATTER;
 	}
 	// Trace Medium
+	float tMediumMin = tGeom;
 	rayQueryEXT rq;
 	rayQueryInitializeEXT(rq, boxAs, 0, cullMask, ray.origin, ray.tmin, ray.direction, ray.tmax);
 	while(rayQueryProceedEXT(rq))
@@ -82,9 +101,10 @@ float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out Hit
 							vec3 localCollisionPos = localEntry + tLocal * localDir;
 							vec3 collisionPos = rayQueryGetIntersectionObjectToWorldEXT(rq, false) * vec4(localCollisionPos, 1.0);
 							float tMedium = distance(ray.origin, collisionPos);
-							if(tMedium < tGeom )
+							if(tMedium < tMediumMin )
 							{
 								rayQueryGenerateIntersectionEXT(rq, tMedium);
+								tMediumMin = tMedium;
 							}
 						}
 					}
@@ -109,9 +129,10 @@ float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out Hit
 						vec3 localCollisionPos = localPos + tLocal * localDir;
 						vec3 collisionPos = rayQueryGetIntersectionObjectToWorldEXT(rq, false) * vec4(localCollisionPos, 1.0);
 						float tMedium = distance(ray.origin, collisionPos);
-						if(tMedium < tGeom )
+						if(tMedium < tMediumMin )
 						{
 							rayQueryGenerateIntersectionEXT(rq, tMedium);
+							tMediumMin = tMedium;
 						}
 					}
 				}
@@ -256,6 +277,8 @@ Ray nextBounce(
 	return nextRay;
 }
 
+#define SKIP_ENVMAP
+
 void main()
 {
 	if(!validInvocation())
@@ -271,11 +294,11 @@ void main()
 	vec3 totalIllumination = vec3(0.0);
 
 	SI_initHist(50, 1000, 0.0, 2.0);
-
 	for(uint j = 0; j < SAMPLE_COUNT; j++)
 	{
 		SI_resetPts()
 		Ray ray = genPrimaryRay(gl_GlobalInvocationID.xy, seed);
+		//totalIllumination += visualizeAABBs(ray);
 		SI_initPts(ray)
 		for(uint i = 0; i < maxDepth; i++)
 		{
@@ -300,7 +323,7 @@ void main()
 			}
 			else if(hitType == PATH_VERTEX_TYPE_LEAF_INFINITY)
 			{
-				if(i == 0)
+				//if(i == 0)
 				{
 					totalIllumination += ray.weight * sampleEnvMap(ray.direction) * pc.envMapEmissionScale;
 				}

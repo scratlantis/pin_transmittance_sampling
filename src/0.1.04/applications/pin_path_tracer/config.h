@@ -127,7 +127,7 @@ struct DefaultFixedCameraState : public vka::FixedCameraState
 		up          = glm::vec3(0.0f, 1.0f, 0.0f);
 		yaw         = 90.f;
 		pitch       = 0.0f;
-		moveSpeed   = 0.2f;
+		moveSpeed   = 1.2f;
 		turnSpeed   = 0.25f;
 		scrollSpeed = 0.1f;
 	}

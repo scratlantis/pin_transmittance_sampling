@@ -103,7 +103,7 @@ int main()
 	mediumInstance.cullMask = 0xFF;
 	Buffer mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
-	uint32_t                              mediumInstanceCount = 50;
+	uint32_t                              mediumInstanceCount = 16;
 	std::vector<GLSLMediumInstance>       mediumInstances(mediumInstanceCount);
 	std::mt19937                          rngGen(42);
 	std::uniform_real_distribution<float> dist(0.0, 1.0);

@@ -91,8 +91,8 @@ void apply_jitter(inout vec3 pos, inout vec3 dir, float jitterPos, float jitterD
 {
 	if(jitterPos > 0.0 || jitterDir > 0.0)
 	{
-		vec3 pos = pos + jitterPos * (vec3(0.5) - random3D(seed)) * 1.0 / PIN_POS_GRID_SIZE;
-		vec3 dir = dir + jitterDir * (vec3(0.5) - random3D(seed)) * 1.0 / PIN_DIR_GRID_SIZE;
+		pos = pos + jitterPos * (vec3(0.5) - random3D(seed)) * 1.0 / PIN_POS_GRID_SIZE;
+		dir = dir + jitterDir * (vec3(0.5) - random3D(seed)) * 1.0 / PIN_DIR_GRID_SIZE;
 		pos = clamp(pos, vec3(0.0), vec3(1.0));
 		dir = normalize(dir);
 	}

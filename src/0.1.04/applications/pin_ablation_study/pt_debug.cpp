@@ -27,7 +27,7 @@ TraceDebugData cmdPrepareDebugData(CmdBuffer cmdBuf, TraceArgs args)
 	// Historgram resources
 	if (args.debugArgs.enableHistogram)
 	{
-		bool histogramBuffersInitialized = gState.feedbackDataCache->fetch(data.histBuf, hasher("hist")) && histogramBuffersInitialized;
+		bool histogramBuffersInitialized = gState.feedbackDataCache->fetch(data.histBuf, hasher("hist"));
 		histogramBuffersInitialized = gState.feedbackDataCache->fetch(data.histDataBuf, hasher("histData")) && histogramBuffersInitialized;
 		histogramBuffersInitialized = gState.feedbackDataCache->fetch(data.histCountBuf, hasher("histCount")) && histogramBuffersInitialized;
 
