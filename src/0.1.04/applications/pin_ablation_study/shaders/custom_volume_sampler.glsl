@@ -1,7 +1,7 @@
 #ifndef CUSTOM_VOLUME_SAMPLER_H
 #define CUSTOM_VOLUME_SAMPLER_H
-#include "pins/pin_common.glsl
-
+#include "pins/pin_create.glsl"
+#include "pins/pin_sample.glsl"
 layout(constant_id = CUSTOM_VOLUME_SAMPLER_SPEC_CONST_OFFSET) const float jitterPos = 0.0;
 layout(constant_id = CUSTOM_VOLUME_SAMPLER_SPEC_CONST_OFFSET + 1) const float jitterDir = 0.0;
 

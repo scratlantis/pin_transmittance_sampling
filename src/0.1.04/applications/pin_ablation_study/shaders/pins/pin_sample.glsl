@@ -1,6 +1,7 @@
 #ifndef PIN_SAMPLE_H
 #define PIN_SAMPLE_H
 
+#include "interface_structs.glsl"
 #include "pin_common.glsl"
 float sampleMaskDistance(uint mask, vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
@@ -90,7 +91,7 @@ float pinSampleDistanceV1(GLSLPinCacheEntryV1 pin, vec3 direction)
 	bool invertDir = direction.z < 0;
 	if(invertDir)
 	{
-		return pin.collisionDistance.x
+		return pin.collisionDistance.x;
 	}
 	else
 	{
@@ -102,7 +103,7 @@ float pinSampleTransmittanceV1(GLSLPinCacheEntryV1 pin, vec3 direction)
 	bool invertDir = direction.z < 0;
 	if(invertDir)
 	{
-		return pin.transmittance.x
+		return pin.transmittance.x;
 	}
 	else
 	{
@@ -117,7 +118,7 @@ float pinSampleDistanceV2(GLSLPinCacheEntryV2 pin, vec3 origin, vec3 direction, 
 
 float pinSampleTransmittanceV2(GLSLPinCacheEntryV2 pin, vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
-	return sampleMaskHitCount(pin.mask, origin, direction, maxLength, seed)) > 0 ? 0.0 : 1.0;
+	return sampleMaskHitCount(pin.mask, origin, direction, maxLength, seed) > 0 ? 0.0 : 1.0;
 }
 // V3
 float pinSampleDistanceV3(GLSLPinCacheEntryV3 pin, vec3 origin, vec3 direction, float maxLength, inout uint seed)
@@ -129,8 +130,8 @@ float pinSampleDistanceV3(GLSLPinCacheEntryV3 pin, vec3 origin, vec3 direction, 
 }
 float pinSampleTransmittanceV3(GLSLPinCacheEntryV3 pin, vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
-	uint hitCount = sampleMaskHitCount(pin.mask, origin, direction, maxLength, seed))
-	float transmittance = pow(pin.minTransmittance, hit)
+	uint hitCount = sampleMaskHitCount(pin.mask, origin, direction, maxLength, seed);
+	float transmittance = pow(pin.minTransmittance, hitCount);
 	return transmittance;
 }
 

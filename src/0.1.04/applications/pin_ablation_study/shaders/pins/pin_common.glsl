@@ -84,16 +84,15 @@ bool get_pin_segment(vec3 inOrigin, vec3 inDir, out vec3 start, out vec3 end)
 	{
 		dir = -dir;
 	}
-	vec3 start, end;
-	return unitCubeIntersection(origin, dir, start, end);
+	return unitCubeIntersection(inOrigin, dir, start, end);
 }
 
 void apply_jitter(inout vec3 pos, inout vec3 dir, float jitterPos, float jitterDir, inout uint seed)
 {
-	if(jitter.x > 0.0 || jitter.y > 0.0)
+	if(jitterPos > 0.0 || jitterDir > 0.0)
 	{
-		vec3 pos = pos + jitter.x * (vec3(0.5) - random3D(seed)) * 1.0 / PIN_POS_GRID_SIZE;
-		vec3 dir = dir + jitter.y * (vec3(0.5) - random3D(seed)) * 1.0 / PIN_DIR_GRID_SIZE;
+		vec3 pos = pos + jitterPos * (vec3(0.5) - random3D(seed)) * 1.0 / PIN_POS_GRID_SIZE;
+		vec3 dir = dir + jitterDir * (vec3(0.5) - random3D(seed)) * 1.0 / PIN_DIR_GRID_SIZE;
 		pos = clamp(pos, vec3(0.0), vec3(1.0));
 		dir = normalize(dir);
 	}
@@ -102,8 +101,8 @@ void apply_jitter(inout vec3 pos, inout vec3 dir, float jitterPos, float jitterD
 void quantise_to_pin_grid(inout vec3 pos, inout vec3 dir)
 {
 	uint pinIdx = pin_cache_offset(pos, dir);
-	vec3 pos = pin_pos(pinIdx);
-	vec3 dir = pin_dir(pinIdx);
+	pos = pin_pos(pinIdx);
+	dir = pin_dir(pinIdx);
 }
 
 #endif

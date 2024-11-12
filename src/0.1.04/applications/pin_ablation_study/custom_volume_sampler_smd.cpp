@@ -53,7 +53,7 @@ CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, const TraceArgs &args)
 	cmd.pushDescriptor(data.pinGridBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_POS_GRID_SIZE", cvsArgs.pinGridExtent.positionGridSize});
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_DIR_GRID_SIZE", cvsArgs.pinGridExtent.directionGridSize});
-	cmd.pipelineDef.shaderDef.args.push_back({"PIN_WRITE_STEP_SIZE", cvsArgs.traceUpdateArgs.writePinStepSize});
+	cmd.pipelineDef.shaderDef.args.push_back({"PIN_WRITE_STEP_SIZE", std::to_string(cvsArgs.traceUpdateArgs.writePinStepSize)});
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_TYPE", static_cast<uint32_t>(cvsArgs.pinArgs.type)});
 	struct PushStruct
 	{
@@ -77,6 +77,7 @@ void bindCVSModule(ComputeCmd &cmd, const CVSData &data, const CVSArgs &args)
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_TYPE", static_cast<uint32_t>(args.pinArgs.type)});
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_SAMPLE_MODE", static_cast<uint32_t>(args.pinArgs.sampleMode)});
 	cmd.pipelineDef.shaderDef.args.push_back({"RNG_SAMPLE_MASK_ITERATIONS", args.pinArgs.bitMaskIterations});
+	cmd.pipelineDef.shaderDef.args.push_back({"PIN_TYPE", static_cast<uint32_t>(args.pinArgs.type)});
 	cmd.pushSpecializationConst(args.pinArgs.jitterPos);
 	cmd.pushSpecializationConst(args.pinArgs.jitterDir);
 }

@@ -32,7 +32,7 @@ GVar gvar_pin_pos_grid_size{"Pin Pos Grid Size", 10U, GVAR_UINT_RANGE, GUI_CAT_P
 GVar gvar_pin_dir_grid_size{"Pin Dir Grid Size", 8U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 256U}};
 GVar gvar_pin_ray_march_step_size_coefficient{"Pin ray march step size coefficient", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_write_pin_step_size{"Pin write step size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
-GVar gvar_pin_update_mode{"Pin update mode", false, GVAR_ENUM, GUI_CAT_PINS, std::vector<std::string>({"All", "Trace"})};
+GVar gvar_pin_update_mode{"Pin update mode", 0, GVAR_ENUM, GUI_CAT_PINS, std::vector<std::string>({"All", "Trace"})};
 GVar gvar_pin_update_rate{"Pin update rate", 1000U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 100U}};
 GVar gvar_pin_trace_update_ray_count{"Pin trace update ray count", 1000U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 1000000U}};
 GVar gvar_force_rm_distance{"Force distance ray marching", 0U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 16U}};
@@ -43,11 +43,10 @@ GVar gvar_jitter_pos{"Jitter pos", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.0f, 
 GVar gvar_jitter_dir{"Jitter dir", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.0f, 1.0f}};
 
 // Render Mode
-GVar gvar_pin_mode_left{"Pin Mode Left", 0U, GVAR_UINT_RANGE, GUI_CAT_RENDER_MODE, std::vector<std::string>({"None", "V1", "V2", "V3"})};
-GVar gvar_pin_mode_right{"Pin Mode Right", 3U, GVAR_UINT_RANGE, GUI_CAT_RENDER_MODE, std::vector<std::string>({"None", "V1", "V2", "V3"})};
-
-GVar gvar_sample_mode_left{"Sample Mode Left", 0U, GVAR_UINT_RANGE, GUI_CAT_RENDER_MODE, std::vector<std::string>({"Unquantised", "Quantised", "Precomputed"})};
-GVar gvar_sample_mode_right{"Sample Mode Right", 2U, GVAR_UINT_RANGE, GUI_CAT_RENDER_MODE, std::vector<std::string>({"Unquantised", "Quantised", "Precomputed"})};
+GVar gvar_pin_mode_left{"Pin Mode Left", 0U, GVAR_ENUM, GUI_CAT_RENDER_MODE, std::vector<std::string>({"None", "V1", "V2", "V3"})};
+GVar gvar_sample_mode_left{"Sample Mode Left", 0U, GVAR_ENUM, GUI_CAT_RENDER_MODE, std::vector<std::string>({"Unquantised", "Quantised", "Precomputed"})};
+GVar gvar_pin_mode_right{"Pin Mode Right", 3U, GVAR_ENUM, GUI_CAT_RENDER_MODE, std::vector<std::string>({"None", "V1", "V2", "V3"})};
+GVar gvar_sample_mode_right{"Sample Mode Right", 2U, GVAR_ENUM, GUI_CAT_RENDER_MODE, std::vector<std::string>({"Unquantised", "Quantised", "Precomputed"})};
 
 // Metrics
 GVar gvar_mse{"MSE: %.8f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};

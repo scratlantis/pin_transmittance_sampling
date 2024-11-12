@@ -1,6 +1,6 @@
 #ifndef PIN_CREATE_H
 #define PIN_CREATE_H
-
+#include "interface_structs.glsl"
 #include "pin_common.glsl"
 GLSLPinCacheEntryV1 pin_create_v1(vec3 inOrigin, vec3 inDir, inout uint seed)
 {
@@ -21,13 +21,14 @@ GLSLPinCacheEntryV1 pin_create_v1(vec3 inOrigin, vec3 inDir, inout uint seed)
 	return pin;
 
 }
-GLSLPinCacheEntryV2 pin_create_v2(vec3 origin, vec3 dir, inout uint seed)
+GLSLPinCacheEntryV2 pin_create_v2(vec3 inOrigin, vec3 inDir, inout uint seed)
 {
 	vec3 origin = clamp(inOrigin, 0.0 , 0.99999);
 	vec3 start, end;
 	get_pin_segment(origin, inDir, start, end);
 	vec3 dir = normalize(end - start);
 
+	GLSLPinCacheEntryV2 pin;
 	uint stepCount = 32;
 	float stepLength = distance(end,start) / float(stepCount);
 	uint mask = 0;
@@ -41,14 +42,16 @@ GLSLPinCacheEntryV2 pin_create_v2(vec3 origin, vec3 dir, inout uint seed)
 		}
 	}
 	pin.mask = mask;
+	return pin;
 }
-GLSLPinCacheEntryV3 pin_create_v3(vec3 origin, vec3 dir, inout uint seed)
+GLSLPinCacheEntryV3 pin_create_v3(vec3 inOrigin, vec3 inDir, inout uint seed)
 {
 	vec3 origin = clamp(inOrigin, 0.0 , 0.99999);
 	vec3 start, end;
 	get_pin_segment(origin, inDir, start, end);
 	vec3 dir = normalize(end - start);
 
+	GLSLPinCacheEntryV3 pin;
 	uint stepCount = 32;
 	float stepLength = distance(end,start) / float(stepCount);
 	float minTransmittance = 1.0;
@@ -73,6 +76,8 @@ GLSLPinCacheEntryV3 pin_create_v3(vec3 origin, vec3 dir, inout uint seed)
 		}
 	}
 	pin.mask = mask;
+
+	return pin;
 }
 
 
