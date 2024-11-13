@@ -1,0 +1,37 @@
+#include "pin_create.glsl"
+
+layout(binding = LOCAL_BINDING_OFFSET) writeonly buffer PIN_GRID
+{
+	PIN_STRUCT pin_grid[];
+};
+
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET) const float scPinWriteStepSize = 0.1;
+
+struct PushStruct
+{
+	uint executionID;
+};
+
+layout(push_constant) uniform PC {PushStruct pc;};
+
+
+void main()
+{
+	if(!validInvocation()) return;
+	uint seed = invocationID() + invocationCount() * pc.executionID;
+
+	uvec3 gID = gl_GlobalInvocationID;
+	uint idx = gID.x;
+
+	vec3 posMin, posMax;
+	vec2 angleMin, angleMax;
+	cell_range(idx, posMin, posMax, angleMin, angleMax);
+	vec3 origin = mix(posMin, posMax, random3D(seed));
+	vec2 angle = mix(angleMin, angleMax, random2D(seed));
+	vec3 dir = sphericalToCartesian(angle);
+
+	PIN_STRUCT pin = CREATE_PIN(origin, dir, seed);
+	pin_grid[idx] = pin;
+}
+
+

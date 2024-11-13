@@ -1,0 +1,444 @@
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_ray_query : enable
+
+layout(binding = LOCAL_BINDING_OFFSET, FORMAT1) writeonly uniform image2D colorOut;
+layout(binding = LOCAL_BINDING_OFFSET + 1) buffer VOLUME_INSTANCE { GLSLInstance volInst[];};
+layout(binding = LOCAL_BINDING_OFFSET + 2) uniform accelerationStructureEXT boxAs;
+
+//#define SKIP_ENVMAP
+
+struct PushStruct
+{
+	float areaLightEmissionScale;
+	float envMapEmissionScale;
+	uint subSampleMode;
+	uint executionID;
+
+	uint minDepth;
+	uint seed;
+	uint firstRandomBounce;
+};
+
+
+layout(push_constant) uniform PC {PushStruct pc;};
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET) const uint maxDepth = 10;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 1) const uint sampleCount = 1;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 2) const uint force_ray_marched_distance_sampling = 0;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 3) const uint force_ray_marched_transmittance_sampling_al = 0;
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET + 4) const uint force_ray_marched_transmittance_sampling_env_map = 0;
+
+
+uvec2 getTargetPixel()
+{
+	uvec2 targetPixel = gl_GlobalInvocationID.xy * pc.subSampleMode;
+	targetPixel.x += pc.executionID % pc.subSampleMode;
+	targetPixel.y += (pc.executionID / pc.subSampleMode) % pc.subSampleMode;
+	return targetPixel;
+}
+
+uint getStaticSeed()
+{
+	uvec2 pixel = getTargetPixel();
+	uint pid = pixelID(pixel);
+	uint seed = pid ^ pc.seed;
+	return seed;
+}
+
+uint getDynamicSeed()
+{
+	uvec2 pixel = getTargetPixel();
+	uint pid = pixelID(pixel);
+	uint eid = pc.executionID / (pc.subSampleMode * pc.subSampleMode);
+	uint seed = (pid + pixelCount() * (eid + 1)) ^ pc.seed;
+	return seed;
+}
+
+bool inBounds()
+{
+	uvec2 pixel = getTargetPixel();
+	return all(lessThan(pixel, imageSize(colorOut)));
+}
+
+
+
+const uint TRACE_FLAG_FORCE_RAYMARCHE = 1;
+
+float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out HitData hitData, out uint hitType)
+{
+	// Trace Geometry
+	#ifndef SKIP_GEOMETRY
+	float tGeom = traceGeometry(ray, cullMask, hitData);
+	#else
+	float tGeom = TMAX;
+	#endif
+	ray.tmax = min(ray.tmax, tGeom);
+	if(ray.tmax == TMAX)
+	{
+		hitType = PATH_VERTEX_TYPE_LEAF_INFINITY;
+	}
+	else
+	{
+		hitType = PATH_VERTEX_TYPE_SURFACE_SCATTER;
+	}
+	// Trace Medium
+	float tMediumMin = tGeom;
+	rayQueryEXT rq;
+	rayQueryInitializeEXT(rq, boxAs, 0, cullMask, ray.origin, ray.tmin, ray.direction, ray.tmax);
+	while(rayQueryProceedEXT(rq))
+	{
+		if (rayQueryGetIntersectionTypeEXT(rq, false) == gl_RayQueryCandidateIntersectionAABBEXT)
+		{
+			vec3 localPos = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(ray.origin, 1.0);
+			vec3 localDir = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(ray.direction, 0.0);
+			localDir = normalize(localDir);
+			vec3 localEntry, localExit;
+			if(unitCubeIntersection(localPos, localDir, localEntry, localExit))
+			{
+				vec3 endPoint = ray.origin + ray.direction * ray.tmax;
+				vec3 localEndPoint = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(endPoint, 1.0);
+				if(!inUnitCube(localPos))
+				{
+					float localTmax = distance(localEndPoint, localPos);
+					float localTEntry = distance(localEntry, localPos);
+					if(localTmax > localTEntry)
+					{
+						float maxLength = min(localTmax - localTEntry, distance(localEntry, localExit));
+						float tLocal;
+						if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
+						{
+							tLocal = rayMarcheMedium(localEntry, localDir, maxLength, seed);
+						}
+						else
+						{
+							tLocal = cvsSampleDistance(localEntry, localDir, maxLength, seed);
+						}
+						if(tLocal != TMAX)
+						{
+							vec3 localCollisionPos = localEntry + tLocal * localDir;
+							vec3 collisionPos = rayQueryGetIntersectionObjectToWorldEXT(rq, false) * vec4(localCollisionPos, 1.0);
+							float tMedium = distance(ray.origin, collisionPos);
+							if(tMedium < tMediumMin)
+							{
+								rayQueryGenerateIntersectionEXT(rq, tMedium);
+								tMediumMin = tMedium;
+							}
+						}
+					}
+				}
+				else
+				{
+					float localTmax = distance(localEndPoint, localPos);
+					float localTExit = distance(localExit, localPos);
+
+					float maxLength = min(localTExit, localTmax);
+					float tLocal;
+					if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
+					{
+						tLocal = rayMarcheMedium(localPos, localDir, maxLength, seed);
+					}
+					else
+					{
+						tLocal = cvsSampleDistance(localPos, localDir, maxLength, seed);
+					}
+					if(tLocal != TMAX)
+					{
+						vec3 localCollisionPos = localPos + tLocal * localDir;
+						vec3 collisionPos = rayQueryGetIntersectionObjectToWorldEXT(rq, false) * vec4(localCollisionPos, 1.0);
+						float tMedium = distance(ray.origin, collisionPos);
+						if(tMedium < tMediumMin )
+						{
+							rayQueryGenerateIntersectionEXT(rq, tMedium);
+							tMediumMin = tMedium;
+						}
+					}
+				}
+			}
+		}
+	}
+	if(rayQueryGetIntersectionTypeEXT(rq, true) == gl_RayQueryCommittedIntersectionGeneratedEXT )
+	{
+		hitType = PATH_VERTEX_TYPE_VOLUME_SCATTER;
+		hitData.instanceCustomID = rayQueryGetIntersectionInstanceCustomIndexEXT(rq, true);
+		return rayQueryGetIntersectionTEXT(rq, true);
+	}
+	return tGeom;
+}
+
+float traceTransmittance(Ray ray, uint flags, uint cullMask, inout uint seed)
+{
+	// Trace Geometry
+	#ifndef SKIP_GEOMETRY
+	float geomTransmittance = traceGeometryTransmittance(ray, cullMask);
+	if(geomTransmittance == 0.0)
+	{
+		return 0.0;
+	}
+	#endif
+	// Trace Medium
+	rayQueryEXT rq;
+	rayQueryInitializeEXT(rq, boxAs, 0, cullMask, ray.origin, ray.tmin, ray.direction, ray.tmax);
+	float totalTransmittance = 1.0;
+	while(rayQueryProceedEXT(rq))
+	{
+		if (rayQueryGetIntersectionTypeEXT(rq, false) == gl_RayQueryCandidateIntersectionAABBEXT)
+			{
+			vec3 localPos = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(ray.origin, 1.0);
+			vec3 localDir = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(ray.direction, 0.0);
+			localDir = normalize(localDir);
+			vec3 localEntry, localExit;
+			if(unitCubeIntersection(localPos, localDir, localEntry, localExit))
+			{
+				vec3 endPoint = ray.origin + ray.direction * ray.tmax;
+				vec3 localEndPoint = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(endPoint, 1.0);
+
+				if(!inUnitCube(localPos))
+				{
+					float localTmax = distance(localEndPoint, localPos);
+					float localTEntry = distance(localEntry, localPos);
+					if(localTmax > localTEntry)
+					{
+						float maxLength = min(localTmax - localTEntry, distance(localEntry, localExit));
+						//maxLength = distance(localEntry, localExit);
+						float localTransmittance;
+						if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
+						{
+							localTransmittance = rayMarcheMediumTransmittance(localEntry, localDir, maxLength, seed);
+						}
+						else
+						{
+							localTransmittance = cvsSampleTransmittance(localEntry, localDir, maxLength, seed);
+						}
+						totalTransmittance *= localTransmittance;
+						if(totalTransmittance < EPSILON)
+						{
+							rayQueryTerminateEXT(rq);
+						}
+					}
+				}
+				else
+				{
+					float localTmax = distance(localEndPoint, localPos);
+					float localTExit = distance(localExit, localPos);
+
+					float maxLength = min(localTExit, localTmax);
+					float localTransmittance;
+					if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
+					{
+						localTransmittance = rayMarcheMediumTransmittance(localPos, localDir, maxLength, seed);
+					}
+					else
+					{
+						localTransmittance = cvsSampleTransmittance(localPos, localDir, maxLength, seed);
+					}
+					totalTransmittance *= localTransmittance;
+					if(totalTransmittance < EPSILON)
+					{
+						rayQueryTerminateEXT(rq);
+					}
+				}
+			}
+		}
+	}
+	return totalTransmittance;
+
+}
+
+
+#if AREA_LIGHT_COUNT > 0
+void sampleDirectIllumAreaLight(vec3 pos, uint flags, uint cullMask, inout uint seed, out vec3 L_i, out vec3 omega_i)
+{
+	Ray ray = genDirectIllumRayAreaLight(pos, seed);
+	float transmittance = traceTransmittance(ray, flags, cullMask, seed);
+	L_i = transmittance * ray.weight * pc.areaLightEmissionScale;
+	omega_i = ray.direction;
+	
+	SI_setTransmittance(transmittance)
+	SI_setSourceDistance(ray.tmax)
+}
+#endif
+
+void sampleDirectIllumEnvMap(vec3 pos, uint flags, uint cullMask, inout uint seed, out vec3 L_i, out vec3 omega_i)
+{
+	Ray ray = genDirectIllumRayEnvMap(pos, seed);
+	float transmittance = traceTransmittance(ray, flags, cullMask, seed);
+	L_i = transmittance * ray.weight * pc.envMapEmissionScale;
+	omega_i = ray.direction;
+
+	SI_setTransmittance(transmittance)
+	SI_setSourceDistance(ray.tmax)
+}
+
+
+Ray nextBounce(
+	Ray ray, uint flags, uint cullMask,
+	inout uint seed,
+	out uint hitType, out MaterialData matData, out mat4x3 tangentFrame)
+{
+	Ray nextRay;
+	HitData hitData;
+	float t = traceDistance(ray, flags, cullMask, seed, hitData, hitType);
+	
+	if(hitType == PATH_VERTEX_TYPE_SURFACE_SCATTER)
+	{
+		evalHit(hitData, matData, tangentFrame);
+		nextRay = reflectLampertDiffuse(matData, tangentFrame, seed);
+	}
+	else if(hitType == PATH_VERTEX_TYPE_VOLUME_SCATTER)
+	{
+		tangentFrame[3] = ray.origin + t * ray.direction;
+		matData.albedo = volInst[hitData.instanceCustomID].color;
+		nextRay = scatterUniform(matData.albedo, tangentFrame[3], seed);
+	}
+	nextRay.weight *= ray.weight;
+	return nextRay;
+}
+
+void main()
+{
+	if(!validInvocation())
+	{
+		return;
+	}
+	if(!inBounds())
+	{
+		return;
+	}
+	uint seed = getStaticSeed();
+	if(pc.firstRandomBounce == 0)
+	{
+		seed = getDynamicSeed();
+	}
+
+	vec3 totalIllumination = vec3(0.0);
+
+	SI_initHist(50, 1000, 0.0, 2.0);
+	uvec2 targetPixel = getTargetPixel();
+
+	for(uint j = 0; j < sampleCount; j++)
+	{
+		SI_resetPts()
+		Ray ray = genPrimaryRay(targetPixel, seed);
+		SI_initPts(ray)
+		for(uint i = 0; i < maxDepth; i++)
+		{
+			if(pc.firstRandomBounce != 0 && pc.firstRandomBounce == i)
+			{
+				seed = getDynamicSeed();
+			}
+			uint hitType;
+			MaterialData matData;
+			mat4x3 tangentFrame;
+			uint cullMask = 0xFF;
+
+			uint distanceSampleFlags = force_ray_marched_distance_sampling > i ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
+			uint transmittanceSampleFlagsAl = force_ray_marched_transmittance_sampling_al > i ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
+			uint transmittanceSampleFlagsEnvMap = force_ray_marched_transmittance_sampling_env_map > i ? TRACE_FLAG_FORCE_RAYMARCHE : 0;
+
+			Ray nextRay = nextBounce(ray, distanceSampleFlags, cullMask, seed, hitType, matData, tangentFrame);
+			SI_nextBounce(nextRay, hitType)
+
+			vec3 L_o = vec3(0.0);
+			if(hitType == PATH_VERTEX_TYPE_LEAF)
+			{
+				totalIllumination += ray.weight * matData.emission;
+				break;
+			}
+			else if(hitType == PATH_VERTEX_TYPE_LEAF_INFINITY)
+			{
+				if(i == 0)
+				{
+					totalIllumination += ray.weight * sampleEnvMap(ray.direction) * pc.envMapEmissionScale;
+				}
+				break;
+			}
+			else if(hitType == PATH_VERTEX_TYPE_SURFACE_SCATTER) 
+			{
+				if(dot(ray.direction,tangentFrame[2]) > 0.0)
+				{
+					continue;
+				}
+
+				if(i == 0) // Emission only from the first hit. Other emissions from light sources are collected via NEE
+				{
+					L_o += matData.emission * pc.areaLightEmissionScale;
+				}
+				vec3 brdf = lampertBRDF(matData.albedo);
+				vec3 L_i, omega_i;
+				float cosTerm;
+				// Direct illumination from area lights
+				#if AREA_LIGHT_COUNT > 0
+				#ifndef SKIP_GEOMETRY
+				{
+					SI_nextSample(RAY_DOMAIN_AREA_LIGHT)
+
+					sampleDirectIllumAreaLight(tangentFrame[3], transmittanceSampleFlagsAl, cullMask, seed, L_i, omega_i);
+					cosTerm = pos_dot(tangentFrame[2], omega_i);
+					L_o += brdf * L_i * cosTerm;
+
+					SI_setBSDF(brdf)
+					SI_setCosineTerm(cosTerm)
+					SI_setIncomingRadiance(L_i)
+				}
+				#endif
+				#endif
+				// Direct illumination from envMap
+				#ifndef SKIP_ENVMAP
+				{
+					SI_nextSample(RAY_DOMAIN_ENV_MAP)
+
+					sampleDirectIllumEnvMap(tangentFrame[3], transmittanceSampleFlagsEnvMap, cullMask, seed, L_i, omega_i);
+					cosTerm = pos_dot(tangentFrame[2], omega_i);
+					L_o += brdf * L_i * cosTerm;
+
+					SI_setBSDF(brdf)
+					SI_setCosineTerm(cosTerm)
+					SI_setIncomingRadiance(L_i)
+				}
+				#endif
+			}
+			else if(hitType == PATH_VERTEX_TYPE_VOLUME_SCATTER)
+			{
+				// Direct illumination from area lights
+				vec3 bsdf = uniformScatterBSDF(matData.albedo);
+				vec3 L_i, omega_i;
+				#if AREA_LIGHT_COUNT > 0
+				#ifndef SKIP_GEOMETRY
+				{
+					SI_nextSample(RAY_DOMAIN_AREA_LIGHT)
+
+					sampleDirectIllumAreaLight(tangentFrame[3], transmittanceSampleFlagsAl, cullMask, seed, L_i, omega_i);
+					L_o += bsdf * L_i;
+
+					SI_setBSDF(bsdf)
+					SI_setIncomingRadiance(L_i)
+				}
+				#endif
+				#endif
+				// Direct illumination from envMap
+				#ifndef SKIP_ENVMAP
+				{
+					SI_nextSample(RAY_DOMAIN_ENV_MAP)
+
+					sampleDirectIllumEnvMap(tangentFrame[3], transmittanceSampleFlagsEnvMap, cullMask, seed, L_i, omega_i);
+					L_o += bsdf * L_i;
+
+					SI_setBSDF(bsdf)
+					SI_setIncomingRadiance(L_i)
+				}
+				#endif
+			}
+
+			if(pc.minDepth <= i)
+			{
+				totalIllumination += ray.weight * L_o;
+			}
+
+			ray = nextRay;
+		}
+		SI_finalizeSample()
+	}
+	totalIllumination /= float(sampleCount);
+	imageStore(colorOut, ivec2(targetPixel), vec4(totalIllumination, 1.0));
+	SI_setTotalContribution(totalIllumination)
+	SI_writePtPlot()
+}

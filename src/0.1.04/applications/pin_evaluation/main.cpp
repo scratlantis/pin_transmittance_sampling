@@ -13,14 +13,15 @@ GVar gvar_emission_scale_env_map{"Env map emission scale", 1.f, GVAR_FLOAT_RANGE
 GVar gvar_skip_geometry{"Skip geometry", false, GVAR_BOOL, GUI_CAT_SCENE};
 
 // Medium
-GVar gvar_medium_density_scale{"Medium density scale", 1000.f, GVAR_FLOAT_RANGE, GUI_CAT_MEDIUM, {0.f, 4000.f}};
+GVar gvar_medium_density_scale{"Medium density scale", 1000.f, GVAR_FLOAT_RANGE, GUI_CAT_MEDIUM, {0.f, 500.f}};
 
 // Path Tracing
 GVar gvar_ray_march_step_size{"Ray March Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.01f, 1.f}};
 GVar gvar_bounce_count{"Bounce Count", 5U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {1U, 16U}};
 GVar gvar_min_bounce{"Min Bounce", 0U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 16U}};
-GVar gvar_fixed_seed{"Fixed seed", 0U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 10000U}};
+GVar gvar_pt_seed{"Seed", 42U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 10000U}};
 GVar gvar_first_random_bounce{"First random bounce", 0U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 16U}};
+GVar gvar_sub_sample_mode{"Subsample mode", 1U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {1U, 4U}};
 
 // Tone Mapping
 GVar gvar_tone_mapping_enable{"Tone mapping", true, GVAR_BOOL, GUI_CAT_TONE_MAPPING};
@@ -135,24 +136,36 @@ int main()
 	Buffer        leftPinGridBuffer  = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 	Buffer        rightPinGridBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
+	ResourceCache traceResourceCache = ResourceCache();
+
 	while (!gState.io.shouldTerminate())
 	{
 		//// Get Updates
-		bool              firstFrame         = frameCount == 0;
-		bool              shaderRecompile    = gState.io.keyPressedEvent[GLFW_KEY_R];
-		bool              leftClickInView    = mouseInView(viewDimensions) && gState.io.mouse.leftPressedEvent();
-		bool              leftPressedInView  = mouseInView(viewDimensions) && gState.io.mouse.leftPressed;
-		std::vector<bool> settingsChanged    = buildGui();
-		bool              anySettingsChanged = orOp(settingsChanged);
-		bool              camRotated         = mouseInView(viewDimensions) && cam.keyControl(0.016);
-		bool              camMoved           = mouseInView(viewDimensions) && gState.io.mouse.rightPressed && cam.mouseControl(0.016);
-		bool              viewChange         = camRotated || camMoved || anySettingsChanged || firstFrame || shaderRecompile || gState.io.swapchainRecreated();
-		bool              selectPixel        = leftClickInView && gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL];
+		bool              firstFrame          = frameCount == 0;
+		bool              fullShaderRecompile = gState.io.keyPressedEvent[GLFW_KEY_R];
+		bool              fastShaderRecompile = gState.io.keyPressedEvent[GLFW_KEY_F];
+		bool              shaderRecompile     = fullShaderRecompile || fastShaderRecompile;
+		bool              leftClickInView     = mouseInView(viewDimensions) && gState.io.mouse.leftPressedEvent();
+		bool              leftPressedInView   = mouseInView(viewDimensions) && gState.io.mouse.leftPressed;
+		std::vector<bool> settingsChanged     = buildGui();
+		bool              anySettingsChanged  = orOp(settingsChanged);
+		bool              camRotated          = mouseInView(viewDimensions) && cam.keyControl();
+		bool              camMoved            = mouseInView(viewDimensions) && gState.io.mouse.rightPressed && cam.mouseControl();
+		bool              viewChange          = camRotated || camMoved || anySettingsChanged || firstFrame || shaderRecompile || gState.io.swapchainRecreated();
+		bool              selectPixel         = leftClickInView && gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL];
 
 
-		if (shaderRecompile)
+		if (fullShaderRecompile)
 		{
 			clearShaderCache();
+			traceResourceCache.clearShaders();
+			gState.io.buildShaderLib();
+		}
+		if (fastShaderRecompile)
+		{
+			vkDeviceWaitIdle(gState.device.logical);
+			traceResourceCache.clearShaders();
+			gState.shaderLog = "";
 			gState.io.buildShaderLib();
 		}
 
@@ -204,6 +217,13 @@ int main()
 		commonTraceArgs.areaLightEmissionScale = gvar_emission_scale_al.val.v_float;
 		commonTraceArgs.envMapEmissionScale    = gvar_emission_scale_env_map.val.v_float;
 
+		commonTraceArgs.minDepth                                         = gvar_min_bounce.val.v_uint;
+		commonTraceArgs.seed											 = gvar_pt_seed.val.v_uint;
+		commonTraceArgs.firstRandomBounce                                = gvar_first_random_bounce.val.v_uint;
+		commonTraceArgs.subSampleMode                                    = gvar_sub_sample_mode.val.v_uint;
+
+		commonTraceArgs.pTraceResourceCache = &traceResourceCache;
+
 		// require shader recompilation
 		if (firstFrame || leftClickInView || shaderRecompile)
 		{
@@ -211,9 +231,6 @@ int main()
 			commonTraceArgs.rayMarchStepSize                                 = gvar_ray_march_step_size.val.v_float;
 			commonTraceArgs.sampleCount                                      = 1;
 			commonTraceArgs.maxDepth                                         = gvar_bounce_count.val.v_uint;
-			commonTraceArgs.minDepth                                         = gvar_min_bounce.val.v_uint;
-			commonTraceArgs.fixedSeed                                        = gvar_fixed_seed.val.v_uint;
-			commonTraceArgs.firstRandomBounce                                = gvar_first_random_bounce.val.v_uint;
 			commonTraceArgs.skipGeometry                                     = gvar_skip_geometry.val.v_bool;
 			commonTraceArgs.force_ray_marched_distance_sampling              = gvar_force_rm_distance.val.v_uint;
 			commonTraceArgs.force_ray_marched_transmittance_sampling_al      = gvar_force_rm_transmittance_al.val.v_uint;
@@ -290,6 +307,8 @@ int main()
 		frameCount++;
 	}
 	//// Save settings
+	vkDeviceWaitIdle(gState.device.logical);
+	traceResourceCache.clearAll();
 	GVar::storeAll(configPath + "last_session.json");
 	gState.destroy();
 }

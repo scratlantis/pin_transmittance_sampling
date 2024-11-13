@@ -1,0 +1,47 @@
+#include "pin_create.glsl"
+
+layout(binding = LOCAL_BINDING_OFFSET) writeonly buffer PIN_GRID
+{
+	PIN_STRUCT pin_grid[];
+};
+
+layout(constant_id = LOCAL_SPEC_CONST_OFFSET) const float scPinWriteStepSize = 0.1;
+
+struct PushStruct
+{
+	uint executionID;
+};
+
+layout(push_constant) uniform PC {PushStruct pc;};
+
+// Only compatible with pin v2 and v3
+void main()
+{
+	if(!validInvocation()) return;
+	uint seed = invocationID() + invocationCount() * pc.executionID;
+
+	// Generate pin
+	vec3 dir = normalize(random3D(seed + 0x362123)-vec3(0.5));
+	vec3 origin = 2.0*(random3D(seed + 0x491630))-vec3(0.5);
+	vec3 start, end;
+	if(!unitCubeIntersection(origin, dir, start, end)) return;
+	PIN_STRUCT pin = CREATE_PIN(origin, dir, seed);
+
+	// Write pin to grid
+	const uint maxSteps = uint(SQRT3 / scPinWriteStepSize) + 1;
+	float t = -scPinWriteStepSize * unormNext(seed);
+	float maxLenght = distance(start, end);
+	for(uint i = 0; i < maxSteps; i++)
+	{
+		t += scPinWriteStepSize;
+		if( t > maxLenght)
+		{
+			break;
+		}
+		vec3 pos = clamp(start + dir * t, 0.0, 0.9999);
+		uint offset = pin_cache_offset(pos, dir);
+		pin_grid[offset] = pin;
+	}
+}
+
+

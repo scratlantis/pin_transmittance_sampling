@@ -50,6 +50,9 @@ namespace vka
 	    bool runLeft  = timeQueryFinished || totalTimingLeft <= totalTimingRight;
 	    bool runRight = timeQueryFinished || totalTimingRight <= totalTimingLeft;
 
+		cmdFill(cmdBuf, localTargetRight, VK_IMAGE_LAYOUT_GENERAL, glm::vec4(0.0f));
+	    cmdFill(cmdBuf, localTargetLeft, VK_IMAGE_LAYOUT_GENERAL, glm::vec4(0.0f));
+	    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
 	    if (timeQueryFinished)
 	    {
 		    tqManager.cmdResetQueryPool(cmdBuf);
