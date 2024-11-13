@@ -16,7 +16,7 @@ GVar gvar_skip_geometry{"Skip geometry", false, GVAR_BOOL, GUI_CAT_SCENE};
 GVar gvar_medium_density_scale{"Medium density scale", 1000.f, GVAR_FLOAT_RANGE, GUI_CAT_MEDIUM, {0.f, 500.f}};
 
 // Path Tracing
-GVar gvar_ray_march_step_size{"Ray March Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.01f, 1.f}};
+GVar gvar_ray_march_step_size{"RM Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.01f, 1.f}};
 GVar gvar_bounce_count{"Bounce Count", 5U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {1U, 16U}};
 GVar gvar_min_bounce{"Min Bounce", 0U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 16U}};
 GVar gvar_pt_seed{"Seed", 42U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 10000U}};
@@ -31,14 +31,14 @@ GVar gvar_tone_mapping_exposure{"Tone mapping exposure", 1.0f, GVAR_FLOAT_RANGE,
 // Pins
 GVar gvar_pin_pos_grid_size{"Pin Pos Grid Size", 10U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 64U}};
 GVar gvar_pin_dir_grid_size{"Pin Dir Grid Size", 8U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 256U}};
-GVar gvar_pin_ray_march_step_size_coefficient{"Pin ray march step size coefficient", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
+GVar gvar_pin_ray_march_step_size_coefficient{"Pin RM step size coefficient", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_write_pin_step_size{"Pin write step size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_update_mode{"Pin update mode", 1U, GVAR_ENUM, GUI_CAT_PINS, std::vector<std::string>({"All", "Trace"})};
 GVar gvar_pin_update_rate{"Pin update rate", 1U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 100U}};
 GVar gvar_pin_trace_update_ray_count{"Pin trace update ray count", 1000U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 1000000U}};
-GVar gvar_force_rm_distance{"Force distance ray marching", 0U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 16U}};
-GVar gvar_force_rm_transmittance_al{"Force transmittance ray marching for area lights", 0U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 16U}};
-GVar gvar_force_rm_transmittance_env_map{"Force transmittance ray marching for env map", 0U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 16U}};
+GVar gvar_force_rm_distance{"Force distance RM", 0U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 16U}};
+GVar gvar_force_rm_transmittance_al{"Area lights force transmittance RM", 0U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 16U}};
+GVar gvar_force_rm_transmittance_env_map{"Env map force transmittance RM", 0U, GVAR_UINT_RANGE, GUI_CAT_PINS, {0U, 16U}};
 GVar gvar_pin_bit_mask_iterations{"Pin sample mask iterations", 5U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 10U}};
 GVar gvar_jitter_pos{"Jitter pos", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.0f, 1.0f}};
 GVar gvar_jitter_dir{"Jitter dir", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.0f, 1.0f}};
@@ -50,7 +50,7 @@ GVar gvar_pin_mode_right{"Pin Mode Right", 3U, GVAR_ENUM, GUI_CAT_RENDER_MODE, s
 GVar gvar_sample_mode_right{"Sample Mode Right", 2U, GVAR_ENUM, GUI_CAT_RENDER_MODE, std::vector<std::string>({"Unquantised", "Quantised", "Precomputed"})};
 
 // Metrics
-GVar gvar_mse{"MSE: %.8f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
+GVar gvar_mse{"Avg squared diff: %.8f E-3", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
 GVar gvar_timing_left{"Timing Left: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
 GVar gvar_timing_right{"Timing Right: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
 
@@ -89,7 +89,7 @@ int main()
 	GLSLInstance instance{};
 	instance.cullMask = 0xFF;
 	instance.mat      = getMatrix(vec3(0, 0.2, -0.3), vec3(0.0, 180.0, 0.0), 0.1);
-	sceneBuilder.addModel(cmdBuf, "under_the_c/scene_3.obj", &instance, 1);
+	sceneBuilder.addModel(cmdBuf, "under_the_c/scene_1.obj", &instance, 1);
 	scene = sceneBuilder.create(cmdBuf, gState.heap);
 	scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
 #endif
@@ -140,6 +140,7 @@ int main()
 
 	while (!gState.io.shouldTerminate())
 	{
+		CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
 		//// Get Updates
 		bool              firstFrame          = frameCount == 0;
 		bool              fullShaderRecompile = gState.io.keyPressedEvent[GLFW_KEY_R];
@@ -147,13 +148,9 @@ int main()
 		bool              shaderRecompile     = fullShaderRecompile || fastShaderRecompile;
 		bool              leftClickInView     = mouseInView(viewDimensions) && gState.io.mouse.leftPressedEvent();
 		bool              leftPressedInView   = mouseInView(viewDimensions) && gState.io.mouse.leftPressed;
-		std::vector<bool> settingsChanged     = buildGui();
-		bool              anySettingsChanged  = orOp(settingsChanged);
 		bool              camRotated          = mouseInView(viewDimensions) && cam.keyControl();
 		bool              camMoved            = mouseInView(viewDimensions) && gState.io.mouse.rightPressed && cam.mouseControl();
-		bool              viewChange          = camRotated || camMoved || anySettingsChanged || firstFrame || shaderRecompile || gState.io.swapchainRecreated();
 		bool              selectPixel         = leftClickInView && gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL];
-
 
 		if (fullShaderRecompile)
 		{
@@ -169,6 +166,12 @@ int main()
 			gState.io.buildShaderLib();
 		}
 
+		std::vector<bool> settingsChanged     = buildGui(cmdBuf, &iec);
+		bool              anySettingsChanged  = orOp(settingsChanged);
+		bool              viewChange          = camRotated || camMoved || anySettingsChanged || firstFrame || shaderRecompile || gState.io.swapchainRecreated();
+
+
+
 		if (selectPixel)
 		{
 			lastClickPos = mouseViewCoord(viewDimensions);
@@ -179,8 +182,6 @@ int main()
 			splitViewCoef += gState.io.mouse.change.x/(float)getScissorRect(viewDimensions).extent.width;
 			splitViewCoef = glm::clamp(splitViewCoef, 0.f, 1.f);
 		}
-		//// Process Updates
-		CmdBuffer cmdBuf       = createCmdBuffer(gState.frame->stack);
 		//// Reset accumulation
 		if (viewChange)
 		{
@@ -293,7 +294,7 @@ int main()
 
 		iec.cmdRunEqualTime<TraceArgs>(cmdBuf, cmdTrace, traceArgsLeft, traceArgsRight, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
 		//// Show results
-		gvar_mse.val.v_float = iec.getMSE();
+		gvar_mse.val.v_float = iec.getMSE() * 1000.f;
 		Image swapchainImg = getSwapchainImage();
 		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.25, 0.25, 0.3, 1.0)).exec(cmdBuf);
 		IECToneMappingArgs toneMappingArgs{};

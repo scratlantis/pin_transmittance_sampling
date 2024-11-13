@@ -25,6 +25,9 @@ void ImageEstimatorComparator::cmdReset(CmdBuffer cmdBuf)
 	timeQueryFinished = true;
 	totalTimingLeft = 0.0f;
 	totalTimingRight = 0.0f;
+	invocationCountLeft = 0;
+	invocationCountRight = 0;
+	mse.clear();
 }
 
 
@@ -114,6 +117,12 @@ void ImageEstimatorComparator::showDiff(CmdBuffer cmdBuf, Image target, VkRect2D
 	                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VkRect2D_OP(localAccumulationTargetLeft->getExtent2D()), targetArea)
 	    .exec(cmdBuf);
 }
+void ImageEstimatorComparator::showDiff(CmdBuffer cmdBuf, Image target)
+{
+	getCmdNormalizeDiff(localAccumulationTargetLeft, localAccumulationTargetRight, target,
+	                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VkRect2D_OP(localAccumulationTargetLeft->getExtent2D()), VkRect2D_OP(target->getExtent2D()))
+	    .exec(cmdBuf);
+}
 float ImageEstimatorComparator::getMSE()
 {
 	Buffer hostMseBuf;
@@ -122,6 +131,15 @@ float ImageEstimatorComparator::getMSE()
 	{
 		mse = *static_cast<float *>(hostMseBuf->map());
 	}
+	mse *= 1.0 / (localAccumulationTargetLeft->getExtent2D().width * localAccumulationTargetLeft->getExtent2D().height);
 	return mse;
+}
+float *ImageEstimatorComparator::getMSEData()
+{
+	return mse.data();
+}
+uint32_t ImageEstimatorComparator::getMSEDataSize()
+{
+	return mse.size();
 }
 }        // namespace vka

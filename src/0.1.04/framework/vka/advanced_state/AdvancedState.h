@@ -8,6 +8,7 @@
 #include "caches/FeedbackDataCache.h"
 #include "caches/ImGuiTextureIDCache.h"
 #include "caches/BinaryLoadCache.h"
+#include "caches/ImageCache.h"
 #include <vka/core/core_state/CoreState.h>
 #include <vka/core/resources/cachable/RenderPass.h>
 
@@ -31,6 +32,7 @@ class AdvancedState : public CoreState
 	DataCache		 *dataCache;
 	ImGuiTextureIDCache *imguiTextureIDCache;
 	BinaryLoadCache  *binaryLoadCache;
+	ImageCache		*imageCache;
 
 	IResourcePool *heap;
 

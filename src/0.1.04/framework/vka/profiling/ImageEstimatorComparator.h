@@ -28,8 +28,12 @@ namespace vka
 
 
 	    void  showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea, IECToneMappingArgs toneMappingArgs = {});
-		void showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
+	    void     showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
+	    void     showDiff(CmdBuffer cmdBuf, Image target);
 	    float getMSE();
+		float* getMSEData();
+		uint32_t getMSEDataSize();
+	  private:
 
 		private:
 		Image localTargetLeft, localTargetRight, localAccumulationTargetLeft, localAccumulationTargetRight;
@@ -40,6 +44,11 @@ namespace vka
 
 		float totalTimingLeft = 0.0f;
 		float totalTimingRight = 0.0f;
+
+		uint32_t invocationCountLeft = 0;
+		uint32_t invocationCountRight = 0;
+
+		std::vector<float> mse;
     };
 
 	template <class EstimatorArgs>
@@ -88,30 +97,49 @@ namespace vka
 	    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	    timeQueryFinished = tqManager.updateTimings();
 
-	    if (timigsLeft)
-	    {
-		    *timigsLeft = tqManager.timings[0];
-	    }
-	    if (timigsRight)
-	    {
-		    *timigsRight = tqManager.timings[1];
-	    }
+	    
 
 		if (runLeft)
 		{
 		    totalTimingLeft += tqManager.timings[0];
+			invocationCountLeft++;
 			getCmdAccumulate(localTargetLeft, localAccumulationTargetLeft, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
 		}
 	    if (runRight)
 		{
 		    totalTimingRight += tqManager.timings[1];
+			invocationCountRight++;
 			getCmdAccumulate(localTargetRight, localAccumulationTargetRight, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
+	    }
+
+		if (timigsLeft)
+	    {
+		    if (invocationCountLeft > 0)
+			{
+			    *timigsLeft = totalTimingLeft / invocationCountLeft;
+		    }
+		    else
+		    {
+			    *timigsLeft = 0.0f;
+		    }
+	    }
+	    if (timigsRight)
+	    {
+		    if (invocationCountRight > 0)
+			{
+			    *timigsRight = totalTimingRight / invocationCountRight;
+		    }
+		    else
+		    {
+			    *timigsRight = 0.0f;
+		    }
 	    }
 
 
 	    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 
 	    cmdComputeMSE(cmdBuf, localAccumulationTargetLeft, localAccumulationTargetRight, mseBuffer, &mseResources);
+	    mse.push_back(getMSE());
     }
 
     template <class EstimatorArgs>

@@ -17,7 +17,7 @@ const std::vector<std::string> GuiCatergories_names_ = {"Scene", "Medium", "Path
 ENUM_ADD_STRING_VALUES(GuiCatergories, GuiCatergories_names_)
 ENUM_ADD_ITERATOR(GuiCatergories, GUI_CAT_SCENE, GUI_CAT_DEBUG)
 
-std::vector<bool> buildGui();
+std::vector<bool> buildGui(CmdBuffer cmdBuf, ImageEstimatorComparator *pIEC);
 
 
 
