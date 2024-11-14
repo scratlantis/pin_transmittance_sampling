@@ -11,6 +11,15 @@ namespace vka
 		float whitePoint;
 		float exposure;
 	};
+	enum IECTarget
+	{
+		IEC_TARGET_LEFT = 0,
+		IEC_TARGET_RIGHT = 1
+	};
+	enum IECRunFlagBits
+	{
+		IEC_RUN_NO_MSE = 0x01,
+	};
 	class ImageEstimatorComparator
 	{
 	  public:
@@ -18,21 +27,28 @@ namespace vka
 	    ~ImageEstimatorComparator() = default;
 	    ImageEstimatorComparator(VkFormat format, float relWidth, float relHeight);
 
-		void cmdReset(CmdBuffer cmdBuf);
+	    ImageEstimatorComparator(VkFormat format, VkExtent2D extent);
+
+		void cmdReset(CmdBuffer cmdBuf, Image imgLeft = nullptr, Image imgRight = nullptr);
 
 		template <class EstimatorArgs>
-	    void cmdRun(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator, EstimatorArgs argsLeft, EstimatorArgs argsRight, float *timigsLeft, float *timigsRight);
+	    void cmdRunEqualRate(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator, EstimatorArgs argsLeft, EstimatorArgs argsRight,
+	                         float *timigsLeft = nullptr, float *timigsRight = nullptr, uint32_t flags = 0);
 
 		template <class EstimatorArgs>
-	    void cmdRunEqualTime(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator, EstimatorArgs argsLeft, EstimatorArgs argsRight, float *timigsLeft, float *timigsRight);
+	    void cmdRun(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator, EstimatorArgs args, IECTarget target, float *timings = nullptr, uint32_t flags = 0);
 
+		template <class EstimatorArgs>
+	    void cmdRunEqualTime(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator, EstimatorArgs argsLeft, EstimatorArgs argsRight,
+	                         float *timigsLeft = nullptr, float *timigsRight = nullptr, uint32_t flags = 0);
 
-	    void  showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea, IECToneMappingArgs toneMappingArgs = {});
+		void     cmdShow(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea, IECTarget src, IECToneMappingArgs toneMappingArgs = {});
+	    void     showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea, IECToneMappingArgs toneMappingArgs = {});
 	    void     showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
 	    void     showDiff(CmdBuffer cmdBuf, Image target);
-	    float getMSE();
-		float* getMSEData();
-		uint32_t getMSEDataSize();
+	    float    getMSE();
+	    float   *getMSEData();
+	    uint32_t getMSEDataSize();
 	  private:
 
 		private:
@@ -50,11 +66,49 @@ namespace vka
 
 		std::vector<float> mse;
     };
+    template <class EstimatorArgs>
+	void cmdRun(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator, EstimatorArgs args, IECTarget target, float* timings, uint32_t flags)
+	{
+
+		Image &localTarget = target == IEC_TARGET_LEFT ? localTargetLeft : localTargetRight;
+		Image &localAccumulationTarget = target == IEC_TARGET_LEFT ? localAccumulationTargetLeft : localAccumulationTargetRight;
+		float &totalTiming = target == IEC_TARGET_LEFT ? totalTimingLeft : totalTimingRight;
+		uint32_t &invocationCount = target == IEC_TARGET_LEFT ? invocationCountLeft : invocationCountRight;
+
+	    cmdFill(cmdBuf, localTarget, VK_IMAGE_LAYOUT_GENERAL, glm::vec4(0.0f));
+	    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
+	    if (timeQueryFinished)
+	    {
+		    tqManager.cmdResetQueryPool(cmdBuf);
+		    tqManager.startTiming(cmdBuf, target, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+			estimator(cmdBuf, localTarget, args);
+		    tqManager.endTiming(cmdBuf, target, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+	    }
+	    else
+	    {
+		    estimator(cmdBuf, localTarget, args);
+	    }
+	    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+	    timeQueryFinished = tqManager.updateTimings();
+	    totalTiming += tqManager.timings[0];
+	    invocationCount++;
+	    getCmdAccumulate(localTarget, localAccumulationTarget, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
+	    if (timings)
+	    {
+		    *timings = totalTiming / invocationCount;
+	    }
+	    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+		if (!(flags & IEC_RUN_NO_MSE))
+		{
+			cmdComputeMSE(cmdBuf, localTarget, localAccumulationTarget, mseBuffer, &mseResources);
+			mse.push_back(getMSE());
+		}
+	}
 
 	template <class EstimatorArgs>
     inline void ImageEstimatorComparator::cmdRunEqualTime(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator,
                                                  EstimatorArgs argsLeft, EstimatorArgs argsRight,
-                                                 float *timigsLeft = nullptr, float *timigsRight = nullptr)
+                                                 float *timigsLeft, float *timigsRight, uint32_t flags)
     {
 	    bool runLeft  = timeQueryFinished || totalTimingLeft <= totalTimingRight;
 	    bool runRight = timeQueryFinished || totalTimingRight <= totalTimingLeft;
@@ -137,15 +191,17 @@ namespace vka
 
 
 	    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-
-	    cmdComputeMSE(cmdBuf, localAccumulationTargetLeft, localAccumulationTargetRight, mseBuffer, &mseResources);
-	    mse.push_back(getMSE());
+	    if (!(flags & IEC_RUN_NO_MSE))
+		{
+			cmdComputeMSE(cmdBuf, localAccumulationTargetLeft, localAccumulationTargetRight, mseBuffer, &mseResources);
+			mse.push_back(getMSE());
+		}
     }
 
     template <class EstimatorArgs>
-    inline void ImageEstimatorComparator::cmdRun(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator,
+    inline void ImageEstimatorComparator::cmdRunEqualRate(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator,
                                                  EstimatorArgs argsLeft, EstimatorArgs argsRight,
-                                                 float *timigsLeft = nullptr, float *timigsRight = nullptr)
+                                                          float *timigsLeft, float *timigsRight, uint32_t flags)
     {
 		if (timeQueryFinished)
 		{
@@ -176,9 +232,12 @@ namespace vka
 	    getCmdAccumulate(localTargetLeft, localAccumulationTargetLeft, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
 	    getCmdAccumulate(localTargetRight, localAccumulationTargetRight, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
 
-		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-
-		cmdComputeMSE(cmdBuf, localAccumulationTargetLeft, localAccumulationTargetRight, mseBuffer, &mseResources);
+	    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+	    if (!(flags & IEC_RUN_NO_MSE))
+		{
+			cmdComputeMSE(cmdBuf, localAccumulationTargetLeft, localAccumulationTargetRight, mseBuffer, &mseResources);
+			mse.push_back(getMSE());
+		}
     }
 
     }        // namespace vka
