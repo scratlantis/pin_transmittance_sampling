@@ -77,51 +77,9 @@ int main()
 	ImageEstimatorComparator iec = ImageEstimatorComparator(VK_FORMAT_R32G32B32A32_SFLOAT, viewDimensions.width, viewDimensions.height);
 	//// Init other stuff
 	FixedCamera                                           cam          = FixedCamera(DefaultFixedCameraState());
-	USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance>();
-	USceneData scene;
 	//// Load stuff:
 	CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
-	//// Load Geometry
-	//sceneBuilder.loadEnvMap("/envmap/2k/autumn_field_2k.hdr", glm::uvec2(64, 64));
-	sceneBuilder.loadEnvMap("/envmap/2k/cloudy_dusky_sky_dome_2k.hdr", glm::uvec2(64, 64));
-	//sceneBuilder.loadEnvMap("/envmap/2k/hochsal_field_2k.hdr", glm::uvec2(64, 64));
-#ifdef RAY_TRACING_SUPPORT
-	GLSLInstance instance{};
-	instance.cullMask = 0xFF;
-	instance.mat      = getMatrix(vec3(0, 0.2, -0.3), vec3(0.0, 180.0, 0.0), 0.1);
-	sceneBuilder.addModel(cmdBuf, "under_the_c/scene_1.obj", &instance, 1);
-	scene = sceneBuilder.create(cmdBuf, gState.heap);
-	scene.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, gState.heap));
-#endif
-	//// Create medium texture
-	const uint32_t mediumExtent1D = 302;
-	VkExtent3D     mediumExtent{mediumExtent1D, mediumExtent1D, mediumExtent1D};
-	Image          medium = createImage(gState.heap, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, mediumExtent);
-	cmdTransitionLayout(cmdBuf, medium, VK_IMAGE_LAYOUT_GENERAL);
-	//// Create medium instances
-	GLSLInstance mediumInstance{};
-	mediumInstance.mat = getMatrix(vec3(-0.2, -0.2, -0.2), vec3(0, 0, 0), 0.4);
-	mediumInstance.invMat = glm::inverse(mediumInstance.mat);
-	mediumInstance.color  = vec3(1.0, 1.0, 1.0);
-	mediumInstance.cullMask = 0xFF;
-	Buffer mediumInstanceBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	uint32_t                              mediumInstanceCount = 50;
-	std::vector<GLSLInstance>			  mediumInstances(mediumInstanceCount);
-	std::mt19937                          rngGen(42);
-	std::uniform_real_distribution<float> dist(0.0, 1.0);
-	for (uint32_t i = 0; i < mediumInstanceCount; i++)
-	{
-		mediumInstances[i]        = mediumInstance;
-		vec3  randomPos           = vec3(3.0)*(vec3(dist(rngGen), dist(rngGen), dist(rngGen)) - vec3(0.5));
-		randomPos.y               = 0.2;
-		float randomScale         = dist(rngGen) * 0.8 + 0.1;
-		mediumInstances[i].mat    = getMatrix(randomPos, vec3(0, 0, -90), randomScale);
-		mediumInstances[i].invMat = glm::inverse(mediumInstances[i].mat);
-	}
-	cmdWriteCopy(cmdBuf, mediumInstanceBuffer, mediumInstances.data(), mediumInstances.size() * sizeof(GLSLInstance));
-	BLAS boxBlas = cmdBuildBoxBlas(cmdBuf, gState.heap);
-	TLAS boxTlas = createTopLevelAS(gState.heap, mediumInstanceCount);
-	default_scene::cmdBuildBoxIntersector<GLSLInstance>(cmdBuf, boxBlas, mediumInstanceBuffer, mediumInstanceCount, boxTlas);
+	TraceResources traceResources = cmdLoadResources(cmdBuf, gState.heap);
 	executeImmediat(cmdBuf);
 	gState.updateSwapchainAttachments();
 
@@ -135,7 +93,6 @@ int main()
 	PinSampleMode sampleModeLeft, sampleModeRight;
 	Buffer        leftPinGridBuffer  = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 	Buffer        rightPinGridBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-
 	ResourceCache traceResourceCache = ResourceCache();
 
 	while (!gState.io.shouldTerminate())
@@ -170,13 +127,10 @@ int main()
 		bool              anySettingsChanged  = orOp(settingsChanged);
 		bool              viewChange          = camRotated || camMoved || anySettingsChanged || firstFrame || shaderRecompile || gState.io.swapchainRecreated();
 
-
-
 		if (selectPixel)
 		{
 			lastClickPos = mouseViewCoord(viewDimensions);
 		}
-
 		if (leftPressedInView)
 		{
 			splitViewCoef += gState.io.mouse.change.x/(float)getScissorRect(viewDimensions).extent.width;
@@ -195,9 +149,8 @@ int main()
 			Buffer scalarBuf;
 			gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "csafe_heptane_302x302x302_uint8.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-			getCmdLoadScalarField(scalarBuf, medium, gvar_medium_density_scale.val.v_float).exec(cmdBuf);
+			getCmdLoadScalarField(scalarBuf, traceResources.mediumTexture, gvar_medium_density_scale.val.v_float).exec(cmdBuf);
 		}
-
 		//// Run Path Tracing
 		CameraCI camCI{};
 		camCI.pos      = cam.getPosition();
@@ -209,23 +162,19 @@ int main()
 		camCI.zNear    = 0.1;
 		camCI.zFar     = 100.0;
 
-		commonTraceArgs.cameraCI               = camCI;
-		commonTraceArgs.sceneData              = scene;
-		commonTraceArgs.mediumInstanceBuffer   = mediumInstanceBuffer;
-		commonTraceArgs.mediumTlas             = boxTlas;
-		commonTraceArgs.mediumTexture          = medium;
-
-		commonTraceArgs.areaLightEmissionScale = gvar_emission_scale_al.val.v_float;
-		commonTraceArgs.envMapEmissionScale    = gvar_emission_scale_env_map.val.v_float;
-
-		commonTraceArgs.minDepth                                         = gvar_min_bounce.val.v_uint;
-		commonTraceArgs.seed											 = gvar_pt_seed.val.v_uint;
-		commonTraceArgs.firstRandomBounce                                = gvar_first_random_bounce.val.v_uint;
-		commonTraceArgs.subSampleMode                                    = gvar_sub_sample_mode.val.v_uint;
-
+		commonTraceArgs.cameraCI  = camCI;
+		commonTraceArgs.resources = traceResources;
 		commonTraceArgs.pTraceResourceCache = &traceResourceCache;
 
-		// require shader recompilation
+		// Push const params
+		commonTraceArgs.areaLightEmissionScale = gvar_emission_scale_al.val.v_float;
+		commonTraceArgs.envMapEmissionScale    = gvar_emission_scale_env_map.val.v_float;
+		commonTraceArgs.minDepth               = gvar_min_bounce.val.v_uint;
+		commonTraceArgs.seed                   = gvar_pt_seed.val.v_uint;
+		commonTraceArgs.firstRandomBounce      = gvar_first_random_bounce.val.v_uint;
+		commonTraceArgs.subSampleMode          = gvar_sub_sample_mode.val.v_uint;
+
+		// Spec const + define params
 		if (firstFrame || leftClickInView || shaderRecompile)
 		{
 			// general config

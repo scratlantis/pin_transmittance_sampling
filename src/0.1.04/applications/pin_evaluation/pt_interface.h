@@ -1,19 +1,14 @@
 #include "config.h"
 #include "pt_debug.h"
 #include "custom_volume_sampler_smd.h"
+#include "pt_resources.h"
 
 using namespace default_scene;
 
 struct TraceArgs
 {
-	// default scene:
-	CameraCI            cameraCI;
-	USceneData          sceneData;
-
-	// medium:
-	Buffer              mediumInstanceBuffer;
-	TLAS                mediumTlas;
-	Image               mediumTexture;
+	TraceResources resources;
+	CameraCI       cameraCI;
 
 	// general config:
 

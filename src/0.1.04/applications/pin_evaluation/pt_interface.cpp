@@ -31,8 +31,8 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 
 	ComputeCmd cmd(invocationCount, shaderPath + "pt.comp", {{"FORMAT1", getGLSLFormat(target->getFormat())}});
 	bindCamera(cmd, camBuf, camInstBuf);
-	bindScene(cmd, &args.sceneData);
-	bindScalarField(cmd, args.mediumTexture, args.rayMarchStepSize);
+	bindScene(cmd, &args.resources.sceneData);
+	bindScalarField(cmd, args.resources.mediumTexture, args.rayMarchStepSize);
 	if (args.enableDebugging)
 	{
 		bindDebugModules(cmd, debugData, args.debugArgs);
@@ -42,8 +42,8 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	bindCVSModule(cmd, cvsData, args.cvsArgs); // Binds pins
 	cmd.pushLocal();
 	cmd.pushDescriptor(target, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-	cmd.pushDescriptor(args.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	cmd.pushDescriptor(args.mediumTlas);
+	cmd.pushDescriptor(args.resources.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	cmd.pushDescriptor(args.resources.mediumTlas);
 
 	cmd.pushSpecializationConst(args.maxDepth);
 	cmd.pushSpecializationConst(args.sampleCount);

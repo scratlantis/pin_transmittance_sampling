@@ -24,6 +24,7 @@ void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Wind
 	imguiTextureIDCache     = new ImGuiTextureIDCache(heap);
 	binaryLoadCache			= new BinaryLoadCache(heap);
 	imageCache				= new ImageCache(heap);
+	uniqueResourceCache		= new UniqueResourceCache(heap);
 }
 
 void AdvancedState::destroy()
@@ -35,6 +36,7 @@ void AdvancedState::destroy()
 	dataCache->clear();
 	imguiTextureIDCache->clear();
 	imageCache->clear();
+	uniqueResourceCache->clear();
 	if (guiEnabled)
 	{
 		imguiWrapper->destroy();
@@ -61,6 +63,7 @@ void AdvancedState::destroy()
 	delete imguiWrapper;
 	delete depthBufferCache;
 	delete imageCache;
+	delete uniqueResourceCache;
 	if (swapchainImage != nullptr)
 	{
 		delete swapchainImage;

@@ -32,7 +32,14 @@ CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, const TraceArgs &args)
 	data.pinGridBuffer = cvsArgs.pinGridBuffer;
 	data.pinGridBuffer->addUsage(VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 	data.pinGridBuffer->changeSize(pinGridMemorySize);
-	CVSUpdateMode updateMode = data.pinGridBuffer->recreate() ? CVSUpdateMode::ALL : cvsArgs.defaultUpdateMode;
+	bool bufferRecreated = data.pinGridBuffer->recreate();
+
+	if (!bufferRecreated && *args.pExecutionCounter % (args.subSampleMode * args.subSampleMode) != 0)
+	{
+		return data;
+	}
+
+	CVSUpdateMode updateMode      = bufferRecreated ? CVSUpdateMode::ALL : cvsArgs.defaultUpdateMode;
 
 	ComputeCmd    cmd;
 	switch (updateMode)	
@@ -48,7 +55,7 @@ CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, const TraceArgs &args)
 			break;
 	}
 	cmd.pushSubmodule(cVkaShaderModulePath + "pt_scalar_field.glsl");
-	default_scene::bindScalarField(cmd, args.mediumTexture, args.rayMarchStepSize * cvsArgs.rayMarchingCoefficient);
+	default_scene::bindScalarField(cmd, args.resources.mediumTexture, args.rayMarchStepSize * cvsArgs.rayMarchingCoefficient);
 	cmd.pushLocal();
 	cmd.pushDescriptor(data.pinGridBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_POS_GRID_SIZE", cvsArgs.pinGridExtent.positionGridSize});

@@ -98,6 +98,10 @@ class TopLevelAS_R : public AccelerationStructure_R
 
 	virtual VkAccelerationStructureTypeKHR      getType() const;
 
+	virtual ResourceType type() const override
+	{
+		return RESOURCE_TYPE_TLAS;
+	}
 
   public:
 	TopLevelAS_R() = default;
