@@ -38,6 +38,7 @@ void cmdFillBuffer(CmdBuffer cmdBuf, Buffer dst, T data)
 void cmdImageMemoryBarrier(CmdBuffer cmdBuf, Image image, VkImageLayout newLayout, uint32_t baseLayer = 0, uint32_t layerCount = 1);
 void cmdTransitionLayout(CmdBuffer cmdBuf, Image image, VkImageLayout newLayout, uint32_t baseLayer = 0, uint32_t layerCount = 1);
 void cmdCopyBufferToImage(CmdBuffer cmdBuf, Buffer src, Image dst, uint32_t layer = 0, uint32_t mipLevel = 0);
+void cmdCopyImageToBuffer(CmdBuffer cmdBuf, Image src, Buffer dst, uint32_t layer = 0, uint32_t mipLevel = 0);
 void cmdUploadImageData(CmdBuffer cmdBuf, void *data, size_t dataSize, Image dst, VkImageLayout finalLayout, uint32_t layer = 0, uint32_t mipLevel = 0);
 void cmdCopyImage(CmdBuffer cmdBuf, Image src, VkImageLayout srcNewLayout, Image dst, VkImageLayout dstNewLayout,
                   ImageSubresourceRange srcSubRange = {0, 0, 1}, ImageSubresourceRange dstSubRange = {0, 0, 1});

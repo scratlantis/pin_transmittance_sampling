@@ -141,6 +141,22 @@ void cmdCopyBufferToImage(CmdBuffer cmdBuf, Buffer src, Image dst, uint32_t laye
     vkCmdCopyBufferToImage(cmdBuf->getHandle(), src->getHandle(), dst->getHandle(), dst->getLayout(), 1, &region);
 }
 
+void cmdCopyImageToBuffer(CmdBuffer cmdBuf, Image src, Buffer dst, uint32_t layer, uint32_t mipLevel)
+{
+	VkBufferImageCopy region{};
+	region.bufferOffset                    = 0;
+	region.bufferRowLength                 = 0;
+	region.bufferImageHeight               = 0;
+	region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel       = mipLevel;
+	region.imageSubresource.baseArrayLayer = layer;
+	region.imageSubresource.layerCount     = 1;
+	region.imageOffset                     = {0, 0, 0};
+	region.imageExtent                     = src->getExtent();
+	cmdClearState(cmdBuf);
+	vkCmdCopyImageToBuffer(cmdBuf->getHandle(), src->getHandle(), src->getLayout(), dst->getHandle(), 1, &region);
+}
+
 void cmdUploadImageData(CmdBuffer cmdBuf, void *data, size_t dataSize, Image dst, VkImageLayout finalLayout, uint32_t layer, uint32_t mipLevel)
 {
 	Buffer stagingBuffer = createStagingBuffer();

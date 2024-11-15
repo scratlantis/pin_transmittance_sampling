@@ -14,7 +14,7 @@ TraceDebugData cmdPrepareDebugData(CmdBuffer cmdBuf, TraceArgs args)
 		gState.feedbackDataCache->fetch(data.indirectBounceBuf, hasher("indirectBounce"));
 		gState.feedbackDataCache->fetch(data.directRayBuf, hasher("directRay"));
 		gState.feedbackDataCache->fetch(data.stateBuf, hasher("state"));
-		shader_debug::cmdResetPtShaderState(cmdBuf, data.indirectBounceBuf, data.directRayBuf, data.stateBuf, args.maxDepth, maxIndirectRaysPerBounce);
+		shader_debug::cmdResetPtShaderState(cmdBuf, data.indirectBounceBuf, data.directRayBuf, data.stateBuf, args.config.maxDepth, maxIndirectRaysPerBounce);
 	}
 	// Y list Plot
 	if (args.debugArgs.enablePlot)

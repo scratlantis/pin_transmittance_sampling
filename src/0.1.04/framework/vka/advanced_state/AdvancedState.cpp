@@ -25,6 +25,7 @@ void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Wind
 	binaryLoadCache			= new BinaryLoadCache(heap);
 	imageCache				= new ImageCache(heap);
 	uniqueResourceCache		= new UniqueResourceCache(heap);
+	exporter				= new Exporter();
 }
 
 void AdvancedState::destroy()
@@ -55,6 +56,7 @@ void AdvancedState::destroy()
 	heap->clear();
 	hostCachedHeap->clear();
 	hostCacheLocalPool->clear();
+	delete exporter;
 	delete framebufferCache;
 	delete modelCache;
 	delete textureCache;
@@ -82,6 +84,7 @@ void AdvancedState::nextFrame()
 		}
 	}
 	guiRendered = false;
+	exporter->processExports();
 }
 
 // resize attachments to swapchain size, and aquire desired layout

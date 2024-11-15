@@ -16,6 +16,7 @@ ImageEstimatorComparator::ImageEstimatorComparator(VkFormat format, float relWid
 	tqManager = TimeQueryManager(gState.heap, 2);
 	mseResources = MSEComputeResources(format, gState.heap);
 	mseBuffer    = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, sizeof(float));
+	isInitialized = true;
 }
 
 ImageEstimatorComparator::ImageEstimatorComparator(VkFormat format, VkExtent2D extent)
@@ -28,8 +29,21 @@ ImageEstimatorComparator::ImageEstimatorComparator(VkFormat format, VkExtent2D e
 	tqManager    = TimeQueryManager(gState.heap, 2);
 	mseResources = MSEComputeResources(format, gState.heap);
 	mseBuffer    = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, sizeof(float));
+	isInitialized = true;
 }
 
+void ImageEstimatorComparator::garbageCollect()
+{
+	if (!isInitialized) return;
+
+	for (auto img : {localTargetLeft, localTargetRight, localAccumulationTargetLeft, localAccumulationTargetRight})
+	{
+		img->garbageCollect();
+	}
+	tqManager.garbageCollect();
+	mseResources.garbageCollect();
+	mseBuffer->garbageCollect();
+}
 
 void ImageEstimatorComparator::cmdReset(CmdBuffer cmdBuf, Image imgLeft, Image imgRight)
 {
@@ -60,6 +74,7 @@ void ImageEstimatorComparator::cmdReset(CmdBuffer cmdBuf, Image imgLeft, Image i
 	invocationCountLeft = 0;
 	invocationCountRight = 0;
 	mse.clear();
+	mseTimings.clear();
 }
 
 

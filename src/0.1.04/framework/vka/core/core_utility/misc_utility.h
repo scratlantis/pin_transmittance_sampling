@@ -4,5 +4,5 @@
 
 namespace vka
 {
-VkQueryPool createQueryPool(IResourcePool *pPool, const VkQueryPoolCreateInfo &ci);
+VkQueryPool createQueryPool(IResourcePool *pPool, const VkQueryPoolCreateInfo &ci, Resource *&res);
 }

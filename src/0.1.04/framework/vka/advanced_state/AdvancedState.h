@@ -10,6 +10,7 @@
 #include "caches/BinaryLoadCache.h"
 #include "caches/ImageCache.h"
 #include "caches/UniqueResourceCache.h"
+#include "Exporter.h"
 #include <vka/core/core_state/CoreState.h>
 #include <vka/core/resources/cachable/RenderPass.h>
 
@@ -36,6 +37,8 @@ class AdvancedState : public CoreState
 	ImageCache		*imageCache;
 	UniqueResourceCache *uniqueResourceCache;
 
+
+	Exporter *exporter;
 	IResourcePool *heap;
 
 	IResourcePool     *hostCachedHeap;

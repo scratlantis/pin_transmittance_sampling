@@ -13,7 +13,7 @@ TimeQueryManager::TimeQueryManager(IResourcePool *pPool, uint32_t queryCount)
 	VkQueryPoolCreateInfo queryPoolCI{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
 	queryPoolCI.queryType  = VK_QUERY_TYPE_TIMESTAMP;
 	queryPoolCI.queryCount = queryResults.size();
-	queryPool              = createQueryPool(pPool, queryPoolCI);
+	queryPool              = createQueryPool(pPool, queryPoolCI, queryPoolRes);
 }
 
 void TimeQueryManager::cmdResetQueryPool(CmdBuffer cmdBuffer)
@@ -64,5 +64,9 @@ bool TimeQueryManager::updateTimings()
 		}
 	}
 	return result != VK_NOT_READY;
+}
+void TimeQueryManager::garbageCollect()
+{
+	queryPoolRes->garbageCollect();
 }
 }        // namespace vka

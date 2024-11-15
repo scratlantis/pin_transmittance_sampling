@@ -4,11 +4,11 @@
 #include "misc_utility.h"
 namespace vka
 {
-	VkQueryPool createQueryPool(IResourcePool* pPool, const VkQueryPoolCreateInfo& ci)
+VkQueryPool createQueryPool(IResourcePool *pPool, const VkQueryPoolCreateInfo &ci, Resource *&res)
 	{
 		VkQueryPool queryPool;
 	    VK_CHECK(vkCreateQueryPool(gState.device.logical, &ci, nullptr, &queryPool));
-	    Resource *res = new QueryPool_R(queryPool);
+	    res = new QueryPool_R(queryPool);
 		res->track(pPool);
 		return queryPool;
     }

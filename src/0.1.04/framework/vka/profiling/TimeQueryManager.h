@@ -16,10 +16,12 @@ class TimeQueryManager
 	void endTiming(CmdBuffer cmdBuffer, uint32_t queryID, VkPipelineStageFlagBits stage);
 
 	bool updateTimings();
+	void garbageCollect();
 
 	std::vector<float> timings;
 
   private:
+	Resource *queryPoolRes = nullptr;
 	VkQueryPool           queryPool;
 	std::vector<uint64_t> queryResults;
 	bool firstUse = true;

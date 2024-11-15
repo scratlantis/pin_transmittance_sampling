@@ -6,7 +6,7 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	std::hash<std::string> hasher;
 	gState.dataCache->fetch(camBuf, hasher("cam_buf"));
 	gState.dataCache->fetch(camInstBuf, hasher("cam_inst_buf"));
-	cmdUpdateCamera(cmdBuf, camBuf, camInstBuf, args.cameraCI);
+	cmdUpdateCamera(cmdBuf, camBuf, camInstBuf, args.sceneParams.cameraCI);
 
 	TraceDebugData       debugData;
 	VkPipelineStageFlags waitStage   = VK_PIPELINE_STAGE_TRANSFER_BIT;
@@ -26,13 +26,13 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	cmdBarrier(cmdBuf, waitStage, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, VK_ACCESS_SHADER_READ_BIT);
 
 	uvec2 invocationCount = uvec2(target->getExtent2D().width, target->getExtent2D().height);
-	uvec2 denominator     = uvec2(args.subSampleMode, args.subSampleMode);
+	uvec2 denominator     = uvec2(args.config.subSampleMode, args.config.subSampleMode);
 	invocationCount       = (invocationCount + denominator - uvec2(1U)) / denominator;
 
 	ComputeCmd cmd(invocationCount, shaderPath + "pt.comp", {{"FORMAT1", getGLSLFormat(target->getFormat())}});
 	bindCamera(cmd, camBuf, camInstBuf);
 	bindScene(cmd, &args.resources.sceneData);
-	bindScalarField(cmd, args.resources.mediumTexture, args.rayMarchStepSize);
+	bindScalarField(cmd, args.resources.mediumTexture, args.config.rayMarchStepSize);
 	if (args.enableDebugging)
 	{
 		bindDebugModules(cmd, debugData, args.debugArgs);
@@ -45,14 +45,14 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	cmd.pushDescriptor(args.resources.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(args.resources.mediumTlas);
 
-	cmd.pushSpecializationConst(args.maxDepth);
-	cmd.pushSpecializationConst(args.sampleCount);
-	cmd.pushSpecializationConst(args.force_ray_marched_distance_sampling);
-	cmd.pushSpecializationConst(args.force_ray_marched_transmittance_sampling_al);
-	cmd.pushSpecializationConst(args.force_ray_marched_transmittance_sampling_env_map);
+	cmd.pushSpecializationConst(args.config.maxDepth);
+	cmd.pushSpecializationConst(args.config.sampleCount);
+	cmd.pushSpecializationConst(args.config.force_ray_marched_distance_sampling);
+	cmd.pushSpecializationConst(args.config.force_ray_marched_transmittance_sampling_al);
+	cmd.pushSpecializationConst(args.config.force_ray_marched_transmittance_sampling_env_map);
 
 
-	if (args.skipGeometry)
+	if (args.sceneParams.skipGeometry)
 	{
 		cmd.pipelineDef.shaderDef.args.push_back({"SKIP_GEOMETRY", ""});
 	}
@@ -73,13 +73,13 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 		uint32_t seed;
 		uint32_t firstRandomBounce;
 	} pc;
-	pc.areaLightEmissionScale = args.areaLightEmissionScale;
-	pc.envMapEmissionScale    = args.envMapEmissionScale;
-	pc.subSampleMode          = args.subSampleMode;
+	pc.areaLightEmissionScale = args.sceneParams.areaLightEmissionScale;
+	pc.envMapEmissionScale    = args.sceneParams.envMapEmissionScale;
+	pc.subSampleMode          = args.config.subSampleMode;
 	pc.executionID = *args.pExecutionCounter;
-	pc.minDepth    = args.minDepth;
-	pc.seed        = args.seed;
-	pc.firstRandomBounce = args.firstRandomBounce;
+	pc.minDepth    = args.config.minDepth;
+	pc.seed        = args.config.seed;
+	pc.firstRandomBounce = args.config.firstRandomBounce;
 
 	cmd.pushConstant(&pc, sizeof(PushStruct));
 

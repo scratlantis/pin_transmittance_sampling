@@ -29,6 +29,8 @@ namespace vka
 
 	    ImageEstimatorComparator(VkFormat format, VkExtent2D extent);
 
+	    void garbageCollect();
+
 		void cmdReset(CmdBuffer cmdBuf, Image imgLeft = nullptr, Image imgRight = nullptr);
 
 		template <class EstimatorArgs>
@@ -57,6 +59,7 @@ namespace vka
 	    bool             timeQueryFinished = true;
 	    MSEComputeResources mseResources;
 		Buffer mseBuffer;
+		bool isInitialized = false;
 
 		float totalTimingLeft = 0.0f;
 		float totalTimingRight = 0.0f;
@@ -65,6 +68,7 @@ namespace vka
 		uint32_t invocationCountRight = 0;
 
 		std::vector<float> mse;
+		std::vector<float> mseTimings;
     };
     template <class EstimatorArgs>
 	void cmdRun(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator, EstimatorArgs args, IECTarget target, float* timings, uint32_t flags)
@@ -102,6 +106,7 @@ namespace vka
 		{
 			cmdComputeMSE(cmdBuf, localTarget, localAccumulationTarget, mseBuffer, &mseResources);
 			mse.push_back(getMSE());
+		    mseTimings.push_back(totalTiming);
 		}
 	}
 
@@ -195,6 +200,7 @@ namespace vka
 		{
 			cmdComputeMSE(cmdBuf, localAccumulationTargetLeft, localAccumulationTargetRight, mseBuffer, &mseResources);
 			mse.push_back(getMSE());
+		    mseTimings.push_back((totalTimingLeft + totalTimingRight) * 0.5);
 		}
     }
 
@@ -237,6 +243,7 @@ namespace vka
 		{
 			cmdComputeMSE(cmdBuf, localAccumulationTargetLeft, localAccumulationTargetRight, mseBuffer, &mseResources);
 			mse.push_back(getMSE());
+		    mseTimings.push_back((totalTimingLeft + totalTimingRight) * 0.5);
 		}
     }
 

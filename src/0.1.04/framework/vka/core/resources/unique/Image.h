@@ -107,6 +107,17 @@ class Image_R : public Resource_T<VkImage>
 	{
 		this->layout = layout;
 	}
+
+	uint32_t getWidth() const
+	{
+		return getExtent().width;
+	}
+
+	uint32_t getHeight() const
+	{
+		return getExtent().height;
+	}
+
 	Image_R(IResourcePool *pPool, VkImageCreateInfo imgCI, bool createView)
 	{
 		ci               = imgCI;

@@ -2,6 +2,7 @@
 #include "pt_interface.h"
 #include "ui.h"
 #include <random>
+#include "OfflineRenderer.h"
 AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders/";
@@ -87,13 +88,11 @@ int main()
 	uint32_t      frameCount    = 0;
 	vec2          lastClickPos  = vec2(1.0);
 	float         splitViewCoef = 0.5;
-	uint32_t      executionCounterLeft, executionCounterRight;
-	TraceArgs     commonTraceArgs{};
-	PinType       pinTypeLeft, pinTypeRight;
-	PinSampleMode sampleModeLeft, sampleModeRight;
-	Buffer        leftPinGridBuffer  = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	Buffer        rightPinGridBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+
 	ResourceCache traceResourceCache = ResourceCache();
+	uint32_t      executionCounterLeft, executionCounterRight;
+	TraceArgs     traceArgsLeft      = TraceArgs(&traceResourceCache, gState.heap, &executionCounterLeft);
+	TraceArgs     traceArgsRight     = TraceArgs(&traceResourceCache, gState.heap, &executionCounterRight);
 
 	while (!gState.io.shouldTerminate())
 	{
@@ -143,7 +142,7 @@ int main()
 			executionCounterLeft = 0;
 			executionCounterRight = 0;
 		}
-		// Process volume data
+		// Update medium
 		if (settingsChanged[GUI_CAT_MEDIUM] || shaderRecompile || firstFrame)
 		{
 			Buffer scalarBuf;
@@ -151,7 +150,7 @@ int main()
 			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 			getCmdLoadScalarField(scalarBuf, traceResources.mediumTexture, gvar_medium_density_scale.val.v_float).exec(cmdBuf);
 		}
-		//// Run Path Tracing
+
 		CameraCI camCI{};
 		camCI.pos      = cam.getPosition();
 		camCI.frontDir = cam.getViewDirection();
@@ -162,84 +161,83 @@ int main()
 		camCI.zNear    = 0.1;
 		camCI.zFar     = 100.0;
 
-		commonTraceArgs.cameraCI  = camCI;
-		commonTraceArgs.resources = traceResources;
-		commonTraceArgs.pTraceResourceCache = &traceResourceCache;
+		TraceSceneParams sceneParams{};
+		sceneParams.areaLightEmissionScale = gvar_emission_scale_al.val.v_float;
+		sceneParams.envMapEmissionScale    = gvar_emission_scale_env_map.val.v_float;
+		sceneParams.cameraCI               = camCI;
+		sceneParams.skipGeometry           = gvar_skip_geometry.val.v_bool;
 
-		// Push const params
-		commonTraceArgs.areaLightEmissionScale = gvar_emission_scale_al.val.v_float;
-		commonTraceArgs.envMapEmissionScale    = gvar_emission_scale_env_map.val.v_float;
-		commonTraceArgs.minDepth               = gvar_min_bounce.val.v_uint;
-		commonTraceArgs.seed                   = gvar_pt_seed.val.v_uint;
-		commonTraceArgs.firstRandomBounce      = gvar_first_random_bounce.val.v_uint;
-		commonTraceArgs.subSampleMode          = gvar_sub_sample_mode.val.v_uint;
+		TracerConfig tracerConfig{};
+		tracerConfig.rayMarchStepSize                                 = gvar_ray_march_step_size.val.v_float;
+		tracerConfig.minDepth                                         = gvar_min_bounce.val.v_uint;
+		tracerConfig.seed                                             = gvar_pt_seed.val.v_uint;
+		tracerConfig.firstRandomBounce                                = gvar_first_random_bounce.val.v_uint;
+		tracerConfig.subSampleMode                                    = gvar_sub_sample_mode.val.v_uint;
+		tracerConfig.sampleCount                                      = 1;
+		tracerConfig.maxDepth                                         = gvar_bounce_count.val.v_uint;
+		tracerConfig.force_ray_marched_distance_sampling              = gvar_force_rm_distance.val.v_uint;
+		tracerConfig.force_ray_marched_transmittance_sampling_al      = gvar_force_rm_transmittance_al.val.v_uint;
+		tracerConfig.force_ray_marched_transmittance_sampling_env_map = gvar_force_rm_transmittance_env_map.val.v_uint;
 
-		// Spec const + define params
-		if (firstFrame || leftClickInView || shaderRecompile)
+		CVSArgs cvsArgs{};
+		cvsArgs.defaultUpdateMode                = static_cast<CVSUpdateMode>(gvar_pin_update_mode.val.v_uint);
+		cvsArgs.updateRate                       = gvar_pin_update_rate.val.v_uint;
+		cvsArgs.traceUpdateArgs.rayCount         = gvar_pin_trace_update_ray_count.val.v_uint;
+		cvsArgs.traceUpdateArgs.writePinStepSize = gvar_pin_write_pin_step_size.val.v_float;
+		cvsArgs.rayMarchingCoefficient           = gvar_pin_ray_march_step_size_coefficient.val.v_float;
+		cvsArgs.pinGridExtent.positionGridSize   = gvar_pin_pos_grid_size.val.v_uint;
+		cvsArgs.pinGridExtent.directionGridSize  = gvar_pin_dir_grid_size.val.v_uint;
+		cvsArgs.pinArgs.bitMaskIterations        = gvar_pin_bit_mask_iterations.val.v_uint;
+		cvsArgs.pinArgs.jitterPos                = gvar_jitter_pos.val.v_float;
+		cvsArgs.pinArgs.jitterDir                = gvar_jitter_dir.val.v_float;
+
+		TraceDebugArgs debugArgs{};
+		if (gvar_enable_debuging.val.v_bool)
 		{
-			// general config
-			commonTraceArgs.rayMarchStepSize                                 = gvar_ray_march_step_size.val.v_float;
-			commonTraceArgs.sampleCount                                      = 1;
-			commonTraceArgs.maxDepth                                         = gvar_bounce_count.val.v_uint;
-			commonTraceArgs.skipGeometry                                     = gvar_skip_geometry.val.v_bool;
-			commonTraceArgs.force_ray_marched_distance_sampling              = gvar_force_rm_distance.val.v_uint;
-			commonTraceArgs.force_ray_marched_transmittance_sampling_al      = gvar_force_rm_transmittance_al.val.v_uint;
-			commonTraceArgs.force_ray_marched_transmittance_sampling_env_map = gvar_force_rm_transmittance_env_map.val.v_uint;
+			debugArgs.pixelPos        = lastClickPos;
+			debugArgs.enableHistogram = true;
+			debugArgs.enablePtPlot    = true;
 
-			// pin config
-			commonTraceArgs.cvsArgs.defaultUpdateMode                = static_cast<CVSUpdateMode>(gvar_pin_update_mode.val.v_uint);
-			commonTraceArgs.cvsArgs.updateRate                       = gvar_pin_update_rate.val.v_uint;
-			commonTraceArgs.cvsArgs.traceUpdateArgs.rayCount         = gvar_pin_trace_update_ray_count.val.v_uint;
-			commonTraceArgs.cvsArgs.traceUpdateArgs.writePinStepSize = gvar_pin_write_pin_step_size.val.v_float;
-			commonTraceArgs.cvsArgs.rayMarchingCoefficient           = gvar_pin_ray_march_step_size_coefficient.val.v_float;
-			commonTraceArgs.cvsArgs.pinGridExtent.positionGridSize   = gvar_pin_pos_grid_size.val.v_uint;
-			commonTraceArgs.cvsArgs.pinGridExtent.directionGridSize  = gvar_pin_dir_grid_size.val.v_uint;
-			commonTraceArgs.cvsArgs.pinArgs.bitMaskIterations        = gvar_pin_bit_mask_iterations.val.v_uint;
-			commonTraceArgs.cvsArgs.pinArgs.jitterPos                = gvar_jitter_pos.val.v_float;
-			commonTraceArgs.cvsArgs.pinArgs.jitterDir                = gvar_jitter_dir.val.v_float;
-		}
-
-		// Debugging visualizations
-		commonTraceArgs.enableDebugging = gvar_enable_debuging.val.v_bool;
-		if (commonTraceArgs.enableDebugging)
-		{
-			commonTraceArgs.debugArgs.pixelPos        = lastClickPos;
-			commonTraceArgs.debugArgs.enableHistogram = true;
-			commonTraceArgs.debugArgs.enablePtPlot    = true;
-
-			commonTraceArgs.debugArgs.ptPlotOptions.writeTotalContribution = gvar_pt_plot_write_total_contribution.val.v_bool;
-			commonTraceArgs.debugArgs.ptPlotOptions.writeIndirectDir       = gvar_pt_plot_write_indirect_dir.val.v_bool;
-			commonTraceArgs.debugArgs.ptPlotOptions.writeIndirectT         = gvar_pt_plot_write_indirect_t.val.v_bool;
-			commonTraceArgs.debugArgs.ptPlotOptions.writeIndirectWeight    = gvar_pt_plot_write_indirect_weight.val.v_bool;
-			commonTraceArgs.debugArgs.ptPlotOptions.bounce                 = gvar_pt_plot_bounce.val.v_uint;
+			debugArgs.ptPlotOptions.writeTotalContribution = gvar_pt_plot_write_total_contribution.val.v_bool;
+			debugArgs.ptPlotOptions.writeIndirectDir       = gvar_pt_plot_write_indirect_dir.val.v_bool;
+			debugArgs.ptPlotOptions.writeIndirectT         = gvar_pt_plot_write_indirect_t.val.v_bool;
+			debugArgs.ptPlotOptions.writeIndirectWeight    = gvar_pt_plot_write_indirect_weight.val.v_bool;
+			debugArgs.ptPlotOptions.bounce                 = gvar_pt_plot_bounce.val.v_uint;
 
 			if (viewChange || selectPixel)
 			{
-				commonTraceArgs.debugArgs.resetHistogram    = true;
-				commonTraceArgs.debugArgs.maxHistCount      = maxHistogramCount;
-				commonTraceArgs.debugArgs.maxHistValueCount = maxHistValueCount;
+				debugArgs.resetHistogram    = true;
+				debugArgs.maxHistCount      = maxHistogramCount;
+				debugArgs.maxHistValueCount = maxHistValueCount;
 			}
 		}
 
-		if (viewChange || firstFrame || shaderRecompile)
+		TraceArgs commonTraceArgs{};
+		commonTraceArgs.resources       = traceResources;
+		commonTraceArgs.sceneParams     = sceneParams;
+		commonTraceArgs.config          = tracerConfig;
+		commonTraceArgs.cvsArgs         = cvsArgs;
+		commonTraceArgs.enableDebugging = gvar_enable_debuging.val.v_bool;
+		commonTraceArgs.debugArgs       = debugArgs;
+
+		TraceArgs newTraceArgsLeft = commonTraceArgs;
+		newTraceArgsLeft.cvsArgs.pinArgs.type = static_cast<PinType>(gvar_pin_mode_left.val.v_uint);
+		newTraceArgsLeft.cvsArgs.pinArgs.sampleMode = static_cast<PinSampleMode>(gvar_sample_mode_left.val.v_uint);
+
+		TraceArgs newTraceArgsRight = commonTraceArgs;
+		newTraceArgsRight.cvsArgs.pinArgs.type = static_cast<PinType>(gvar_pin_mode_right.val.v_uint);
+		newTraceArgsRight.cvsArgs.pinArgs.sampleMode = static_cast<PinSampleMode>(gvar_sample_mode_right.val.v_uint);
+
+		if (firstFrame || leftClickInView || shaderRecompile)
 		{
-			pinTypeLeft     = static_cast<PinType>(gvar_pin_mode_left.val.v_uint);
-			pinTypeRight    = static_cast<PinType>(gvar_pin_mode_right.val.v_uint);
-			sampleModeLeft  = static_cast<PinSampleMode>(gvar_sample_mode_left.val.v_uint);
-			sampleModeRight = static_cast<PinSampleMode>(gvar_sample_mode_right.val.v_uint);
+			traceArgsLeft.update(newTraceArgsLeft);
+			traceArgsRight.update(newTraceArgsRight);
 		}
-
-		TraceArgs traceArgsLeft                  = commonTraceArgs;
-		traceArgsLeft.cvsArgs.pinGridBuffer      = leftPinGridBuffer;
-		traceArgsLeft.pExecutionCounter          = &executionCounterLeft;
-		traceArgsLeft.cvsArgs.pinArgs.type       = pinTypeLeft;
-		traceArgsLeft.cvsArgs.pinArgs.sampleMode = sampleModeLeft;
-
-		TraceArgs traceArgsRight                  = commonTraceArgs;
-		traceArgsRight.cvsArgs.pinGridBuffer      = rightPinGridBuffer;
-		traceArgsRight.pExecutionCounter          = &executionCounterRight;
-		traceArgsRight.cvsArgs.pinArgs.type       = pinTypeRight;
-		traceArgsRight.cvsArgs.pinArgs.sampleMode = sampleModeRight;
+		else
+		{
+			traceArgsLeft.updateFast(newTraceArgsLeft);
+			traceArgsRight.updateFast(newTraceArgsRight);
+		}
 
 		iec.cmdRunEqualTime<TraceArgs>(cmdBuf, cmdTrace, traceArgsLeft, traceArgsRight, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
 		//// Show results
