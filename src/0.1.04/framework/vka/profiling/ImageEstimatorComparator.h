@@ -18,6 +18,7 @@ namespace vka
 	};
 	enum IECRunFlagBits
 	{
+		IEC_FLAGS_NONE = 0x00,
 		IEC_RUN_NO_MSE = 0x01,
 	};
 	class ImageEstimatorComparator
@@ -35,7 +36,7 @@ namespace vka
 
 		template <class EstimatorArgs>
 	    void cmdRunEqualRate(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator, EstimatorArgs argsLeft, EstimatorArgs argsRight,
-	                         float *timigsLeft = nullptr, float *timigsRight = nullptr, uint32_t flags = 0);
+			float *timigsLeft = nullptr, float *timigsRight = nullptr, uint32_t flags = 0);
 
 		template <class EstimatorArgs>
 	    void cmdRun(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator, EstimatorArgs args, IECTarget target, float *timings = nullptr, uint32_t flags = 0);
@@ -71,7 +72,7 @@ namespace vka
 		std::vector<float> mseTimings;
     };
     template <class EstimatorArgs>
-	void cmdRun(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator, EstimatorArgs args, IECTarget target, float* timings, uint32_t flags)
+    inline void ImageEstimatorComparator::cmdRun(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator, EstimatorArgs args, IECTarget target, float *timings, uint32_t flags)
 	{
 
 		Image &localTarget = target == IEC_TARGET_LEFT ? localTargetLeft : localTargetRight;

@@ -82,6 +82,10 @@ bool GVar_Val::equals(const GVar_Val &other, GVar_Type type) const
 	{
 		return v_vec3[0] == other.v_vec3[0] && v_vec3[1] == other.v_vec3[1] && v_vec3[2] == other.v_vec3[2];
 	}
+	else if (type == GVAR_DISPLAY_UNORM)
+	{
+		return v_float == other.v_float;
+	}
 	else
 	{
 		return true;
@@ -201,7 +205,7 @@ void GVar::writeToJson(json &j)
 		case GVAR_VEC3:
 			j[id] = {val.v_vec3[0], val.v_vec3[1], val.v_vec3[2]};
 			break;
-		case GVAR_DISPLAY_VALUE:
+		case GVAR_DISPLAY_FLOAT:
 			j[id] = val.v_float;
 			break;
 		case GVAR_ENUM:
@@ -257,7 +261,7 @@ void GVar::readFromJson(json &j)
 			val.v_vec3[1] = j[id][1];
 			val.v_vec3[2] = j[id][2];
 			break;
-		case GVAR_DISPLAY_VALUE:
+		case GVAR_DISPLAY_FLOAT:
 			//val.v_float = j[id];
 			break;
 		case GVAR_ENUM:
@@ -312,8 +316,11 @@ bool GVar::addToGui()
 		case GVAR_VEC3_RANGE:
 			ImGui::SliderFloat3(id.c_str(), val.v_vec3, set.range.min.v_float, set.range.max.v_float);
 			break;
-		case GVAR_DISPLAY_VALUE:
+		case GVAR_DISPLAY_FLOAT:
 			ImGui::Text(id.c_str(), val.v_float);
+			break;
+		case GVAR_DISPLAY_UINT:
+			ImGui::Text(id.c_str(), val.v_uint);
 			break;
 		case GVAR_ENUM:
 			for (size_t i = 0; i < set.list.size(); i++)
@@ -331,6 +338,10 @@ bool GVar::addToGui()
 			break;
 		case GVAR_TEXT_INPUT:
 			ImGui::InputText(id.c_str(), val.v_char_array.data(), val.v_char_array.size());
+			break;
+		case GVAR_DISPLAY_UNORM:
+			ImGui::Text(id.c_str());
+			ImGui::ProgressBar(val.v_float, ImVec2(0.0f, 0.0f));
 			break;
 		default:
 			break;

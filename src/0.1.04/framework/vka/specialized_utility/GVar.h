@@ -2,9 +2,9 @@
 #include <vka/core/core_utility/types.h>
 #include <vka/core/resources/cachable/RenderPass.h>
 
+#include <imgui_impl_vulkan.h>
 #include <fstream>
 #include <nlohmann/json.hpp>
-#include <imgui_impl_vulkan.h>
 using json = nlohmann::json;
 
 namespace vka
@@ -23,7 +23,9 @@ enum GVar_Type
 	GVAR_UINT,
 	GVAR_VEC3,
 	GVAR_VEC3_RANGE,
-	GVAR_DISPLAY_VALUE,
+	GVAR_DISPLAY_FLOAT,
+	GVAR_DISPLAY_UNORM,
+	GVAR_DISPLAY_UINT,
 	GVAR_ENUM,
 	GVAR_UINT_RANGE,
 	GVAR_FLOAT_RANGE,

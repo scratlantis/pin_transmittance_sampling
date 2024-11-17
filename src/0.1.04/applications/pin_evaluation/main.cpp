@@ -51,9 +51,39 @@ GVar gvar_pin_mode_right{"Pin Mode Right", 3U, GVAR_ENUM, GUI_CAT_RENDER_MODE, s
 GVar gvar_sample_mode_right{"Sample Mode Right", 2U, GVAR_ENUM, GUI_CAT_RENDER_MODE, std::vector<std::string>({"Unquantised", "Quantised", "Precomputed"})};
 
 // Metrics
-GVar gvar_mse{"Avg squared diff: %.8f E-3", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
-GVar gvar_timing_left{"Timing Left: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
-GVar gvar_timing_right{"Timing Right: %.4f", 0.f, GVAR_DISPLAY_VALUE, GUI_CAT_METRICS};
+GVar gvar_mse{"Avg squared diff: %.8f E-3", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
+GVar gvar_timing_left{"Timing Left: %.4f", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
+GVar gvar_timing_right{"Timing Right: %.4f", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
+
+// Evaluation
+GVar gvar_eval_resolution{"Eval Resolution", 0U, GVAR_ENUM, GUI_CAT_EVALUATION, std::vector<std::string>({
+	"1920x1080",
+	"1280x720",
+	"640x360",
+	"320x180",
+	"1024x1024",
+	"512x512",
+	"256x256",
+	"128x128",
+	})};
+
+std::vector<VkExtent2D> cResolutions
+{
+	{1920, 1080},
+	{1280, 720},
+	{640, 360},
+	{320, 180},
+	{1024, 1024},
+	{512, 512},
+	{256, 256},
+	{128, 128},
+};
+GVar gvar_eval_ref_target_time{"Ref Target Time", 10.f, GVAR_FLOAT_RANGE, GUI_CAT_EVALUATION, {1.f, 300.f}};
+GVar gvar_eval_comp_target_time{"Eval Target Time", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_EVALUATION, {1.f, 300.f}};
+GVar gvar_eval_name{"Eval Name", std::string("default"), GVAR_TEXT_INPUT, GUI_CAT_EVALUATION};
+GVar gvar_evaluate{"Evaluate", false, GVAR_EVENT, GUI_CAT_EVALUATION};
+GVar gvar_remaning_tasks{"Remaining Tasks: %d", 0U, GVAR_DISPLAY_UINT, GUI_CAT_EVALUATION};
+GVar gvar_task_progress{"Task Progress:", 0.f, GVAR_DISPLAY_UNORM, GUI_CAT_EVALUATION};
 
 // Debug
 GVar gvar_enable_debuging{"Enable Debuging", false, GVAR_BOOL, GUI_CAT_DEBUG};
@@ -94,6 +124,8 @@ int main()
 	TraceArgs     traceArgsLeft      = TraceArgs(&traceResourceCache, gState.heap, &executionCounterLeft);
 	TraceArgs     traceArgsRight     = TraceArgs(&traceResourceCache, gState.heap, &executionCounterRight);
 
+	OfflineRenderer offlineRenderer = OfflineRenderer();
+
 	while (!gState.io.shouldTerminate())
 	{
 		CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
@@ -123,8 +155,16 @@ int main()
 		}
 
 		std::vector<bool> settingsChanged     = buildGui(cmdBuf, &iec);
+		bool renderSetttingsChanged =
+		    settingsChanged[GUI_CAT_SCENE]
+			|| settingsChanged[GUI_CAT_MEDIUM]
+			|| settingsChanged[GUI_CAT_PATH_TRACING]
+			|| settingsChanged[GUI_CAT_PINS]
+			|| settingsChanged[GUI_CAT_RENDER_MODE]
+			|| settingsChanged[GUI_CAT_METRICS]
+			|| settingsChanged[GUI_CAT_DEBUG];
 		bool              anySettingsChanged  = orOp(settingsChanged);
-		bool              viewChange          = camRotated || camMoved || anySettingsChanged || firstFrame || shaderRecompile || gState.io.swapchainRecreated();
+		bool viewChange         = camRotated || camMoved || renderSetttingsChanged || firstFrame || shaderRecompile || gState.io.swapchainRecreated();
 
 		if (selectPixel)
 		{
@@ -238,6 +278,23 @@ int main()
 			traceArgsLeft.updateFast(newTraceArgsLeft);
 			traceArgsRight.updateFast(newTraceArgsRight);
 		}
+		if (gvar_evaluate.val.v_bool)
+		{
+			OfflineRenderTask task{};
+			task.name              = std::string(gvar_eval_name.val.v_char_array.data());
+			task.argsRef           = tracerConfig;
+			task.sceneParams       = sceneParams;
+			task.cvsArgsLeft       = traceArgsLeft.cvsArgs;
+			task.cvsArgsRight      = traceArgsRight.cvsArgs;
+			task.config            = tracerConfig;
+			task.resolution        = cResolutions[gvar_eval_resolution.val.v_uint];
+			task.renderTimeRef     = gvar_eval_ref_target_time.val.v_float;
+			task.renderTimeCompare = gvar_eval_comp_target_time.val.v_float;
+			offlineRenderer.addTask(task);
+		}
+		gvar_remaning_tasks.val.v_uint = offlineRenderer.getTaskQueueSize();
+		gvar_task_progress.val.v_float = offlineRenderer.getTaskProgress();
+		//offlineRenderer.cmdRunTick(cmdBuf);
 
 		iec.cmdRunEqualTime<TraceArgs>(cmdBuf, cmdTrace, traceArgsLeft, traceArgsRight, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
 		//// Show results
