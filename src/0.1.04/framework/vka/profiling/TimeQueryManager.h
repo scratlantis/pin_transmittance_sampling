@@ -5,8 +5,16 @@ namespace vka
 {
 class TimeQueryManager
 {
+	enum class TQState
+	{
+		TQ_STATE_READY,
+		TQ_STATE_RECORDING,
+		TQ_STATE_NOT_READY,
+	};
+
   public:
 	TimeQueryManager(IResourcePool *pPool, uint32_t queryCount);
+	void cmdReset(CmdBuffer cmdBuffer);
 	TimeQueryManager() = default;
 	~TimeQueryManager();
 
@@ -24,6 +32,8 @@ class TimeQueryManager
 	Resource *queryPoolRes = nullptr;
 	VkQueryPool           queryPool;
 	std::vector<uint64_t> queryResults;
-	bool firstUse = true;
+	TQState               state;
+	bool                  firstUse;
+	bool                  mHasTimings = false;
 };
 }        // namespace vka

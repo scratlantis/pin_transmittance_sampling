@@ -78,6 +78,8 @@ std::vector<VkExtent2D> cResolutions
 	{256, 256},
 	{128, 128},
 };
+GVar gvar_eval_keep_realtime_render{"Keep realtime render", false, GVAR_BOOL, GUI_CAT_EVALUATION};
+GVar gvar_sample_count{"Sample Count", 1U, GVAR_UINT_RANGE, GUI_CAT_EVALUATION, {1U, 64}};
 GVar gvar_eval_ref_target_time{"Ref Target Time", 10.f, GVAR_FLOAT_RANGE, GUI_CAT_EVALUATION, {1.f, 300.f}};
 GVar gvar_eval_comp_target_time{"Eval Target Time", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_EVALUATION, {1.f, 300.f}};
 GVar gvar_eval_name{"Eval Name", std::string("default"), GVAR_TEXT_INPUT, GUI_CAT_EVALUATION};
@@ -287,18 +289,22 @@ int main()
 			task.cvsArgsLeft       = traceArgsLeft.cvsArgs;
 			task.cvsArgsRight      = traceArgsRight.cvsArgs;
 			task.config            = tracerConfig;
+			task.config.sampleCount = gvar_sample_count.val.v_uint;
 			task.resolution        = cResolutions[gvar_eval_resolution.val.v_uint];
-			task.renderTimeRef     = gvar_eval_ref_target_time.val.v_float;
-			task.renderTimeCompare = gvar_eval_comp_target_time.val.v_float;
+			task.renderTimeRef     = gvar_eval_ref_target_time.val.v_float * 1000.0f; // sec to ms
+			task.renderTimeCompare = gvar_eval_comp_target_time.val.v_float * 1000.0f; // sec to ms
 			offlineRenderer.addTask(task);
 		}
 		gvar_remaning_tasks.val.v_uint = offlineRenderer.getTaskQueueSize();
 		gvar_task_progress.val.v_float = offlineRenderer.getTaskProgress();
-		//offlineRenderer.cmdRunTick(cmdBuf);
+		offlineRenderer.cmdRunTick(cmdBuf);
 
-		iec.cmdRunEqualTime<TraceArgs>(cmdBuf, cmdTrace, traceArgsLeft, traceArgsRight, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
+		if (gvar_eval_keep_realtime_render.val.v_bool || offlineRenderer.getTaskQueueSize() == 0)
+		{
+			iec.cmdRunEqualTime<TraceArgs>(cmdBuf, cmdTrace, traceArgsLeft, traceArgsRight, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
+			gvar_mse.val.v_float = iec.getMSE() * 1000.f;
+		}
 		//// Show results
-		gvar_mse.val.v_float = iec.getMSE() * 1000.f;
 		Image swapchainImg = getSwapchainImage();
 		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.25, 0.25, 0.3, 1.0)).exec(cmdBuf);
 		IECToneMappingArgs toneMappingArgs{};
@@ -314,6 +320,7 @@ int main()
 	//// Save settings
 	vkDeviceWaitIdle(gState.device.logical);
 	traceResourceCache.clearAll();
+	offlineRenderer.destroy();
 	GVar::storeAll(configPath + "last_session.json");
 	gState.destroy();
 }

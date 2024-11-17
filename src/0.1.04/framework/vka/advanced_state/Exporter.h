@@ -19,6 +19,11 @@ struct ExportBufferInfo
 	ExportBufferFormat format;
 	uint32_t           rowLength;
 };
+struct ExportImageInfo
+{
+	uint32_t width;
+	uint32_t height;
+};
 
 struct ExportTask
 {
@@ -32,7 +37,10 @@ class Exporter
 {
 	struct ExportTaskInternal
 	{
-		ExportTask task;
+		std::string      path;
+		ExportFormat     targetFormat;
+		ExportBufferInfo bufferInfo;
+		ExportImageInfo  imageInfo;
 		Buffer  hostBuffer;
 	};
 

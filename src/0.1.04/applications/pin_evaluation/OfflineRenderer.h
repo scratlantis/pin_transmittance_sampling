@@ -63,5 +63,6 @@ class OfflineRenderer
 	DELETE_COPY_CONSTRUCTORS(OfflineRenderer);
 	bool cmdRunTick(CmdBuffer cmdBuf);
 	void addTask(OfflineRenderTask task);
+	void destroy();
 };
 

@@ -14,13 +14,24 @@ TimeQueryManager::TimeQueryManager(IResourcePool *pPool, uint32_t queryCount)
 	queryPoolCI.queryType  = VK_QUERY_TYPE_TIMESTAMP;
 	queryPoolCI.queryCount = queryResults.size();
 	queryPool              = createQueryPool(pPool, queryPoolCI, queryPoolRes);
+	state                  = TQState::TQ_STATE_READY;
+	firstUse          = true; // Ugly hack to avoid validation error
+	mHasTimings    = false;
 }
 
-void TimeQueryManager::cmdResetQueryPool(CmdBuffer cmdBuffer)
+
+void TimeQueryManager::cmdReset(CmdBuffer cmdBuffer)
 {
 	cmdClearState(cmdBuffer);
 	vkCmdResetQueryPool(cmdBuffer->getHandle(), queryPool, 0, queryResults.size());
+	for (size_t i = 0; i < timings.size(); i++)
+	{
+		timings[i] = 0.0f;
+	}
+	state = TQState::TQ_STATE_RECORDING;
+	mHasTimings = false;
 }
+
 
 TimeQueryManager::~TimeQueryManager()
 {
@@ -28,12 +39,25 @@ TimeQueryManager::~TimeQueryManager()
 
 void TimeQueryManager::startTiming(CmdBuffer cmdBuffer, uint32_t queryID, VkPipelineStageFlagBits stage)
 {
-	vkCmdWriteTimestamp(cmdBuffer->getHandle(), stage, queryPool, queryID * 2);
+	if (state == TQState::TQ_STATE_READY)
+	{
+		cmdClearState(cmdBuffer);
+		vkCmdResetQueryPool(cmdBuffer->getHandle(), queryPool, 0, queryResults.size());
+		state = TQState::TQ_STATE_RECORDING;
+	}
+
+	if (state == TQState::TQ_STATE_RECORDING)
+	{
+		vkCmdWriteTimestamp(cmdBuffer->getHandle(), stage, queryPool, queryID * 2);
+	}
 }
 
 void TimeQueryManager::endTiming(CmdBuffer cmdBuffer, uint32_t queryID, VkPipelineStageFlagBits stage)
 {
-	vkCmdWriteTimestamp(cmdBuffer->getHandle(), stage, queryPool, queryID * 2 + 1);
+	if (state == TQState::TQ_STATE_RECORDING)
+	{
+		vkCmdWriteTimestamp(cmdBuffer->getHandle(), stage, queryPool, queryID * 2 + 1);
+	}
 }
 
 bool TimeQueryManager::updateTimings()
@@ -41,7 +65,8 @@ bool TimeQueryManager::updateTimings()
 	if (firstUse)
 	{
 		firstUse = false;
-		return true;
+		state = TQState::TQ_STATE_NOT_READY;
+		return false;
 	}
 	VkResult result = vkGetQueryPoolResults(
 	    gState.device.logical,
@@ -63,7 +88,16 @@ bool TimeQueryManager::updateTimings()
 			timings[i] = t_float;
 		}
 	}
-	return result != VK_NOT_READY;
+	if (result == VK_NOT_READY)
+	{
+		state = TQState::TQ_STATE_NOT_READY;
+	}
+	else
+	{
+		mHasTimings = true;
+		state = TQState::TQ_STATE_READY;
+	}
+	return mHasTimings;
 }
 void TimeQueryManager::garbageCollect()
 {

@@ -10,10 +10,11 @@ ImageEstimatorComparator::ImageEstimatorComparator(VkFormat format, float relWid
 	for (auto img : imgs)
 	{
 		*img = createSwapchainAttachment(format,
-		                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 		                                 VK_IMAGE_LAYOUT_GENERAL, relWidth, relHeight);
 	}
-	tqManager = TimeQueryManager(gState.heap, 2);
+	tqManagerLeft  = TimeQueryManager(gState.heap, 1);
+	tqManagerRight = TimeQueryManager(gState.heap, 1);
 	mseResources = MSEComputeResources(format, gState.heap);
 	mseBuffer    = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, sizeof(float));
 	isInitialized = true;
@@ -24,9 +25,10 @@ ImageEstimatorComparator::ImageEstimatorComparator(VkFormat format, VkExtent2D e
 	Image *imgs[4] = {&localTargetLeft, &localTargetRight, &localAccumulationTargetLeft, &localAccumulationTargetRight};
 	for (auto img : imgs)
 	{
-		*img = createImage(gState.heap, format, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, extent);
+		*img = createImage(gState.heap, format, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, extent);
 	}
-	tqManager    = TimeQueryManager(gState.heap, 2);
+	tqManagerLeft    = TimeQueryManager(gState.heap, 1);
+	tqManagerRight   = TimeQueryManager(gState.heap, 1);
 	mseResources = MSEComputeResources(format, gState.heap);
 	mseBuffer    = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, sizeof(float));
 	isInitialized = true;
@@ -40,7 +42,8 @@ void ImageEstimatorComparator::garbageCollect()
 	{
 		img->garbageCollect();
 	}
-	tqManager.garbageCollect();
+	tqManagerLeft.garbageCollect();
+	tqManagerRight.garbageCollect();
 	mseResources.garbageCollect();
 	mseBuffer->garbageCollect();
 }
@@ -67,19 +70,18 @@ void ImageEstimatorComparator::cmdReset(CmdBuffer cmdBuf, Image imgLeft, Image i
 	{
 		cmdFill(cmdBuf, localAccumulationTargetRight, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, glm::vec4(0.0));
 	}
-	tqManager.cmdResetQueryPool(cmdBuf);
-	timeQueryFinished = true;
-	totalTimingLeft = 0.0f;
-	totalTimingRight = 0.0f;
-	invocationCountLeft = 0;
-	invocationCountRight = 0;
+	tqManagerLeft.cmdReset(cmdBuf);
+	tqManagerRight.cmdReset(cmdBuf);
+	timeQueryFinishedLeft = true;
+	timeQueryFinishedRight = true;
+	metricsLeft.reset();
+	metricsRight.reset();
 	mse.clear();
-	mseTimings.clear();
 }
 
 
 
-void ImageEstimatorComparator::cmdShow(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea, IECTarget src, IECToneMappingArgs toneMappingArgs)
+void ImageEstimatorComparator::cmdShow(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea, VkImageLayout targetLayout, IECTarget src, IECToneMappingArgs toneMappingArgs)
 {
 	Image localAccumulationTarget = src == IEC_TARGET_LEFT ? localAccumulationTargetLeft : localAccumulationTargetRight;
 	VkRect2D_OP srcArea = VkRect2D_OP(localAccumulationTarget->getExtent2D());
@@ -88,8 +90,9 @@ void ImageEstimatorComparator::cmdShow(CmdBuffer cmdBuf, Image target, VkRect2D_
 	args.useTonemapping = toneMappingArgs.useTonemapping;
 	args.whitePoint     = toneMappingArgs.whitePoint;
 	args.exposure       = toneMappingArgs.exposure;
-	args.useScissors    = true;
-	args.dstLayout      = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	args.useScissors    = false;
+	args.dstLayout      = targetLayout;
+	target->setClearValue(ClearValue::black());
 	getCmdMapImg(localAccumulationTarget, target, args).exec(cmdBuf);
 }
 

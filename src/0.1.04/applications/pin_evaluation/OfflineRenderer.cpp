@@ -60,6 +60,7 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		commonArgs.resources = traceResources;
 		commonArgs.sceneParams = task.sceneParams;
 		commonArgs.config = task.config;
+		commonArgs.config.subSampleMode = 1;
 
 		refTask.reset();
 		refTask.args = TraceArgs(pTraceResourceCache, pPool, &refTask.execCnt);
@@ -99,16 +100,17 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 	}
 	if (internalTask.isComplete())
 	{
-		iec.cmdShow(cmdBuf, internalTask.result, VkRect2D_OP(task.resolution), IEC_TARGET_LEFT);
-		iec.cmdReset(cmdBuf, nullptr, refTask.result);
+		iec.cmdShow(cmdBuf, internalTask.result, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, IEC_TARGET_LEFT);
 
 		// Store render result
 		Image outImg = internalTask.result;
 		if (state == OFFLINE_RENDER_STATE_REF)
 		{
 			outImg = createImage(pPool, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
-			iec.cmdShow(cmdBuf, outImg, VkRect2D_OP(task.resolution), IEC_TARGET_LEFT);
+			iec.cmdShow(cmdBuf, outImg, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, IEC_TARGET_LEFT);
 		}
+		iec.cmdReset(cmdBuf, nullptr, refTask.result);
+
 		std::filesystem::create_directories(resultsPath + task.name);
 		std::string internalTaskPath = resultsPath + task.name + "/" + internalTaskName;
 		ExportTask  exportTask{};
@@ -154,6 +156,7 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 			// Clean up
 			taskQueue.erase(taskQueue.begin());
 			pPool->dump(gState.frame->stack);
+			iec.garbageCollect();
 		}
 	}
 
@@ -163,6 +166,14 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 void OfflineRenderer::addTask(OfflineRenderTask task)
 {
 	taskQueue.push_back(task);
+}
+
+void OfflineRenderer::destroy()
+{
+	pTraceResourceCache->clearAll();
+	delete pTraceResourceCache;
+	pPool->clear();
+	delete pPool;
 }
 
 
