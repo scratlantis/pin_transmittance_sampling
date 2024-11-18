@@ -232,7 +232,7 @@ void GVar::readFromJson(json &j)
 	{
 		return;
 	}
-	if ((flags & GUI_FLAGS_NO_LOAD) != 0)
+	if ((flags & GVAR_FLAGS_NO_LOAD) != 0)
 	{
 		return;
 	}
@@ -285,7 +285,7 @@ void GVar::readFromJson(json &j)
 	}
 }
 
-bool GVar::addToGui()
+bool GVar::addToGui(uint32_t guiFlags)
 {
 	std::stringstream ss;
 	GVar_Val oldVal = val;
@@ -323,11 +323,33 @@ bool GVar::addToGui()
 			ImGui::Text(id.c_str(), val.v_uint);
 			break;
 		case GVAR_ENUM:
-			for (size_t i = 0; i < set.list.size(); i++)
+			if (guiFlags & GUI_FLAGS_MENU_BAR)
 			{
-				ss << set.list[i] << '\0';
+				for (size_t i = 0; i < set.list.size(); i++)
+				{
+					ss << set.list[i] << '\0';
+				}
+				if (ImGui::BeginMenu(id.c_str()))
+				{
+					for (size_t i = 0; i < set.list.size(); i++)
+					{
+						if (ImGui::MenuItem(set.list[i].c_str()))
+						{
+							val.v_int = i;
+							val.v_uint = val.v_int;
+						}
+					}
+					ImGui::EndMenu();
+				}
 			}
-			ImGui::Combo(id.c_str(), &val.v_int, ss.str().c_str(), 5);
+			else
+			{
+				for (size_t i = 0; i < set.list.size(); i++)
+				{
+					ss << set.list[i] << '\0';
+				}
+				ImGui::Combo(id.c_str(), &val.v_int, ss.str().c_str(), 5);
+			}
 			val.v_uint = val.v_int;
 			break;
 		case GVAR_UINT_RANGE:
@@ -375,13 +397,13 @@ std::vector<GVar *> GVar::filterSortID(std::vector<GVar *> gvar, uint32_t sortID
 	return result;
 }
 
-bool GVar::addToGui(std::vector<GVar *> gvar, std::string category)
+bool GVar::addToGui(std::vector<GVar *> gvar, std::string category, uint32_t guiFlags)
 {
 	std::sort(gvar.begin(), gvar.end(), [](GVar *a, GVar *b) { return a->sortId < b->sortId; });
 	bool changed = false;
 	for (GVar* gv : gvar)
 	{
-		changed = gv->addToGui() || changed;
+		changed = gv->addToGui(guiFlags) || changed;
 	}
 	return changed;
 }

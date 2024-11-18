@@ -100,8 +100,9 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 	}
 	if (internalTask.isComplete())
 	{
+		printVka("Render %s complete", internalTaskName.c_str());
 		iec.cmdShow(cmdBuf, internalTask.result, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, IEC_TARGET_LEFT);
-
+		
 		// Store render result
 		Image outImg = internalTask.result;
 		if (state == OFFLINE_RENDER_STATE_REF)

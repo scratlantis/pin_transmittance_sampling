@@ -70,12 +70,12 @@ class ImageEstimatorComparator
 			{
 				return 0.0f;
 			}
-			return totalTiming / totalTimeSamples;
+			return totalTiming / float(totalTimeSamples);
 		}
 
 		float getTotalRuntime() const
 		{
-			return getAvgTiming() * invocationCount;
+			return getAvgTiming() * float(invocationCount);
 		}
 		void reset()
 		{
@@ -113,9 +113,11 @@ inline void ImageEstimatorComparator::cmdRun(CmdBuffer cmdBuf, std::function<voi
 	cmdFill(cmdBuf, localTarget, VK_IMAGE_LAYOUT_GENERAL, glm::vec4(0.0f));
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
 
-	tqManager.startTiming(cmdBuf, 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+	if (metrics.invocationCount > 2)
+		tqManager.startTiming(cmdBuf, 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 	estimator(cmdBuf, localTarget, args);
-	tqManager.endTiming(cmdBuf, 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+	if (metrics.invocationCount > 2)
+		tqManager.endTiming(cmdBuf, 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	getCmdAccumulate(localTarget, localAccumulationTarget, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
@@ -132,105 +134,12 @@ inline void ImageEstimatorComparator::cmdRun(CmdBuffer cmdBuf, std::function<voi
 	}
 	metrics.invocationCount++;
 
-	if (timings)
+	if (timings && metrics.hasTiming())
 	{
 		*timings = metrics.getAvgTiming();
 	}
 }
 
-/*template <class EstimatorArgs>
-inline void ImageEstimatorComparator::cmdRunEqualTime(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator,
-                                             EstimatorArgs argsLeft, EstimatorArgs argsRight,
-                                             float *timigsLeft, float *timigsRight, uint32_t flags)
-{
-    bool runLeft  = timeQueryFinished || totalTimingLeft <= totalTimingRight;
-    bool runRight = timeQueryFinished || totalTimingRight <= totalTimingLeft;
-
-    cmdFill(cmdBuf, localTargetRight, VK_IMAGE_LAYOUT_GENERAL, glm::vec4(0.0f));
-    cmdFill(cmdBuf, localTargetLeft, VK_IMAGE_LAYOUT_GENERAL, glm::vec4(0.0f));
-    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
-    if (timeQueryFinished)
-    {
-        tqManager.cmdResetQueryPool(cmdBuf);
-        tqManager.startTiming(cmdBuf, 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-        if (runLeft)
-        {
-            estimator(cmdBuf, localTargetLeft, argsLeft);
-        }
-
-        tqManager.endTiming(cmdBuf, 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-        tqManager.startTiming(cmdBuf, 1, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-        if (runRight)
-        {
-            estimator(cmdBuf, localTargetRight, argsRight);
-        }
-
-        tqManager.endTiming(cmdBuf, 1, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    }
-    else
-    {
-        if (runLeft)
-        {
-            estimator(cmdBuf, localTargetLeft, argsLeft);
-        }
-        if (runRight)
-        {
-            estimator(cmdBuf, localTargetRight, argsRight);
-        }
-    }
-    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-    timeQueryFinished = tqManager.updateTimings();
-
-
-
-    if (runLeft)
-    {
-        totalTimingLeft += tqManager.timings[0];
-        invocationCountLeft++;
-        getCmdAccumulate(localTargetLeft, localAccumulationTargetLeft, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
-    }
-    if (runRight)
-    {
-        totalTimingRight += tqManager.timings[1];
-        invocationCountRight++;
-        getCmdAccumulate(localTargetRight, localAccumulationTargetRight, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).exec(cmdBuf);
-    }
-
-    if (timigsLeft)
-    {
-        if (invocationCountLeft > 0)
-        {
-            *timigsLeft = totalTimingLeft / invocationCountLeft;
-        }
-        else
-        {
-            *timigsLeft = 0.0f;
-        }
-    }
-    if (timigsRight)
-    {
-        if (invocationCountRight > 0)
-        {
-            *timigsRight = totalTimingRight / invocationCountRight;
-        }
-        else
-        {
-            *timigsRight = 0.0f;
-        }
-    }
-
-
-    cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-    if (!(flags & IEC_RUN_NO_MSE))
-    {
-        cmdComputeMSE(cmdBuf, localAccumulationTargetLeft, localAccumulationTargetRight, mseBuffer, &mseResources);
-        mse.push_back(getMSE());
-        mseTimings.push_back((totalTimingLeft + totalTimingRight) * 0.5);
-    }
-}*/
 
 template <class EstimatorArgs>
 inline void ImageEstimatorComparator::cmdRunEqualTime(CmdBuffer cmdBuf, std::function<void(CmdBuffer, Image, EstimatorArgs)> estimator,

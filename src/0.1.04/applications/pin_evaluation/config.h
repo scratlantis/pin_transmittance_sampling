@@ -48,6 +48,7 @@ struct DefaultDeviceCI : DeviceCI
 		features12.descriptorBindingPartiallyBound = VK_TRUE;
 		features12.storageBuffer8BitAccess         = VK_TRUE;
 		features12.shaderInt8         = VK_TRUE;
+		features12.hostQueryReset	= VK_TRUE;
 		enabledDeviceFeatures.addNode(features12);
 		VkPhysicalDeviceVulkan11Features features11{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
 		features11.storageBuffer16BitAccess = VK_TRUE;

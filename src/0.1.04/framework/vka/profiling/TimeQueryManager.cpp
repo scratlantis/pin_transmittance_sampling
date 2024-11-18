@@ -14,8 +14,8 @@ TimeQueryManager::TimeQueryManager(IResourcePool *pPool, uint32_t queryCount)
 	queryPoolCI.queryType  = VK_QUERY_TYPE_TIMESTAMP;
 	queryPoolCI.queryCount = queryResults.size();
 	queryPool              = createQueryPool(pPool, queryPoolCI, queryPoolRes);
-	state                  = TQState::TQ_STATE_READY;
-	firstUse          = true; // Ugly hack to avoid validation error
+	vkResetQueryPool(gState.device.logical, queryPool, 0, queryResults.size());
+	state                  = TQState::TQ_STATE_RECORDING;
 	mHasTimings    = false;
 }
 
@@ -28,7 +28,7 @@ void TimeQueryManager::cmdReset(CmdBuffer cmdBuffer)
 	{
 		timings[i] = 0.0f;
 	}
-	state = TQState::TQ_STATE_RECORDING;
+	state = TQState::TQ_STATE_READY;
 	mHasTimings = false;
 }
 
@@ -62,12 +62,6 @@ void TimeQueryManager::endTiming(CmdBuffer cmdBuffer, uint32_t queryID, VkPipeli
 
 bool TimeQueryManager::updateTimings()
 {
-	if (firstUse)
-	{
-		firstUse = false;
-		state = TQState::TQ_STATE_NOT_READY;
-		return false;
-	}
 	VkResult result = vkGetQueryPoolResults(
 	    gState.device.logical,
 	    queryPool,
@@ -87,15 +81,12 @@ bool TimeQueryManager::updateTimings()
 			float    t_float   = static_cast<float>(t_ns) / 1000000.f;
 			timings[i] = t_float;
 		}
+		mHasTimings = true;
+		state       = TQState::TQ_STATE_READY;
 	}
-	if (result == VK_NOT_READY)
+	else if (result == VK_NOT_READY && state == TQState::TQ_STATE_RECORDING)
 	{
 		state = TQState::TQ_STATE_NOT_READY;
-	}
-	else
-	{
-		mHasTimings = true;
-		state = TQState::TQ_STATE_READY;
 	}
 	return mHasTimings;
 }

@@ -8,6 +8,9 @@ const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders/";
 using namespace glm;
 
+GVar gvar_menu{"Menu", 0U, GVAR_ENUM, GUI_CAT_MENU_BAR, std::vector<std::string>({"Scene", "Settings", "Evaluation", "Debug"})};
+
+
 // Scene
 GVar gvar_emission_scale_al{"Area light emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE, {0.0f, 100000.f}};
 GVar gvar_emission_scale_env_map{"Env map emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE, {0.0f, 10.f}};
@@ -52,8 +55,8 @@ GVar gvar_sample_mode_right{"Sample Mode Right", 2U, GVAR_ENUM, GUI_CAT_RENDER_M
 
 // Metrics
 GVar gvar_mse{"Avg squared diff: %.8f E-3", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
-GVar gvar_timing_left{"Timing Left: %.4f", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
-GVar gvar_timing_right{"Timing Right: %.4f", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
+GVar gvar_timing_left{"Timing Left: %.4f", 1.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
+GVar gvar_timing_right{"Timing Right: %.4f", 1.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
 
 // Evaluation
 GVar gvar_eval_resolution{"Eval Resolution", 0U, GVAR_ENUM, GUI_CAT_EVALUATION, std::vector<std::string>({
@@ -128,6 +131,9 @@ int main()
 
 	OfflineRenderer offlineRenderer = OfflineRenderer();
 
+	
+
+
 	while (!gState.io.shouldTerminate())
 	{
 		CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
@@ -157,16 +163,18 @@ int main()
 		}
 
 		std::vector<bool> settingsChanged     = buildGui(cmdBuf, &iec);
-		bool renderSetttingsChanged =
-		    settingsChanged[GUI_CAT_SCENE]
-			|| settingsChanged[GUI_CAT_MEDIUM]
-			|| settingsChanged[GUI_CAT_PATH_TRACING]
-			|| settingsChanged[GUI_CAT_PINS]
-			|| settingsChanged[GUI_CAT_RENDER_MODE]
-			|| settingsChanged[GUI_CAT_METRICS]
-			|| settingsChanged[GUI_CAT_DEBUG];
-		bool              anySettingsChanged  = orOp(settingsChanged);
-		bool viewChange         = camRotated || camMoved || renderSetttingsChanged || firstFrame || shaderRecompile || gState.io.swapchainRecreated();
+		auto              guiCatChanged = [settingsChanged](uint32_t setting) -> bool {
+            return gvar_menu.val.v_uint == setting >> GUI_CAT_SHIFT && settingsChanged[setting & GUI_INDEX_MASK];
+		};
+		bool    renderSettingsChanged = 
+			guiCatChanged(GUI_CAT_SCENE)
+			|| guiCatChanged(GUI_CAT_MEDIUM)
+			|| guiCatChanged(GUI_CAT_PATH_TRACING)
+			|| guiCatChanged(GUI_CAT_TONE_MAPPING)
+			|| guiCatChanged(GUI_CAT_PINS)
+			|| guiCatChanged(GUI_CAT_RENDER_MODE);
+		bool anySettingsChanged = orOp(settingsChanged);
+		bool viewChange         = camRotated || camMoved || renderSettingsChanged || firstFrame || shaderRecompile || gState.io.swapchainRecreated();
 
 		if (selectPixel)
 		{
@@ -185,7 +193,7 @@ int main()
 			executionCounterRight = 0;
 		}
 		// Update medium
-		if (settingsChanged[GUI_CAT_MEDIUM] || shaderRecompile || firstFrame)
+		if (guiCatChanged(GUI_CAT_MEDIUM) || shaderRecompile || firstFrame)
 		{
 			Buffer scalarBuf;
 			gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "csafe_heptane_302x302x302_uint8.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);

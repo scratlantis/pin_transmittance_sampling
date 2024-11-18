@@ -72,11 +72,17 @@ struct GVar_Set
 };
 
 
-
 enum GuiFlags
 {
-	GUI_FLAGS_NO_LOAD = 1 << 0,
+	GUI_FLAGS_MENU_BAR = 1 << 0,
+	GUI_FLAGS_OPEN_NODES = 1 << 1,
 };
+
+enum GVarFlags
+{
+	GVAR_FLAGS_NO_LOAD = 1 << 0,
+};
+
 struct GVar
 {
   private:
@@ -104,18 +110,18 @@ struct GVar
 
 	void writeToJson(json &j);
 	void readFromJson(json &j);
-	bool addToGui();
+	bool addToGui(uint32_t guiFlags);
 
 	static std::vector<GVar *> filterMask(std::vector<GVar *> gvar, uint32_t mask);
 	static std::vector<GVar *> filterSortID(std::vector<GVar *> gvar, uint32_t sortID);
-	static bool addToGui(std::vector<GVar *> gvar, std::string category);
+	static bool addToGui(std::vector<GVar *> gvar, std::string category, uint32_t guiFlags = 0);
 	static void                store(std::vector<GVar *> gvar, std::string path);
 	static void                load(std::vector<GVar *> gvar, std::string path);
 	static std::vector<GVar *> getAll();
 	static void                loadAll(std::string path);
 	static void                storeAll(std::string path);
 	template <typename CAT>
-	static std::vector<bool> addAllToGui()
+	static std::vector<bool> addAllToGui(uint32_t guiFlags = 0)
 	{
 		std::vector<bool> changed;
 		for (CAT cat = eIterator_begin<CAT>()(); cat != eIterator_end<CAT>()(); cat = eIterator_next<CAT>()(cat))
@@ -123,9 +129,25 @@ struct GVar
 			std::string         name  = eString_val<CAT>()(cat);
 			std::vector<GVar *> gvars = GVar::filterSortID(GVar::getAll(), cat);
 			changed.push_back(false);
-			if (ImGui::CollapsingHeader(name.c_str()))
+			if (guiFlags & GUI_FLAGS_MENU_BAR)
 			{
-				changed.back() = GVar::addToGui(gvars, name);
+				if (ImGui::BeginMenuBar())
+				{
+					changed.back() = GVar::addToGui(gvars, name, guiFlags);
+					ImGui::EndMenuBar();
+				}
+			}
+			else
+			{
+				if (guiFlags & GUI_FLAGS_OPEN_NODES)
+				{
+					ImGui::SetNextItemOpen(true);
+				}
+				
+				if (ImGui::CollapsingHeader(name.c_str()))
+				{
+					changed.back() = GVar::addToGui(gvars, name, guiFlags);
+				}
 			}
 		}
 		return changed;
