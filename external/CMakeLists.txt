@@ -46,3 +46,10 @@ FILE(GLOB SRCS_IMPLOT
 add_library(implot STATIC ${SRCS_IMPLOT})
 target_include_directories(implot PUBLIC  IMPLOT )
 target_link_libraries(implot imgui)
+
+FILE(GLOB SRCS_IMFILE
+"IMFILE/*.cpp"
+"IMFILE/*.h")
+add_library(imfile STATIC ${SRCS_IMFILE})
+target_include_directories(imfile PUBLIC IMFILE)
+target_link_libraries(imfile imgui stb)

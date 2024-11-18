@@ -26,6 +26,7 @@ void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Wind
 	imageCache				= new ImageCache(heap);
 	uniqueResourceCache		= new UniqueResourceCache(heap);
 	exporter				= new Exporter();
+	uploadQueue				= new UploadQueue();
 }
 
 void AdvancedState::destroy()
@@ -66,6 +67,7 @@ void AdvancedState::destroy()
 	delete depthBufferCache;
 	delete imageCache;
 	delete uniqueResourceCache;
+	delete uploadQueue;
 	if (swapchainImage != nullptr)
 	{
 		delete swapchainImage;
@@ -85,6 +87,7 @@ void AdvancedState::nextFrame()
 	}
 	guiRendered = false;
 	exporter->processExports();
+	imguiTextureIDCache->processGarbage();
 }
 
 // resize attachments to swapchain size, and aquire desired layout

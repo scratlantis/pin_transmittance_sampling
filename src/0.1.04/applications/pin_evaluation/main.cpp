@@ -16,6 +16,8 @@ GVar gvar_emission_scale_al{"Area light emission scale", 1.f, GVAR_FLOAT_RANGE, 
 GVar gvar_emission_scale_env_map{"Env map emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE, {0.0f, 10.f}};
 GVar gvar_skip_geometry{"Skip geometry", false, GVAR_BOOL, GUI_CAT_SCENE};
 
+GVar gvar_model_path{"Model path", modelPath + "under_the_c/scene_1.obj", GVAR_FILE_INPUT, GUI_CAT_SCENE, std::vector<std::string>({".obj"})};
+GVar gvar_texture_path{"Texture path", texturePath + "envmap/2k/cloudy_dusky_sky_dome_2k.hdr", GVAR_FILE_INPUT, GUI_CAT_SCENE, std::vector<std::string>({".hdr"})};
 // Medium
 GVar gvar_medium_density_scale{"Medium density scale", 1000.f, GVAR_FLOAT_RANGE, GUI_CAT_MEDIUM, {0.f, 500.f}};
 
@@ -107,6 +109,7 @@ int main()
 	AdvancedStateConfig config   = DefaultAdvancedStateConfig();
 	gState.init(deviceCI, ioCI, &window, config);
 	enableGui();
+	initImFile();
 	//// Load settings
 	GVar::loadAll(configPath + "last_session.json");
 	//// Image Estimator Comparator
@@ -320,6 +323,8 @@ int main()
 		toneMappingArgs.whitePoint     = gvar_tone_mapping_whitepoint.val.v_float;
 		toneMappingArgs.exposure       = gvar_tone_mapping_exposure.val.v_float;
 		iec.showSplitView(cmdBuf, swapchainImg, splitViewCoef, getScissorRect(viewDimensions), toneMappingArgs);
+
+		gState.uploadQueue->processUploadTasks(cmdBuf);
 		cmdRenderGui(cmdBuf, swapchainImg);
 
 		swapBuffers({cmdBuf});

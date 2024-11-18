@@ -6,6 +6,8 @@ static const std::string shaderPath = std::string(APP_SRC_DIR) + "/shaders/";
 static const std::string configPath = std::string(CONFIG_DIR) + "/";
 static const std::string scalarFieldPath = std::string(RESOURCE_BASE_DIR) + "/scalarFields/";
 static const std::string resultsPath     = std::string(RESULT_DIR) + "/data/";
+static const std::string modelPath       = std::string(RESOURCE_BASE_DIR) + "/models/";
+static const std::string texturePath     = std::string(RESOURCE_BASE_DIR) + "/textures/";
 
 using namespace vka;
 using namespace vka::pbr;

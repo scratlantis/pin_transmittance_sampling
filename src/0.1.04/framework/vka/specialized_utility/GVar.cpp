@@ -1,5 +1,5 @@
 #include "GVar.h"
-
+#include <ImFileDialog.h>
 
 
 
@@ -13,6 +13,7 @@ GVar_Val::GVar_Val(std::string s)
 	v_char_array.push_back('\0');
 	VKA_ASSERT(v_char_array.size() < GVAR_MAX_STRING_LENGHT);
 	v_char_array.resize(GVAR_MAX_STRING_LENGHT);
+	v_bool = false;
 }
 
 GVar_Val::GVar_Val(bool b)
@@ -85,6 +86,10 @@ bool GVar_Val::equals(const GVar_Val &other, GVar_Type type) const
 	else if (type == GVAR_DISPLAY_UNORM)
 	{
 		return v_float == other.v_float;
+	}
+	else if (type == GVAR_FILE_INPUT)
+	{
+		return std::string(v_char_array.data()) == std::string(other.v_char_array.data());
 	}
 	else
 	{
@@ -220,6 +225,9 @@ void GVar::writeToJson(json &j)
 		case GVAR_VEC3_RANGE:
 			j[id] = {val.v_vec3[0], val.v_vec3[1], val.v_vec3[2], set.range.min.v_float, set.range.max.v_float};
 			break;
+		case GVAR_FILE_INPUT:
+			j[id] = std::string(val.v_char_array.data());
+			break;
 		default:
 			// DEBUG_BREAK;
 			break;
@@ -236,6 +244,7 @@ void GVar::readFromJson(json &j)
 	{
 		return;
 	}
+	std::string str;
 	switch (type)
 	{
 		case GVAR_EVENT:
@@ -279,6 +288,14 @@ void GVar::readFromJson(json &j)
 			val.v_vec3[1] = j[id][1];
 			val.v_vec3[2] = j[id][2];
 			break;
+		case GVAR_FILE_INPUT:
+			str = j[id];
+			val.v_char_array = std::vector<char>(str.begin(), str.end());
+			if (val.v_char_array.back() != '\0')
+			{
+				val.v_char_array.push_back('\0');
+			}
+			//val.v_char_array = std::vector<char>(j[id].get<std::string>().begin(), j[id].get<std::string>().end());
 		default:
 			// DEBUG_BREAK;
 			break;
@@ -290,6 +307,7 @@ bool GVar::addToGui(uint32_t guiFlags)
 	std::stringstream ss;
 	GVar_Val oldVal = val;
 	GVar_Val newVal;
+	std::string       str, res;
 	switch (type)
 	{
 		case GVAR_EVENT:
@@ -365,6 +383,34 @@ bool GVar::addToGui(uint32_t guiFlags)
 			ImGui::Text(id.c_str());
 			ImGui::ProgressBar(val.v_float, ImVec2(0.0f, 0.0f));
 			break;
+		case GVAR_FILE_INPUT:
+			val.v_bool = ImGui::Button(id.c_str());
+			ImGui::TextWrapped(val.v_char_array.data());
+			if (val.v_bool)
+			{
+				if (set.list.size() > 0)
+				{
+					str = set.list[0] + " {" + set.list[0] + "},.*";
+				}
+				else
+				{
+					str = "";
+				}
+				ifd::FileDialog::Instance().Open(id.c_str(), id.c_str(), str, true);
+			}
+			if (ifd::FileDialog::Instance().IsDone(id.c_str()))
+			{
+				if (ifd::FileDialog::Instance().HasResult())
+				{
+					std::string res  = ifd::FileDialog::Instance().GetResult().u8string();
+					val.v_char_array = std::vector<char>(res.begin(), res.end());
+					if (val.v_char_array.back() != '\0')
+					{
+						val.v_char_array.push_back('\0');
+					}
+				}
+				ifd::FileDialog::Instance().Close();
+			}
 		default:
 			break;
 	}

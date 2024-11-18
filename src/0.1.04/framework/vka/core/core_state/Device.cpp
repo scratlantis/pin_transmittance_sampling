@@ -42,7 +42,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL validation_debug_utils_message_callback(
 	std::string message = std::string(pCallbackData->pMessage);
 	message             = message.substr(message.find_last_of("|") + 1);
 	uint32_t endPos     = message.find_last_of("(");
-	message             = message.substr(0, endPos);
+	//message             = message.substr(0, endPos);
 	std::cout << "[ Validation Error ]\n" << message.c_str() << "\n";
 	return VK_FALSE;
 }
