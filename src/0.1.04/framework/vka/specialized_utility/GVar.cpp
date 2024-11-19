@@ -343,11 +343,7 @@ bool GVar::addToGui(uint32_t guiFlags)
 		case GVAR_ENUM:
 			if (guiFlags & GUI_FLAGS_MENU_BAR)
 			{
-				for (size_t i = 0; i < set.list.size(); i++)
-				{
-					ss << set.list[i] << '\0';
-				}
-				if (ImGui::BeginMenu(id.c_str()))
+				if (flags & GVAR_FLAGS_V2)
 				{
 					for (size_t i = 0; i < set.list.size(); i++)
 					{
@@ -357,7 +353,21 @@ bool GVar::addToGui(uint32_t guiFlags)
 							val.v_uint = val.v_int;
 						}
 					}
-					ImGui::EndMenu();
+				}
+				else
+				{
+					if (ImGui::BeginMenu(id.c_str()))
+					{
+						for (size_t i = 0; i < set.list.size(); i++)
+						{
+							if (ImGui::MenuItem(set.list[i].c_str()))
+							{
+								val.v_int  = i;
+								val.v_uint = val.v_int;
+							}
+						}
+						ImGui::EndMenu();
+					}
 				}
 			}
 			else
@@ -377,7 +387,7 @@ bool GVar::addToGui(uint32_t guiFlags)
 			ImGui::SliderScalar(id.c_str(), ImGuiDataType_Float, &val.v_float, &set.range.min.v_float, &set.range.max.v_float);
 			break;
 		case GVAR_TEXT_INPUT:
-			ImGui::InputText(id.c_str(), val.v_char_array.data(), val.v_char_array.size());
+			ImGui::InputTextMultiline(id.c_str(), val.v_char_array.data(), val.v_char_array.size());
 			break;
 		case GVAR_DISPLAY_UNORM:
 			ImGui::Text(id.c_str());

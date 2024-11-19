@@ -8,18 +8,39 @@ const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders/";
 using namespace glm;
 
-GVar gvar_menu{"Menu", 0U, GVAR_ENUM, GUI_CAT_MENU_BAR, std::vector<std::string>({"Scene", "Settings", "Evaluation", "Debug"})};
+GVar gvar_menu{"Menu", 0U, GVAR_ENUM, GUI_CAT_MENU_BAR, std::vector<std::string>({"File", "Scene", "Settings", "Evaluation", "Debug"}), GVAR_FLAGS_V2};
 
+// Files
+GVar gvar_file_path{"File Path", std::string("none"), GVAR_DISPLAY_TEXT, GUI_CAT_FILE_LOAD};
+GVar gvar_load_file{"Load file", std::string("none"), GVAR_FILE_INPUT, GUI_CAT_FILE_LOAD, std::vector<std::string>({".json"}), GVAR_FLAGS_NO_LOAD};
+GVar gvar_save_as_file{"Save as", std::string("none"), GVAR_FILE_OUTPUT, GUI_CAT_FILE_SAVE, std::vector<std::string>({".json"}), GVAR_FLAGS_NO_LOAD};
+GVar gvar_save_file{"Save", false, GVAR_EVENT, GUI_CAT_FILE_SAVE, std::vector<std::string>({".json"}), GVAR_FLAGS_NO_LOAD};
 
+// Scene Loading:
 // Scene
-GVar gvar_emission_scale_al{"Area light emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE, {0.0f, 100000.f}};
-GVar gvar_emission_scale_env_map{"Env map emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE, {0.0f, 10.f}};
-GVar gvar_skip_geometry{"Skip geometry", false, GVAR_BOOL, GUI_CAT_SCENE};
+GVar gvar_model_path{"Select model", modelPath + "under_the_c/scene_1.obj", GVAR_FILE_INPUT, GUI_CAT_SCENE_GENERAL, std::vector<std::string>({".obj"})};
+GVar gvar_texture_path{"Select texture", texturePath + "envmap/2k/cloudy_dusky_sky_dome_2k.hdr", GVAR_FILE_INPUT, GUI_CAT_SCENE_GENERAL, std::vector<std::string>({".hdr"})};
 
-GVar gvar_model_path{"Model path", modelPath + "under_the_c/scene_1.obj", GVAR_FILE_INPUT, GUI_CAT_SCENE, std::vector<std::string>({".obj"})};
-GVar gvar_texture_path{"Texture path", texturePath + "envmap/2k/cloudy_dusky_sky_dome_2k.hdr", GVAR_FILE_INPUT, GUI_CAT_SCENE, std::vector<std::string>({".hdr"})};
 // Medium
-GVar gvar_medium_density_scale{"Medium density scale", 1000.f, GVAR_FLOAT_RANGE, GUI_CAT_MEDIUM, {0.f, 500.f}};
+GVar gvar_medium_path{"Select medium", texturePath + "csafe_heptane_302x302x302_uint8.raw", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({".raw"})};
+GVar gvar_medium_shader_path{"Select medium shader", texturePath + "csafe_heptane_302x302x302_uint8.raw", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({".raw"})};
+GVar gvar_medium_shader_params{"Med. s. params", std::string(""), GVAR_TEXT_INPUT, GUI_CAT_SCENE_MEDIUM};
+GVar gvar_medium_load{"Load medium", false, GVAR_EVENT, GUI_CAT_SCENE_MEDIUM};
+
+// Medium Instances
+GVar gvar_medium_instance_shader_path{"Select medium instance shader", texturePath + "csafe_heptane_302x302x302_uint8.raw", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM_INSTANCES, std::vector<std::string>({".raw"})};
+GVar gvar_medium_instamce_shader_params{"MedInst. s. params", std::string(""), GVAR_TEXT_INPUT, GUI_CAT_SCENE_MEDIUM_INSTANCES};
+
+// Scene params
+GVar gvar_emission_scale_al{"Area light emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_PARAMS, {0.0f, 100000.f}};
+GVar gvar_emission_scale_env_map{"Env map emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_PARAMS, {0.0f, 10.f}};
+GVar gvar_medium_density_scale{"Medium density scale", 1000.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_PARAMS, {0.f, 500.f}};
+GVar gvar_skip_geometry{"Skip geometry", false, GVAR_BOOL, GUI_CAT_SCENE_PARAMS};
+
+// Scene transforms
+GVar gvar_model_pos{"Model Pos", {0, 0.2, -0.3}, GVAR_VEC3_RANGE, GUI_CAT_SCENE_TRANSFORMS, {-10.f, 10.f}};
+GVar gvar_model_rot{"Model Rot", {0, 180, 0}, GVAR_VEC3_RANGE, GUI_CAT_SCENE_TRANSFORMS, {-180.f, 180.f}};
+GVar gvar_model_scale{"Model Scale", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_TRANSFORMS, {0.01f, 1.f}};
 
 // Path Tracing
 GVar gvar_ray_march_step_size{"RM Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.01f, 1.f}};
@@ -115,11 +136,8 @@ int main()
 	//// Image Estimator Comparator
 	ImageEstimatorComparator iec = ImageEstimatorComparator(VK_FORMAT_R32G32B32A32_SFLOAT, viewDimensions.width, viewDimensions.height);
 	//// Init other stuff
-	FixedCamera                                           cam          = FixedCamera(DefaultFixedCameraState());
-	//// Load stuff:
-	CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
-	TraceResources traceResources = cmdLoadResources(cmdBuf, gState.heap);
-	executeImmediat(cmdBuf);
+	FixedCamera    cam = FixedCamera(DefaultFixedCameraState());
+	TraceResources traceResources{};
 	gState.updateSwapchainAttachments();
 
 	//// Main Loop
@@ -131,11 +149,7 @@ int main()
 	uint32_t      executionCounterLeft, executionCounterRight;
 	TraceArgs     traceArgsLeft      = TraceArgs(&traceResourceCache, gState.heap, &executionCounterLeft);
 	TraceArgs     traceArgsRight     = TraceArgs(&traceResourceCache, gState.heap, &executionCounterRight);
-
 	OfflineRenderer offlineRenderer = OfflineRenderer();
-
-	
-
 
 	while (!gState.io.shouldTerminate())
 	{
@@ -170,8 +184,7 @@ int main()
             return gvar_menu.val.v_uint == setting >> GUI_CAT_SHIFT && settingsChanged[setting & GUI_INDEX_MASK];
 		};
 		bool    renderSettingsChanged = 
-			guiCatChanged(GUI_CAT_SCENE)
-			|| guiCatChanged(GUI_CAT_MEDIUM)
+			guiCatChanged(GUI_CAT_SCENE_PARAMS)
 			|| guiCatChanged(GUI_CAT_PATH_TRACING)
 			|| guiCatChanged(GUI_CAT_TONE_MAPPING)
 			|| guiCatChanged(GUI_CAT_PINS)
@@ -195,14 +208,8 @@ int main()
 			executionCounterLeft = 0;
 			executionCounterRight = 0;
 		}
-		// Update medium
-		if (guiCatChanged(GUI_CAT_MEDIUM) || shaderRecompile || firstFrame)
-		{
-			Buffer scalarBuf;
-			gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, scalarFieldPath + "csafe_heptane_302x302x302_uint8.raw", VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-			cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-			getCmdLoadScalarField(scalarBuf, traceResources.mediumTexture, gvar_medium_density_scale.val.v_float).exec(cmdBuf);
-		}
+
+		traceResources.cmdLoadUpdate(cmdBuf, gState.heap, settingsChanged);
 
 		CameraCI camCI{};
 		camCI.pos      = cam.getPosition();

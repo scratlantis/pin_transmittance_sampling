@@ -55,9 +55,8 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		refTask.execCnt        = 0;
 		leftTask.execCnt       = 0;
 		rightTask.execCnt      = 0;
-		traceResources = cmdLoadResources(cmdBuf, pPool);
 		TraceArgs commonArgs{};
-		commonArgs.resources = traceResources;
+		commonArgs.resources.cmdLoadAll(cmdBuf, pPool);
 		commonArgs.sceneParams = task.sceneParams;
 		commonArgs.config = task.config;
 		commonArgs.config.subSampleMode = 1;

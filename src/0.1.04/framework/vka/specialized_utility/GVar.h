@@ -10,7 +10,7 @@ using json = nlohmann::json;
 namespace vka
 {
 
-#define GVAR_MAX_STRING_LENGHT 256
+#define GVAR_MAX_STRING_LENGHT 2048
 
 	// Type
 enum GVar_Type
@@ -31,6 +31,9 @@ enum GVar_Type
 	GVAR_FLOAT_RANGE,
 	GVAR_TEXT_INPUT,
 	GVAR_FILE_INPUT,
+	// todo
+	GVAR_FILE_OUTPUT,
+	GVAR_DISPLAY_TEXT
 };
 
 
@@ -82,6 +85,7 @@ enum GuiFlags
 enum GVarFlags
 {
 	GVAR_FLAGS_NO_LOAD = 1 << 0,
+	GVAR_FLAGS_V2 = 1 << 1,
 };
 
 struct GVar

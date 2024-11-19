@@ -40,6 +40,9 @@ std::vector<bool> buildGui(CmdBuffer cmdBuf, ImageEstimatorComparator* pIEC)
 	beginGui("Left", leftGuiDimensions, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize, nullptr);
 	switch (gvar_menu.val.v_uint)
 	{
+		case GUI_GROUP_FILE:
+			changed = GVar::addAllToGui<GuiGroupFile>(GUI_FLAGS_OPEN_NODES);
+			break;
 		case GUI_GROUP_SCENE:
 			changed = GVar::addAllToGui<GuiGroupScene>(GUI_FLAGS_OPEN_NODES);
 			break;
