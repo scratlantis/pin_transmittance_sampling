@@ -238,7 +238,6 @@ class ModelCache
 {
   private:
 	std::unordered_map<ModelKey, ModelData> map;
-	std::string                             modelPath;
 	IResourcePool                          *pPool;
 	VkBufferUsageFlags                      bufferUsageFlags;
 
@@ -247,8 +246,8 @@ class ModelCache
 	void findAreaLights(std::vector<AreaLight> &lightList, const std::vector<ObjVertex> &vertexList, const std::vector<Index> &indexList, const std::vector<uint32_t> &indexCountList, const std::vector<WavefrontMaterial> &surfaceList) const;
 
   public:
-	ModelCache(IResourcePool *pPool, std::string modelPath, VkBufferUsageFlags bufferUsageFlags) :
-	    modelPath(modelPath), pPool(pPool), bufferUsageFlags(bufferUsageFlags)
+	ModelCache(IResourcePool *pPool, VkBufferUsageFlags bufferUsageFlags) :
+	    pPool(pPool), bufferUsageFlags(bufferUsageFlags)
 	{}
 	void      clear();
 	template <typename Vertex>
@@ -259,7 +258,7 @@ class ModelCache
 		auto     it = map.find(key);
 		if (it == map.end())
 		{
-			std::string                    fullPath = modelPath + path;
+			std::string                    fullPath = path;
 			std::vector<ObjVertex>         vertexList;
 			std::vector<Index>             indexList;
 			ModelData modelData{};

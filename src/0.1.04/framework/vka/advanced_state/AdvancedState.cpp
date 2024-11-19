@@ -15,8 +15,8 @@ void AdvancedState::init(DeviceCI &deviceCI, IOControlerCI &ioControllerCI, Wind
 	hostCache               = new HostCache(hostCachedHeap, hostCacheLocalPool);
 	feedbackDataCache       = new FeedbackDataCache(hostCache);
 	framebufferCache        = new FramebufferCache();
-	modelCache              = new ModelCache(heap, config.modelPath, config.modelUsage);
-	textureCache            = new TextureCache(heap, config.texturePath);
+	modelCache              = new ModelCache(heap, config.modelUsage);
+	textureCache            = new TextureCache(heap);
 	swapchainImage          = nullptr;
 	imguiWrapper            = new ImGuiWrapper();
 	depthBufferCache        = new DepthBufferCache(heap);

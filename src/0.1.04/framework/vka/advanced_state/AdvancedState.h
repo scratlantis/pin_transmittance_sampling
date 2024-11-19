@@ -19,8 +19,6 @@ namespace vka
 {
 struct AdvancedStateConfig
 {
-	std::string        modelPath;
-	std::string        texturePath;
 	VkBufferUsageFlags modelUsage;
 };
 

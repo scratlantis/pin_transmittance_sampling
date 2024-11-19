@@ -16,7 +16,15 @@ bool ModelCache::loadObj(std::string path, std::vector<ObjVertex> &vertexList, s
 	std::string                      warningString;
 
 	// Parse obj and mtl files
-	std::string mtldir = path.substr(0, path.find_last_of("/"));
+	std::string mtldir;
+	if (path.find_last_of("\\") != std::string::npos)
+	{
+		mtldir = path.substr(0, path.find_last_of("\\"));
+	}
+	else
+	{
+		mtldir = path.substr(0, path.find_last_of("/"));
+	}
 	bool        success = tinyobj::LoadObj(&vertexAttributes, &shapes, &materials, &warningString, &errorString, path.c_str(), mtldir.c_str());
 	if (!success)
 	{

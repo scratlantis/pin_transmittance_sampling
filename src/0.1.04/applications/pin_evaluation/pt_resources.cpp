@@ -5,16 +5,44 @@
 
 extern GVar gvar_medium_density_scale;
 extern GVar gvar_menu;
-extern GVar gvar_medium_load;
 
-const std::string env_map_path = "/envmap/2k/cloudy_dusky_sky_dome_2k.hdr";
+// UScene
+GVar gvar_model_path{"Select model", modelPath + "under_the_c/scene_1.obj", GVAR_FILE_INPUT, GUI_CAT_SCENE_GENERAL, std::vector<std::string>({".obj", modelPath})};
+GVar gvar_texture_path{"Select envmap", texturePath + "envmap/2k/cloudy_dusky_sky_dome_2k.hdr", GVAR_FILE_INPUT, GUI_CAT_SCENE_GENERAL, std::vector<std::string>({".hdr", texturePath})};
+
+// Medium
+GVar gvar_medium_path{"Select medium", texturePath + "csafe_heptane_302x302x302_uint8.raw", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({".raw", scalarFieldPath})};
+GVar gvar_medium_shader_path{"Select medium shader", texturePath + "bla.comp", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({".comp", shaderPath})};
+GVar gvar_medium_shader_params{"Med. s. params", std::string(""), GVAR_TEXT_INPUT, GUI_CAT_SCENE_MEDIUM};
+GVar gvar_medium_load{"Load medium", false, GVAR_EVENT, GUI_CAT_SCENE_MEDIUM};
+
+// Medium Instances
+GVar gvar_medium_instance_shader_path{"Select medium instance shader", texturePath + "blub.comp", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM_INSTANCES, std::vector<std::string>({".comp", shaderPath})};
+GVar gvar_medium_instamce_shader_params{"MedInst. s. params", std::string(""), GVAR_TEXT_INPUT, GUI_CAT_SCENE_MEDIUM_INSTANCES};
+GVar gvar_medium_inst_load{"Load medium inst", false, GVAR_EVENT, GUI_CAT_SCENE_MEDIUM_INSTANCES};
+
+// Scene transforms
+GVar gvar_model_pos{"Model Pos", {0, 0.2, -0.3}, GVAR_VEC3_RANGE, GUI_CAT_SCENE_TRANSFORMS, {-10.f, 10.f}};
+GVar gvar_model_rot{"Model Rot", {0, 180, 0}, GVAR_VEC3_RANGE, GUI_CAT_SCENE_TRANSFORMS, {-180.f, 180.f}};
+GVar gvar_model_scale{"Model Scale", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_TRANSFORMS, {0.01f, 1.f}};
+
+
+glm::mat4 getModelMatrix()
+{
+	return getMatrix(gvar_model_pos.val.getVec3(), gvar_model_rot.val.getVec3(), gvar_model_scale.val.v_float);
+}
+
+const std::string default_env_map_path           = texturePath + "envmap/2k/cloudy_dusky_sky_dome_2k.hdr";
 const glm::uvec2  env_map_pdf_resolution = glm::uvec2(64, 64);
 
-const std::string model_path   = "under_the_c/scene_1.obj";
-const glm::mat4   model_matrix           = getMatrix(vec3(0, 0.2, -0.3), vec3(0.0, 180.0, 0.0), 0.1);
+const std::string default_model_path = modelPath + "under_the_c/scene_1.obj";
+//const glm::mat4   model_matrix = getMatrix(vec3(0, 0.2, -0.3), vec3(0.0, 180.0, 0.0), 0.1);
 
-const std::string medium_path           = scalarFieldPath  + "csafe_heptane_302x302x302_uint8.raw";
-const glm::uvec3  medium_dimensions     = glm::uvec3(302, 302, 302); // currently must be equal
+const std::string default_medium_path   = scalarFieldPath + "csafe_heptane_302x302x302_uint8.raw";
+const std::string default_medium_shader_path = shaderPath + "medium.comp.spv"; // todo
+const glm::uvec3  medium_dimensions     = glm::uvec3(302, 302, 302);        // currently must be equal
+
+const std::string default_medium_instance_shader_path = shaderPath + "medium_instance.comp.spv"; // todo
 const uint32_t    medium_instance_count = 50;
 
 std::vector<GLSLInstance> generateInstanceDistributionV1(uint32_t count, uint32_t seed)
@@ -41,13 +69,25 @@ void TraceResources::cmdLoadSceneData(CmdBuffer cmdBuf, IResourcePool *pPool)
 	{
 		sceneData.garbageCollect();
 	}
+
+	std::string model_path = default_model_path;
+	if (std::filesystem::exists(gvar_model_path.val.v_char_array.data()))
+	{
+		model_path = gvar_model_path.val.v_char_array.data();
+	}
+	std::string env_map_path = default_env_map_path;
+	if (std::filesystem::exists(gvar_texture_path.val.v_char_array.data()))
+	{
+		env_map_path = gvar_texture_path.val.v_char_array.data();
+	}
+
 	USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance> sceneBuilder = USceneBuilder<GLSLVertex, GLSLMaterial, GLSLInstance>();
 	// Geometry
 	sceneBuilder.loadEnvMap(env_map_path, env_map_pdf_resolution); // todo
 	GLSLInstance instance{};
 	instance.cullMask = 0xFF;
-	instance.mat      = model_matrix;
-	instance.invMat   = glm::inverse(model_matrix);
+	instance.mat      = getModelMatrix();
+	instance.invMat   = glm::inverse(instance.mat);
 	sceneBuilder.addModel(cmdBuf, model_path, &instance, 1);
 	sceneData = sceneBuilder.create(cmdBuf, pPool);
 	sceneData.build(cmdBuf, sceneBuilder.uploadInstanceData(cmdBuf, pPool));
@@ -61,6 +101,19 @@ void TraceResources::cmdLoadMedium(CmdBuffer cmdBuf, IResourcePool *pPool)
 	{
 		mediumTexture->garbageCollect();
 	}
+
+	std::string medium_path = default_medium_path;
+	if (std::filesystem::exists(gvar_medium_path.val.v_char_array.data()))
+	{
+		medium_path = gvar_medium_path.val.v_char_array.data();
+	}
+
+	std::string medium_shader_path = default_medium_shader_path;
+	if (std::filesystem::exists(gvar_medium_shader_path.val.v_char_array.data()))
+	{
+		medium_shader_path = gvar_medium_shader_path.val.v_char_array.data();
+	}
+
 	// Medium
 	VkExtent3D mediumExtent{medium_dimensions.x, medium_dimensions.y, medium_dimensions.z};// todo
 	mediumTexture = createImage(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, mediumExtent);
@@ -80,6 +133,13 @@ void TraceResources::cmdLoadMediumInstances(CmdBuffer cmdBuf, IResourcePool *pPo
 		mediumInstanceBuffer->garbageCollect();
 		mediumTlas->garbageCollect();
 	}
+
+	std::string medium_instance_shader_path = default_medium_instance_shader_path;
+	if (std::filesystem::exists(gvar_medium_instance_shader_path.val.v_char_array.data()))
+	{
+		medium_instance_shader_path = gvar_medium_instance_shader_path.val.v_char_array.data();
+	}
+
 	// Medium Instances
 	mediumInstanceBuffer            = createBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 	std::vector<GLSLInstance> mediumInstances = generateInstanceDistributionV1(medium_instance_count, 42);

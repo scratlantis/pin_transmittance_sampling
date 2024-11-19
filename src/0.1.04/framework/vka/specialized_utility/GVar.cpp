@@ -406,7 +406,14 @@ bool GVar::addToGui(uint32_t guiFlags)
 				{
 					str = "";
 				}
-				ifd::FileDialog::Instance().Open(id.c_str(), id.c_str(), str, true);
+				if (set.list.size() > 1)
+				{
+					ifd::FileDialog::Instance().Open(id.c_str(), id.c_str(), str, false, set.list[1]);
+				}
+				else
+				{
+					ifd::FileDialog::Instance().Open(id.c_str(), id.c_str(), str, false);
+				}
 			}
 			if (ifd::FileDialog::Instance().IsDone(id.c_str()))
 			{

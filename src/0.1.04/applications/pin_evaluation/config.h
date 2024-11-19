@@ -116,8 +116,6 @@ struct DefaultAdvancedStateConfig : AdvancedStateConfig
 {
 	DefaultAdvancedStateConfig()
 	{
-		modelPath   = std::string(RESOURCE_BASE_DIR) + "/models/";
-		texturePath = std::string(RESOURCE_BASE_DIR) + "/textures/";
 		modelUsage  = 0;
 	}
 };
