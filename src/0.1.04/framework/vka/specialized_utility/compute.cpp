@@ -224,21 +224,22 @@ ComputeCmd getCmdPerlinNoise(Image target, PerlinNoiseArgs args)
 	return cmd;
 }
 
-ComputeCmd getCmdLoadScalarField(Buffer src, Image dst, float scale)
+void cmdLoadScalarField(CmdBuffer cmdBuf, Buffer src, Image dst, const ScalarFieldInfo &info)
 {
+	// should assert 3d image
+	dst->changeExtent(info.extent);
+	if (dst->recreate())
+	{
+		cmdTransitionLayout(cmdBuf, dst, VK_IMAGE_LAYOUT_GENERAL);
+	}
 	ComputeCmd cmd(dst->getExtent(), cVkaShaderPath + "loadScalarField.comp",
 	               {
 	                   {"FORMAT", getGLSLFormat(dst->getFormat())},
+					   {"SCALAR_FIELD_FORMAT", static_cast<uint32_t>(info.format)},
 	               });
-	struct PushStruct
-	{
-		float scale;
-	} pc;
-	pc.scale = scale;
-	cmd.pushConstant(&pc, sizeof(PushStruct));
 	cmd.pushDescriptor(src, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pushDescriptor(dst, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-	return cmd;
+	cmd.exec(cmdBuf);
 }
 
 }        // namespace vka

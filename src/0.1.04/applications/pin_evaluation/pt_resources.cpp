@@ -32,6 +32,40 @@ glm::mat4 getModelMatrix()
 	return getMatrix(gvar_model_pos.val.getVec3(), gvar_model_rot.val.getVec3(), gvar_model_scale.val.v_float);
 }
 
+ScalarFieldInfo getScalarFieldInfo(const std::string &path)
+{
+	VKA_ASSERT(path.find_last_of('/') != std::string::npos);
+	std::string name = path.substr(path.find_last_of('/') + 1);
+	name = name.substr(0, name.find_last_of('.'));
+
+	ScalarFieldInfo info;
+	if (name.find("uint8") != std::string::npos)
+	{
+		info.format = ScalarFieldFormat::UINT8;
+	}
+	else if (name.find("uint16") != std::string::npos)
+	{
+		info.format = ScalarFieldFormat::UINT16;
+	}
+	else
+	{
+		DEBUG_BREAK;
+	}
+	
+	name = name.substr(0, name.find_last_of('_'));
+	std::string dimStr = name.substr(name.find_last_of('_') + 1);
+
+	VKA_ASSERT(
+		dimStr.find('x') != std::string::npos
+		&& dimStr.find_last_of('x') != std::string::npos && dimStr.find('x') != dimStr.find_last_of('x'));
+
+	std::string dimStrX = dimStr.substr(0, dimStr.find('x'));
+	std::string dimStrY = dimStr.substr(dimStr.find('x') + 1, dimStr.find_last_of('x') - dimStr.find('x') - 1);
+	std::string dimStrZ = dimStr.substr(dimStr.find_last_of('x') + 1);
+	info.extent         = {static_cast<uint32_t>(std::stoi(dimStr)), static_cast<uint32_t>(std::stoi(dimStrY)), static_cast<uint32_t>(std::stoi(dimStrZ))};
+	return info;
+}
+
 const std::string default_env_map_path           = texturePath + "envmap/2k/cloudy_dusky_sky_dome_2k.hdr";
 const glm::uvec2  env_map_pdf_resolution = glm::uvec2(64, 64);
 
@@ -115,14 +149,11 @@ void TraceResources::cmdLoadMedium(CmdBuffer cmdBuf, IResourcePool *pPool)
 	}
 
 	// Medium
-	VkExtent3D mediumExtent{medium_dimensions.x, medium_dimensions.y, medium_dimensions.z};// todo
-	mediumTexture = createImage(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, mediumExtent);
-	cmdTransitionLayout(cmdBuf, mediumTexture, VK_IMAGE_LAYOUT_GENERAL);
 	Buffer scalarBuf;
 	gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, medium_path, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-	getCmdLoadScalarField(scalarBuf, mediumTexture, gvar_medium_density_scale.val.v_float).exec(cmdBuf);
-
+	mediumTexture = createImage3D(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+	cmdLoadScalarField(cmdBuf, scalarBuf, mediumTexture, getScalarFieldInfo(medium_path));
 	resourcesTypes |= TraceResourcesType_Medium;
 }
 

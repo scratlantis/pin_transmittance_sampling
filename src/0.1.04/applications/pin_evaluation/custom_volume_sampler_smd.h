@@ -53,6 +53,7 @@ struct CVSArgs
 	float           rayMarchingCoefficient;        // pin ray marche step size relative to the ray march step size in trace args
 	PinGridExtent   pinGridExtent;
 	PinArgs			pinArgs;
+	bool			forceFullUpdate;
 };
 
 struct CVSData

@@ -37,9 +37,10 @@ enum GuiGroupScene {
 	GUI_CAT_SCENE_MEDIUM           = 0x00011,
 	GUI_CAT_SCENE_MEDIUM_INSTANCES = 0x00012,
 	GUI_CAT_SCENE_PARAMS           = 0x00013,
-	GUI_CAT_SCENE_TRANSFORMS       = 0x00014,
+	GUI_CAT_SCENE_MEDIUM_DENSITY   = 0x00014,
+	GUI_CAT_SCENE_TRANSFORMS       = 0x00015,
 };
-const std::vector<std::string> GuiGroupScene_names = {"General", "Medium", "Medium Instances", "Params", "Transforms"};
+const std::vector<std::string> GuiGroupScene_names = {"General", "Medium", "Medium Instances", "Params", "Medium Density", "Transforms"};
 MASKED_ENUM_ADD_STRING_VALUES(GuiGroupScene, GuiGroupScene_names, GUI_INDEX_MASK)
 ENUM_ADD_ITERATOR(GuiGroupScene, GUI_CAT_SCENE_GENERAL, GUI_CAT_SCENE_TRANSFORMS)
 

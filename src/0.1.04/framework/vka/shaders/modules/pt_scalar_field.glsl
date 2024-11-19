@@ -13,6 +13,10 @@
 
 #define PT_SCALAR_FIELD_BINDING_COUNT 1
 layout(binding = PT_SCALAR_FIELD_BINDING_OFFSET) uniform sampler3D volSmp;
+layout(binding = PT_SCALAR_FIELD_BINDING_OFFSET + 1) uniform DENSITY_SCALE
+{
+	float densityScale;
+};
 
 #if 1
 float rayMarcheMedium(vec3 origin, vec3 direction, float maxLength, inout uint seed)
@@ -30,7 +34,7 @@ float rayMarcheMedium(vec3 origin, vec3 direction, float maxLength, inout uint s
 		vec3 pos = origin + direction * t;
 
 		// Sample density
-		float density = texture(volSmp, pos).r;
+		float density = texture(volSmp, pos).r * densityScale;
 		transmittance *= exp(-density * stepSize);
 
 		// Decide if we should stop
@@ -64,7 +68,7 @@ float rayMarcheMedium(vec3 origin, vec3 direction, float maxLength, inout uint s
 		vec3 pos = origin + direction * t;
 
 		// Sample density
-		float density = texture(volSmp, pos).r;
+		float density = texture(volSmp, pos).r * densityScale;
 		transmittance *= exp(-density * RAY_MARCHE_STEP_SIZE);
 
 		// Decide if we should stop
@@ -92,7 +96,7 @@ float rayMarcheMediumTransmittance(vec3 origin, vec3 direction, float maxLength,
 		vec3 pos = origin + direction * t;
 
 		// Sample density
-		float density = texture(volSmp, pos).r;
+		float density = texture(volSmp, pos).r * densityScale;
 		transmittance *= exp(-density * stepSize);
 
 		stepSize = min(RAY_MARCHE_STEP_SIZE, maxLength - t);
@@ -120,7 +124,7 @@ float rayMarcheMediumTransmittance(vec3 origin, vec3 direction, float maxLength,
 		vec3 pos = origin + direction * t;
 
 		// Sample density
-		float density = texture(volSmp, pos).r;
+		float density = texture(volSmp, pos).r * densityScale;
 		densitySum += density;
 		sampleCount++;
 	}

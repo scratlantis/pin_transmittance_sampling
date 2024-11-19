@@ -22,7 +22,7 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 		waitStage  |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		accessFlags |= VK_ACCESS_SHADER_WRITE_BIT;
 	}
-
+	Buffer scalarFieldUniform = cmdGetScalarFieldUniform(cmdBuf, gState.frame->stack, args.sceneParams.densityScale);
 	cmdBarrier(cmdBuf, waitStage, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, VK_ACCESS_SHADER_READ_BIT);
 
 	uvec2 invocationCount = uvec2(target->getExtent2D().width, target->getExtent2D().height);
@@ -32,7 +32,7 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	ComputeCmd cmd(invocationCount, shaderPath + "pt.comp", {{"FORMAT1", getGLSLFormat(target->getFormat())}});
 	bindCamera(cmd, camBuf, camInstBuf);
 	bindScene(cmd, &args.resources.sceneData);
-	bindScalarField(cmd, args.resources.mediumTexture, args.config.rayMarchStepSize);
+	bindScalarField(cmd, args.resources.mediumTexture, args.config.rayMarchStepSize, scalarFieldUniform);
 	if (args.enableDebugging)
 	{
 		bindDebugModules(cmd, debugData, args.debugArgs);

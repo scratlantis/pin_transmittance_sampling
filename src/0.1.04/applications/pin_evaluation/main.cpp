@@ -23,8 +23,9 @@ GVar gvar_save_file{"Save", false, GVAR_EVENT, GUI_CAT_FILE_SAVE, std::vector<st
 // Scene params
 GVar gvar_emission_scale_al{"Area light emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_PARAMS, {0.0f, 100000.f}};
 GVar gvar_emission_scale_env_map{"Env map emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_PARAMS, {0.0f, 10.f}};
-GVar gvar_medium_density_scale{"Medium density scale", 1000.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_PARAMS, {0.f, 500.f}};
 GVar gvar_skip_geometry{"Skip geometry", false, GVAR_BOOL, GUI_CAT_SCENE_PARAMS};
+
+GVar gvar_medium_density_scale{"Medium density scale", 1000.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_DENSITY, {0.f, 500.f}};
 
 // Path Tracing
 GVar gvar_ray_march_step_size{"RM Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.01f, 1.f}};
@@ -170,6 +171,7 @@ int main()
 		// clang-format off
 		bool    renderSettingsChanged = 
 			guiCatChanged(GUI_CAT_SCENE_GENERAL)
+			|| guiCatChanged(GUI_CAT_SCENE_MEDIUM_DENSITY)
 			|| gvar_medium_load.val.v_bool
 			|| gvar_medium_inst_load.val.v_bool
 			|| guiCatChanged(GUI_CAT_SCENE_TRANSFORMS)
@@ -216,6 +218,7 @@ int main()
 		sceneParams.envMapEmissionScale    = gvar_emission_scale_env_map.val.v_float;
 		sceneParams.cameraCI               = camCI;
 		sceneParams.skipGeometry           = gvar_skip_geometry.val.v_bool;
+		sceneParams.densityScale		   = gvar_medium_density_scale.val.v_float;
 
 		TracerConfig tracerConfig{};
 		tracerConfig.rayMarchStepSize                                 = gvar_ray_march_step_size.val.v_float;
@@ -240,6 +243,7 @@ int main()
 		cvsArgs.pinArgs.bitMaskIterations        = gvar_pin_bit_mask_iterations.val.v_uint;
 		cvsArgs.pinArgs.jitterPos                = gvar_jitter_pos.val.v_float;
 		cvsArgs.pinArgs.jitterDir                = gvar_jitter_dir.val.v_float;
+		cvsArgs.forceFullUpdate                  = guiCatChanged(GUI_CAT_SCENE_MEDIUM_DENSITY);
 
 		TraceDebugArgs debugArgs{};
 		if (gvar_enable_debuging.val.v_bool)

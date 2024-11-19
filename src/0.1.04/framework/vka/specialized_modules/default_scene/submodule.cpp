@@ -53,10 +53,17 @@ namespace vka
         {
 	        cmd.pushSubmodule(cVkaShaderModulePath + "mock/pt_uscene_mock.glsl");
         }
-        void bindScalarField(ComputeCmd &cmd, Image scalarField, float rayMarchStepSize)
+        Buffer cmdGetScalarFieldUniform(CmdBuffer cmdBuf, IResourcePool* pPool, float densityScale)
+		{
+	        Buffer ubo = createBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+	        cmdWriteCopy(cmdBuf, ubo, &densityScale, sizeof(float));
+	        return ubo;
+		}
+        void bindScalarField(ComputeCmd &cmd, Image scalarField, float rayMarchStepSize, Buffer ubo)
 		{
 	        cmd.pushSubmodule(cVkaShaderModulePath + "pt_scalar_field.glsl");
 			cmd.pushDescriptor(scalarField, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	        cmd.pushDescriptor(ubo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 			cmd.pipelineDef.shaderDef.args.push_back({"RAY_MARCHE_STEP_SIZE", std::to_string(rayMarchStepSize)});
 	        //VKA_ASSERT(scalarField->getExtent().width == scalarField->getExtent().height && scalarField->getExtent().depth == scalarField->getExtent().height);
 	        cmd.pipelineDef.shaderDef.args.push_back({"VOLUME_RESOLUTION", scalarField->getExtent().width});

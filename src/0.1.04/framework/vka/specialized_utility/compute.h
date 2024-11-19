@@ -40,6 +40,15 @@ struct PerlinNoiseArgs
 
 ComputeCmd getCmdPerlinNoise(Image target, PerlinNoiseArgs args);
 
-
-ComputeCmd getCmdLoadScalarField(Buffer src, Image dst, float scale);
+enum class ScalarFieldFormat
+{
+	UINT8 = 0,
+	UINT16 = 1,
+};
+struct ScalarFieldInfo
+{
+	ScalarFieldFormat format;
+	VkExtent3D        extent;
+};
+void cmdLoadScalarField(CmdBuffer cmdBuf, Buffer src, Image dst, const ScalarFieldInfo &info);
 }        // namespace vka

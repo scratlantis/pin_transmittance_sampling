@@ -10,6 +10,7 @@ struct TraceSceneParams
 {
 	float    areaLightEmissionScale;
 	float    envMapEmissionScale;
+	float	 densityScale;
 	bool     skipGeometry;
 	CameraCI cameraCI;
 };
@@ -48,12 +49,15 @@ struct TraceArgs
 		resources = newArgs.resources;
 		sceneParams.areaLightEmissionScale = newArgs.sceneParams.areaLightEmissionScale;
 		sceneParams.envMapEmissionScale = newArgs.sceneParams.envMapEmissionScale;
+		sceneParams.densityScale = newArgs.sceneParams.densityScale;
 		sceneParams.cameraCI = newArgs.sceneParams.cameraCI;
 
 		config.minDepth = newArgs.config.minDepth;
 		config.seed = newArgs.config.seed;
 		config.firstRandomBounce = newArgs.config.firstRandomBounce;
 		config.subSampleMode = newArgs.config.subSampleMode;
+
+		cvsArgs.forceFullUpdate = newArgs.cvsArgs.forceFullUpdate;
 	}
 
 	void update(const TraceArgs& newArgs)
@@ -68,6 +72,7 @@ struct TraceArgs
 		cvsArgs.rayMarchingCoefficient = newArgs.cvsArgs.rayMarchingCoefficient;
 		cvsArgs.pinGridExtent = newArgs.cvsArgs.pinGridExtent;
 		cvsArgs.pinArgs = newArgs.cvsArgs.pinArgs;
+		cvsArgs.forceFullUpdate = newArgs.cvsArgs.forceFullUpdate;
 
 		enableDebugging = newArgs.enableDebugging;
 		debugArgs = newArgs.debugArgs;
