@@ -91,6 +91,10 @@ bool GVar_Val::equals(const GVar_Val &other, GVar_Type type) const
 	{
 		return std::string(v_char_array.data()) == std::string(other.v_char_array.data());
 	}
+	else if (type == GVAR_DISPLAY_TEXT)
+	{
+		return std::string(v_char_array.data()) == std::string(other.v_char_array.data());
+	}
 	else
 	{
 		return true;
@@ -228,6 +232,9 @@ void GVar::writeToJson(json &j)
 		case GVAR_FILE_INPUT:
 			j[id] = std::string(val.v_char_array.data());
 			break;
+		case GVAR_DISPLAY_TEXT:
+			j[id] = std::string(val.v_char_array.data());
+			break;
 		default:
 			// DEBUG_BREAK;
 			break;
@@ -295,7 +302,14 @@ void GVar::readFromJson(json &j)
 			{
 				val.v_char_array.push_back('\0');
 			}
-			//val.v_char_array = std::vector<char>(j[id].get<std::string>().begin(), j[id].get<std::string>().end());
+			break;
+		case GVAR_DISPLAY_TEXT:
+			str              = j[id];
+			val.v_char_array = std::vector<char>(str.begin(), str.end());
+			if (val.v_char_array.empty() || val.v_char_array.back() != '\0')
+			{
+				val.v_char_array.push_back('\0');
+			}
 		default:
 			// DEBUG_BREAK;
 			break;
@@ -339,6 +353,10 @@ bool GVar::addToGui(uint32_t guiFlags)
 			break;
 		case GVAR_DISPLAY_UINT:
 			ImGui::Text(id.c_str(), val.v_uint);
+			break;
+		case GVAR_DISPLAY_TEXT:
+			ImGui::Text(id.c_str());
+			ImGui::TextWrapped(val.v_char_array.data());
 			break;
 		case GVAR_ENUM:
 			if (guiFlags & GUI_FLAGS_MENU_BAR)

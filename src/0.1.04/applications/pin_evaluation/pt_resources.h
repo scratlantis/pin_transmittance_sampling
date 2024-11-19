@@ -21,10 +21,11 @@ struct TraceResources
 
 	void cmdLoadSceneData(CmdBuffer cmdBuf, IResourcePool *pPool);
 	void cmdLoadMedium(CmdBuffer cmdBuf, IResourcePool *pPool);
-	void cmdLoadMediumInstances(CmdBuffer cmdBuf, IResourcePool *pPool);
 
-	void cmdLoadAll(CmdBuffer cmdBuf, IResourcePool *pPool);
-	void cmdLoadUpdate(CmdBuffer cmdBuf, IResourcePool *pPool, std::vector<bool> settingsChanged);
+	void cmdLoadMediumInstances(CmdBuffer cmdBuf, IResourcePool *pPool, IResourceCache *pCache);
+
+	void cmdLoadAll(CmdBuffer cmdBuf, IResourcePool *pPool, IResourceCache *pCache);
+	void cmdLoadUpdate(CmdBuffer cmdBuf, IResourcePool *pPool, IResourceCache *pCache, std::vector<bool> settingsChanged);
 
 	void garbageCollect()
 	{

@@ -5,15 +5,16 @@
 
 struct OfflineRenderTask
 {
-	std::string      name;
-	TracerConfig     argsRef;
-	TraceSceneParams sceneParams;
-	CVSArgs          cvsArgsLeft;
-	CVSArgs          cvsArgsRight;
-	TracerConfig     config;
-	VkExtent2D       resolution;
-	float            renderTimeRef;
-	float            renderTimeCompare;
+	std::string        name;
+	TracerConfig       argsRef;
+	TraceSceneParams   sceneParams;
+	CVSArgs            cvsArgsLeft;
+	CVSArgs            cvsArgsRight;
+	TracerConfig       config;
+	VkExtent2D         resolution;
+	float              renderTimeRef;
+	float              renderTimeCompare;
+	IECToneMappingArgs toneMappingArgs;
 };
 
 class OfflineRenderer

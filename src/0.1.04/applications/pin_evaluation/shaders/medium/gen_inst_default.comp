@@ -1,0 +1,46 @@
+
+#include "../../lib/lib/default_scene/interface_structs.glsl"
+#include "../../lib/lib/random.glsl"
+
+layout(binding = 0) writeonly buffer INSTANCE{ GLSLInstance instance_buf[]; };
+
+struct PushStruct
+{
+	vec2 scale;
+	uint seed;
+	uint count;
+};
+
+
+layout(push_constant) uniform PC {PushStruct pc;};
+
+void main()
+{
+	if(!validInvocation()) return;
+
+	uint seed = pc.seed + gl_GlobalInvocationID.x;
+
+	GLSLInstance inst;
+	inst.cullMask = 0xFF;
+	inst.color = vec3(1.0, 1.0, 1.0);
+	inst.id = 0;
+
+	float scale = mix(pc.scale.x, pc.scale.y, unormNext(seed));
+	if(pc.scale.x > pc.scale.y) scale = pc.scale.x;
+	inst.mat = mat4(scale);
+
+	vec4 tmp = inst.mat[0];
+	inst.mat[0] = -inst.mat[1];
+	inst.mat[1] = tmp;
+	
+	vec3 randomPos = random3D(seed + 0x8217);
+	randomPos = randomPos * 2.0 - 1.0;
+	#ifdef FIX_Y
+	randomPos.y = 0.2;
+	#endif
+	inst.mat[3] = vec4(3.0*randomPos, 1.0);
+
+	inst.invMat = inverse(inst.mat);
+
+	instance_buf[gl_GlobalInvocationID.x] = inst;
+}

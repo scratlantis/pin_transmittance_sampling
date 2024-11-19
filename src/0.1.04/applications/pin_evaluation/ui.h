@@ -32,15 +32,17 @@ const std::vector<std::string> GuiGroupFile_names = {"Load", "Save"};
 MASKED_ENUM_ADD_STRING_VALUES(GuiGroupFile, GuiGroupFile_names, GUI_INDEX_MASK)
 ENUM_ADD_ITERATOR(GuiGroupFile, GUI_CAT_FILE_LOAD, GUI_CAT_FILE_SAVE)
 
-enum GuiGroupScene {
-	GUI_CAT_SCENE_GENERAL          = 0x00010,
-	GUI_CAT_SCENE_MEDIUM           = 0x00011,
-	GUI_CAT_SCENE_MEDIUM_INSTANCES = 0x00012,
-	GUI_CAT_SCENE_PARAMS           = 0x00013,
-	GUI_CAT_SCENE_MEDIUM_DENSITY   = 0x00014,
-	GUI_CAT_SCENE_TRANSFORMS       = 0x00015,
+enum GuiGroupScene
+{
+	GUI_CAT_SCENE_GENERAL              = 0x00010,
+	GUI_CAT_SCENE_MEDIUM               = 0x00011,
+	GUI_CAT_SCENE_MEDIUM_INSTANCE      = 0x00012,
+	GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS = 0x00013,
+	GUI_CAT_SCENE_PARAMS               = 0x00014,
+	GUI_CAT_SCENE_MEDIUM_DENSITY       = 0x00015,
+	GUI_CAT_SCENE_TRANSFORMS           = 0x00016,
 };
-const std::vector<std::string> GuiGroupScene_names = {"General", "Medium", "Medium Instances", "Params", "Medium Density", "Transforms"};
+const std::vector<std::string> GuiGroupScene_names = {"General", "Medium", "Medium Instance", "Medium Instance Args", "Params", "Medium Density", "Transforms"};
 MASKED_ENUM_ADD_STRING_VALUES(GuiGroupScene, GuiGroupScene_names, GUI_INDEX_MASK)
 ENUM_ADD_ITERATOR(GuiGroupScene, GUI_CAT_SCENE_GENERAL, GUI_CAT_SCENE_TRANSFORMS)
 

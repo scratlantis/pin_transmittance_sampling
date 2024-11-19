@@ -50,13 +50,17 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 	OfflineRenderTask &task = taskQueue.front();
 	if (state == OFFLINE_RENDER_STATE_IDLE)
 	{
+		waitIdle();
+		this->pTraceResourceCache->clearAll();
+		this->pPool->clear();
+
 		iec            = ImageEstimatorComparator(VK_FORMAT_R32G32B32A32_SFLOAT, task.resolution);
 		iec.cmdReset(cmdBuf);
 		refTask.execCnt        = 0;
 		leftTask.execCnt       = 0;
 		rightTask.execCnt      = 0;
 		TraceArgs commonArgs{};
-		commonArgs.resources.cmdLoadAll(cmdBuf, pPool);
+		commonArgs.resources.cmdLoadAll(cmdBuf, pPool, this->pTraceResourceCache);
 		commonArgs.sceneParams = task.sceneParams;
 		commonArgs.config = task.config;
 		commonArgs.config.subSampleMode = 1;
@@ -100,14 +104,14 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 	if (internalTask.isComplete())
 	{
 		printVka("Render %s complete", internalTaskName.c_str());
-		iec.cmdShow(cmdBuf, internalTask.result, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, IEC_TARGET_LEFT);
+		iec.cmdShow(cmdBuf, internalTask.result, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, IEC_TARGET_LEFT, task.toneMappingArgs);
 		
 		// Store render result
 		Image outImg = internalTask.result;
 		if (state == OFFLINE_RENDER_STATE_REF)
 		{
 			outImg = createImage(pPool, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
-			iec.cmdShow(cmdBuf, outImg, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, IEC_TARGET_LEFT);
+			iec.cmdShow(cmdBuf, outImg, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, IEC_TARGET_LEFT, task.toneMappingArgs);
 		}
 		iec.cmdReset(cmdBuf, nullptr, refTask.result);
 
@@ -139,7 +143,6 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 			// Write json
 			json          j;
 			std::ofstream o(resultsPath + task.name + "/" + task.name + "_info.json");
-			j["subsample_mode"] = task.config.subSampleMode;
 			j["resolution"]     = {task.resolution.width, task.resolution.height};
 
 			j["ref_avg_sample_time"] = refTask.avgSampleTime;

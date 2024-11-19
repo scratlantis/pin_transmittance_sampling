@@ -10,7 +10,11 @@ using namespace glm;
 
 
 extern GVar gvar_medium_load;
-extern GVar gvar_medium_inst_load;
+extern GVar gvar_medium_inst_update;
+extern GVar gvar_medium_instamce_shader_params;
+extern GVar gvar_medium_instamce_shader_params_input;
+
+
 
 GVar gvar_menu{"Menu", 0U, GVAR_ENUM, GUI_CAT_MENU_BAR, std::vector<std::string>({"File", "Scene", "Settings", "Evaluation", "Debug"}), GVAR_FLAGS_V2};
 
@@ -131,6 +135,7 @@ int main()
 	float         splitViewCoef = 0.5;
 
 	ResourceCache traceResourceCache = ResourceCache();
+	ResourceCache mediumInstResCache = ResourceCache();
 	uint32_t      executionCounterLeft, executionCounterRight;
 	TraceArgs     traceArgsLeft      = TraceArgs(&traceResourceCache, gState.heap, &executionCounterLeft);
 	TraceArgs     traceArgsRight     = TraceArgs(&traceResourceCache, gState.heap, &executionCounterRight);
@@ -141,8 +146,8 @@ int main()
 		CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
 		//// Get Updates
 		bool              firstFrame          = frameCount == 0;
-		bool              fullShaderRecompile = gState.io.keyPressedEvent[GLFW_KEY_R];
-		bool              fastShaderRecompile = gState.io.keyPressedEvent[GLFW_KEY_F];
+		bool              fullShaderRecompile = mouseInView(viewDimensions) && gState.io.keyPressedEvent[GLFW_KEY_R];
+		bool              fastShaderRecompile = mouseInView(viewDimensions) && gState.io.keyPressedEvent[GLFW_KEY_F];
 		bool              shaderRecompile     = fullShaderRecompile || fastShaderRecompile;
 		bool              leftClickInView     = mouseInView(viewDimensions) && gState.io.mouse.leftPressedEvent();
 		bool              leftPressedInView   = mouseInView(viewDimensions) && gState.io.mouse.leftPressed;
@@ -150,10 +155,16 @@ int main()
 		bool              camMoved            = mouseInView(viewDimensions) && gState.io.mouse.rightPressed && cam.mouseControl();
 		bool              selectPixel         = leftClickInView && gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL];
 
+		if (mouseInView(viewDimensions) && gState.io.keyPressedEvent[GLFW_KEY_T])
+		{
+			cam = FixedCamera(DefaultFixedCameraState());
+		}
 		if (fullShaderRecompile)
 		{
 			clearShaderCache();
 			traceResourceCache.clearShaders();
+			mediumInstResCache.clearShaders();
+			gState.shaderLog = "";
 			gState.io.buildShaderLib();
 		}
 		if (fastShaderRecompile)
@@ -165,6 +176,20 @@ int main()
 		}
 
 		std::vector<bool> settingsChanged     = buildGui(cmdBuf, &iec);
+
+		if (gvar_medium_inst_update.val.v_bool)
+		{
+			gvar_medium_instamce_shader_params.val.v_char_array = gvar_medium_instamce_shader_params_input.val.v_char_array;
+		}
+
+		if (gvar_medium_inst_update.val.v_bool)
+		{
+			vkDeviceWaitIdle(gState.device.logical);
+			mediumInstResCache.clearShaders();
+			gState.shaderLog = "";
+			gState.io.buildShaderLib();
+		}
+
 		auto              guiCatChanged = [settingsChanged](uint32_t setting) -> bool {
             return gvar_menu.val.v_uint == setting >> GUI_CAT_SHIFT && settingsChanged[setting & GUI_INDEX_MASK];
 		};
@@ -173,7 +198,8 @@ int main()
 			guiCatChanged(GUI_CAT_SCENE_GENERAL)
 			|| guiCatChanged(GUI_CAT_SCENE_MEDIUM_DENSITY)
 			|| gvar_medium_load.val.v_bool
-			|| gvar_medium_inst_load.val.v_bool
+			|| gvar_medium_inst_update.val.v_bool
+			|| guiCatChanged(GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS)
 			|| guiCatChanged(GUI_CAT_SCENE_TRANSFORMS)
 			|| guiCatChanged(GUI_CAT_SCENE_PARAMS)
 			|| guiCatChanged(GUI_CAT_PATH_TRACING)
@@ -201,7 +227,7 @@ int main()
 			executionCounterRight = 0;
 		}
 
-		traceResources.cmdLoadUpdate(cmdBuf, gState.heap, settingsChanged);
+		traceResources.cmdLoadUpdate(cmdBuf, gState.heap, &mediumInstResCache, settingsChanged);
 
 		CameraCI camCI{};
 		camCI.pos      = cam.getPosition();
@@ -292,6 +318,11 @@ int main()
 			traceArgsLeft.updateFast(newTraceArgsLeft);
 			traceArgsRight.updateFast(newTraceArgsRight);
 		}
+		IECToneMappingArgs toneMappingArgs{};
+		toneMappingArgs.useTonemapping = gvar_tone_mapping_enable.val.v_bool;
+		toneMappingArgs.whitePoint     = gvar_tone_mapping_whitepoint.val.v_float;
+		toneMappingArgs.exposure       = gvar_tone_mapping_exposure.val.v_float;
+
 		if (gvar_evaluate.val.v_bool)
 		{
 			OfflineRenderTask task{};
@@ -305,6 +336,7 @@ int main()
 			task.resolution        = cResolutions[gvar_eval_resolution.val.v_uint];
 			task.renderTimeRef     = gvar_eval_ref_target_time.val.v_float * 1000.0f; // sec to ms
 			task.renderTimeCompare = gvar_eval_comp_target_time.val.v_float * 1000.0f; // sec to ms
+			task.toneMappingArgs    = toneMappingArgs;
 			offlineRenderer.addTask(task);
 		}
 		gvar_remaning_tasks.val.v_uint = offlineRenderer.getTaskQueueSize();
@@ -319,10 +351,6 @@ int main()
 		//// Show results
 		Image swapchainImg = getSwapchainImage();
 		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.25, 0.25, 0.3, 1.0)).exec(cmdBuf);
-		IECToneMappingArgs toneMappingArgs{};
-		toneMappingArgs.useTonemapping = gvar_tone_mapping_enable.val.v_bool;
-		toneMappingArgs.whitePoint     = gvar_tone_mapping_whitepoint.val.v_float;
-		toneMappingArgs.exposure       = gvar_tone_mapping_exposure.val.v_float;
 		iec.showSplitView(cmdBuf, swapchainImg, splitViewCoef, getScissorRect(viewDimensions), toneMappingArgs);
 
 		gState.uploadQueue->processUploadTasks(cmdBuf);
@@ -334,6 +362,7 @@ int main()
 	//// Save settings
 	vkDeviceWaitIdle(gState.device.logical);
 	traceResourceCache.clearAll();
+	mediumInstResCache.clearAll();
 	offlineRenderer.destroy();
 	GVar::storeAll(configPath + "last_session.json");
 	gState.destroy();
