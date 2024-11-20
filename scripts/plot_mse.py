@@ -51,6 +51,10 @@ ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
 #plt.yticks([np.arange(0, 0.0001, step=0.000001)])
 #plt.plot(xValLeft, leftPoints)
 #plt.plot(xValRight, rightPoints)
+
+plt.savefig("../results/data/default/mse.pdf", format="pdf", bbox_inches="tight")
+plt.show()
+
 plt.show()
 
 #print(csvRight.to_string())

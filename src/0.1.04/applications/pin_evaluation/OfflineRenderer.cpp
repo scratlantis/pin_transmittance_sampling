@@ -109,16 +109,6 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		printVka("Render %s complete", internalTaskName.c_str());
 		iec.cmdShow(cmdBuf, internalTask.result, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target, task.toneMappingArgs);
 		iec.cmdReset(cmdBuf, IEC_TARGET_RIGHT);
-		
-		// Store render result
-		/*Image outImg = internalTask.result;*/
-		/*if (state == OFFLINE_RENDER_STATE_REF)
-		{
-			outImg = createImage(pPool, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
-			iec.cmdShow(cmdBuf, outImg, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, IEC_TARGET_LEFT, task.toneMappingArgs);
-		}*/
-		//cmdFill(cmdBuf, outImg, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, vec4(0.0, 0.0, 0.0, 1.0));
-
 
 		std::filesystem::create_directories(resultsPath + task.name);
 		std::string internalTaskPath = resultsPath + task.name + "/" + internalTaskName;
