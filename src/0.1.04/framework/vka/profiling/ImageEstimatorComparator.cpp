@@ -16,7 +16,7 @@ ImageEstimatorComparator::ImageEstimatorComparator(VkFormat format, float relWid
 	tqManagerLeft  = TimeQueryManager(gState.heap, 1);
 	tqManagerRight = TimeQueryManager(gState.heap, 1);
 	mseResources = MSEComputeResources(format, gState.heap);
-	mseBuffer    = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, sizeof(float));
+	mseBuffer    = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
 	isInitialized = true;
 }
 
@@ -30,7 +30,7 @@ ImageEstimatorComparator::ImageEstimatorComparator(VkFormat format, VkExtent2D e
 	tqManagerLeft    = TimeQueryManager(gState.heap, 1);
 	tqManagerRight   = TimeQueryManager(gState.heap, 1);
 	mseResources = MSEComputeResources(format, gState.heap);
-	mseBuffer    = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY, sizeof(float));
+	mseBuffer        = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
 	isInitialized = true;
 }
 
@@ -46,6 +46,21 @@ void ImageEstimatorComparator::garbageCollect()
 	tqManagerRight.garbageCollect();
 	mseResources.garbageCollect();
 	mseBuffer->garbageCollect();
+}
+
+void ImageEstimatorComparator::cmdReset(CmdBuffer cmdBuf, IECTarget target)
+{
+	Image localAccumulationTarget = target == IEC_TARGET_LEFT ? localAccumulationTargetLeft : localAccumulationTargetRight;
+	TimeQueryManager &tqManager = target == IEC_TARGET_LEFT ? tqManagerLeft : tqManagerRight;
+	Metrics &metrics = target == IEC_TARGET_LEFT ? metricsLeft : metricsRight;
+	bool &timeQueryFinished = target == IEC_TARGET_LEFT ? timeQueryFinishedLeft : timeQueryFinishedRight;
+
+
+	cmdFill(cmdBuf, localAccumulationTarget, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, glm::vec4(0.0));
+	tqManager.cmdReset(cmdBuf);
+	metrics.reset();
+	timeQueryFinished = true;
+	mse.clear();
 }
 
 void ImageEstimatorComparator::cmdReset(CmdBuffer cmdBuf, Image imgLeft, Image imgRight)

@@ -25,7 +25,8 @@ CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, const TraceArgs &args)
 			break;
 	}
 
-	uint32_t pinGridCellCount = cubed(cvsArgs.pinGridExtent.positionGridSize) * squared(cvsArgs.pinGridExtent.directionGridSize);
+	//uint32_t pinGridCellCount = cubed(cvsArgs.pinGridExtent.positionGridSize) * squared(cvsArgs.pinGridExtent.directionGridSize);
+	uint32_t pinGridCellCount = cubed(cvsArgs.pinGridExtent.positionGridSize) * squared(cvsArgs.pinGridExtent.directionGridSize) * 4;
 	uint32_t pinGridMemorySize = pinGridCellCount * pinStructSize;
 	VKA_ASSERT(pinGridMemorySize > 0);
 

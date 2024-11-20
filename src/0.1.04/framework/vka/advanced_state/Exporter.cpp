@@ -2,7 +2,7 @@
 #include <vka/globals.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
-
+#include "CSVWriter.h"
 namespace vka
 {
 Exporter::Exporter()
@@ -54,18 +54,16 @@ void Exporter::processExports()
 		{
 			float        *pData  = static_cast<float *>(task.hostBuffer->map());
 			std::ofstream file(task.path);
+			CSVWriter     csv;
 			for (uint32_t i = 0; i < task.hostBuffer->getSize() / sizeof(float); i += task.bufferInfo.rowLength)
 			{
 				for (uint32_t j = 0; j < task.bufferInfo.rowLength; j++)
 				{
-					file << pData[i + j];
-					if (j < task.bufferInfo.rowLength - 1)
-					{
-						file << ",";
-					}
+					csv << pData[i + j];
 				}
-				file << std::endl;
+				csv.newRow();
 			}
+			file << csv;
 			file.close();
 		}
 		else if (task.targetFormat == EXPORT_FORMAT_PNG)

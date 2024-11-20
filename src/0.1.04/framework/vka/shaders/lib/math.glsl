@@ -76,6 +76,11 @@ uint flatten(uvec3 idx, uvec3 size)
 	return  idx.x + idx.y*size.x + idx.z*size.x*size.y;
 }
 
+uint flatten(uvec2 idx, uvec2 size)
+{
+	return  idx.x + idx.y*size.x;
+}
+
 uint flatten(uvec3 idx, uint size)
 {
 	return  idx.x + idx.y*size + idx.z*size*size;
@@ -100,7 +105,21 @@ vec2 gridPos2D(uint idx, uint gridSize)
 	return vec2(x, y) / float(gridSize);
 }
 
+vec2 gridPos2D(uint idx, uvec2 gridSize)
+{
+	uint x = idx % gridSize.x;
+	uint y = idx / gridSize.x;
+	return vec2(x, y) / vec2(gridSize);
+}
+
 uint gridIdx(vec2 pos, uint gridSize)
+{
+	vec2 clampedPos = clamp(pos, 0.0, 0.9999);
+	uvec2 indexVec = uvec2(clampedPos * vec2(gridSize));
+	return flatten(indexVec, gridSize);
+}
+
+uint gridIdx(vec2 pos, uvec2 gridSize)
 {
 	vec2 clampedPos = clamp(pos, 0.0, 0.9999);
 	uvec2 indexVec = uvec2(clampedPos * vec2(gridSize));

@@ -24,8 +24,8 @@ void main()
 {
 	vec4 colorA = texture(smpA,inUV*vec2(pc.width, pc.height)+vec2(pc.x,pc.y));
 	vec4 colorB = texture(smpB,inUV*vec2(pc.width, pc.height)+vec2(pc.x,pc.y));
-
-
+//colorA.a = 0.0;
+	//colorB.a = 1.0;
 	if(colorA.a == 0.0)
 	{
 		colorA.xyz = vec3(0.0);

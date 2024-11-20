@@ -100,6 +100,7 @@ float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out Hit
 				{
 					float localTmax = distance(localEndPoint, localPos);
 					float localTEntry = distance(localEntry, localPos);
+					float selectionOffset = unormNext(seed);
 					if(localTmax > localTEntry)
 					{
 						float maxLength = min(localTmax - localTEntry, distance(localEntry, localExit));
@@ -110,7 +111,7 @@ float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out Hit
 						}
 						else
 						{
-							tLocal = cvsSampleDistance(localEntry, localDir, maxLength, seed);
+							tLocal = cvsSampleDistance(localEntry, localDir, maxLength, selectionOffset, seed);
 						}
 						if(tLocal != TMAX)
 						{
@@ -132,13 +133,14 @@ float traceDistance(Ray ray, uint flags, uint cullMask, inout uint seed, out Hit
 
 					float maxLength = min(localTExit, localTmax);
 					float tLocal;
+					float selectionOffset = 0.0;
 					if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
 					{
 						tLocal = rayMarcheMedium(localPos, localDir, maxLength, seed);
 					}
 					else
 					{
-						tLocal = cvsSampleDistance(localPos, localDir, maxLength, seed);
+						tLocal = cvsSampleDistance(localPos, localDir, maxLength, selectionOffset, seed);
 					}
 					if(tLocal != TMAX)
 					{
@@ -190,7 +192,7 @@ float traceTransmittance(Ray ray, uint flags, uint cullMask, inout uint seed)
 			{
 				vec3 endPoint = ray.origin + ray.direction * ray.tmax;
 				vec3 localEndPoint = rayQueryGetIntersectionWorldToObjectEXT(rq, false) * vec4(endPoint, 1.0);
-
+				float selectionOffset = unormNext(seed);
 				if(!inUnitCube(localPos))
 				{
 					float localTmax = distance(localEndPoint, localPos);
@@ -206,7 +208,7 @@ float traceTransmittance(Ray ray, uint flags, uint cullMask, inout uint seed)
 						}
 						else
 						{
-							localTransmittance = cvsSampleTransmittance(localEntry, localDir, maxLength, seed);
+							localTransmittance = cvsSampleTransmittance(localEntry, localDir, maxLength, selectionOffset, seed);
 						}
 						totalTransmittance *= localTransmittance;
 						if(totalTransmittance < EPSILON)
@@ -219,7 +221,7 @@ float traceTransmittance(Ray ray, uint flags, uint cullMask, inout uint seed)
 				{
 					float localTmax = distance(localEndPoint, localPos);
 					float localTExit = distance(localExit, localPos);
-
+					float selectionOffset = 0.0;
 					float maxLength = min(localTExit, localTmax);
 					float localTransmittance;
 					if((flags & TRACE_FLAG_FORCE_RAYMARCHE) != 0)
@@ -228,7 +230,7 @@ float traceTransmittance(Ray ray, uint flags, uint cullMask, inout uint seed)
 					}
 					else
 					{
-						localTransmittance = cvsSampleTransmittance(localPos, localDir, maxLength, seed);
+						localTransmittance = cvsSampleTransmittance(localPos, localDir, maxLength, selectionOffset, seed);
 					}
 					totalTransmittance *= localTransmittance;
 					if(totalTransmittance < EPSILON)

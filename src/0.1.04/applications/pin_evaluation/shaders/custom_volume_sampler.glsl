@@ -17,7 +17,7 @@ layout(constant_id = CUSTOM_VOLUME_SAMPLER_SPEC_CONST_OFFSET + 1) const float ji
 
 
 #if PIN_TYPE == 0
-float cvsSampleDistance(vec3 origin, vec3 dir, float maxLength, inout uint seed)
+float cvsSampleDistance(vec3 origin, vec3 dir, float maxLength, float selectionOffset, inout uint seed)
 {
 // quantisation
 #if SAMPLE_TYPE != 0
@@ -35,7 +35,7 @@ float cvsSampleDistance(vec3 origin, vec3 dir, float maxLength, inout uint seed)
 #endif
 	return tLocal;
 }
-float cvsSampleTransmittance(vec3 origin, vec3 dir, float maxLength, inout uint seed)
+float cvsSampleTransmittance(vec3 origin, vec3 dir, float maxLength, float selectionOffset, inout uint seed)
 {
 // quantisation
 #if SAMPLE_TYPE != 0
@@ -62,7 +62,7 @@ layout(binding = CUSTOM_VOLUME_SAMPLER_BINDING_OFFSET) readonly buffer PIN_GRID
 	PIN_STRUCT pin_grid[];
 };
 
-float cvsSampleDistance(vec3 origin, vec3 dir, float maxLength, inout uint seed)
+float cvsSampleDistance(vec3 origin, vec3 dir, float maxLength, float selectionOffset, inout uint seed)
 {
 #if SAMPLE_TYPE != 0
 	apply_jitter(origin, dir, jitterPos, jitterDir, seed);
@@ -72,16 +72,17 @@ float cvsSampleDistance(vec3 origin, vec3 dir, float maxLength, inout uint seed)
 	quantise_to_pin_grid(origin, dir);
 #endif
 // compute pin
+	vec3 selectionPos = origin + dir * selectionOffset * maxLength;
 #if SAMPLE_TYPE != 2
-	PIN_STRUCT pin = CREATE_PIN(origin, dir, seed);
+	PIN_STRUCT pin = CREATE_PIN(selectionPos, dir, seed);
 #else
-	PIN_STRUCT pin = pin_grid[pin_cache_offset(origin, dir)];
+	PIN_STRUCT pin = pin_grid[pin_cache_offset(selectionPos, dir)];
 #endif
 //SI_printf("PIN_TYPE %d\n",PIN_TYPE);
 	return PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, seed);
 }
 
-float cvsSampleTransmittance(vec3 origin, vec3 dir, float maxLength, inout uint seed)
+float cvsSampleTransmittance(vec3 origin, vec3 dir, float maxLength, float selectionOffset, inout uint seed)
 {
 #if SAMPLE_TYPE != 0
 	apply_jitter(origin, dir, jitterPos, jitterDir, seed);
@@ -91,10 +92,11 @@ float cvsSampleTransmittance(vec3 origin, vec3 dir, float maxLength, inout uint 
 	quantise_to_pin_grid(origin, dir);
 #endif
 // compute pin
+    vec3 selectionPos = origin + dir * selectionOffset * maxLength;
 #if SAMPLE_TYPE != 2
-	PIN_STRUCT pin = CREATE_PIN(origin, dir, seed);
+	PIN_STRUCT pin = CREATE_PIN(selectionPos, dir, seed);
 #else
-	PIN_STRUCT pin = pin_grid[pin_cache_offset(origin, dir)];
+	PIN_STRUCT pin = pin_grid[pin_cache_offset(selectionPos, dir)];
 #endif
 
 	return PIN_SAMPLE_TRANSMITTANCE(pin, origin, dir, maxLength, seed);
