@@ -440,7 +440,7 @@ bool GVar::addToGui(uint32_t guiFlags)
 			if (internalEvent)
 			{
 				val.v_focus = true; 
-				if (set.list.size() > 0)
+				if (set.list.size() > 0 && set.list[0] != "")
 				{
 					str = set.list[0] + " {" + set.list[0] + "},.*";
 				}
@@ -479,7 +479,8 @@ bool GVar::addToGui(uint32_t guiFlags)
 			ImGui::TextWrapped(val.v_char_array.data());
 			if (internalEvent)
 			{
-				if (set.list.size() > 0)
+				val.v_focus = true; 
+				if (set.list.size() > 0 && set.list[0] != "")
 				{
 					str = set.list[0] + " {" + set.list[0] + "},.*";
 				}
@@ -498,6 +499,7 @@ bool GVar::addToGui(uint32_t guiFlags)
 			}
 			if (ifd::FileDialog::Instance().IsDone(id.c_str()))
 			{
+				val.v_focus = false;
 				if (ifd::FileDialog::Instance().HasResult())
 				{
 					val.v_bool       = true;

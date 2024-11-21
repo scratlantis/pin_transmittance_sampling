@@ -1,6 +1,8 @@
 #include "OfflineRenderer.h"
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include "ui.h"
+
 using json = nlohmann::json;
 
 const float referenceRMStepSize = 0.01;
@@ -39,7 +41,20 @@ float OfflineRenderer::getTaskProgress()
 }
 
 
+std::string getAbsolutePath(std::string basePath, std::string relativPath)
+{
+	std::string prefix = "../";
+	basePath = basePath.substr(0, basePath.find_last_of("/"));
+	while (relativPath.find(prefix) == 0)
+	{
+		relativPath = relativPath.substr(prefix.size());
+		basePath    = basePath.substr(0, basePath.find_last_of("/"));
+	}
+	return basePath + "/" + relativPath;
+}
 
+GVar gvar_eval_custom_export_path{"Custom export path", std::string("none"), GVAR_FILE_INPUT, GUI_CAT_EVALUATION_PATH, std::vector<std::string>({ "", getAbsolutePath(resultsPath, customExportRelativePath) })};
+GVar gvar_eval_use_custom_export_path{"Use custom export path", false, GVAR_BOOL, GUI_CAT_EVALUATION_PATH, GVAR_FLAGS_NO_LOAD};
 
 bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 {
@@ -110,8 +125,18 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		iec.cmdShow(cmdBuf, internalTask.result, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target, task.toneMappingArgs);
 		iec.cmdReset(cmdBuf, IEC_TARGET_RIGHT);
 
-		std::filesystem::create_directories(resultsPath + task.name);
-		std::string internalTaskPath = resultsPath + task.name + "/" + internalTaskName;
+		std::string taskDir;
+		if (gvar_eval_use_custom_export_path.val.v_bool
+			&& std::filesystem::exists(gvar_eval_custom_export_path.val.v_char_array.data()))
+		{
+			taskDir = std::string(gvar_eval_custom_export_path.val.v_char_array.data()) + task.name;
+		}
+		else
+		{
+			taskDir = resultsPath + task.name;
+		}
+		std::filesystem::create_directories(taskDir);
+		std::string internalTaskPath = taskDir + "/" + internalTaskName;
 		ExportTask  exportTask{};
 		exportTask.path         = internalTaskPath + ".png";
 		exportTask.pResource = internalTask.result;

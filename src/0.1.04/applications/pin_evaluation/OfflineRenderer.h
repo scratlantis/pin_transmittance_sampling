@@ -16,6 +16,7 @@ struct OfflineRenderTask
 	float              renderTimeCompare;
 	IECToneMappingArgs toneMappingArgs;
 };
+std::string getAbsolutePath(std::string basePath, std::string relativPath);
 
 class OfflineRenderer
 {

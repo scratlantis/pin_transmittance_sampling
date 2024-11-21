@@ -65,6 +65,8 @@ GVar gvar_mse{"Avg squared diff: %.8f E-3", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_MET
 GVar gvar_timing_left{"Timing Left: %.4f", 1.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
 GVar gvar_timing_right{"Timing Right: %.4f", 1.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
 
+
+
 // Evaluation
 GVar gvar_eval_resolution{"Eval Resolution", 0U, GVAR_ENUM, GUI_CAT_EVALUATION, std::vector<std::string>({
 	"1920x1080",

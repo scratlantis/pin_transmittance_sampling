@@ -9,6 +9,8 @@ static const std::string resultsPath     = std::string(RESULT_DIR) + "/data/";
 static const std::string modelPath       = std::string(RESOURCE_BASE_DIR) + "/models/";
 static const std::string texturePath     = std::string(RESOURCE_BASE_DIR) + "/textures/";
 
+static const std::string customExportRelativePath = "../../../master-thesis/ausarbeitung/results/";
+
 using namespace vka;
 using namespace vka::pbr;
 

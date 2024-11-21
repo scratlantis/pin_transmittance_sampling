@@ -64,10 +64,11 @@ ENUM_ADD_ITERATOR(GuiGroupSettings, GUI_CAT_PATH_TRACING, GUI_CAT_RENDER_MODE)
 
 enum GuiGroupEvaluation
 {
-	GUI_CAT_EVALUATION = 0x00030,
-	GUI_CAT_METRICS = 0x00031,
+	GUI_CAT_EVALUATION      = 0x00030,
+	GUI_CAT_EVALUATION_PATH = 0x00031,
+	GUI_CAT_METRICS         = 0x00032,
 };
-const std::vector<std::string> GuiGroupEvaluation_names = {"Evaluation", "Metrics"};
+const std::vector<std::string> GuiGroupEvaluation_names = {"Evaluation", "Evaluation Path", "Metrics"};
 MASKED_ENUM_ADD_STRING_VALUES(GuiGroupEvaluation, GuiGroupEvaluation_names, GUI_INDEX_MASK)
 ENUM_ADD_ITERATOR(GuiGroupEvaluation, GUI_CAT_EVALUATION, GUI_CAT_METRICS)
 
