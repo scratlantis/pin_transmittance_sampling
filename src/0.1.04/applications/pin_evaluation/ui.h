@@ -8,7 +8,9 @@ enum GuiGroups
 	GUI_GROUP_SETTINGS = 2,
 	GUI_GROUP_EVALUATION = 3,
 	GUI_GROUP_DEBUG = 4,
+	GUI_GROUP_NO_GUI = 5,
 };
+
 
 enum GuiGroupMenuBar
 {
@@ -17,6 +19,7 @@ enum GuiGroupMenuBar
 
 const uint32_t GUI_INDEX_MASK = 0x0000F;
 const uint32_t GUI_CAT_SHIFT = 4;
+
 
 
 const std::vector<std::string> GuiGroupMenuBar_names = {"Mode"};
@@ -75,6 +78,12 @@ enum GuiGroupDebug
 const std::vector<std::string> GuiGroupDebug_names = {"Debug"};
 MASKED_ENUM_ADD_STRING_VALUES(GuiGroupDebug, GuiGroupDebug_names, GUI_INDEX_MASK)
 ENUM_ADD_ITERATOR(GuiGroupDebug, GUI_CAT_DEBUG, GUI_CAT_DEBUG)
+
+
+enum GuiGroupNoGui
+{
+	GUI_CAT_CAM = 0x00050,
+};
 
 
 std::vector<bool> buildGui(CmdBuffer cmdBuf, ImageEstimatorComparator *pIEC);

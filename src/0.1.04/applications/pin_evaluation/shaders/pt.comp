@@ -441,6 +441,7 @@ void main()
 	}
 	totalIllumination /= float(sampleCount);
 	imageStore(colorOut, ivec2(targetPixel), 0.001*vec4(totalIllumination, 1.0));
+	//imageStore(colorOut, ivec2(targetPixel), vec4(totalIllumination, 0.01));
 	SI_setTotalContribution(totalIllumination)
 	SI_writePtPlot()
 }

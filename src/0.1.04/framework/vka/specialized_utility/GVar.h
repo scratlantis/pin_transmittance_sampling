@@ -31,9 +31,8 @@ enum GVar_Type
 	GVAR_FLOAT_RANGE,
 	GVAR_TEXT_INPUT,
 	GVAR_FILE_INPUT,
-	// todo
+	GVAR_DISPLAY_TEXT,
 	GVAR_FILE_OUTPUT,
-	GVAR_DISPLAY_TEXT
 };
 
 
@@ -45,6 +44,7 @@ struct GVar_Val
 	float    v_float;
 	float    v_vec3[3];
 	std::vector<char> v_char_array;
+	bool	 v_focus = false;
 	GVar_Val() = default;
 	GVar_Val(std::string s);
 	GVar_Val(bool b);
@@ -54,6 +54,7 @@ struct GVar_Val
 	GVar_Val(float x, float y, float z);
 	glm::vec4 getVec4();
 	glm::vec3 getVec3();
+	void setVec3(glm::vec3 vec);
 	uint32_t  bool32();
 
 	bool equals(const GVar_Val &other, GVar_Type type) const;
@@ -117,6 +118,7 @@ struct GVar
 	void readFromJson(json &j);
 	bool addToGui(uint32_t guiFlags);
 
+	static bool                holdsFocus();
 	static std::vector<GVar *> filterMask(std::vector<GVar *> gvar, uint32_t mask);
 	static std::vector<GVar *> filterSortID(std::vector<GVar *> gvar, uint32_t sortID);
 	static bool addToGui(std::vector<GVar *> gvar, std::string category, uint32_t guiFlags = 0);

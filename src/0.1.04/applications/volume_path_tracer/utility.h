@@ -48,4 +48,3 @@ static glm::vec2 mouseViewChange()
 	return change;
 }
 
-FixedCameraState loadCamState();

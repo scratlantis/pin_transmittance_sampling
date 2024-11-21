@@ -47,6 +47,12 @@ glm::vec4 GVar_Val::getVec4()
 glm::vec3 GVar_Val::getVec3()
 {
 	return glm::vec3(v_vec3[0], v_vec3[1], v_vec3[2]);
+}
+void GVar_Val::setVec3(glm::vec3 vec)
+{
+	v_vec3[0] = vec.x;
+	v_vec3[1] = vec.y;
+	v_vec3[2] = vec.z;
 };
 uint32_t GVar_Val::bool32()
 {
@@ -88,6 +94,10 @@ bool GVar_Val::equals(const GVar_Val &other, GVar_Type type) const
 		return v_float == other.v_float;
 	}
 	else if (type == GVAR_FILE_INPUT)
+	{
+		return std::string(v_char_array.data()) == std::string(other.v_char_array.data());
+	}
+	else if (type == GVAR_FILE_OUTPUT)
 	{
 		return std::string(v_char_array.data()) == std::string(other.v_char_array.data());
 	}
@@ -194,7 +204,7 @@ void GVar::writeToJson(json &j)
 	switch (type)
 	{
 		case GVAR_EVENT:
-			j[id] = val.v_bool;
+			/*j[id] = val.v_bool;*/
 			break;
 		case GVAR_BOOL:
 			j[id] = val.v_bool;
@@ -232,6 +242,9 @@ void GVar::writeToJson(json &j)
 		case GVAR_FILE_INPUT:
 			j[id] = std::string(val.v_char_array.data());
 			break;
+		case GVAR_FILE_OUTPUT:
+			j[id] = std::string(val.v_char_array.data());
+			break;
 		case GVAR_DISPLAY_TEXT:
 			j[id] = std::string(val.v_char_array.data());
 			break;
@@ -255,7 +268,7 @@ void GVar::readFromJson(json &j)
 	switch (type)
 	{
 		case GVAR_EVENT:
-			val.v_bool = j[id];
+			/*val.v_bool = j[id];*/
 			break;
 		case GVAR_BOOL:
 			val.v_bool = j[id];
@@ -303,6 +316,14 @@ void GVar::readFromJson(json &j)
 				val.v_char_array.push_back('\0');
 			}
 			break;
+		case GVAR_FILE_OUTPUT:
+			str              = j[id];
+			val.v_char_array = std::vector<char>(str.begin(), str.end());
+			if (val.v_char_array.back() != '\0')
+			{
+				val.v_char_array.push_back('\0');
+			}
+			break;
 		case GVAR_DISPLAY_TEXT:
 			str              = j[id];
 			val.v_char_array = std::vector<char>(str.begin(), str.end());
@@ -322,6 +343,7 @@ bool GVar::addToGui(uint32_t guiFlags)
 	GVar_Val oldVal = val;
 	GVar_Val newVal;
 	std::string       str, res;
+	bool internalEvent = false;
 	switch (type)
 	{
 		case GVAR_EVENT:
@@ -412,10 +434,12 @@ bool GVar::addToGui(uint32_t guiFlags)
 			ImGui::ProgressBar(val.v_float, ImVec2(0.0f, 0.0f));
 			break;
 		case GVAR_FILE_INPUT:
-			val.v_bool = ImGui::Button(id.c_str());
+			internalEvent = ImGui::Button(id.c_str());
+			val.v_bool    = false;
 			ImGui::TextWrapped(val.v_char_array.data());
-			if (val.v_bool)
+			if (internalEvent)
 			{
+				val.v_focus = true; 
 				if (set.list.size() > 0)
 				{
 					str = set.list[0] + " {" + set.list[0] + "},.*";
@@ -435,8 +459,10 @@ bool GVar::addToGui(uint32_t guiFlags)
 			}
 			if (ifd::FileDialog::Instance().IsDone(id.c_str()))
 			{
+				val.v_focus = false;
 				if (ifd::FileDialog::Instance().HasResult())
 				{
+					val.v_bool       = true;
 					std::string res  = ifd::FileDialog::Instance().GetResult().u8string();
 					val.v_char_array = std::vector<char>(res.begin(), res.end());
 					if (val.v_char_array.back() != '\0')
@@ -446,10 +472,61 @@ bool GVar::addToGui(uint32_t guiFlags)
 				}
 				ifd::FileDialog::Instance().Close();
 			}
+			break;
+		case GVAR_FILE_OUTPUT:
+			internalEvent = ImGui::Button(id.c_str());
+			val.v_bool    = false;
+			ImGui::TextWrapped(val.v_char_array.data());
+			if (internalEvent)
+			{
+				if (set.list.size() > 0)
+				{
+					str = set.list[0] + " {" + set.list[0] + "},.*";
+				}
+				else
+				{
+					str = "";
+				}
+				if (set.list.size() > 1)
+				{
+					ifd::FileDialog::Instance().Save(id.c_str(), id.c_str(), str, set.list[1]);
+				}
+				else
+				{
+					ifd::FileDialog::Instance().Save(id.c_str(), id.c_str(), str);
+				}
+			}
+			if (ifd::FileDialog::Instance().IsDone(id.c_str()))
+			{
+				if (ifd::FileDialog::Instance().HasResult())
+				{
+					val.v_bool       = true;
+					std::string res  = ifd::FileDialog::Instance().GetResult().u8string();
+					val.v_char_array = std::vector<char>(res.begin(), res.end());
+					if (val.v_char_array.back() != '\0')
+					{
+						val.v_char_array.push_back('\0');
+					}
+				}
+				ifd::FileDialog::Instance().Close();
+			}
+			break;
 		default:
 			break;
 	}
 	return !oldVal.equals(val, type);
+}
+
+bool GVar::holdsFocus()
+{
+	for (auto gv : all)
+	{
+		if (gv->val.v_focus)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 std::vector<GVar *> GVar::filterMask(std::vector<GVar *> gvar, uint32_t mask)

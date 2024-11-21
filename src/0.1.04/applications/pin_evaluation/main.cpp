@@ -3,6 +3,7 @@
 #include "ui.h"
 #include <random>
 #include "OfflineRenderer.h"
+#include "misc.h"
 AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders/";
@@ -13,16 +14,10 @@ extern GVar gvar_medium_load;
 extern GVar gvar_medium_inst_update;
 extern GVar gvar_medium_instamce_shader_params;
 extern GVar gvar_medium_instamce_shader_params_input;
-
+extern GVar gvar_camera_reset;
 
 
 GVar gvar_menu{"Menu", 0U, GVAR_ENUM, GUI_CAT_MENU_BAR, std::vector<std::string>({"File", "Scene", "Settings", "Evaluation", "Debug"}), GVAR_FLAGS_V2};
-
-// Files
-GVar gvar_file_path{"File Path", std::string("none"), GVAR_DISPLAY_TEXT, GUI_CAT_FILE_LOAD};
-GVar gvar_load_file{"Load file", std::string("none"), GVAR_FILE_INPUT, GUI_CAT_FILE_LOAD, std::vector<std::string>({".json"}), GVAR_FLAGS_NO_LOAD};
-GVar gvar_save_as_file{"Save as", std::string("none"), GVAR_FILE_OUTPUT, GUI_CAT_FILE_SAVE, std::vector<std::string>({".json"}), GVAR_FLAGS_NO_LOAD};
-GVar gvar_save_file{"Save", false, GVAR_EVENT, GUI_CAT_FILE_SAVE, std::vector<std::string>({".json"}), GVAR_FLAGS_NO_LOAD};
 
 // Scene params
 GVar gvar_emission_scale_al{"Area light emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_PARAMS, {0.0f, 100000.f}};
@@ -110,6 +105,9 @@ GVar gvar_pt_plot_write_indirect_t{"Write indirect t", false, GVAR_BOOL, GUI_CAT
 GVar gvar_pt_plot_write_indirect_weight{"Write indirect weight", false, GVAR_BOOL, GUI_CAT_DEBUG};
 GVar gvar_pt_plot_bounce{"Select Bounce", 0, GVAR_UINT_RANGE, GUI_CAT_DEBUG, {0, 5}};
 
+
+
+
 int main()
 {
 	//// Global State Initialization. See config.h for more details.
@@ -143,22 +141,27 @@ int main()
 
 	while (!gState.io.shouldTerminate())
 	{
+		if (processLoadStoreFile())
+		{
+			frameCount = 0;
+		}
 		CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
 		//// Get Updates
-		bool              firstFrame          = frameCount == 0;
-		bool              fullShaderRecompile = mouseInView(viewDimensions) && gState.io.keyPressedEvent[GLFW_KEY_R];
-		bool              fastShaderRecompile = mouseInView(viewDimensions) && gState.io.keyPressedEvent[GLFW_KEY_F];
-		bool              shaderRecompile     = fullShaderRecompile || fastShaderRecompile;
-		bool              leftClickInView     = mouseInView(viewDimensions) && gState.io.mouse.leftPressedEvent();
-		bool              leftPressedInView   = mouseInView(viewDimensions) && gState.io.mouse.leftPressed;
-		bool              camRotated          = mouseInView(viewDimensions) && cam.keyControl();
-		bool              camMoved            = mouseInView(viewDimensions) && gState.io.mouse.rightPressed && cam.mouseControl();
-		bool              selectPixel         = leftClickInView && gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL];
+		cam                          = FixedCamera(loadCamState());
+		bool viewFocus               = !GVar::holdsFocus() && mouseInView(viewDimensions);
+		bool firstFrame              = frameCount == 0;
+		bool secondFrame             = frameCount == 1;
+		bool fullShaderRecompile     = viewFocus && gState.io.keyPressedEvent[GLFW_KEY_R];
+		bool fastShaderRecompile     = viewFocus && gState.io.keyPressedEvent[GLFW_KEY_F];
+		bool shaderRecompile         = fullShaderRecompile || fastShaderRecompile;
+		bool leftClickInView         = viewFocus && gState.io.mouse.leftPressedEvent();
+		bool leftPressedInView       = viewFocus && gState.io.mouse.leftPressed;
+		bool camRotated              = viewFocus && cam.keyControl();
+		bool camMoved                = viewFocus && gState.io.mouse.rightPressed && cam.mouseControl();
+		bool selectPixel             = leftClickInView && gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL];
+		gvar_camera_reset.val.v_bool = viewFocus && gState.io.keyPressedEvent[GLFW_KEY_T];
+		saveCamState(cam.getState());
 
-		if (mouseInView(viewDimensions) && gState.io.keyPressedEvent[GLFW_KEY_T])
-		{
-			cam = FixedCamera(DefaultFixedCameraState());
-		}
 		if (fullShaderRecompile)
 		{
 			clearShaderCache();
@@ -208,7 +211,7 @@ int main()
 			|| guiCatChanged(GUI_CAT_RENDER_MODE);
 			// clang-format on
 		bool anySettingsChanged = orOp(settingsChanged);
-		bool viewChange         = camRotated || camMoved || renderSettingsChanged || firstFrame || shaderRecompile || gState.io.swapchainRecreated();
+		bool viewChange         = camRotated || camMoved || renderSettingsChanged || firstFrame || secondFrame || shaderRecompile || gState.io.swapchainRecreated();
 
 		if (selectPixel)
 		{
@@ -226,8 +229,14 @@ int main()
 			executionCounterLeft = 0;
 			executionCounterRight = 0;
 		}
-
-		traceResources.cmdLoadUpdate(cmdBuf, gState.heap, &mediumInstResCache, settingsChanged);
+		if (firstFrame)
+		{
+			traceResources.cmdLoadAll(cmdBuf, gState.heap, &mediumInstResCache);
+		}
+		else
+		{
+			traceResources.cmdLoadUpdate(cmdBuf, gState.heap, &mediumInstResCache, settingsChanged);
+		}
 
 		CameraCI camCI{};
 		camCI.pos      = cam.getPosition();

@@ -17,7 +17,7 @@ GVar gvar_medium_path{"Select medium", texturePath + "csafe_heptane_302x302x302_
 GVar gvar_medium_load{"Load medium", false, GVAR_EVENT, GUI_CAT_SCENE_MEDIUM};
 
 // Medium Instances
-GVar gvar_medium_instance_shader_path{"Select medium instance shader", texturePath + "medium/gen_inst_default.comp", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM_INSTANCE, std::vector<std::string>({".comp", shaderPath})};
+GVar gvar_medium_instance_shader_path{"Select medium instance shader", shaderPath + "medium/gen_inst_default.comp", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM_INSTANCE, std::vector<std::string>({".comp", shaderPath})};
 GVar gvar_medium_instamce_shader_params{"MedInst. current params:", std::string(""), GVAR_DISPLAY_TEXT, GUI_CAT_SCENE_MEDIUM_INSTANCE};
 GVar gvar_medium_instamce_shader_params_input{"MedInst. s. params", std::string(""), GVAR_TEXT_INPUT, GUI_CAT_SCENE_MEDIUM_INSTANCE};
 GVar gvar_medium_inst_update{"Update", false, GVAR_EVENT, GUI_CAT_SCENE_MEDIUM_INSTANCE};
