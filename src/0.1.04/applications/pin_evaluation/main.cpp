@@ -4,6 +4,7 @@
 #include <random>
 #include "OfflineRenderer.h"
 #include "misc.h"
+#include "parse_args.h"
 AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders/";
@@ -15,6 +16,7 @@ extern GVar gvar_medium_inst_update;
 extern GVar gvar_medium_instamce_shader_params;
 extern GVar gvar_medium_instamce_shader_params_input;
 extern GVar gvar_camera_reset;
+
 
 
 GVar gvar_menu{"Menu", 0U, GVAR_ENUM, GUI_CAT_MENU_BAR, std::vector<std::string>({"File", "Scene", "Settings", "Evaluation", "Debug"}), GVAR_FLAGS_V2};
@@ -68,7 +70,7 @@ GVar gvar_timing_right{"Timing Right: %.4f", 1.f, GVAR_DISPLAY_FLOAT, GUI_CAT_ME
 
 
 // Evaluation
-GVar gvar_eval_resolution{"Eval Resolution", 0U, GVAR_ENUM, GUI_CAT_EVALUATION, std::vector<std::string>({
+GVar gvar_eval_resolution{"Eval Resolution", 0U, GVAR_ENUM, GUI_CAT_EVALUATION_PARAMS, std::vector<std::string>({
 	"1920x1080",
 	"1280x720",
 	"640x360",
@@ -90,10 +92,11 @@ std::vector<VkExtent2D> cResolutions
 	{256, 256},
 	{128, 128},
 };
+GVar gvar_sample_count{"Sample Count", 1U, GVAR_UINT_RANGE, GUI_CAT_EVALUATION_PARAMS, {1U, 64}};
+GVar gvar_eval_ref_target_time{"Ref Target Time", 10.f, GVAR_FLOAT_RANGE, GUI_CAT_EVALUATION_PARAMS, {1.f, 300.f}};
+GVar gvar_eval_comp_target_time{"Eval Target Time", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_EVALUATION_PARAMS, {1.f, 300.f}};
+
 GVar gvar_eval_keep_realtime_render{"Keep realtime render", false, GVAR_BOOL, GUI_CAT_EVALUATION};
-GVar gvar_sample_count{"Sample Count", 1U, GVAR_UINT_RANGE, GUI_CAT_EVALUATION, {1U, 64}};
-GVar gvar_eval_ref_target_time{"Ref Target Time", 10.f, GVAR_FLOAT_RANGE, GUI_CAT_EVALUATION, {1.f, 300.f}};
-GVar gvar_eval_comp_target_time{"Eval Target Time", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_EVALUATION, {1.f, 300.f}};
 GVar gvar_eval_name{"Eval Name", std::string("default"), GVAR_TEXT_INPUT, GUI_CAT_EVALUATION};
 GVar gvar_evaluate{"Evaluate", false, GVAR_EVENT, GUI_CAT_EVALUATION};
 GVar gvar_remaning_tasks{"Remaining Tasks: %d", 0U, GVAR_DISPLAY_UINT, GUI_CAT_EVALUATION};
@@ -110,18 +113,38 @@ GVar gvar_pt_plot_bounce{"Select Bounce", 0, GVAR_UINT_RANGE, GUI_CAT_DEBUG, {0,
 
 
 
-int main()
+int main(int argc, char *argv[])
 {
+	AppArgs appArgs{};
+	bool offlineMode = false;
+	if (parse_args(argc, argv, appArgs))
+	{
+		loadArgs(appArgs);
+		offlineMode = true;
+	}
+	else
+	{
+		GVar::loadAll(configPath + "last_session.json");
+	}
+
+
 	//// Global State Initialization. See config.h for more details.
 	DeviceCI            deviceCI = DefaultDeviceCI(APP_NAME);
-	IOControlerCI       ioCI     = DefaultIOControlerCI(APP_NAME, 1000, 700);
+	IOControlerCI ioCI;
+	if (offlineMode)
+	{
+		ioCI = DefaultIOControlerCI(APP_NAME, 100, 10, false);
+	}
+	else
+	{
+		ioCI = DefaultIOControlerCI(APP_NAME, 1000, 700, true);
+	}
 	GlfwWindow          window   = GlfwWindow();
 	AdvancedStateConfig config   = DefaultAdvancedStateConfig();
 	gState.init(deviceCI, ioCI, &window, config);
 	enableGui();
 	initImFile();
 	//// Load settings
-	GVar::loadAll(configPath + "last_session.json");
 	//// Image Estimator Comparator
 	ImageEstimatorComparator iec = ImageEstimatorComparator(VK_FORMAT_R32G32B32A32_SFLOAT, viewDimensions.width, viewDimensions.height);
 	//// Init other stuff
@@ -133,6 +156,8 @@ int main()
 	uint32_t      frameCount    = 0;
 	vec2          lastClickPos  = vec2(1.0);
 	float         splitViewCoef = 0.5;
+
+	int terminateOnFrame = -1;
 
 	ResourceCache traceResourceCache = ResourceCache();
 	ResourceCache mediumInstResCache = ResourceCache();
@@ -147,6 +172,7 @@ int main()
 		{
 			frameCount = 0;
 		}
+		processTraceParams();
 		CmdBuffer cmdBuf = createCmdBuffer(gState.frame->stack);
 		//// Get Updates
 		cam                          = FixedCamera(loadCamState());
@@ -185,6 +211,21 @@ int main()
 		if (gvar_medium_inst_update.val.v_bool)
 		{
 			gvar_medium_instamce_shader_params.val.v_char_array = gvar_medium_instamce_shader_params_input.val.v_char_array;
+		}
+
+		if (offlineMode)
+		{
+			gvar_eval_keep_realtime_render.val.v_bool = false;
+			gvar_evaluate.val.v_bool                  = firstFrame;
+			if (!gvar_evaluate.val.v_bool && offlineRenderer.getTaskQueueSize() == 0 && terminateOnFrame ==-1)
+			{
+				terminateOnFrame = frameCount + 6;
+			}
+		}
+
+		if (terminateOnFrame >= 0 && frameCount >= terminateOnFrame)
+		{
+			gState.io.requestTerminate();
 		}
 
 		if (gvar_medium_inst_update.val.v_bool)
@@ -306,6 +347,7 @@ int main()
 		TraceArgs commonTraceArgs{};
 		commonTraceArgs.resources       = traceResources;
 		commonTraceArgs.sceneParams     = sceneParams;
+		sceneParams.cameraCI.extent     = cResolutions[gvar_eval_resolution.val.v_uint];
 		commonTraceArgs.config          = tracerConfig;
 		commonTraceArgs.cvsArgs         = cvsArgs;
 		commonTraceArgs.enableDebugging = gvar_enable_debuging.val.v_bool;
@@ -354,18 +396,32 @@ int main()
 		gvar_task_progress.val.v_float = offlineRenderer.getTaskProgress();
 		offlineRenderer.cmdRunTick(cmdBuf);
 
-		if (gvar_eval_keep_realtime_render.val.v_bool || offlineRenderer.getTaskQueueSize() == 0)
+		if ((gvar_eval_keep_realtime_render.val.v_bool || offlineRenderer.getTaskQueueSize() == 0) && !offlineMode)
 		{
 			iec.cmdRunEqualTime<TraceArgs>(cmdBuf, cmdTrace, traceArgsLeft, traceArgsRight, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
 			gvar_mse.val.v_float = iec.getMSE() * 1000.f;
 		}
 		//// Show results
 		Image swapchainImg = getSwapchainImage();
-		getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.25, 0.25, 0.3, 1.0)).exec(cmdBuf);
-		iec.showSplitView(cmdBuf, swapchainImg, splitViewCoef, getScissorRect(viewDimensions), toneMappingArgs);
 
-		gState.uploadQueue->processUploadTasks(cmdBuf);
-		cmdRenderGui(cmdBuf, swapchainImg);
+		if (!offlineMode)
+		{
+			getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.25, 0.25, 0.3, 1.0)).exec(cmdBuf);
+			iec.showSplitView(cmdBuf, swapchainImg, splitViewCoef, getScissorRect(viewDimensions), toneMappingArgs);
+			gState.uploadQueue->processUploadTasks(cmdBuf);
+			cmdRenderGui(cmdBuf, swapchainImg);
+		}
+		else
+		{
+			VkExtent2D targetExtent = gState.io.extent;
+			targetExtent.width      = targetExtent.width * offlineRenderer.getTaskProgress();
+			getCmdFill(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.9, 0.1, 0.1, 1.0)).exec(cmdBuf);
+			if (targetExtent.width > 0)
+			{
+				getCmdDrawRect(swapchainImg, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vec4(0.1, 0.9, 0.1, 1.0), targetExtent).exec(cmdBuf);
+			}
+			ImGui::EndFrame();
+		}
 
 		swapBuffers({cmdBuf});
 		frameCount++;

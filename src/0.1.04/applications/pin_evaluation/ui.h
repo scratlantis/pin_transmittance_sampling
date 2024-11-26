@@ -55,8 +55,8 @@ enum GuiGroupSettings
 {
 	GUI_CAT_PATH_TRACING = 0x00020,
 	GUI_CAT_TONE_MAPPING = 0x00021,
-	GUI_CAT_PINS = 0x00022,
-	GUI_CAT_RENDER_MODE = 0x00023,
+	GUI_CAT_PINS         = 0x00022,
+	GUI_CAT_RENDER_MODE  = 0x00023,
 };
 const std::vector<std::string> GuiGroupSettings_names = {"Path Tracing", "Tone Mapping", "Pins", "Render Mode"};
 MASKED_ENUM_ADD_STRING_VALUES(GuiGroupSettings, GuiGroupSettings_names, GUI_INDEX_MASK)
@@ -64,13 +64,15 @@ ENUM_ADD_ITERATOR(GuiGroupSettings, GUI_CAT_PATH_TRACING, GUI_CAT_RENDER_MODE)
 
 enum GuiGroupEvaluation
 {
-	GUI_CAT_EVALUATION      = 0x00030,
-	GUI_CAT_EVALUATION_PATH = 0x00031,
-	GUI_CAT_METRICS         = 0x00032,
+	GUI_CAT_EVALUATION_PARAMS    = 0x00030,
+	GUI_CAT_EVALUATION_LOAD_SAVE = 0x00031,
+	GUI_CAT_EVALUATION_PATH      = 0x00032,
+	GUI_CAT_EVALUATION           = 0x00033,
+	GUI_CAT_METRICS              = 0x00034,
 };
-const std::vector<std::string> GuiGroupEvaluation_names = {"Evaluation", "Evaluation Path", "Metrics"};
+const std::vector<std::string> GuiGroupEvaluation_names = {"Evaluation params", "Load/Save Param", "Evaluation Path", "Evaluation", "Metrics"};
 MASKED_ENUM_ADD_STRING_VALUES(GuiGroupEvaluation, GuiGroupEvaluation_names, GUI_INDEX_MASK)
-ENUM_ADD_ITERATOR(GuiGroupEvaluation, GUI_CAT_EVALUATION, GUI_CAT_METRICS)
+ENUM_ADD_ITERATOR(GuiGroupEvaluation, GUI_CAT_EVALUATION_PARAMS, GUI_CAT_METRICS)
 
 enum GuiGroupDebug
 {

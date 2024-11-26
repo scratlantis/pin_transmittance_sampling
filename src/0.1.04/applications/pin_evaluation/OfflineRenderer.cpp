@@ -129,7 +129,7 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		if (gvar_eval_use_custom_export_path.val.v_bool
 			&& std::filesystem::exists(gvar_eval_custom_export_path.val.v_char_array.data()))
 		{
-			taskDir = std::string(gvar_eval_custom_export_path.val.v_char_array.data()) + task.name;
+			taskDir = std::string(gvar_eval_custom_export_path.val.v_char_array.data()) + "/" + task.name;
 		}
 		else
 		{

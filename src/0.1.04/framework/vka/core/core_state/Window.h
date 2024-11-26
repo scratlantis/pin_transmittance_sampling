@@ -40,6 +40,7 @@ class Window
 	virtual void         destroyImGui()                                               = 0;
 	virtual void         newFrameImGui()                                              = 0;
 	virtual void         checkToggleFullScreen()                                      = 0;
+	virtual void         hideMenuBar()                                                = 0;
 	virtual void         addInstanceExtensions(std::vector<const char *> &extensions) = 0;
 
   private:

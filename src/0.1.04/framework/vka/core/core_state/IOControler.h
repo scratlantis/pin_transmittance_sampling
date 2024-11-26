@@ -68,6 +68,7 @@ struct IOControlerCI
 	std::vector<VkSurfaceFormatKHR> preferedFormats;
 	std::vector<VkPresentModeKHR>   preferedPresentModes;
 	uint32_t                        preferedSwapchainImageCount;
+	bool menuBar;
 
 	WindowCI getWindowCI();
 };
@@ -104,6 +105,7 @@ class IOController
 	bool    swapchainRecreated();
 	bool    shouldTerminate();
 	void    buildShaderLib();
+	void    requestTerminate();
 	Window *getWindow();
 
 	DELETE_COPY_CONSTRUCTORS(IOController);

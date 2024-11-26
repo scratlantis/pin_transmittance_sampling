@@ -102,7 +102,7 @@ struct DefaultDeviceCI : DeviceCI
 
 struct DefaultIOControlerCI : IOControlerCI
 {
-	DefaultIOControlerCI(std::string title, uint32_t width, uint32_t height)
+	DefaultIOControlerCI(std::string title, uint32_t width, uint32_t height, bool useMenuBar)
 	{
 		windowTitel                 = title;
 		resizable                   = true;
@@ -111,6 +111,7 @@ struct DefaultIOControlerCI : IOControlerCI
 		preferedFormats             = {{VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}, {VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}};
 		preferedPresentModes        = {VK_PRESENT_MODE_MAILBOX_KHR};
 		preferedSwapchainImageCount = 3;
+		menuBar                     = useMenuBar;
 	}
 };
 

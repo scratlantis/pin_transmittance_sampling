@@ -26,6 +26,7 @@ class GlfwWindow : public Window
 	void         destroyImGui();
 	void         newFrameImGui();
 	void         destroy();
+	void         hideMenuBar();
 
 	~GlfwWindow();
 

@@ -44,6 +44,13 @@ void saveCamState(FixedCameraState state)
 	gvar_camera_scroll_speed.val.v_float = state.scrollSpeed;
 }
 
+bool dirExists(const char *path)
+{
+	std::string dir = path;
+	dir             = dir.substr(0, dir.find_last_of("\\"));
+	dir             = dir.substr(0, dir.find_last_of("/"));
+	return std::filesystem::exists(dir);
+}
 
 // Files
 // GVar gvar_file_path{"File Path", std::string("none"), GVAR_DISPLAY_TEXT, GUI_CAT_FILE_LOAD};
@@ -56,7 +63,7 @@ bool processLoadStoreFile()
 	// Load
 	if (gvar_load_file.val.v_bool)
 	{
-		if (std::filesystem::exists(gvar_load_file.val.v_char_array.data()))
+		if (dirExists(gvar_load_file.val.v_char_array.data()))
 		{
 			GVar::loadAll(gvar_load_file.val.v_char_array.data());
 			return true;
@@ -65,12 +72,31 @@ bool processLoadStoreFile()
 	// Save
 	if (gvar_save_file.val.v_bool || gvar_save_as_file.val.v_bool)
 	{
-		std::string dir = gvar_save_as_file.val.v_char_array.data();
-		dir = dir.substr(0, dir.find_last_of("\\"));
-		if (std::filesystem::exists(dir))
+		if (dirExists(gvar_save_as_file.val.v_char_array.data()))
 		{
 			GVar::storeAll(gvar_save_as_file.val.v_char_array.data());
 		}
 	}
 	return false;
+}
+
+GVar gvar_eval_params_save_path{"Save as (eval conf)", std::string("none"), GVAR_FILE_OUTPUT, GUI_CAT_EVALUATION_LOAD_SAVE, std::vector<std::string>({".json", configPath + "eval_config"})};
+GVar gvar_eval_params_load_path{"Load (eval conf)", std::string("none"), GVAR_FILE_INPUT, GUI_CAT_EVALUATION_LOAD_SAVE, std::vector<std::string>({".json", configPath + "eval_config"})};
+void processTraceParams()
+{
+	if (gvar_eval_params_save_path.val.v_bool)
+	{
+		std::vector<GVar *> vars = GVar::filterSortID(GVar::getAll(), GUI_CAT_EVALUATION_PARAMS);
+		if (dirExists(gvar_eval_params_save_path.val.v_char_array.data()))
+		{
+			GVar::store(vars, gvar_eval_params_save_path.val.v_char_array.data());
+		}
+	}
+	if (gvar_eval_params_load_path.val.v_bool)
+	{
+		if (dirExists(gvar_eval_params_load_path.val.v_char_array.data()))
+		{
+			GVar::load(GVar::filterSortID(GVar::getAll(), GUI_CAT_EVALUATION_PARAMS), gvar_eval_params_load_path.val.v_char_array.data());
+		}
+	}
 }

@@ -154,6 +154,11 @@ void GlfwWindow::destroy()
 	glfwDestroyWindow(window);
 }
 
+void GlfwWindow::hideMenuBar()
+{
+	glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+}
+
 GlfwWindow::~GlfwWindow()
 {
 }
