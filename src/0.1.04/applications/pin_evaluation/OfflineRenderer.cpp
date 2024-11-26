@@ -84,21 +84,21 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		refTask.args = TraceArgs(pTraceResourceCache, pPool, &refTask.execCnt);
 		refTask.args.update(commonArgs);
 		refTask.args.config.rayMarchStepSize = referenceRMStepSize;
-		refTask.result                       = createImage(pPool, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
+		refTask.result                       = createImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
 		refTask.targetTotalRenderTime		= task.renderTimeRef;
 
 		leftTask.reset();
 		leftTask.args  = TraceArgs(pTraceResourceCache, pPool, &leftTask.execCnt);
 		leftTask.args.update(commonArgs);
 		leftTask.args.cvsArgs = task.cvsArgsLeft;
-		leftTask.result       = createImage(pPool, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
+		leftTask.result                = createImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
 		leftTask.targetTotalRenderTime = task.renderTimeCompare;
 
 		rightTask.reset();
 		rightTask.args = TraceArgs(pTraceResourceCache, pPool, &rightTask.execCnt);
 		rightTask.args.update(commonArgs);
 		rightTask.args.cvsArgs = task.cvsArgsRight;
-		rightTask.result = createImage(pPool, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
+		rightTask.result                = createImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
 		rightTask.targetTotalRenderTime = task.renderTimeCompare;
 
 		state = OFFLINE_RENDER_STATE_REF;
@@ -138,9 +138,9 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		std::filesystem::create_directories(taskDir);
 		std::string internalTaskPath = taskDir + "/" + internalTaskName;
 		ExportTask  exportTask{};
-		exportTask.path         = internalTaskPath + ".png";
+		exportTask.path         = internalTaskPath + ".hdr";
 		exportTask.pResource = internalTask.result;
-		exportTask.targetFormat = EXPORT_FORMAT_PNG;
+		exportTask.targetFormat = EXPORT_FORMAT_HDR;
 		gState.exporter->cmdExport(cmdBuf, exportTask);
 
 		if (state != OFFLINE_RENDER_STATE_REF)
@@ -162,7 +162,7 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		{
 			// Write json
 			json          j;
-			std::ofstream o(resultsPath + task.name + "/" + task.name + "_info.json");
+			std::ofstream o(taskDir + "/" + task.name + "_info.json");
 			j["resolution"]     = {task.resolution.width, task.resolution.height};
 
 			j["ref_avg_sample_time"] = refTask.avgSampleTime;

@@ -6,6 +6,8 @@ namespace vka
 enum ExportFormat
 {
 	EXPORT_FORMAT_PNG,
+	EXPORT_FORMAT_HDR,
+	EXPORT_FORMAT_EXR,
 	EXPORT_FORMAT_CSV,
 };
 
@@ -23,6 +25,8 @@ struct ExportImageInfo
 {
 	uint32_t width;
 	uint32_t height;
+	uint32_t channels;
+	uint32_t bytesPerPixel;
 };
 
 struct ExportTask

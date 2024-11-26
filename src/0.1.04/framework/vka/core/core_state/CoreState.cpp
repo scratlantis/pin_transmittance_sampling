@@ -57,7 +57,7 @@ void CoreState::nextFrame()
 	if (lastTimeStamp != 0)
 	{
 		frameTime = timestamp - lastTimeStamp;
-		if (frameTime = 0)
+		if (frameTime == 0)
 		{
 			frameTime = 1;
 		}

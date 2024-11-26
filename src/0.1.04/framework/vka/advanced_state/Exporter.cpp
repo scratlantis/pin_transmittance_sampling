@@ -27,22 +27,22 @@ void Exporter::cmdExport(CmdBuffer cmdBuf, ExportTask task)
 		exportTasks[gState.frame->frameIndex].push_back(expTask);
 		return;
 	}
-	else if (task.pResource->type() == RESOURCE_TYPE_IMAGE
-		&& task.targetFormat == EXPORT_FORMAT_PNG)
+	else if (task.pResource->type() == RESOURCE_TYPE_IMAGE)
 	{
 		Image image = static_cast<Image>(task.pResource);
-		if (image->getFormat() == VK_FORMAT_R8G8B8A8_UNORM)
-		{
-			ExportTaskInternal expTask{};
-			expTask.path = task.path;
-			expTask.targetFormat = task.targetFormat;
-			expTask.imageInfo.width = image->getWidth();
-			expTask.imageInfo.height = image->getHeight();
-			expTask.hostBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_ONLY, image->getWidth() * image->getHeight() * 4);
-			cmdCopyImageToBuffer(cmdBuf, image, expTask.hostBuffer);
-			exportTasks[gState.frame->frameIndex].push_back(expTask);
-			return;
-		}
+		VulkanFormatInfo formatInfo = cVkFormatTable.at(image->getFormat());
+		ExportTaskInternal expTask{};
+		expTask.path             = task.path;
+		expTask.targetFormat     = task.targetFormat;
+		expTask.imageInfo.width  = image->getWidth();
+		expTask.imageInfo.height = image->getHeight();
+		expTask.imageInfo.channels = formatInfo.channel_count;
+		expTask.imageInfo.bytesPerPixel = formatInfo.size;
+		expTask.hostBuffer              = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_ONLY, image->getWidth() * image->getHeight() * formatInfo.size);
+		cmdCopyImageToBuffer(cmdBuf, image, expTask.hostBuffer);
+		exportTasks[gState.frame->frameIndex].push_back(expTask);
+		return;
+
 	}
 	printf("Unsupported export task\n");
 }
@@ -69,7 +69,18 @@ void Exporter::processExports()
 		else if (task.targetFormat == EXPORT_FORMAT_PNG)
 		{
 			uint8_t *pData = static_cast<uint8_t *>(task.hostBuffer->map());
-			stbi_write_png(task.path.c_str(), task.imageInfo.width, task.imageInfo.height, 4, pData, task.imageInfo.width * 4);
+			stbi_write_png(task.path.c_str(), task.imageInfo.width, task.imageInfo.height, task.imageInfo.channels, pData, task.imageInfo.width * task.imageInfo.channels);
+		}
+		else if (task.targetFormat == EXPORT_FORMAT_HDR)
+		{
+			float *pData = static_cast<float *>(task.hostBuffer->map());
+			stbi_write_hdr(task.path.c_str(), task.imageInfo.width, task.imageInfo.height, task.imageInfo.channels, pData);
+		}
+		else if (task.targetFormat == EXPORT_FORMAT_EXR)
+		{
+			DEBUG_BREAK // Todo
+			//float *pData = static_cast<float *>(task.hostBuffer->map());
+			//stbi_write_hdr(task.path.c_str(), task.imageInfo.width, task.imageInfo.height, task.imageInfo.channels, pData);
 		}
 		task.hostBuffer->garbageCollect();
 	}

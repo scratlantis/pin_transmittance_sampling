@@ -389,7 +389,7 @@ int main(int argc, char *argv[])
 			task.resolution        = cResolutions[gvar_eval_resolution.val.v_uint];
 			task.renderTimeRef     = gvar_eval_ref_target_time.val.v_float * 1000.0f; // sec to ms
 			task.renderTimeCompare = gvar_eval_comp_target_time.val.v_float * 1000.0f; // sec to ms
-			task.toneMappingArgs    = toneMappingArgs;
+			task.toneMappingArgs    = {};
 			offlineRenderer.addTask(task);
 		}
 		gvar_remaning_tasks.val.v_uint = offlineRenderer.getTaskQueueSize();
