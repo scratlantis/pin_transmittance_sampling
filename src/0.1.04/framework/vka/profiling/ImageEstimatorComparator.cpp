@@ -189,7 +189,7 @@ float ImageEstimatorComparator::getMSE()
 	{
 		mse = *static_cast<float *>(hostMseBuf->map());
 	}
-	mse *= 1.0 / (localAccumulationTargetLeft->getExtent2D().width * localAccumulationTargetLeft->getExtent2D().height);
+	//mse *= 1.0 / (localAccumulationTargetLeft->getExtent2D().width * localAccumulationTargetLeft->getExtent2D().height);
 	return mse;
 }
 float *ImageEstimatorComparator::getMSEData()

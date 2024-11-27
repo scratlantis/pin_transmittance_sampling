@@ -86,6 +86,7 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		refTask.args.config.rayMarchStepSize = referenceRMStepSize;
 		refTask.result                       = createImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
 		refTask.targetTotalRenderTime		= task.renderTimeRef;
+		refTask.args.config.seed += 0x543419;
 
 		leftTask.reset();
 		leftTask.args  = TraceArgs(pTraceResourceCache, pPool, &leftTask.execCnt);
@@ -93,6 +94,7 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		leftTask.args.cvsArgs = task.cvsArgsLeft;
 		leftTask.result                = createImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
 		leftTask.targetTotalRenderTime = task.renderTimeCompare;
+		leftTask.args.config.seed += 0x47283;
 
 		rightTask.reset();
 		rightTask.args = TraceArgs(pTraceResourceCache, pPool, &rightTask.execCnt);
@@ -100,6 +102,7 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		rightTask.args.cvsArgs = task.cvsArgsRight;
 		rightTask.result                = createImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
 		rightTask.targetTotalRenderTime = task.renderTimeCompare;
+		rightTask.args.config.seed += 0x146123;
 
 		state = OFFLINE_RENDER_STATE_REF;
 		iec.cmdReset(cmdBuf);
@@ -115,7 +118,7 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		                      computeMSE ? IEC_FLAGS_NONE : IEC_RUN_NO_MSE);
 		if (computeMSE && (internalTask.execCnt >= 10)) //hacky fix
 		{
-			internalTask.mse.push_back(iec.getMSE() * 1000.0 * 1000.0); // e-6
+			internalTask.mse.push_back(iec.getMSE()); // e-6
 		}
 	}
 	else
@@ -123,6 +126,9 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		waitIdle();
 		printVka("Render %s complete", internalTaskName.c_str());
 		iec.cmdShow(cmdBuf, internalTask.result, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target, task.toneMappingArgs);
+		Image png = createImage(pPool, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
+		iec.cmdShow(cmdBuf, png, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target, task.toneMappingArgs);
+
 		iec.cmdReset(cmdBuf, IEC_TARGET_RIGHT);
 
 		std::string taskDir;
@@ -138,9 +144,13 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		std::filesystem::create_directories(taskDir);
 		std::string internalTaskPath = taskDir + "/" + internalTaskName;
 		ExportTask  exportTask{};
-		exportTask.path         = internalTaskPath + ".hdr";
+		exportTask.path         = internalTaskPath + ".exr";
 		exportTask.pResource = internalTask.result;
-		exportTask.targetFormat = EXPORT_FORMAT_HDR;
+		exportTask.targetFormat = EXPORT_FORMAT_EXR;
+		gState.exporter->cmdExport(cmdBuf, exportTask);
+		exportTask.path         = internalTaskPath + ".png";
+		exportTask.pResource    = png;
+		exportTask.targetFormat = EXPORT_FORMAT_PNG;
 		gState.exporter->cmdExport(cmdBuf, exportTask);
 
 		if (state != OFFLINE_RENDER_STATE_REF)

@@ -53,3 +53,12 @@ FILE(GLOB SRCS_IMFILE
 add_library(imfile STATIC ${SRCS_IMFILE})
 target_include_directories(imfile PUBLIC IMFILE)
 target_link_libraries(imfile imgui stb)
+
+FILE(GLOB SRCS_TINY_EXR
+"TINY_EXR/tinyexr-release/tinyexr.cc"
+"TINY_EXR/tinyexr-release/tinyexr.h")
+add_library(tinyexr STATIC ${SRCS_TINY_EXR})
+target_include_directories(tinyexr PUBLIC TINY_EXR/tinyexr-release)
+target_compile_definitions(tinyexr PUBLIC TINYEXR_USE_STB_ZLIB)
+target_compile_definitions(tinyexr PUBLIC TINYEXR_USE_MINIZ=0)
+

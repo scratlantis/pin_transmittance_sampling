@@ -22,11 +22,14 @@ extern GVar gvar_camera_reset;
 GVar gvar_menu{"Menu", 0U, GVAR_ENUM, GUI_CAT_MENU_BAR, std::vector<std::string>({"File", "Scene", "Settings", "Evaluation", "Debug"}), GVAR_FLAGS_V2};
 
 // Scene params
-GVar gvar_emission_scale_al{"Area light emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_PARAMS, {0.0f, 100000.f}};
+GVar gvar_emission_scale_al{"Area light emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_PARAMS, {0.0f, 1000.f}};
 GVar gvar_emission_scale_env_map{"Env map emission scale", 1.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_PARAMS, {0.0f, 10.f}};
 GVar gvar_skip_geometry{"Skip geometry", false, GVAR_BOOL, GUI_CAT_SCENE_PARAMS};
 
 GVar gvar_medium_density_scale{"Medium density scale", 1000.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_DENSITY, {0.f, 500.f}};
+GVar gvar_medium_min_density{"Medium min density", 0.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_DENSITY, {0.f, 1.f}};
+GVar gvar_medium_scattering_function {"Medium scattering function", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM_DENSITY, std::vector<std::string>({"Isotropic", "HG"})};
+GVar gvar_medium_scattering_function_g{"Medium scattering function g", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_DENSITY, {-1.f, 1.f}};
 
 // Path Tracing
 GVar gvar_ray_march_step_size{"RM Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.01f, 1.f}};
@@ -63,7 +66,7 @@ GVar gvar_pin_mode_right{"Pin Mode Right", 3U, GVAR_ENUM, GUI_CAT_RENDER_MODE, s
 GVar gvar_sample_mode_right{"Sample Mode Right", 2U, GVAR_ENUM, GUI_CAT_RENDER_MODE, std::vector<std::string>({"Unquantised", "Quantised", "Precomputed"})};
 
 // Metrics
-GVar gvar_mse{"Avg squared diff: %.8f E-3", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
+GVar gvar_mse{"Avg squared diff: %.8f", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
 GVar gvar_timing_left{"Timing Left: %.4f", 1.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
 GVar gvar_timing_right{"Timing Right: %.4f", 1.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
 
@@ -297,6 +300,9 @@ int main(int argc, char *argv[])
 		sceneParams.cameraCI               = camCI;
 		sceneParams.skipGeometry           = gvar_skip_geometry.val.v_bool;
 		sceneParams.densityScale		   = gvar_medium_density_scale.val.v_float;
+		sceneParams.minDensity			   = gvar_medium_min_density.val.v_float;
+		sceneParams.scatterFunc            = gvar_medium_scattering_function.val.v_uint;
+		sceneParams.scatterFuncG           = gvar_medium_scattering_function_g.val.v_float;
 
 		TracerConfig tracerConfig{};
 		tracerConfig.rayMarchStepSize                                 = gvar_ray_march_step_size.val.v_float;
@@ -399,7 +405,7 @@ int main(int argc, char *argv[])
 		if ((gvar_eval_keep_realtime_render.val.v_bool || offlineRenderer.getTaskQueueSize() == 0) && !offlineMode)
 		{
 			iec.cmdRunEqualTime<TraceArgs>(cmdBuf, cmdTrace, traceArgsLeft, traceArgsRight, &gvar_timing_left.val.v_float, &gvar_timing_right.val.v_float);
-			gvar_mse.val.v_float = iec.getMSE() * 1000.f;
+			gvar_mse.val.v_float = iec.getMSE();
 		}
 		//// Show results
 		Image swapchainImg = getSwapchainImage();

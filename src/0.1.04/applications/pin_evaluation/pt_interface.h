@@ -11,6 +11,9 @@ struct TraceSceneParams
 	float    areaLightEmissionScale;
 	float    envMapEmissionScale;
 	float	 densityScale;
+	float    minDensity;
+	uint	 scatterFunc;
+	float	 scatterFuncG;
 	bool     skipGeometry;
 	CameraCI cameraCI;
 };
@@ -50,7 +53,10 @@ struct TraceArgs
 		sceneParams.areaLightEmissionScale = newArgs.sceneParams.areaLightEmissionScale;
 		sceneParams.envMapEmissionScale = newArgs.sceneParams.envMapEmissionScale;
 		sceneParams.densityScale = newArgs.sceneParams.densityScale;
+		sceneParams.minDensity = newArgs.sceneParams.minDensity;
 		sceneParams.cameraCI = newArgs.sceneParams.cameraCI;
+		sceneParams.scatterFunc = newArgs.sceneParams.scatterFunc;
+		sceneParams.scatterFuncG = newArgs.sceneParams.scatterFuncG;
 
 		config.minDepth = newArgs.config.minDepth;
 		config.seed = newArgs.config.seed;

@@ -17,6 +17,7 @@ struct PushStruct
 	uint minDepth;
 	uint seed;
 	uint firstRandomBounce;
+	float g;
 };
 
 
@@ -289,7 +290,11 @@ Ray nextBounce(
 	{
 		tangentFrame[3] = ray.origin + t * ray.direction;
 		matData.albedo = volInst[hitData.instanceCustomID].color;
+		#ifdef GREENSTEIN
+		nextRay = scatterGreenstein(matData.albedo, tangentFrame[3], ray.direction, pc.g, seed);
+		#else
 		nextRay = scatterUniform(matData.albedo, tangentFrame[3], seed);
+		#endif
 	}
 	nextRay.weight *= ray.weight;
 	return nextRay;
@@ -310,6 +315,8 @@ void main()
 	{
 		seed = getDynamicSeed();
 	}
+
+	//seed = pc.executionID * (1024 * 1024) + gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * 1024;
 
 	vec3 totalIllumination = vec3(0.0);
 
@@ -409,6 +416,10 @@ void main()
 					SI_nextSample(RAY_DOMAIN_AREA_LIGHT)
 
 					sampleDirectIllumAreaLight(tangentFrame[3], transmittanceSampleFlagsAl, cullMask, seed, L_i, omega_i);
+
+					#ifdef GREENSTEIN
+					bsdf = matData.albedo * vec3(henyeyGreenstein(dot(-ray.direction,omega_i), pc.g));
+					#endif
 					L_o += bsdf * L_i;
 
 					SI_setBSDF(bsdf)
@@ -422,6 +433,9 @@ void main()
 					SI_nextSample(RAY_DOMAIN_ENV_MAP)
 
 					sampleDirectIllumEnvMap(tangentFrame[3], transmittanceSampleFlagsEnvMap, cullMask, seed, L_i, omega_i);
+					#ifdef GREENSTEIN
+					bsdf = matData.albedo * vec3(henyeyGreenstein(dot(-ray.direction,omega_i), pc.g));
+					#endif
 					L_o += bsdf * L_i;
 
 					SI_setBSDF(bsdf)
@@ -440,7 +454,7 @@ void main()
 		SI_finalizeSample()
 	}
 	totalIllumination /= float(sampleCount);
-	imageStore(colorOut, ivec2(targetPixel), 0.001*vec4(totalIllumination, 1.0));
+	imageStore(colorOut, ivec2(targetPixel), 0.1*vec4(totalIllumination, 1.0));
 	//imageStore(colorOut, ivec2(targetPixel), vec4(totalIllumination, 0.01));
 	SI_setTotalContribution(totalIllumination)
 	SI_writePtPlot()

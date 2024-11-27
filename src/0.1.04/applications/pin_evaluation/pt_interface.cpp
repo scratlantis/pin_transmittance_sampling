@@ -22,7 +22,7 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 		waitStage  |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		accessFlags |= VK_ACCESS_SHADER_WRITE_BIT;
 	}
-	Buffer scalarFieldUniform = cmdGetScalarFieldUniform(cmdBuf, gState.frame->stack, args.sceneParams.densityScale);
+	Buffer scalarFieldUniform = cmdGetScalarFieldUniform(cmdBuf, gState.frame->stack, args.sceneParams.densityScale, args.sceneParams.minDensity);
 	cmdBarrier(cmdBuf, waitStage, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, VK_ACCESS_SHADER_READ_BIT);
 
 	uvec2 invocationCount = uvec2(target->getExtent2D().width, target->getExtent2D().height);
@@ -61,6 +61,10 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	{
 		cmd.pipelineDef.shaderDef.args.push_back({"DEBUG", ""});
 	}
+	if (args.sceneParams.scatterFunc == 1)
+	{
+		cmd.pipelineDef.shaderDef.args.push_back({"GREENSTEIN", ""});
+	}
 
 	struct PushStruct
 	{
@@ -72,6 +76,7 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 		uint32_t minDepth;
 		uint32_t seed;
 		uint32_t firstRandomBounce;
+		float    g;
 	} pc;
 	pc.areaLightEmissionScale = args.sceneParams.areaLightEmissionScale;
 	pc.envMapEmissionScale    = args.sceneParams.envMapEmissionScale;
@@ -80,6 +85,7 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 	pc.minDepth    = args.config.minDepth;
 	pc.seed        = args.config.seed;
 	pc.firstRandomBounce = args.config.firstRandomBounce;
+	pc.g           = args.sceneParams.scatterFuncG;
 
 	cmd.pushConstant(&pc, sizeof(PushStruct));
 
