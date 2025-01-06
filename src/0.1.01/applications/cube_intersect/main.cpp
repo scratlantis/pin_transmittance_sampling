@@ -2,20 +2,20 @@
 #include "vk_mem_alloc.h"
 
 #include "stdio.h"
-#include <framework/vka/global_state.h>
-#include <framework/vka/initializers/misc.h>
-#include <framework/vka/setup/GlfwWindow.h>
+#include <vka/global_state.h>
+#include <vka/initializers/misc.h>
+#include <vka/setup/GlfwWindow.h>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
-#include <framework/vka/combined_resources/AccelerationStructur.h>
-#include <framework/vka/combined_resources/Buffer.h>
-#include <framework/vka/combined_resources/CmdBuffer.h>
-#include <framework/vka/combined_resources/Image.h>
-#include <framework/vka/input/Camera.h>
-#include <framework/vka/resources/ComputePipeline.h>
-#include <framework/vka/resources/DescriptorSetLayout.h>
-#include <framework/vka/resources/Shader.h>
+#include <vka/combined_resources/AccelerationStructur.h>
+#include <vka/combined_resources/Buffer.h>
+#include <vka/combined_resources/CmdBuffer.h>
+#include <vka/combined_resources/Image.h>
+#include <vka/input/Camera.h>
+#include <vka/resources/ComputePipeline.h>
+#include <vka/resources/DescriptorSetLayout.h>
+#include <vka/resources/Shader.h>
 
 using namespace vka;
 #ifndef SHADER_DIR
