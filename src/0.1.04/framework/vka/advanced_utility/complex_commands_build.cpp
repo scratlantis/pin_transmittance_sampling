@@ -85,7 +85,7 @@ ComputeCmd::ComputeCmd(uint32_t taskSize, const std::string path, std::vector<Sh
 
 ComputeCmd::ComputeCmd(glm::uvec2 taskSize, std::string path, std::vector<ShaderArgs> args)
 {
-	glm::uvec3 workGroupSize                        = {32, 32, 1};
+	glm::uvec3 workGroupSize                        = {16, 16, 1};
 	glm::uvec3 resolution                           = {taskSize.x, taskSize.y, 1};
 	workGroupCount                       = getWorkGroupCount(workGroupSize, resolution);
 	pipelineDef.specialisationEntrySizes = glm3VectorSizes();
