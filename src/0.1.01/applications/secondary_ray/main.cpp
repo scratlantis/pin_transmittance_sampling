@@ -114,7 +114,7 @@ int main()
 	                                       ImageViewCreateInfo_Default(envMap.img, VK_FORMAT_R32G32B32A32_SFLOAT),
 	                                       SamplerCreateInfo_Default(0.0));
 	Sampler envMapSampler = envMap.getSampler();
-	std::string         envMapName      = std::string("autumn_field_2k.hdr");
+	std::string         envMapName      = std::string("envmap/2k/autumn_field_2k.hdr");
 
 
 

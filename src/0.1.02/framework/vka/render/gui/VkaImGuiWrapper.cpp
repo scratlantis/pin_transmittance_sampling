@@ -45,17 +45,17 @@ void ImGuiWrapper::vkaImGuiInit(VkRenderPass renderPass, uint32_t subpassIdx)
 	initInfo.Allocator                 = VK_NULL_HANDLE;
 	initInfo.CheckVkResultFn           = VK_NULL_HANDLE;
 	initInfo.MSAASamples               = VK_SAMPLE_COUNT_1_BIT;
-	ImGui_ImplVulkan_Init(&initInfo, renderPass);
+	initInfo.RenderPass				= renderPass;
+	ImGui_ImplVulkan_Init(&initInfo);
 }
 
 void ImGuiWrapper::vkaImGuiUpload(VkaCommandBuffer cmdBuf)
 {
-	ImGui_ImplVulkan_CreateFontsTexture(cmdBuf->getHandle());
+	ImGui_ImplVulkan_CreateFontsTexture();
 }
 
 void ImGuiWrapper::vkaImGuiFreeStaging()
 {
-	ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
 void ImGuiWrapper::vkaImGuiNewFrame()

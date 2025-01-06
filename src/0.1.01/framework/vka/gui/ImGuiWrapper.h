@@ -112,21 +112,22 @@ void ImGuiWrapper::initImGui(VkRenderPass renderPass)
 	initInfo.DescriptorPool            = descriptorPool;
 	initInfo.PipelineCache             = VK_NULL_HANDLE;        // we do not need those
 	initInfo.MinImageCount             = 2;
+	initInfo.Subpass				   = 0;
 	initInfo.ImageCount                = gState.io.imageCount;
 	initInfo.Allocator                 = VK_NULL_HANDLE;
 	initInfo.CheckVkResultFn           = VK_NULL_HANDLE;
 	initInfo.MSAASamples               = VK_SAMPLE_COUNT_1_BIT;
-	ImGui_ImplVulkan_Init(&initInfo, renderPass);
+	initInfo.RenderPass				   = renderPass;
+	ImGui_ImplVulkan_Init(&initInfo);
 }
 
 void ImGuiWrapper::uploadResources(CmdBuffer& cmdBuf)
 {
-	ImGui_ImplVulkan_CreateFontsTexture(vka_compatibility::getHandle(cmdBuf));
+	ImGui_ImplVulkan_CreateFontsTexture();
 }
 
 void ImGuiWrapper::destroyStagingResources()
 {
-	ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 
 // Helper to display a little (?) mark which shows a tooltip when hovered.

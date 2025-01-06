@@ -11,9 +11,11 @@
 #define GAUSS_FILTER_RADIUS 4
 
 
-#include <framework/vka/core/utility/misc.h>
-#include <framework/vka/global_state.h>
+#include <vka/core/utility/misc.h>
+#include <vka/global_state.h>
 
+
+const std::string shaderPathPrefix = std::string(APP_SRC_DIR) + "/shaders/";
 
 GVar gvar_use_pins{"show pins", 0, GVAR_ENUM, GVAR_APPLICATION, {"None", "Activ", "All"}};
 GVar gvar_pin_selection_coef{"pin selection coef", 1.0f, GVAR_UNORM, GVAR_APPLICATION};

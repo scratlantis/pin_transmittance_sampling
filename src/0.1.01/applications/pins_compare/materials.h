@@ -1,6 +1,6 @@
 #pragma once
 #include "DataStructs.h"
-#include <framework/vka/render_model/common.h>
+#include <vka/render_model/common.h>
 #include <random>
 
 BlendMode BLEND_MODE_NONE      = {VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
@@ -81,7 +81,7 @@ class PinBuffer : public BufferVma
 		glm::uvec3           resolution          = {pins.size(), 1, 1};
 		glm::uvec3           workGroupCount      = getWorkGroupCount(workGroupSize, resolution);
 		ComputePipelineState computeState{};
-		computeState.shaderDef.name = "pins_eval_transmittance.comp";
+		computeState.shaderDef.path = shaderPathPrefix + "pins_eval_transmittance.comp";
 		computeState.shaderDef.args.push_back({"GAUSSIAN_COUNT", std::to_string(GAUSSIAN_COUNT)});
 		computeState.shaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
 		DescriptorSetLayoutDefinition layoutDefinition{};
@@ -163,7 +163,7 @@ class GridBuffer : public BufferVma
 		glm::uvec3           resolution     = {PIN_GRID_SIZE, PIN_GRID_SIZE, PIN_GRID_SIZE};
 		glm::uvec3           workGroupCount = getWorkGroupCount(workGroupSize, resolution);
 		ComputePipelineState computeState{};
-		computeState.shaderDef.name = "pins_grid_gen.comp";
+		computeState.shaderDef.path = shaderPathPrefix + "pins_grid_gen.comp";
 		computeState.shaderDef.args.push_back({"PIN_GRID_SIZE", std::to_string(PIN_GRID_SIZE)});
 		computeState.shaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
 		computeState.shaderDef.args.push_back({"PINS_PER_GRID_CELL", std::to_string(PINS_PER_GRID_CELL)});
@@ -224,8 +224,8 @@ class GaussianNN_M : public Material
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-		ShaderDefinition vertShaderDef{"pins_render.vert"};
-		ShaderDefinition fragShaderDef{"pins_render_gaussian_nn.frag"};
+		ShaderDefinition vertShaderDef{shaderPathPrefix + "pins_render.vert"};
+		ShaderDefinition fragShaderDef{shaderPathPrefix + "pins_render_gaussian_nn.frag"};
 		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
 		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT_SQRT)});
 		vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
@@ -272,8 +272,8 @@ class Gaussian_M : public Material
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-		ShaderDefinition vertShaderDef{"pins_render.vert"};
-		ShaderDefinition fragShaderDef{"pins_render_gaussian.frag"};
+		ShaderDefinition vertShaderDef{shaderPathPrefix + "pins_render.vert"};
+		ShaderDefinition fragShaderDef{shaderPathPrefix + "pins_render_gaussian.frag"};
 		fragShaderDef.args.push_back({"GAUSSIAN_COUNT", std::to_string(GAUSSIAN_COUNT)});
 		vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
 		RasterizationPipelineState pipelineState = RasterizationPipelineState();
@@ -322,8 +322,8 @@ class GaussianNNGrid_M : public Material
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-		ShaderDefinition vertShaderDef{"pins_render.vert"};
-		ShaderDefinition fragShaderDef{"pins_render_gaussian_nn_grid.frag"};
+		ShaderDefinition vertShaderDef{shaderPathPrefix + "pins_render.vert"};
+		ShaderDefinition fragShaderDef{shaderPathPrefix + "pins_render_gaussian_nn_grid.frag"};
 		fragShaderDef.args.push_back({"PIN_GRID_SIZE", std::to_string(PIN_GRID_SIZE)});
 		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
 		fragShaderDef.args.push_back({"PINS_PER_GRID_CELL", std::to_string(PINS_PER_GRID_CELL)});
@@ -370,8 +370,8 @@ class Pins_M : public Material
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-		ShaderDefinition           vertShaderDef{"pins_visualize.vert"};
-		ShaderDefinition           fragShaderDef{"pins_visualize.frag"};
+		ShaderDefinition           vertShaderDef{shaderPathPrefix + "pins_visualize.vert"};
+		ShaderDefinition           fragShaderDef{shaderPathPrefix + "pins_visualize.frag"};
 		fragShaderDef.args.push_back({"PIN_COUNT", std::to_string(PIN_COUNT)});
 		vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
 		RasterizationPipelineState pipelineState = RasterizationPipelineState();
@@ -413,8 +413,8 @@ class Pins_M : public Material
 		DescriptorSetLayoutDefinition layoutDefinition{};
 		layoutDefinition.addDescriptor(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 		layoutDefinition.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-		ShaderDefinition           vertShaderDef{"pins_render.vert"};
-		ShaderDefinition           fragShaderDef{"write_depth_buffer.frag"};
+		ShaderDefinition           vertShaderDef{shaderPathPrefix + "pins_render.vert"};
+		ShaderDefinition           fragShaderDef{shaderPathPrefix + "write_depth_buffer.frag"};
 		vka::BlendMode             blendMode     = {VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD};
 		RasterizationPipelineState pipelineState = RasterizationPipelineState();
 		pipelineState

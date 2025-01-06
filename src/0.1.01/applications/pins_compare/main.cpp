@@ -1,4 +1,5 @@
 #define VMA_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
 // clang-format off
@@ -24,6 +25,9 @@
 #include "DataStructs.h"
 #include "materials.h"
 #include <vka/compatibility.h>
+#include <vka/input/FixedCamera.h>
+#include <vka/loaders/ImageLoader.h>
+#include <vka/experimental/EnvironmentMap.h>
 // clang-format on
 using namespace vka;
 #ifndef SHADER_DIR
@@ -45,6 +49,10 @@ std::vector<GVar *> gVars{
 AppState gState;
 
 const std::string gShaderPath = SHADER_DIR;
+const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
+const std::string gResourceBaseDir = RESOURCE_BASE_DIR;
+
+
 
 int main()
 {
@@ -54,7 +62,7 @@ int main()
 	Window       *window   = new vka::GlfwWindow();
 	gState.init(deviceCI, ioCI, window);
 	// Camera initialization
-	FreeCamera camera = FreeCamera(CameraCI_Default());
+	FreeCamera camera = FreeCamera(FreeCameraCI_Default());
 	// ImGui initialization
 	ImGuiWrapper imguiWrapper = ImGuiWrapper();
 	imguiWrapper.init();
@@ -148,6 +156,21 @@ int main()
 	cmdBuf.transitionLayout(lastFrameImage, VK_IMAGE_LAYOUT_GENERAL);
 	cmdBuf.transitionLayout(offscreenImage, VK_IMAGE_LAYOUT_GENERAL);
 
+	EnvironmentMap envMap        = EnvironmentMap(&gState.heap,
+	                                              ImageCreateInfo_Default(VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, cResolution2k, VK_FORMAT_R32G32B32A32_SFLOAT),
+	                                              ImageViewCreateInfo_Default(envMap.img, VK_FORMAT_R32G32B32A32_SFLOAT),
+	                                              SamplerCreateInfo_Default(0.0));
+	Sampler        envMapSampler = envMap.getSampler();
+	std::string    envMapName    = std::string("envmap/2k/autumn_field_2k.hdr");
+	ImageLoader imageLoader = ImageLoader(gResourceBaseDir + "/textures");
+	// Upload image
+	{
+		imageLoader.mapImage(envMapName, true);
+		cmdBuf.uploadImage(imageLoader.getData(), imageLoader.getDataSize(), envMap, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		cmdBuf.imageMemoryBarrier(envMap);
+		imageLoader.unmapImage();
+	}
+
 	cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	// Build buffers
 	pinGridBuf.build(cmdBuf);
@@ -217,6 +240,8 @@ int main()
 		cmdBuf.barrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_INDEX_READ_BIT);
 		depthImage.update(&gState.heap, &gState.frame->stack, gState.io.extent);
 		offscreenImage.update(&gState.heap, &gState.frame->stack, gState.io.extent);
+		//vkCmdClearColorImage(vka_compatibility::getHandle(cmdBuf), offscreenImage, VK_IMAGE_LAYOUT_GENERAL, &gState.io.clearColor, 1, &gState.io.clearRange);
+		envMap.render(cmdBuf, offscreenImage, viewBuf);
 		cmdBuf.transitionLayout(depthImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 		renderPass.beginRender(cmdBuf);
 		for (size_t i = 0; i < drawCalls.size(); i++)
@@ -257,7 +282,7 @@ int main()
 					computeState.pipelineLayoutDef.descSetLayoutDef = {layoutDefinition};
 					{
 						// Gauss X
-						computeState.shaderDef.name = "gaussfilter1D.comp";
+						computeState.shaderDef.path     = shaderPathPrefix + "gaussfilter1D.comp";
 						computeState.shaderDef.args = {{"FILTER_X", ""}};
 						ComputePipeline computePipeline = ComputePipeline(&gState.cache, computeState);
 						cmdBuf.bindPipeline(computePipeline);
@@ -267,7 +292,7 @@ int main()
 					cmdBuf.barrier(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 					{
 						// Gauss Y
-						computeState.shaderDef.name = "gaussfilter1D.comp";
+						computeState.shaderDef.path     = shaderPathPrefix + "gaussfilter1D.comp";
 						computeState.shaderDef.args     = {{"FILTER_Y", ""}};
 						ComputePipeline computePipeline = ComputePipeline(&gState.cache, computeState);
 						cmdBuf.bindPipeline(computePipeline);
@@ -289,7 +314,7 @@ int main()
 					layoutDefinition.flags                          = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 					computeState.pipelineLayoutDef.descSetLayoutDef = {layoutDefinition};
 					// Exp moving average
-					computeState.shaderDef.name     = "expMovingAverage.comp";
+					computeState.shaderDef.path     = shaderPathPrefix + "expMovingAverage.comp";
 					ComputePipeline computePipeline = ComputePipeline(&gState.cache, computeState);
 					cmdBuf.bindPipeline(computePipeline);
 					cmdBuf.pushDescriptors(0, viewBuf, lastFrameImage, pingPongImages[0], pingPongImages[1]);
