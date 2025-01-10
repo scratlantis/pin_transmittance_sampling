@@ -2,6 +2,11 @@
 #include "config.h"
 #include "pt_interface.h"
 
+enum OfflineRenderMode
+{
+	OFFLINE_RENDER_MODE_EQUAL_TIME = 0,
+	OFFLINE_RENDER_MODE_EQUAL_SAMPLES = 1,
+};
 
 struct OfflineRenderTask
 {
@@ -14,6 +19,9 @@ struct OfflineRenderTask
 	VkExtent2D         resolution;
 	float              renderTimeRef;
 	float              renderTimeCompare;
+	uint32_t           invocationsCompare;
+	OfflineRenderMode  mode;
+
 	IECToneMappingArgs toneMappingArgs;
 };
 std::string getAbsolutePath(std::string basePath, std::string relativPath);
@@ -26,12 +34,13 @@ class OfflineRenderer
 		uint32_t  execCnt;
 		float     avgSampleTime;
 		float     targetTotalRenderTime; // in ms
+		uint32_t  targetTotalSamples;
 		std::vector<float> mse;
 		Image     result;
 
 		bool isComplete() const
 		{
-			return avgSampleTime * execCnt >= targetTotalRenderTime;
+			return avgSampleTime * execCnt >= targetTotalRenderTime || (targetTotalSamples <= execCnt);
 		}
 
 		void reset()

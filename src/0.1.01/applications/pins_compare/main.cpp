@@ -208,7 +208,8 @@ int main()
 			glm::mat4 rotationMat = glm::rotate(glm::mat4(1.0), glm::radians(cnt / 20.f), glm::vec3(0.0, 1.0, 0.0));
 			// rotationMat     = glm::mat4(1.0);
 			glm::mat4 scaleMat        = glm::scale(glm::mat4(1.0), glm::vec3(0.4, 0.4, 0.4));
-			finalTransforms[i].mat    = transforms[i]->mat * rotationMat * scaleMat * centerMat;
+			//finalTransforms[i].mat    = transforms[i]->mat * rotationMat * scaleMat * centerMat;
+			finalTransforms[i].mat    = transforms[i]->mat * scaleMat * centerMat;
 			finalTransforms[i].invMat = glm::inverse(finalTransforms[i].mat);
 		}
 		// Create draw calls

@@ -295,7 +295,8 @@ int main()
 		// Rasterization for debugging
 		else
 		{
-			img_debug->setClearValue(ClearValue(0.0f, 0.0f, 0.0f, 1.0f));
+			//img_debug->setClearValue(ClearValue(0.0f, 0.0f, 0.0f, 1.0f));
+			img_debug->setClearValue(ClearValue(1.0f, 1.0f, 1.0f, 1.0f));
 			ModelData sceneModel = gState.modelCache->fetch<GLSLVertex>(cmdBuf, model.path, modelLoadFlags);
 			cmdShowTriangles<GLSLVertex>(cmdBuf, gState.frame->stack, img_debug, sceneModel.vertexBuffer, sceneModel.indexBuffer, &cam, model.getObjToWorldMatrix(), true);
 			cmdShowBoxFrame(cmdBuf, gState.frame->stack, img_debug, &cam, mediumInstance.mat, false, vec4(0.0, 0.0, 1.0, 1.0));

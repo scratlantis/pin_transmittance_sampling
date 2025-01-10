@@ -30,14 +30,32 @@ float OfflineRenderer::getTaskProgress()
 		return 1.0;
 	}
 	OfflineRenderTask &task      = taskQueue.front();
-	float              totalTime = task.renderTimeRef + task.renderTimeCompare * 2;
-	// clang-format off
-	float              progress  = 
-		refTask.avgSampleTime * refTask.execCnt
-		+ leftTask.avgSampleTime * leftTask.execCnt
-		+ rightTask.avgSampleTime * rightTask.execCnt;
-	// clang-format on
-	return glm::clamp(progress / totalTime, 0.f, 1.f);
+	if (task.mode == OFFLINE_RENDER_MODE_EQUAL_TIME)
+	{
+		float              totalTime = task.renderTimeRef + task.renderTimeCompare * 2;
+		// clang-format off
+		float              progress  = 
+			refTask.avgSampleTime * refTask.execCnt
+			+ leftTask.avgSampleTime * leftTask.execCnt
+			+ rightTask.avgSampleTime * rightTask.execCnt;
+		// clang-format on
+		return glm::clamp(progress / totalTime, 0.f, 1.f);
+	}
+	else if (task.mode == OFFLINE_RENDER_MODE_EQUAL_SAMPLES)
+	{
+		float totalTime = task.renderTimeRef + task.invocationsCompare * 200.0; // 100 ms per invocation (just for progress visualization, does not realy matter)
+		// clang-format off
+		float progress = 
+			refTask.avgSampleTime * refTask.execCnt
+			+ leftTask.execCnt * 100.0
+			+ rightTask.execCnt * 100.0;
+		// clang-format on
+		return glm::clamp(progress / totalTime, 0.f, 1.f);
+	}
+	else
+	{
+		return 0.0;
+	}
 }
 
 
@@ -86,6 +104,7 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		refTask.args.config.rayMarchStepSize = referenceRMStepSize;
 		refTask.result                       = createImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
 		refTask.targetTotalRenderTime		= task.renderTimeRef;
+		refTask.targetTotalSamples			= std::numeric_limits<uint32_t>::max();
 		refTask.args.config.seed += 0x543419;
 
 		leftTask.reset();
@@ -93,7 +112,8 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		leftTask.args.update(commonArgs);
 		leftTask.args.cvsArgs = task.cvsArgsLeft;
 		leftTask.result                = createImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
-		leftTask.targetTotalRenderTime = task.renderTimeCompare;
+		leftTask.targetTotalRenderTime = (task.mode == OFFLINE_RENDER_MODE_EQUAL_TIME) ? task.renderTimeCompare : std::numeric_limits<float>::max();
+		leftTask.targetTotalSamples    = (task.mode == OFFLINE_RENDER_MODE_EQUAL_SAMPLES) ? task.invocationsCompare : std::numeric_limits<uint32_t>::max();
 		leftTask.args.config.seed += 0x47283;
 
 		rightTask.reset();
@@ -101,7 +121,8 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		rightTask.args.update(commonArgs);
 		rightTask.args.cvsArgs = task.cvsArgsRight;
 		rightTask.result                = createImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
-		rightTask.targetTotalRenderTime = task.renderTimeCompare;
+		rightTask.targetTotalRenderTime = (task.mode == OFFLINE_RENDER_MODE_EQUAL_TIME) ? task.renderTimeCompare : std::numeric_limits<float>::max();
+		rightTask.targetTotalSamples    = (task.mode == OFFLINE_RENDER_MODE_EQUAL_SAMPLES) ? task.invocationsCompare : std::numeric_limits<uint32_t>::max();
 		rightTask.args.config.seed += 0x146123;
 
 		state = OFFLINE_RENDER_STATE_REF;

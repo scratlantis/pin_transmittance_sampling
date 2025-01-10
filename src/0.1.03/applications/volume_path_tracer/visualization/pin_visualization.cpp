@@ -125,6 +125,7 @@ void cmdVisualizePins(CmdBuffer cmdBuf, IResourcePool *pPool, Image dst, Buffer 
 	Image         depthBuffer = gState.depthBufferCache->fetch(dst->getExtent2D());
 	drawCmd.renderArea.extent                       = dst->getExtent2D();
 	drawCmd.pipelineDef.inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+	drawCmd.pipelineDef.rasterizationState.lineWidth = 2.0f;
 	addShader(drawCmd.pipelineDef, shaderPath + "visualization/show_pin_state.vert");
 
 	if (clearDepth)
