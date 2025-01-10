@@ -3,6 +3,7 @@
 #include "ui.h"
 #include <random>
 #include "OfflineRenderer.h"
+#include "SinglePassOfflineRenderer.h"
 #include "misc.h"
 #include "parse_args.h"
 AdvancedState     gState;
@@ -169,7 +170,7 @@ int main(int argc, char *argv[])
 	uint32_t      executionCounterLeft, executionCounterRight;
 	TraceArgs     traceArgsLeft      = TraceArgs(&traceResourceCache, gState.heap, &executionCounterLeft);
 	TraceArgs     traceArgsRight     = TraceArgs(&traceResourceCache, gState.heap, &executionCounterRight);
-	OfflineRenderer offlineRenderer = OfflineRenderer();
+	SIOfflineRenderer offlineRenderer    = SIOfflineRenderer();
 
 	while (!gState.io.shouldTerminate())
 	{

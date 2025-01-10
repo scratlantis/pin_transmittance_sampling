@@ -28,6 +28,7 @@ std::string getAbsolutePath(std::string basePath, std::string relativPath);
 
 class OfflineRenderer
 {
+  protected:
 	struct RenderTaskInternal
 	{
 		TraceArgs args;
@@ -57,6 +58,7 @@ class OfflineRenderer
 		OFFLINE_RENDER_STATE_LEFT = 1,
 		OFFLINE_RENDER_STATE_RIGHT = 2,
 		OFFLINE_RENDER_STATE_IDLE = 3,
+		OFFLINE_RENDER_STATE_NEXT = 4,
 	};
 
 	ImageEstimatorComparator       iec;
@@ -71,8 +73,8 @@ class OfflineRenderer
 	OfflineRenderer();
 	uint32_t getTaskQueueSize();
 	float    getTaskProgress();
-	DELETE_COPY_CONSTRUCTORS(OfflineRenderer);
-	bool cmdRunTick(CmdBuffer cmdBuf);
+	//DELETE_COPY_CONSTRUCTORS(OfflineRenderer);
+	virtual bool cmdRunTick(CmdBuffer cmdBuf);
 	void addTask(OfflineRenderTask task);
 	void destroy();
 };
