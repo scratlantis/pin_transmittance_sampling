@@ -9,6 +9,7 @@ struct PushStruct
 	vec2 scale;
 	uint seed;
 	uint count;
+	uint up;
 };
 
 
@@ -29,9 +30,16 @@ void main()
 	if(pc.scale.x > pc.scale.y) scale = pc.scale.x;
 	inst.mat = mat4(scale);
 
-	vec4 tmp = inst.mat[0];
-	inst.mat[0] = -inst.mat[1];
-	inst.mat[1] = tmp;
+	if(pc.up == 1)
+	{
+
+	}
+	else
+	{
+		vec4 tmp = inst.mat[0];
+		inst.mat[0] = -inst.mat[1];
+		inst.mat[1] = tmp;
+	}
 	
 	vec3 randomPos = random3D(seed + 0x8217);
 	randomPos = randomPos * 2.0 - 1.0;

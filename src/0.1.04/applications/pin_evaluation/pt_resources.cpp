@@ -11,10 +11,25 @@ GVar gvar_model_path{"Select model", modelPath + "under_the_c/scene_1.obj", GVAR
 GVar gvar_texture_path{"Select envmap", texturePath + "envmap/2k/cloudy_dusky_sky_dome_2k.hdr", GVAR_FILE_INPUT, GUI_CAT_SCENE_GENERAL, std::vector<std::string>({".hdr", texturePath})};
 
 // Medium
+enum MediumSource
+{
+	MEDIUM_SOURCE_FILE,
+	MEDIUM_SOURCE_NOISE,
+};
+GVar gvar_medium_source{"Medium Source", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({"File", "Perlin Noise"})};
+// File
 GVar gvar_medium_path{"Select medium", texturePath + "csafe_heptane_302x302x302_uint8.raw", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({".raw", scalarFieldPath})};
-//GVar gvar_medium_shader_path{"Select medium shader", texturePath + "bla.comp", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({".comp", shaderPath})};
-//GVar gvar_medium_shader_params{"Med. s. params", std::string(""), GVAR_TEXT_INPUT, GUI_CAT_SCENE_MEDIUM};
 GVar gvar_medium_load{"Load medium", false, GVAR_EVENT, GUI_CAT_SCENE_MEDIUM};
+// Noise
+std::vector<uvec3> noiseResolution = {uvec3(64), uvec3(128), uvec3(256), uvec3(512), uvec3(1024)};
+GVar gvar_medium_noise_resolution{"Noise resolution", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({"64x64x64", "128x128x128", "256x256x256", "512x512x512", "1024x1024x1024"})};
+GVar gvar_medium_noise_seed{"Noise seed", 42U, GVAR_UINT_RANGE, GUI_CAT_SCENE_MEDIUM, {0, 1000}};
+GVar gvar_medium_noise_scale{"Noise scale", 0.2f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.01f, 10.f}};
+GVar gvar_medium_noise_min{"Noise min", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 1.f}};
+GVar gvar_medium_noise_max{"Noise max", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 1.f}};
+GVar gvar_medium_noise_frequency{"Noise frequency", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 10.f}};
+GVar gvar_medium_noise_falloff{"Noise falloff", 0.5f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 1.f}};
+
 
 // Medium Instances
 GVar gvar_medium_instance_shader_path{"Select medium instance shader", shaderPath + "medium/gen_inst_default.comp", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM_INSTANCE, std::vector<std::string>({".comp", shaderPath})};
@@ -27,6 +42,8 @@ GVar gvar_medium_inst_count{"Instance count", 50, GVAR_UINT_RANGE, GUI_CAT_SCENE
 GVar gvar_medium_inst_seed{"Instance seed", 42, GVAR_UINT_RANGE, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, {0, 1000}};
 GVar gvar_medium_inst_scale_min{"Instance scale min", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, {0.01f, 1.f}};
 GVar gvar_medium_inst_scale_max{"Instance scale max", 0.9f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, {0.01f, 1.f}};
+GVar gvar_medium_inst_up{"Instance up", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, std::vector<std::string>({
+	"A", "B"})};
 
 // Scene transforms
 GVar gvar_model_pos{"Model Pos", {0, 0.2, -0.3}, GVAR_VEC3_RANGE, GUI_CAT_SCENE_TRANSFORMS, {-10.f, 10.f}};
@@ -146,27 +163,37 @@ void TraceResources::cmdLoadMedium(CmdBuffer cmdBuf, IResourcePool *pPool)
 		medium_path = gvar_medium_path.val.v_char_array.data();
 	}
 
-	/*std::string medium_shader_path = default_medium_shader_path;
-	if (std::filesystem::exists(gvar_medium_shader_path.val.v_char_array.data()))
+	if (gvar_medium_source.val.v_uint == MEDIUM_SOURCE_FILE)
 	{
-		medium_shader_path = gvar_medium_shader_path.val.v_char_array.data();
-	}*/
-
-	// Medium
-	Buffer scalarBuf;
-	gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, medium_path, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-	mediumTexture = createImage3D(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-	cmdLoadScalarField(cmdBuf, scalarBuf, mediumTexture, getScalarFieldInfo(medium_path));
+		Buffer scalarBuf;
+		gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, medium_path, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+		mediumTexture = createImage3D(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmdLoadScalarField(cmdBuf, scalarBuf, mediumTexture, getScalarFieldInfo(medium_path));
+	}
+	else
+	{
+		uvec3 &res = noiseResolution[gvar_medium_noise_resolution.val.v_uint];
+		mediumTexture = createImage(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VkExtent3D{res.x, res.y, res.z});
+		PerlinNoiseArgs args{};
+		args.seed = gvar_medium_noise_seed.val.v_uint;
+		args.scale = gvar_medium_noise_scale.val.v_float;
+		args.min = gvar_medium_noise_min.val.v_float;
+		args.max = gvar_medium_noise_max.val.v_float;
+		args.frequency = gvar_medium_noise_frequency.val.v_float;
+		args.falloffAtEdge = gvar_medium_noise_falloff.val.v_float;
+		getCmdPerlinNoise(mediumTexture, args).exec(cmdBuf);
+	}
 	resourcesTypes |= TraceResourcesType_Medium;
 }
-
 
 struct MediumInstaceArgs
 {
 	glm::vec2     scale;
 	uint32_t	  seed;
 	uint32_t	  count;
+	uint32_t	  up;
+
 };
 
 ComputeCmd getCmdGenerateMediumInstances(Buffer instanceBuffer, MediumInstaceArgs args, ShaderDefinition shader)
@@ -239,6 +266,7 @@ void TraceResources::cmdLoadMediumInstances(CmdBuffer cmdBuf, IResourcePool *pPo
 	args.scale = glm::vec2(gvar_medium_inst_scale_min.val.v_float, gvar_medium_inst_scale_max.val.v_float);
 	args.seed  = gvar_medium_inst_seed.val.v_uint;
 	args.count = gvar_medium_inst_count.val.v_uint;
+	args.up    = gvar_medium_inst_up.val.v_uint;
 
 	IResourceCache *tmp = gState.cache;
 	gState.cache = pCache;

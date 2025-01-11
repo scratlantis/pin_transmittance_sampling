@@ -22,7 +22,7 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 		waitStage  |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		accessFlags |= VK_ACCESS_SHADER_WRITE_BIT;
 	}
-	Buffer scalarFieldUniform = cmdGetScalarFieldUniform(cmdBuf, gState.frame->stack, args.sceneParams.densityScale, args.sceneParams.minDensity);
+	Buffer scalarFieldUniform = cmdGetScalarFieldUniform(cmdBuf, gState.frame->stack, args.sceneParams.densityScale, args.sceneParams.minDensity, args.sceneParams.maxDensity);
 	cmdBarrier(cmdBuf, waitStage, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, accessFlags, VK_ACCESS_SHADER_READ_BIT);
 
 	uvec2 invocationCount = uvec2(target->getExtent2D().width, target->getExtent2D().height);

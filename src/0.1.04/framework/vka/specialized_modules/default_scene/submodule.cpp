@@ -53,16 +53,19 @@ namespace vka
         {
 	        cmd.pushSubmodule(cVkaShaderModulePath + "mock/pt_uscene_mock.glsl");
         }
-        Buffer cmdGetScalarFieldUniform(CmdBuffer cmdBuf, IResourcePool* pPool, float densityScale, float minDensity)
+        Buffer cmdGetScalarFieldUniform(CmdBuffer cmdBuf, IResourcePool* pPool, float densityScale, float minDensity, float maxDensity)
 		{
 	        Buffer uboBuf = createBuffer(pPool, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 	        struct UBOStruct
 	        {
 				float densityScale;
 	            float minDensity;
+	            float maxDensity;
+
 	        } ubo;
 			ubo.densityScale = densityScale;
 			ubo.minDensity = minDensity;
+	        ubo.maxDensity = maxDensity;
 	        cmdWriteCopy(cmdBuf, uboBuf, &ubo, sizeof(UBOStruct));
 	        return uboBuf;
 		}

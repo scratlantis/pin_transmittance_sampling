@@ -210,7 +210,7 @@ ComputeCmd getCmdPerlinNoise(Image target, PerlinNoiseArgs args)
 		float    minVal;
 		float    maxVal;
 		float    frequency;
-		uint32_t falloffAtEdge;
+		float	falloffAtEdge;
 		uint32_t blendOp;
 	} pc;
 	pc.seed         = args.seed;

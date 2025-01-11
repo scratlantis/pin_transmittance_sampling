@@ -29,6 +29,8 @@ GVar gvar_skip_geometry{"Skip geometry", false, GVAR_BOOL, GUI_CAT_SCENE_PARAMS}
 
 GVar gvar_medium_density_scale{"Medium density scale", 1000.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_DENSITY, {0.f, 500.f}};
 GVar gvar_medium_min_density{"Medium min density", 0.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_DENSITY, {0.f, 1.f}};
+GVar gvar_medium_max_density{"Use max density", 0.f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_DENSITY, {0.f, 10.f}};
+GVar gvar_medium_use_max_density{"Medium max density", false, GVAR_BOOL, GUI_CAT_SCENE_MEDIUM_DENSITY};
 GVar gvar_medium_scattering_function {"Medium scattering function", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM_DENSITY, std::vector<std::string>({"Isotropic", "HG"})};
 GVar gvar_medium_scattering_function_g{"Medium scattering function g", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_DENSITY, {-1.f, 1.f}};
 
@@ -304,6 +306,9 @@ int main(int argc, char *argv[])
 		sceneParams.skipGeometry           = gvar_skip_geometry.val.v_bool;
 		sceneParams.densityScale		   = gvar_medium_density_scale.val.v_float;
 		sceneParams.minDensity			   = gvar_medium_min_density.val.v_float;
+		sceneParams.maxDensity             = (gvar_medium_use_max_density.val.v_bool) ?
+		                                         gvar_medium_max_density.val.v_float :
+		                                         std::numeric_limits<float>::max();
 		sceneParams.scatterFunc            = gvar_medium_scattering_function.val.v_uint;
 		sceneParams.scatterFuncG           = gvar_medium_scattering_function_g.val.v_float;
 

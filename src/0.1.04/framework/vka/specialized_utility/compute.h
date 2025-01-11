@@ -33,7 +33,7 @@ struct PerlinNoiseArgs
 	float     min;
 	float     max;
 	float     frequency;
-	bool      falloffAtEdge;
+	float     falloffAtEdge;
 	bool      blend;
 	VkBlendOp blendOp;
 };
