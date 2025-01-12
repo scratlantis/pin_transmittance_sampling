@@ -195,6 +195,7 @@ int main(int argc, char *argv[])
 		bool camRotated              = viewFocus && cam.keyControl();
 		bool camMoved                = viewFocus && gState.io.mouse.rightPressed && cam.mouseControl();
 		bool selectPixel             = leftClickInView && gState.io.keyPressed[GLFW_KEY_LEFT_CONTROL];
+		bool resetAccumulation       = viewFocus && gState.io.keyPressedEvent[GLFW_KEY_Q];
 		gvar_camera_reset.val.v_bool = viewFocus && gState.io.keyPressedEvent[GLFW_KEY_T];
 		saveCamState(cam.getState());
 
@@ -274,7 +275,7 @@ int main(int argc, char *argv[])
 			splitViewCoef = glm::clamp(splitViewCoef, 0.f, 1.f);
 		}
 		//// Reset accumulation
-		if (viewChange)
+		if (viewChange || resetAccumulation)
 		{
 			iec.cmdReset(cmdBuf);
 			executionCounterLeft = 0;

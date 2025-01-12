@@ -22,6 +22,7 @@ void main()
 
 	// Generate pin
 	vec3 dir = normalize(random3D(seed + 0x362123)-vec3(0.5));
+	if(dir.z < 0.0) dir = -dir;
 	//vec3 origin = 2.0*(random3D(seed + 0x491630))-vec3(0.5);
 	vec3 origin = random3D(seed + 0x491630);
 	vec3 start, end;

@@ -173,7 +173,9 @@ vec3 sphericalToCartesian(vec2 v)
 // civ
 vec2 cartesianToSpherical(vec3 v)
 {
-	return vec2(atan(v.y, v.x), acos(v.z));
+	return vec2(atan(v.y, v.x), acos(v.z)); // theta, phi
+	//return vec2(atan(v.y, v.x), atan(length(v.x+v.y),v.z));
+	//return vec2(atan(v.y / v.x), acos(v.z));
 }
 
 
