@@ -30,9 +30,13 @@ void main()
 	if(pc.scale.x > pc.scale.y) scale = pc.scale.x;
 	inst.mat = mat4(scale);
 
+
+	
 	if(pc.up == 1)
 	{
-
+	vec4 tmp = inst.mat[2];
+		inst.mat[2] = -inst.mat[1];
+		inst.mat[1] = tmp;
 	}
 	else
 	{
@@ -40,6 +44,7 @@ void main()
 		inst.mat[0] = -inst.mat[1];
 		inst.mat[1] = tmp;
 	}
+	
 	
 	vec3 randomPos = random3D(seed + 0x8217);
 	randomPos = randomPos * 2.0 - 1.0;

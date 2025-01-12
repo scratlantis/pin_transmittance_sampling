@@ -17,6 +17,7 @@ ImageEstimatorComparator::ImageEstimatorComparator(VkFormat format, float relWid
 	tqManagerRight = TimeQueryManager(gState.heap, 1);
 	mseResources = MSEComputeResources(format, gState.heap);
 	mseBuffer    = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
+	mseOverTimeBuffer = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 100000 * sizeof(float));
 	isInitialized = true;
 }
 
@@ -31,6 +32,7 @@ ImageEstimatorComparator::ImageEstimatorComparator(VkFormat format, VkExtent2D e
 	tqManagerRight   = TimeQueryManager(gState.heap, 1);
 	mseResources = MSEComputeResources(format, gState.heap);
 	mseBuffer        = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
+	mseOverTimeBuffer = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 100000 * sizeof(float));
 	isInitialized = true;
 }
 
@@ -46,6 +48,7 @@ void ImageEstimatorComparator::garbageCollect()
 	tqManagerRight.garbageCollect();
 	mseResources.garbageCollect();
 	mseBuffer->garbageCollect();
+	mseOverTimeBuffer->garbageCollect();
 }
 
 void ImageEstimatorComparator::cmdReset(CmdBuffer cmdBuf, IECTarget target)
@@ -181,6 +184,12 @@ void ImageEstimatorComparator::showDiff(CmdBuffer cmdBuf, Image target)
 	                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VkRect2D_OP(localAccumulationTargetLeft->getExtent2D()), VkRect2D_OP(target->getExtent2D()))
 	    .exec(cmdBuf);
 }
+
+Buffer ImageEstimatorComparator::getMSEBuf()
+{
+	return mseOverTimeBuffer;
+}
+
 float ImageEstimatorComparator::getMSE()
 {
 	Buffer hostMseBuf;

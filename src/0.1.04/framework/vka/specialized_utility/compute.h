@@ -34,7 +34,8 @@ struct PerlinNoiseArgs
 	float     max;
 	float     frequency;
 	float     falloffAtEdge;
-	bool      blend;
+	float     blendCoef;
+	uint32_t  blendMode;
 	VkBlendOp blendOp;
 };
 
@@ -49,6 +50,7 @@ struct ScalarFieldInfo
 {
 	ScalarFieldFormat format;
 	VkExtent3D        extent;
+	float             minVal;
 };
 void cmdLoadScalarField(CmdBuffer cmdBuf, Buffer src, Image dst, const ScalarFieldInfo &info);
 }        // namespace vka

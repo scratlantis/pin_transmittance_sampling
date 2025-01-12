@@ -26,8 +26,12 @@
 #include "../../lib/lib/math.glsl"
 
 
-#define PIN_DIR_GRID_SIZE_THETA PIN_DIR_GRID_SIZE
-#define PIN_DIR_GRID_SIZE_PHI (PIN_DIR_GRID_SIZE*4)
+//#define PIN_DIR_GRID_SIZE_THETA PIN_DIR_GRID_SIZE
+//#define PIN_DIR_GRID_SIZE_PHI (PIN_DIR_GRID_SIZE*4)
+
+
+#define PIN_DIR_GRID_SIZE_PHI PIN_DIR_GRID_SIZE
+#define PIN_DIR_GRID_SIZE_THETA (PIN_DIR_GRID_SIZE*4)
 
 uint pin_cache_offset(vec3 pos, vec3 dir)
 {
@@ -54,8 +58,8 @@ uint pin_cache_offset(vec3 pos, vec3 dir)
 
 vec3 pin_dir(uint idx)
 {
-	uint dirIdx = idx % (PIN_DIR_GRID_SIZE_PHI * PIN_DIR_GRID_SIZE_THETA);
-	vec2 dirGridCoords = gridPos2D(dirIdx, uvec2(PIN_DIR_GRID_SIZE_PHI, PIN_DIR_GRID_SIZE_THETA));
+	uint dirIdx = idx % (PIN_DIR_GRID_SIZE_THETA * PIN_DIR_GRID_SIZE_PHI);
+	vec2 dirGridCoords = gridPos2D(dirIdx, uvec2(PIN_DIR_GRID_SIZE_THETA, PIN_DIR_GRID_SIZE_PHI));
 	vec2 sphericalCoords;
 	sphericalCoords.x = dirGridCoords.x * PI*2.0;
 	//sphericalCoords.y = PI*0.5 - asin(dirGridCoords.y);
@@ -73,24 +77,33 @@ vec3 pin_pos(uint idx)
 // civ
 void cell_range(uint idx, out vec3 posMin, out vec3 posMax, out vec2 angleMin, out vec2 angleMax)
 {
-	uint posIdx = idx / (PIN_DIR_GRID_SIZE_PHI * PIN_DIR_GRID_SIZE_THETA);
+	uint posIdx = idx / (PIN_DIR_GRID_SIZE_THETA * PIN_DIR_GRID_SIZE_PHI);
 	posMin = gridPos3D(posIdx, PIN_POS_GRID_SIZE);
-	posMax = gridPos3D(posIdx, PIN_POS_GRID_SIZE) + vec3(1.0/float(PIN_POS_GRID_SIZE));
+	posMax = posMin + vec3(1.0/float(PIN_POS_GRID_SIZE));
 	
-	uint dirIdx = idx % (PIN_DIR_GRID_SIZE_PHI * PIN_DIR_GRID_SIZE_THETA);
-	vec2 dirGridCoords = gridPos2D(dirIdx, uvec2(PIN_DIR_GRID_SIZE_PHI, PIN_DIR_GRID_SIZE_THETA));
+	uint dirIdx = idx % (PIN_DIR_GRID_SIZE_THETA * PIN_DIR_GRID_SIZE_PHI);
+	//vec2 dirGridCoords = gridPos2D(dirIdx, uvec2(PIN_DIR_GRID_SIZE_PHI, PIN_DIR_GRID_SIZE_THETA));
 
-	float phiMin = dirGridCoords.x * PI*2.0; // phi
-	float phiMax = phiMin + PI*2.0 * (1.0 / float(PIN_DIR_GRID_SIZE_PHI));
+	//float thetaMin = dirGridCoords.y * PI * 0.5;
+	//float thetaMax = thetaMin + PI * 0.5 * (1.0 / float(PIN_DIR_GRID_SIZE_THETA));
+	//
+	//float phiMin = dirGridCoords.x * PI*2.0; // phi
+	//float phiMax = phiMin + PI*2.0 * (1.0 / float(PIN_DIR_GRID_SIZE_PHI));
 
-	float thetaMin = dirGridCoords.y * PI * 0.5;
-	float thetaMax = thetaMin + PI * 0.5 * (1.0 / float(PIN_DIR_GRID_SIZE_THETA));
+	vec2 dirGridCoords = gridPos2D(dirIdx, uvec2(PIN_DIR_GRID_SIZE_THETA, PIN_DIR_GRID_SIZE_PHI));
+
+	float thetaMin = dirGridCoords.x * PI * 2.0;
+	float thetaMax = thetaMin + PI * 2.0 * (1.0 / float(PIN_DIR_GRID_SIZE_THETA));
+
+	float phiMin = dirGridCoords.y * PI*0.5;
+	float phiMax = phiMin + PI*0.5 * (1.0 / float(PIN_DIR_GRID_SIZE_PHI));
+
 	//float thetaMin = PI*0.5 - asin(clamp(dirGridCoords.y + 1.0/float(PIN_DIR_GRID_SIZE_THETA),0.0,0.9999) );
 	//float thetaMax = PI*0.5 - asin(dirGridCoords.y);
 
 
-	angleMin = vec2(phiMin, thetaMin);
-	angleMax = vec2(phiMax, thetaMax);//vec2(phiMax, thetaMax);
+	angleMin = vec2(thetaMin,phiMin);
+	angleMax = vec2(thetaMax,phiMax);//vec2(phiMax, thetaMax);
 }
 
 bool get_pin_segment(vec3 inOrigin, vec3 inDir, out vec3 start, out vec3 end)

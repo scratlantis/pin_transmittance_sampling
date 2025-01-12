@@ -25,4 +25,5 @@ void cmdComputeMSE(CmdBuffer cmdBuf, Image srcA, Image srcB, Buffer dst, MSEComp
 
 	cmdCopyBuffer(cmdBuf, pMSEResources->mse, dst);
 }
+
 }        // namespace vka

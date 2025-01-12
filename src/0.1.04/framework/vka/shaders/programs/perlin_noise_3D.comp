@@ -10,7 +10,8 @@ struct PushStruct
 	float    maxVal;
 	float	 frequency;
 	float    falloffAtEdge;
-	uint	 blendOp;
+	float	 blendCoef;
+	uint	 blendMode;
 };
 
 layout(push_constant) uniform PC {PushStruct pc;};
@@ -22,7 +23,7 @@ void main()
 	vec3 pos = vec3(gID) / vec3(INVOCATION_COUNT_X, INVOCATION_COUNT_Y, INVOCATION_COUNT_Z);
 	//pos += random3D(pc.seed);
 	
-	float density = pc.scale * perlinNoise(pos*pc.frequency);
+	float density = pc.scale * ( perlinNoise(pos*pc.frequency));
 	if(pc.falloffAtEdge > 0.0001)
 	{
 		float distanceToLowerBound = min(min(pos.x, pos.y), pos.z);
@@ -32,6 +33,22 @@ void main()
 		//distanceToBound = 1.0 / 0.0001;
 		distanceToBound = min(PI*0.5, distanceToBound);
 		density*= clamp(sin(distanceToBound), 0.0, 1.0);
+	}
+	if(pc.blendMode != 0)
+	{
+		float texVal = imageLoad(volumeData, gID).x;
+		if(pc.blendMode == 1)
+		{
+			density += texVal * pc.blendCoef;
+		}
+		if(pc.blendMode == 2)
+		{
+			density *= pow(texVal, pc.blendCoef);
+		}
+		if(pc.blendMode == 3)
+		{
+			density = texVal - abs(pc.blendCoef * density);
+		}
 	}
 	density = clamp(density, pc.minVal, pc.maxVal);
 	imageStore(volumeData, gID, vec4(density));

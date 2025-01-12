@@ -21,6 +21,7 @@ struct OfflineRenderTask
 	float              renderTimeCompare;
 	uint32_t           invocationsCompare;
 	OfflineRenderMode  mode;
+	bool               skipLeft;
 
 	IECToneMappingArgs toneMappingArgs;
 };

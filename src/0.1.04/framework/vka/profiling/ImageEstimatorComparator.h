@@ -49,6 +49,7 @@ class ImageEstimatorComparator
 	void     showSplitView(CmdBuffer cmdBuf, Image target, float splittCoef, VkRect2D_OP targetArea, IECToneMappingArgs toneMappingArgs = {});
 	void     showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
 	void     showDiff(CmdBuffer cmdBuf, Image target);
+	Buffer   getMSEBuf();
 	float    getMSE();
 	float   *getMSEData();
 	uint32_t getMSEDataSize();
@@ -97,6 +98,7 @@ class ImageEstimatorComparator
 	bool                timeQueryFinishedLeft, timeQueryFinishedRight;
 	MSEComputeResources mseResources;
 	Buffer              mseBuffer;
+	Buffer              mseOverTimeBuffer;
 	bool                isInitialized = false;
 
 	Metrics            metricsLeft, metricsRight;
@@ -125,6 +127,8 @@ inline void ImageEstimatorComparator::cmdRun(CmdBuffer cmdBuf, std::function<voi
 	if (!(flags & IEC_RUN_NO_MSE))
 	{
 		cmdComputeMSE(cmdBuf, localAccumulationTargetLeft, localAccumulationTargetRight, mseBuffer, &mseResources);
+		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+		cmdCopyBufferRegion(cmdBuf, mseBuffer, mseOverTimeBuffer, 0,(metrics.invocationCount % 100000) * sizeof(float), sizeof(float));
 		mse.push_back(getMSE());
 	}
 

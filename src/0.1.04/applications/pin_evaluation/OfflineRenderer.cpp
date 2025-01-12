@@ -5,7 +5,7 @@
 
 using json = nlohmann::json;
 
-const float referenceRMStepSize = 0.01;
+const float referenceRMStepSize = 0.002;
 
 OfflineRenderer::OfflineRenderer()
 {
@@ -177,18 +177,23 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		if (state != OFFLINE_RENDER_STATE_REF)
 		{
 			// Store mse over time data as csv
-			Buffer     mseBuffer = createBuffer(pPool, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-			cmdWriteCopy(cmdBuf, mseBuffer, internalTask.mse.data(), internalTask.mse.size() * sizeof(float));
+			//Buffer     mseBuffer = createBuffer(pPool, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+			//cmdWriteCopy(cmdBuf, mseBuffer, internalTask.mse.data(), internalTask.mse.size() * sizeof(float));
 			ExportTask exportTask{};
 			exportTask.path                 = internalTaskPath + ".csv";
-			exportTask.pResource            = mseBuffer;
+			exportTask.pResource            = iec.getMSEBuf()->getSubBuffer({0, sizeof(float) * internalTask.execCnt});
 			exportTask.targetFormat         = EXPORT_FORMAT_CSV;
 			exportTask.bufferInfo.format    = EXPORT_BUFFER_FORMAT_FLOAT;
-			exportTask.bufferInfo.rowLength = internalTask.mse.size();
+			exportTask.bufferInfo.rowLength = internalTask.execCnt;        // internalTask.mse.size();
 			gState.exporter->cmdExport(cmdBuf, exportTask);
 		}
 
 		state = static_cast<OfflineRenderState>(state + 1);
+		if (state == OFFLINE_RENDER_STATE_LEFT && task.skipLeft)
+		{
+			state = static_cast<OfflineRenderState>(state + 1);
+		}
+
 		if (state == OFFLINE_RENDER_STATE_IDLE)
 		{
 			// Write json

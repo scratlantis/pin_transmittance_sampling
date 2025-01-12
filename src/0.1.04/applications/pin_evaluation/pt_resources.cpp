@@ -15,21 +15,25 @@ enum MediumSource
 {
 	MEDIUM_SOURCE_FILE,
 	MEDIUM_SOURCE_NOISE,
+	MEDIUM_SOURCE_FILE_PLUS_NOISE,
+	MEDIUM_SOURCE_FILE_TIMES_NOISE,
+	MEDIUM_SOURCE_FILE_MINUS_NOISE,
 };
-GVar gvar_medium_source{"Medium Source", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({"File", "Perlin Noise"})};
+GVar gvar_medium_source{"Medium Source", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({"File", "Perlin Noise", "File + Noise", "File x Noise","File - Noise" })};
 // File
 GVar gvar_medium_path{"Select medium", texturePath + "csafe_heptane_302x302x302_uint8.raw", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({".raw", scalarFieldPath})};
 GVar gvar_medium_load{"Load medium", false, GVAR_EVENT, GUI_CAT_SCENE_MEDIUM};
+GVar gvar_medium_minVal{"Medium min val", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 1.f}};
 // Noise
 std::vector<uvec3> noiseResolution = {uvec3(64), uvec3(128), uvec3(256), uvec3(512), uvec3(1024)};
 GVar gvar_medium_noise_resolution{"Noise resolution", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({"64x64x64", "128x128x128", "256x256x256", "512x512x512", "1024x1024x1024"})};
 GVar gvar_medium_noise_seed{"Noise seed", 42U, GVAR_UINT_RANGE, GUI_CAT_SCENE_MEDIUM, {0, 1000}};
-GVar gvar_medium_noise_scale{"Noise scale", 0.2f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.01f, 10.f}};
+GVar gvar_medium_noise_scale{"Noise scale", 0.2f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.01f, 20.f}};
 GVar gvar_medium_noise_min{"Noise min", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 1.f}};
 GVar gvar_medium_noise_max{"Noise max", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 1.f}};
-GVar gvar_medium_noise_frequency{"Noise frequency", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 10.f}};
+GVar gvar_medium_noise_frequency{"Noise frequency", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 20.f}};
 GVar gvar_medium_noise_falloff{"Noise falloff", 0.5f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 1.f}};
-
+GVar gvar_medium_noise_blend_coef{"Blend coef", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 10.f}};
 
 // Medium Instances
 GVar gvar_medium_instance_shader_path{"Select medium instance shader", shaderPath + "medium/gen_inst_default.comp", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM_INSTANCE, std::vector<std::string>({".comp", shaderPath})};
@@ -88,6 +92,7 @@ ScalarFieldInfo getScalarFieldInfo(const std::string &path)
 	std::string dimStrY = dimStr.substr(dimStr.find('x') + 1, dimStr.find_last_of('x') - dimStr.find('x') - 1);
 	std::string dimStrZ = dimStr.substr(dimStr.find_last_of('x') + 1);
 	info.extent         = {static_cast<uint32_t>(std::stoi(dimStr)), static_cast<uint32_t>(std::stoi(dimStrY)), static_cast<uint32_t>(std::stoi(dimStrZ))};
+	info.minVal = gvar_medium_minVal.val.v_float;
 	return info;
 }
 
@@ -171,19 +176,42 @@ void TraceResources::cmdLoadMedium(CmdBuffer cmdBuf, IResourcePool *pPool)
 		mediumTexture = createImage3D(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 		cmdLoadScalarField(cmdBuf, scalarBuf, mediumTexture, getScalarFieldInfo(medium_path));
 	}
-	else
+	else if (gvar_medium_source.val.v_uint == MEDIUM_SOURCE_NOISE)
 	{
-		uvec3 &res = noiseResolution[gvar_medium_noise_resolution.val.v_uint];
+		uvec3 &res    = noiseResolution[gvar_medium_noise_resolution.val.v_uint];
 		mediumTexture = createImage(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VkExtent3D{res.x, res.y, res.z});
 		PerlinNoiseArgs args{};
-		args.seed = gvar_medium_noise_seed.val.v_uint;
-		args.scale = gvar_medium_noise_scale.val.v_float;
-		args.min = gvar_medium_noise_min.val.v_float;
-		args.max = gvar_medium_noise_max.val.v_float;
-		args.frequency = gvar_medium_noise_frequency.val.v_float;
+		args.seed          = gvar_medium_noise_seed.val.v_uint;
+		args.scale         = gvar_medium_noise_scale.val.v_float;
+		args.min           = gvar_medium_noise_min.val.v_float;
+		args.max           = gvar_medium_noise_max.val.v_float;
+		args.frequency     = gvar_medium_noise_frequency.val.v_float;
 		args.falloffAtEdge = gvar_medium_noise_falloff.val.v_float;
+		args.blendCoef     = 0.0f;
 		getCmdPerlinNoise(mediumTexture, args).exec(cmdBuf);
 	}
+	else
+	{
+		Buffer scalarBuf;
+		gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, medium_path, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+		mediumTexture = createImage3D(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmdLoadScalarField(cmdBuf, scalarBuf, mediumTexture, getScalarFieldInfo(medium_path));
+		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT);
+		PerlinNoiseArgs args{};
+		args.seed          = gvar_medium_noise_seed.val.v_uint;
+		args.scale         = gvar_medium_noise_scale.val.v_float;
+		args.min           = gvar_medium_noise_min.val.v_float;
+		args.max           = gvar_medium_noise_max.val.v_float;
+		args.frequency     = gvar_medium_noise_frequency.val.v_float;
+		args.falloffAtEdge = gvar_medium_noise_falloff.val.v_float;
+		args.blendCoef     = gvar_medium_noise_blend_coef.val.v_float;
+		if (gvar_medium_source.val.v_uint == MEDIUM_SOURCE_FILE_PLUS_NOISE) args.blendMode = 1;
+		if (gvar_medium_source.val.v_uint == MEDIUM_SOURCE_FILE_TIMES_NOISE) args.blendMode = 2;
+		if (gvar_medium_source.val.v_uint == MEDIUM_SOURCE_FILE_MINUS_NOISE) args.blendMode = 3;
+		getCmdPerlinNoise(mediumTexture, args).exec(cmdBuf);
+	}
+
 	resourcesTypes |= TraceResourcesType_Medium;
 }
 

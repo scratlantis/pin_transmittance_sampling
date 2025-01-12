@@ -45,7 +45,16 @@ bool parse_args(int argc, char **argv, AppArgs& args)
 		argsFound++;
 		args.outputName = getCmdOption(argv, argv + argc, "-n");
 	}
-	return argsFound == 4;
+	if (cmdOptionExists(argv, argv + argc, "-b"))
+	{
+		argsFound++;
+		args.baseSettingsPath = getCmdOption(argv, argv + argc, "-b");
+	}
+	else
+	{
+		args.baseSettingsPath = "";
+	}
+	return argsFound >= 4;
 }
 
 extern GVar gvar_eval_custom_export_path;
@@ -54,6 +63,10 @@ extern GVar gvar_eval_use_custom_export_path;
 
 void loadArgs(AppArgs args)
 {
+	if (!args.baseSettingsPath.empty() && std::filesystem::exists(args.baseSettingsPath))
+	{
+		GVar::loadAll(args.baseSettingsPath);
+	}
 	if (std::filesystem::exists(args.settingsPath))
 	{
 		GVar::loadAll(args.settingsPath);

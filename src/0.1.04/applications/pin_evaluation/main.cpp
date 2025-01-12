@@ -104,6 +104,8 @@ GVar gvar_eval_comp_target_time{"Eval Target Time", 1.f, GVAR_FLOAT_RANGE, GUI_C
 GVar gvar_eval_comp_target_invokations{"Eval Target Invokations", 1, GVAR_UINT_RANGE, GUI_CAT_EVALUATION_PARAMS, {1, 100}};
 GVar gvar_eval_mode{"Eval Mode", 0U, GVAR_ENUM, GUI_CAT_EVALUATION_PARAMS, std::vector<std::string>({"Equal Time", "Equal Samples"})};
 
+GVar gvar_eval_skip_left{"Skip left", false, GVAR_BOOL, GUI_CAT_EVALUATION};
+
 GVar gvar_eval_keep_realtime_render{"Keep realtime render", false, GVAR_BOOL, GUI_CAT_EVALUATION};
 GVar gvar_eval_name{"Eval Name", std::string("default"), GVAR_TEXT_INPUT, GUI_CAT_EVALUATION};
 GVar gvar_evaluate{"Evaluate", false, GVAR_EVENT, GUI_CAT_EVALUATION};
@@ -172,7 +174,7 @@ int main(int argc, char *argv[])
 	uint32_t      executionCounterLeft, executionCounterRight;
 	TraceArgs     traceArgsLeft      = TraceArgs(&traceResourceCache, gState.heap, &executionCounterLeft);
 	TraceArgs     traceArgsRight     = TraceArgs(&traceResourceCache, gState.heap, &executionCounterRight);
-	SIOfflineRenderer offlineRenderer    = SIOfflineRenderer();
+	OfflineRenderer offlineRenderer    = OfflineRenderer();
 
 	while (!gState.io.shouldTerminate())
 	{
@@ -406,6 +408,7 @@ int main(int argc, char *argv[])
 			task.renderTimeCompare = gvar_eval_comp_target_time.val.v_float * 1000.0f; // sec to ms
 			task.invocationsCompare = gvar_eval_comp_target_invokations.val.v_uint;
 			task.mode              = static_cast<OfflineRenderMode>(gvar_eval_mode.val.v_uint);
+			task.skipLeft          = gvar_eval_skip_left.val.v_bool;
 			task.toneMappingArgs    = {};
 			offlineRenderer.addTask(task);
 		}
