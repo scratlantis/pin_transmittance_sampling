@@ -237,7 +237,7 @@ void GVar::writeToJson(json &j)
 			j[id] = val.v_float;
 			break;
 		case GVAR_VEC3_RANGE:
-			j[id] = val.v_vec3[0], val.v_vec3[1], val.v_vec3[2];
+			j[id] = {val.v_vec3[0], val.v_vec3[1], val.v_vec3[2]};
 			break;
 		case GVAR_FILE_INPUT:
 			j[id] = std::string(val.v_char_array.data());
@@ -298,10 +298,10 @@ void GVar::readFromJson(json &j)
 			val.v_uint = val.v_int;
 			break;
 		case GVAR_UINT_RANGE:
-			val.v_uint = j[id][0];
+			val.v_uint = j[id];
 			break;
 		case GVAR_FLOAT_RANGE:
-			val.v_float = j[id][0];
+			val.v_float = j[id];
 			break;
 		case GVAR_VEC3_RANGE:
 			val.v_vec3[0] = j[id][0];

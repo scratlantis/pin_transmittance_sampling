@@ -46,8 +46,7 @@ GVar gvar_medium_inst_count{"Instance count", 50, GVAR_UINT_RANGE, GUI_CAT_SCENE
 GVar gvar_medium_inst_seed{"Instance seed", 42, GVAR_UINT_RANGE, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, {0, 1000}};
 GVar gvar_medium_inst_scale_min{"Instance scale min", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, {0.01f, 1.f}};
 GVar gvar_medium_inst_scale_max{"Instance scale max", 0.9f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, {0.01f, 1.f}};
-GVar gvar_medium_inst_up{"Instance up", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, std::vector<std::string>({
-	"A", "B"})};
+GVar gvar_medium_inst_up{"Instance up", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, std::vector<std::string>({"A", "B", "C"})};
 
 // Scene transforms
 GVar gvar_model_pos{"Model Pos", {0, 0.2, -0.3}, GVAR_VEC3_RANGE, GUI_CAT_SCENE_TRANSFORMS, {-10.f, 10.f}};
