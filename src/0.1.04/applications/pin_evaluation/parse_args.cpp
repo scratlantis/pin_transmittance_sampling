@@ -21,6 +21,8 @@ bool cmdOptionExists(char **begin, char **end, const std::string &option)
 	return std::find(begin, end, option) != end;
 }
 
+GVar gvar_sample_eval_target{"Eval Target", 0U, GVAR_ENUM, GUI_CAT_EVALUATION, std::vector<std::string>({"Full", "No ref", "No comp"}), GVAR_FLAGS_NO_LOAD};
+
 
 bool parse_args(int argc, char **argv, AppArgs& args)
 {
@@ -53,6 +55,16 @@ bool parse_args(int argc, char **argv, AppArgs& args)
 	else
 	{
 		args.baseSettingsPath = "";
+	}
+	if (cmdOptionExists(argv, argv + argc, "-noref"))
+	{
+		argsFound++;
+		gvar_sample_eval_target.val.v_uint = EVAL_TARGET_NO_REF;
+	}
+	if (cmdOptionExists(argv, argv + argc, "-nocomp"))
+	{
+		argsFound++;
+		gvar_sample_eval_target.val.v_uint = EVAL_TARGET_NO_COMP;
 	}
 	return argsFound >= 4;
 }

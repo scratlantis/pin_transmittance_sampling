@@ -2,10 +2,12 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include "ui.h"
+#include <parse_args.h>
 
 using json = nlohmann::json;
 
-const float referenceRMStepSize = 0.002;
+//const float referenceRMStepSize = 0.01;
+GVar        gvar_eval_ref_rm_step_size{"Ref Step Size", 0.01f, GVAR_FLOAT_RANGE, GUI_CAT_EVALUATION_PARAMS, {0.001f, 0.1f}};
 
 OfflineRenderer::OfflineRenderer()
 {
@@ -72,7 +74,11 @@ std::string getAbsolutePath(std::string basePath, std::string relativPath)
 }
 
 GVar gvar_eval_custom_export_path{"Custom export path", std::string("none"), GVAR_FILE_INPUT, GUI_CAT_EVALUATION_PATH, std::vector<std::string>({ "", getAbsolutePath(resultsPath, customExportRelativePath) })};
-GVar gvar_eval_use_custom_export_path{"Use custom export path", false, GVAR_BOOL, GUI_CAT_EVALUATION_PATH, GVAR_FLAGS_NO_LOAD};
+GVar gvar_eval_use_custom_export_path{"Use custom export path", false, GVAR_BOOL, GUI_CAT_EVALUATION_PATH};
+
+GVar gvar_eval_use_sub_sample{"Use subsample", false, GVAR_BOOL, GUI_CAT_EVALUATION};
+
+extern GVar gvar_sample_eval_target;
 
 bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 {
@@ -96,16 +102,20 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		commonArgs.resources.cmdLoadAll(cmdBuf, pPool, this->pTraceResourceCache);
 		commonArgs.sceneParams = task.sceneParams;
 		commonArgs.config = task.config;
-		commonArgs.config.subSampleMode = 1;
+		if (!gvar_eval_use_sub_sample.val.v_bool)
+		{
+			commonArgs.config.subSampleMode = 1;
+		}
 
 		refTask.reset();
 		refTask.args = TraceArgs(pTraceResourceCache, pPool, &refTask.execCnt);
 		refTask.args.update(commonArgs);
-		refTask.args.config.rayMarchStepSize = referenceRMStepSize;
+		refTask.args.config.rayMarchStepSize = gvar_eval_ref_rm_step_size.val.v_float;
 		refTask.result                       = createImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
 		refTask.targetTotalRenderTime		= task.renderTimeRef;
 		refTask.targetTotalSamples			= std::numeric_limits<uint32_t>::max();
 		refTask.args.config.seed += 0x543419;
+		//refTask.args.config.subSampleMode = 2;
 
 		leftTask.reset();
 		leftTask.args  = TraceArgs(pTraceResourceCache, pPool, &leftTask.execCnt);
@@ -125,6 +135,15 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		rightTask.targetTotalSamples    = (task.mode == OFFLINE_RENDER_MODE_EQUAL_SAMPLES) ? task.invocationsCompare : std::numeric_limits<uint32_t>::max();
 		rightTask.args.config.seed += 0x146123;
 
+		if (gvar_sample_eval_target.val.v_uint == EVAL_TARGET_NO_REF)
+		{
+			refTask.targetTotalSamples = 1;
+		}
+		else if (gvar_sample_eval_target.val.v_uint == EVAL_TARGET_NO_COMP)
+		{
+			leftTask.targetTotalSamples  = 1;
+			rightTask.targetTotalSamples = 1;
+		}
 		state = OFFLINE_RENDER_STATE_REF;
 		iec.cmdReset(cmdBuf);
 	}
@@ -200,6 +219,7 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 			json          j;
 			std::ofstream o(taskDir + "/" + task.name + "_info.json");
 			j["resolution"]     = {task.resolution.width, task.resolution.height};
+			j["step_size"]  = refTask.args.config.subSampleMode * refTask.args.config.subSampleMode;
 
 			j["ref_avg_sample_time"] = refTask.avgSampleTime;
 			j["ref_sample_count"]    = refTask.execCnt;

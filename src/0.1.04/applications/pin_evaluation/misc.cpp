@@ -1,5 +1,6 @@
 #include "misc.h"
 #include "ui.h"
+#include <OfflineRenderer.h>
 // Camera
 GVar gvar_camera_fixpoint{"Camera Fixpoint", {0.0f, 0.0f, 0.0f}, GVAR_VEC3, GUI_CAT_CAM};
 GVar gvar_camera_distance{"Camera Distance", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_CAM, {0.1f, 100.0f}};
@@ -54,8 +55,8 @@ bool dirExists(const char *path)
 
 // Files
 // GVar gvar_file_path{"File Path", std::string("none"), GVAR_DISPLAY_TEXT, GUI_CAT_FILE_LOAD};
-GVar gvar_load_file{"Load file", std::string("none"), GVAR_FILE_INPUT, GUI_CAT_FILE_LOAD, std::vector<std::string>({".json", configPath}), GVAR_FLAGS_NO_LOAD};
-GVar gvar_save_as_file{"Save as", std::string("none"), GVAR_FILE_OUTPUT, GUI_CAT_FILE_SAVE, std::vector<std::string>({".json", configPath})};
+GVar gvar_load_file{"Load file", std::string("none"), GVAR_FILE_INPUT, GUI_CAT_FILE_LOAD, std::vector<std::string>({".json", getAbsolutePath(resultsPath, customExportRelativePath)}), GVAR_FLAGS_NO_LOAD};
+GVar gvar_save_as_file{"Save as", std::string("none"), GVAR_FILE_OUTPUT, GUI_CAT_FILE_SAVE, std::vector<std::string>({".json", getAbsolutePath(resultsPath, customExportRelativePath)})};
 GVar gvar_save_file{"Save file", false, GVAR_EVENT, GUI_CAT_FILE_SAVE};
 
 bool processLoadStoreFile()
@@ -80,8 +81,8 @@ bool processLoadStoreFile()
 	return false;
 }
 
-GVar gvar_eval_params_save_path{"Save as (eval conf)", std::string("none"), GVAR_FILE_OUTPUT, GUI_CAT_EVALUATION_LOAD_SAVE, std::vector<std::string>({".json", configPath + "eval_config"})};
-GVar gvar_eval_params_load_path{"Load (eval conf)", std::string("none"), GVAR_FILE_INPUT, GUI_CAT_EVALUATION_LOAD_SAVE, std::vector<std::string>({".json", configPath + "eval_config"})};
+GVar gvar_eval_params_save_path{"Save as (eval conf)", std::string("none"), GVAR_FILE_OUTPUT, GUI_CAT_EVALUATION_LOAD_SAVE, std::vector<std::string>({".json", getAbsolutePath(resultsPath, customExportRelativePath)})};
+GVar gvar_eval_params_load_path{"Load (eval conf)", std::string("none"), GVAR_FILE_INPUT, GUI_CAT_EVALUATION_LOAD_SAVE, std::vector<std::string>({".json", getAbsolutePath(resultsPath, customExportRelativePath)})};
 void processTraceParams()
 {
 	if (gvar_eval_params_save_path.val.v_bool)

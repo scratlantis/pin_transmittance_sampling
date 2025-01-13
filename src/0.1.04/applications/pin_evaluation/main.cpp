@@ -35,7 +35,7 @@ GVar gvar_medium_scattering_function {"Medium scattering function", 0U, GVAR_ENU
 GVar gvar_medium_scattering_function_g{"Medium scattering function g", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_DENSITY, {-1.f, 1.f}};
 
 // Path Tracing
-GVar gvar_ray_march_step_size{"RM Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.01f, 1.f}};
+GVar gvar_ray_march_step_size{"RM Step Size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PATH_TRACING, {0.01f, 0.1f}};
 GVar gvar_bounce_count{"Bounce Count", 5U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {1U, 16U}};
 GVar gvar_min_bounce{"Min Bounce", 0U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 16U}};
 GVar gvar_pt_seed{"Seed", 42U, GVAR_UINT_RANGE, GUI_CAT_PATH_TRACING, {0U, 10000U}};
@@ -50,7 +50,7 @@ GVar gvar_tone_mapping_exposure{"Tone mapping exposure", 1.0f, GVAR_FLOAT_RANGE,
 // Pins
 GVar gvar_pin_pos_grid_size{"Pin Pos Grid Size", 10U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 64U}};
 GVar gvar_pin_dir_grid_size{"Pin Dir Grid Size", 8U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 256U}};
-GVar gvar_pin_ray_march_step_size_coefficient{"Pin RM step size coefficient", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
+GVar gvar_pin_ray_march_step_size_coefficient{"Pin RM step size", 0.01f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_write_pin_step_size{"Pin write step size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_update_mode{"Pin update mode", 1U, GVAR_ENUM, GUI_CAT_PINS, std::vector<std::string>({"All", "Trace"})};
 GVar gvar_pin_update_rate{"Pin update rate", 1U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 100U}};

@@ -58,7 +58,7 @@ CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, const TraceArgs &args)
 	Buffer scalarFieldUniform = default_scene::cmdGetScalarFieldUniform(cmdBuf, gState.frame->stack, args.sceneParams.densityScale, args.sceneParams.minDensity, args.sceneParams.maxDensity);
 	cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 	cmd.pushSubmodule(cVkaShaderModulePath + "pt_scalar_field.glsl");
-	default_scene::bindScalarField(cmd, args.resources.mediumTexture, args.config.rayMarchStepSize * cvsArgs.rayMarchingCoefficient, scalarFieldUniform);
+	default_scene::bindScalarField(cmd, args.resources.mediumTexture, cvsArgs.rayMarchingCoefficient, scalarFieldUniform);
 	cmd.pushLocal();
 	cmd.pushDescriptor(data.pinGridBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	cmd.pipelineDef.shaderDef.args.push_back({"PIN_POS_GRID_SIZE", cvsArgs.pinGridExtent.positionGridSize});

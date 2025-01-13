@@ -11,3 +11,9 @@ struct AppArgs
 
 bool parse_args(int argc, char **argv, AppArgs &args);
 void loadArgs(AppArgs args);
+enum EvalTarget
+{
+	EVAL_TARGET_FULL,
+	EVAL_TARGET_NO_REF,
+	EVAL_TARGET_NO_COMP
+};

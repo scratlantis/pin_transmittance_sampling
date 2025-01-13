@@ -1,0 +1,208 @@
+{
+    "Area light emission scale": [
+        61.983001708984375
+    ],
+    "Area lights force transmittance RM": [
+        1
+    ],
+    "Avg squared diff: %.8f": 0.00997163075953722,
+    "Blend coef": [
+        4.25600004196167
+    ],
+    "Bounce Count": [
+        2
+    ],
+    "Camera Distance": [
+        2.8999998569488525
+    ],
+    "Camera Fixpoint": [
+        3.1325221061706543,
+        -1.5906440019607544,
+        1.3446826934814453
+    ],
+    "Camera Move Speed": [
+        2.0
+    ],
+    "Camera Pitch": [
+        13.34375
+    ],
+    "Camera Scroll Speed": [
+        0.10000000149011612
+    ],
+    "Camera Turn Speed": [
+        0.25
+    ],
+    "Camera Up": [
+        0.0,
+        1.0,
+        0.0
+    ],
+    "Camera Yaw": [
+        -521.125
+    ],
+    "Custom export path": "G:\\repos\\master_thesis\\master-thesis\\ausarbeitung\\results\\automated\\datav4\\2_step_size_compare_v2",
+    "Enable Debuging": true,
+    "Env map emission scale": [
+        0.6200000047683716
+    ],
+    "Env map force transmittance RM": [
+        1
+    ],
+    "Eval Mode": 0,
+    "Eval Resolution": 4,
+    "Eval Target Invokations": [
+        64
+    ],
+    "Eval Target Time": [
+        10.343999862670898
+    ],
+    "First random bounce": [
+        0
+    ],
+    "Force distance RM": [
+        1
+    ],
+    "Instance count": [
+        451
+    ],
+    "Instance scale max": [
+        0.8690000176429749
+    ],
+    "Instance scale min": [
+        0.6200000047683716
+    ],
+    "Instance seed": [
+        0
+    ],
+    "Instance up": 1,
+    "Jitter dir": [
+        1.0
+    ],
+    "Jitter pos": [
+        1.0
+    ],
+    "Keep realtime render": false,
+    "Load (eval conf)": "G:/repos/master_thesis\\master-thesis\\ausarbeitung\\results\\automated\\data\\set_1\\_tp.json",
+    "Load file": "none",
+    "MedInst. current params:": "",
+    "Medium Source": 1,
+    "Medium density scale": [
+        132.2310028076172
+    ],
+    "Medium max density": true,
+    "Medium min density": [
+        0.34700000286102295
+    ],
+    "Medium min val": [
+        0.335999995470047
+    ],
+    "Medium scattering function": 0,
+    "Medium scattering function g": [
+        0.3140000104904175
+    ],
+    "Menu": 2,
+    "Min Bounce": [
+        0
+    ],
+    "Model Pos": [
+        3.134000062942505,
+        2.23799991607666,
+        1.4709999561309814
+    ],
+    "Model Rot": [
+        0.0,
+        61.79100036621094,
+        0.0
+    ],
+    "Model Scale": [
+        0.734000027179718
+    ],
+    "Noise falloff": [
+        1.0
+    ],
+    "Noise frequency": [
+        47.933998107910156
+    ],
+    "Noise max": [
+        1.0
+    ],
+    "Noise min": [
+        0.0
+    ],
+    "Noise resolution": 3,
+    "Noise scale": [
+        9.925999641418457
+    ],
+    "Noise seed": [
+        207
+    ],
+    "Pin Dir Grid Size": [
+        8
+    ],
+    "Pin Mode Left": 0,
+    "Pin Mode Right": 3,
+    "Pin Pos Grid Size": [
+        20
+    ],
+    "Pin RM step size coefficient": [
+        0.1
+    ],
+    "Pin sample mask iterations": [
+        5
+    ],
+    "Pin trace update ray count": [
+        0
+    ],
+    "Pin update mode": 1,
+    "Pin update rate": [
+        1
+    ],
+    "Pin write step size": [
+        0.10000000149011612
+    ],
+    "RM Step Size": [
+        0.01
+    ],
+    "Ref Target Time": [
+        60.52299880981445
+    ],
+    "Sample Count": [
+        1
+    ],
+    "Sample Mode Left": 0,
+    "Sample Mode Right": 2,
+    "Save as": "G:/repos/master_thesis\\master-thesis\\ausarbeitung\\results\\automated\\datav4\\2_step_size_compare_v3\\_base.json",
+    "Save as (eval conf)": "G:\\repos\\master_thesis\\master-thesis\\ausarbeitung\\results\\automated\\datav2\\_tp.json",
+    "Seed": [
+        42
+    ],
+    "Select Bounce": [
+        1
+    ],
+    "Select envmap": "G:/repos/master_thesis/master-thesis-implementation/resources/textures/envmap\\2k\\evening_field_2k.hdr",
+    "Select medium": "G:/repos/master_thesis/master-thesis-implementation/resources/scalarFields/tooth_103x94x161_uint8.raw",
+    "Select medium instance shader": "G:/repos/master_thesis/master-thesis-implementation/resources/textures/csafe_heptane_302x302x302_uint8.raw",
+    "Select model": "G:/repos/master_thesis/master-thesis-implementation/resources/models/under_the_c\\scene_1.obj",
+    "Skip geometry": false,
+    "Skip left": false,
+    "Subsample mode": [
+        4
+    ],
+    "Timing Left: %.4f": 224.47166442871094,
+    "Timing Right: %.4f": 51.086238861083984,
+    "Tone mapping": false,
+    "Tone mapping exposure": [
+        0.13300000131130219
+    ],
+    "Tone mapping whitepoint": [
+        3.197999954223633
+    ],
+    "Use custom export path": false,
+    "Use max density": [
+        8.925999641418457
+    ],
+    "Write indirect direction": true,
+    "Write indirect t": true,
+    "Write indirect weight": false,
+    "Write total contribution": true
+}

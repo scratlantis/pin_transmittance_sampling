@@ -26,12 +26,12 @@ GVar gvar_medium_load{"Load medium", false, GVAR_EVENT, GUI_CAT_SCENE_MEDIUM};
 GVar gvar_medium_minVal{"Medium min val", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 1.f}};
 // Noise
 std::vector<uvec3> noiseResolution = {uvec3(64), uvec3(128), uvec3(256), uvec3(512), uvec3(1024)};
-GVar gvar_medium_noise_resolution{"Noise resolution", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({"64x64x64", "128x128x128", "256x256x256", "512x512x512", "1024x1024x1024"})};
+GVar               gvar_medium_noise_resolution{"Noise resolution", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({"64x64x64", "128x128x128", "256x256x256", "512x512x512", "1024x1024x1024"})};
 GVar gvar_medium_noise_seed{"Noise seed", 42U, GVAR_UINT_RANGE, GUI_CAT_SCENE_MEDIUM, {0, 1000}};
-GVar gvar_medium_noise_scale{"Noise scale", 0.2f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.01f, 20.f}};
+GVar gvar_medium_noise_scale{"Noise scale", 0.2f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.01f, 100.f}};
 GVar gvar_medium_noise_min{"Noise min", 0.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 1.f}};
 GVar gvar_medium_noise_max{"Noise max", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 1.f}};
-GVar gvar_medium_noise_frequency{"Noise frequency", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 20.f}};
+GVar gvar_medium_noise_frequency{"Noise frequency", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 100.f}};
 GVar gvar_medium_noise_falloff{"Noise falloff", 0.5f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 1.f}};
 GVar gvar_medium_noise_blend_coef{"Blend coef", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 10.f}};
 
