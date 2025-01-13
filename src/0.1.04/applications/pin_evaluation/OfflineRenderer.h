@@ -39,6 +39,7 @@ class OfflineRenderer
 		uint32_t  targetTotalSamples;
 		std::vector<float> mse;
 		Image     result;
+		bool               hasFastResult = false;
 
 		bool isComplete() const
 		{

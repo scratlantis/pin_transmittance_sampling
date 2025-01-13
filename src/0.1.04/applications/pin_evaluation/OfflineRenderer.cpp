@@ -160,6 +160,28 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		{
 			internalTask.mse.push_back(iec.getMSE()); // e-6
 		}
+		if (internalTask.avgSampleTime * internalTask.execCnt > 1000.0 && !internalTask.hasFastResult && state != OFFLINE_RENDER_STATE_REF)
+		{
+			internalTask.hasFastResult = true;
+			Image png = createImage(pPool, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
+			iec.cmdShow(cmdBuf, png, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target, task.toneMappingArgs);
+			std::string taskDir;
+			if (gvar_eval_use_custom_export_path.val.v_bool && std::filesystem::exists(gvar_eval_custom_export_path.val.v_char_array.data()))
+			{
+				taskDir = std::string(gvar_eval_custom_export_path.val.v_char_array.data()) + "/" + task.name;
+			}
+			else
+			{
+				taskDir = resultsPath + task.name;
+			}
+			std::filesystem::create_directories(taskDir);
+			std::string internalTaskPath = taskDir + "/" + internalTaskName;
+			ExportTask  exportTask{};
+			exportTask.path         = internalTaskPath + "_1smp.png";
+			exportTask.pResource    = png;
+			exportTask.targetFormat = EXPORT_FORMAT_PNG;
+			gState.exporter->cmdExport(cmdBuf, exportTask);
+		}
 	}
 	else
 	{
