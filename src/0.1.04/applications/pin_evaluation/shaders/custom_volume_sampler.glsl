@@ -71,15 +71,17 @@ float cvsSampleDistance(vec3 origin, vec3 dir, float maxLength, float selectionO
 // quantisation
 #if SAMPLE_TYPE == 1
 	//quantise_to_pin_grid(origin, dir);
-	quantise_to_pin_grid_with_jitter(origin, dir, seed);
+	//quantise_to_pin_grid_with_jitter(origin, dir, seed);
 #endif
 // compute pin
 	vec3 selectionPos = origin + dir * selectionOffset * maxLength;
 #if SAMPLE_TYPE != 2
-	PIN_STRUCT pin = CREATE_PIN(selectionPos, dir, seed);
+	//if(dir.z < 0.0) dir = -dir;
+	PIN_STRUCT pin = CREATE_PIN(selectionPos,(dir.z < 0.0) ? -dir :dir, seed);
 #else
 	PIN_STRUCT pin = pin_grid[pin_cache_offset(selectionPos, dir)];
 #endif
+	//pin = pin_grid[pin_cache_offset(selectionPos, dir)];
 //SI_printf("PIN_TYPE %d\n",PIN_TYPE);
 	return PIN_SAMPLE_DISTANCE(pin, origin, dir, maxLength, seed);
 }
@@ -89,15 +91,17 @@ float cvsSampleTransmittance(vec3 origin, vec3 dir, float maxLength, float selec
 #if SAMPLE_TYPE != 0
 	apply_jitter(origin, dir, jitterPos, jitterDir, seed);
 #endif
+//apply_jitter(origin, dir, jitterPos, jitterDir, seed);
 // quantisation
 #if SAMPLE_TYPE == 1
 	//quantise_to_pin_grid(origin, dir);
-	quantise_to_pin_grid_with_jitter(origin, dir, seed);
+	//quantise_to_pin_grid_with_jitter(origin, dir, seed);
 #endif
 // compute pin
     vec3 selectionPos = origin + dir * selectionOffset * maxLength;
 #if SAMPLE_TYPE != 2
-	PIN_STRUCT pin = CREATE_PIN(selectionPos, dir, seed);
+	//PIN_STRUCT pin = CREATE_PIN(selectionPos, dir, seed);
+	PIN_STRUCT pin = CREATE_PIN(selectionPos,(dir.z < 0.0) ? -dir :dir, seed);
 #else
 	PIN_STRUCT pin = pin_grid[pin_cache_offset(selectionPos, dir)];
 #endif

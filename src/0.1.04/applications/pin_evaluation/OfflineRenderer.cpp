@@ -76,7 +76,7 @@ std::string getAbsolutePath(std::string basePath, std::string relativPath)
 GVar gvar_eval_custom_export_path{"Custom export path", std::string("none"), GVAR_FILE_INPUT, GUI_CAT_EVALUATION_PATH, std::vector<std::string>({ "", getAbsolutePath(resultsPath, customExportRelativePath) })};
 GVar gvar_eval_use_custom_export_path{"Use custom export path", false, GVAR_BOOL, GUI_CAT_EVALUATION_PATH};
 
-GVar gvar_eval_use_sub_sample{"Use subsample", false, GVAR_BOOL, GUI_CAT_EVALUATION};
+GVar gvar_eval_use_sub_sample{"Use subsample", false, GVAR_BOOL, GUI_CAT_EVALUATION_PARAMS};
 
 extern GVar gvar_sample_eval_target;
 
@@ -124,6 +124,10 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		leftTask.result                = createImage(pPool, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
 		leftTask.targetTotalRenderTime = (task.mode == OFFLINE_RENDER_MODE_EQUAL_TIME) ? task.renderTimeCompare : std::numeric_limits<float>::max();
 		leftTask.targetTotalSamples    = (task.mode == OFFLINE_RENDER_MODE_EQUAL_SAMPLES) ? task.invocationsCompare : std::numeric_limits<uint32_t>::max();
+		if (task.skipLeft)
+		{
+			leftTask.targetTotalSamples = 1;
+		}
 		leftTask.args.config.seed += 0x47283;
 
 		rightTask.reset();
@@ -232,7 +236,7 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		state = static_cast<OfflineRenderState>(state + 1);
 		if (state == OFFLINE_RENDER_STATE_LEFT && task.skipLeft)
 		{
-			state = static_cast<OfflineRenderState>(state + 1);
+			//state = static_cast<OfflineRenderState>(state + 1);
 		}
 
 		if (state == OFFLINE_RENDER_STATE_IDLE)

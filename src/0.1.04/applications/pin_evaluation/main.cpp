@@ -104,7 +104,7 @@ GVar gvar_eval_comp_target_time{"Eval Target Time", 1.f, GVAR_FLOAT_RANGE, GUI_C
 GVar gvar_eval_comp_target_invokations{"Eval Target Invokations", 1, GVAR_UINT_RANGE, GUI_CAT_EVALUATION_PARAMS, {1, 100}};
 GVar gvar_eval_mode{"Eval Mode", 0U, GVAR_ENUM, GUI_CAT_EVALUATION_PARAMS, std::vector<std::string>({"Equal Time", "Equal Samples"})};
 
-GVar gvar_eval_skip_left{"Skip left", false, GVAR_BOOL, GUI_CAT_EVALUATION};
+GVar gvar_eval_skip_left{"Skip left", false, GVAR_BOOL, GUI_CAT_EVALUATION_PARAMS};
 
 GVar gvar_eval_keep_realtime_render{"Keep realtime render", false, GVAR_BOOL, GUI_CAT_EVALUATION};
 GVar gvar_eval_name{"Eval Name", std::string("default"), GVAR_TEXT_INPUT, GUI_CAT_EVALUATION};
@@ -395,6 +395,9 @@ int main(int argc, char *argv[])
 
 		if (gvar_evaluate.val.v_bool)
 		{
+			traceArgsLeft.update(newTraceArgsLeft);
+			traceArgsRight.update(newTraceArgsRight);
+
 			OfflineRenderTask task{};
 			task.name              = std::string(gvar_eval_name.val.v_char_array.data());
 			task.argsRef           = tracerConfig;
