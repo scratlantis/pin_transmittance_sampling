@@ -35,6 +35,14 @@ GVar gvar_medium_noise_frequency{"Noise frequency", 1.0f, GVAR_FLOAT_RANGE, GUI_
 GVar gvar_medium_noise_falloff{"Noise falloff", 0.5f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 1.f}};
 GVar gvar_medium_noise_blend_coef{"Blend coef", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM, {0.0f, 10.f}};
 
+enum MediumDataType
+{
+	MEDIUM_DATA_TYPE_16BIT,
+	MEDIUM_DATA_TYPE_32BIT,
+};
+
+GVar gvar_medium_data_type{"Medium data type", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM, std::vector<std::string>({"16bit", "32bit"})};
+
 // Medium Instances
 GVar gvar_medium_instance_shader_path{"Select medium instance shader", shaderPath + "medium/gen_inst_default.comp", GVAR_FILE_INPUT, GUI_CAT_SCENE_MEDIUM_INSTANCE, std::vector<std::string>({".comp", shaderPath})};
 GVar gvar_medium_instamce_shader_params{"MedInst. current params:", std::string(""), GVAR_DISPLAY_TEXT, GUI_CAT_SCENE_MEDIUM_INSTANCE};
@@ -167,18 +175,30 @@ void TraceResources::cmdLoadMedium(CmdBuffer cmdBuf, IResourcePool *pPool)
 		medium_path = gvar_medium_path.val.v_char_array.data();
 	}
 
+
+
+	VkFormat format;
+	if (gvar_medium_data_type.val.v_bool == MEDIUM_DATA_TYPE_16BIT)
+	{
+		format = VK_FORMAT_R16_SFLOAT;
+	}
+	else
+	{
+		format = VK_FORMAT_R32_SFLOAT;
+	}
+
 	if (gvar_medium_source.val.v_uint == MEDIUM_SOURCE_FILE)
 	{
 		Buffer scalarBuf;
 		gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, medium_path, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-		mediumTexture = createImage3D(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		mediumTexture = createImage3D(pPool, format, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 		cmdLoadScalarField(cmdBuf, scalarBuf, mediumTexture, getScalarFieldInfo(medium_path));
 	}
 	else if (gvar_medium_source.val.v_uint == MEDIUM_SOURCE_NOISE)
 	{
 		uvec3 &res    = noiseResolution[gvar_medium_noise_resolution.val.v_uint];
-		mediumTexture = createImage(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VkExtent3D{res.x, res.y, res.z});
+		mediumTexture = createImage(pPool, format, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VkExtent3D{res.x, res.y, res.z});
 		PerlinNoiseArgs args{};
 		args.seed          = gvar_medium_noise_seed.val.v_uint;
 		args.scale         = gvar_medium_noise_scale.val.v_float;
@@ -194,7 +214,7 @@ void TraceResources::cmdLoadMedium(CmdBuffer cmdBuf, IResourcePool *pPool)
 		Buffer scalarBuf;
 		gState.binaryLoadCache->fetch(cmdBuf, scalarBuf, medium_path, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-		mediumTexture = createImage3D(pPool, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		mediumTexture = createImage3D(pPool, format, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 		cmdLoadScalarField(cmdBuf, scalarBuf, mediumTexture, getScalarFieldInfo(medium_path));
 		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT);
 		PerlinNoiseArgs args{};
