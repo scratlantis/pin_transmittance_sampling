@@ -33,6 +33,7 @@ struct MapImgArgs
 	bool        normalize;
 	bool        useTonemapping;
 	float       whitePoint;
+	bool        useGammaCorrection;
 	float       exposure;
 	bool        useScissors;
 	VkRect2D_OP srcArea;

@@ -64,4 +64,5 @@ namespace vka
 	    }
 	};
     void cmdComputeMSE(CmdBuffer cmdBuf, Image srcA, Image srcB, Buffer dst, MSEComputeResources *pMSEResources);
+    void cmdComputeRMSE(CmdBuffer cmdBuf, Image srcA, Image srcB, Buffer dst, MSEComputeResources *pMSEResources);
     }        // namespace vka

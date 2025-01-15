@@ -10,6 +10,7 @@ struct IECToneMappingArgs
 	bool  useTonemapping;
 	float whitePoint;
 	float exposure;
+	bool  useGammaCorrection;
 };
 enum IECTarget
 {
@@ -50,6 +51,7 @@ class ImageEstimatorComparator
 	void     showDiff(CmdBuffer cmdBuf, Image target, VkRect2D_OP targetArea);
 	void     showDiff(CmdBuffer cmdBuf, Image target);
 	Buffer   getMSEBuf();
+	Buffer   getRMSEBuf();
 	float    getMSE();
 	float   *getMSEData();
 	uint32_t getMSEDataSize();
@@ -92,13 +94,17 @@ class ImageEstimatorComparator
 		}
 	};
 
-  private:
 	Image               localTargetLeft, localTargetRight, localAccumulationTargetLeft, localAccumulationTargetRight;
+  private:
 	TimeQueryManager    tqManagerLeft, tqManagerRight;
 	bool                timeQueryFinishedLeft, timeQueryFinishedRight;
 	MSEComputeResources mseResources;
+	MSEComputeResources rmseResources;
 	Buffer              mseBuffer;
+	Buffer              rmseBuffer;
 	Buffer              mseOverTimeBuffer;
+	Buffer              rmseOverTimeBuffer;
+
 	bool                isInitialized = false;
 
 	Metrics            metricsLeft, metricsRight;
@@ -127,8 +133,14 @@ inline void ImageEstimatorComparator::cmdRun(CmdBuffer cmdBuf, std::function<voi
 	if (!(flags & IEC_RUN_NO_MSE))
 	{
 		cmdComputeMSE(cmdBuf, localAccumulationTargetLeft, localAccumulationTargetRight, mseBuffer, &mseResources);
+		cmdComputeRMSE(cmdBuf, localAccumulationTargetLeft, localAccumulationTargetRight, rmseBuffer, &rmseResources);
+
 		cmdBarrier(cmdBuf, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
 		cmdCopyBufferRegion(cmdBuf, mseBuffer, mseOverTimeBuffer, 0,(metrics.invocationCount % 100000) * sizeof(float), sizeof(float));
+		cmdCopyBufferRegion(cmdBuf, rmseBuffer, rmseOverTimeBuffer, 0,(metrics.invocationCount % 100000) * sizeof(float), sizeof(float));
+		//float test = 1.0 * metrics.invocationCount;
+		//cmdWriteCopy(cmdBuf, mseBuffer, &test, sizeof(float));
+		//cmdCopyBufferRegion(cmdBuf, mseBuffer, mseOverTimeBuffer, 0,(metrics.invocationCount % 100000) * sizeof(float), sizeof(float));
 		mse.push_back(getMSE());
 	}
 

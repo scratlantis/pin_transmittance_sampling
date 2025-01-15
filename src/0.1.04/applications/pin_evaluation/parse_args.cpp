@@ -56,6 +56,15 @@ bool parse_args(int argc, char **argv, AppArgs& args)
 	{
 		args.baseSettingsPath = "";
 	}
+	if (cmdOptionExists(argv, argv + argc, "-o"))
+	{
+		argsFound++;
+		args.overridePath = getCmdOption(argv, argv + argc, "-override");
+	}
+	else
+	{
+		args.overridePath = "";
+	}
 	if (cmdOptionExists(argv, argv + argc, "-noref"))
 	{
 		argsFound++;
@@ -88,6 +97,11 @@ void loadArgs(AppArgs args)
 	{
 		std::vector<GVar *> vars = GVar::filterSortID(GVar::getAll(), GUI_CAT_EVALUATION_PARAMS);
 		GVar::load(vars, args.renderParamsPath);
+	}
+	if (!args.overridePath.empty() && std::filesystem::exists(args.overridePath))
+	{
+		GVar::loadAll(args.overridePath);
+		printVka("Override successful");
 	}
 
 	if (dirExists(args.outputDir.c_str()))

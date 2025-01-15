@@ -42,6 +42,11 @@ void main()
 	Yxy.x = reinhard2(lp, pc.whitePoint);
 	rgb = convertYxy2RGB(Yxy);
 	color.rgb = toGamma( rgb );
+#else
+
+#ifdef GAMMA_CORRECTION
+	color.rgb = toGamma( color.rgb );
+#endif
 #endif
 	outColor = color;
 }

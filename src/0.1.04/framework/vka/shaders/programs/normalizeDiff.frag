@@ -47,15 +47,19 @@ void main()
 
 
 	outColor.a = 1.0;
+	vec3 diff = colorA.rgb - colorB.rgb;
+	vec3 diffSq = diff * diff;
+	//diffSq = clamp(diffSq, 0.0, 100.0);
+	float diffSqAvg = (diffSq.x + diffSq.y + diffSq.z)/3.0;
+
 	#if(DIFF_OP == DIFF_OP_COMPONENT_SUM_DIFF)
 	//outColor.rgb = vec3(0.5 + -(colorA.r - colorB.r + colorA.g - colorB.g + colorA.b - colorB.b));
 	//outColor.rgb = vec3(distance(colorA, colorB))*1.0;
-	outColor.rgb = abs(colorA.rgb - colorB.rgb);
+	outColor.rgb = vec3(sqrt(diffSqAvg));
 
 	#elif(DIFF_OP == DIFF_OP_PER_COMPONENT_SQUARED_DIFF_SUM)
-	vec3 diff = colorA.rgb - colorB.rgb;
-	diff = diff * diff;
-	outColor.rgb = vec3(diff.x + diff.y + diff.z)/3.0;
+	outColor.rgb = vec3(diffSqAvg);
+	//outColor.rgb = vec3(diff.x + diff.y + diff.z)/3.0;
 	#endif
 	//outColor.rgb = vec3(colorB.r);
 }

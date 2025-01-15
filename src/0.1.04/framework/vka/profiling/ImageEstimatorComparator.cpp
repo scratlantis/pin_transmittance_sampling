@@ -16,8 +16,12 @@ ImageEstimatorComparator::ImageEstimatorComparator(VkFormat format, float relWid
 	tqManagerLeft  = TimeQueryManager(gState.heap, 1);
 	tqManagerRight = TimeQueryManager(gState.heap, 1);
 	mseResources = MSEComputeResources(format, gState.heap);
+	rmseResources = MSEComputeResources(format, gState.heap);
+
 	mseBuffer    = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
-	mseOverTimeBuffer = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 100000 * sizeof(float));
+	rmseBuffer    = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
+	mseOverTimeBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 100000 * sizeof(float));
+	rmseOverTimeBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 100000 * sizeof(float));
 	isInitialized = true;
 }
 
@@ -31,8 +35,11 @@ ImageEstimatorComparator::ImageEstimatorComparator(VkFormat format, VkExtent2D e
 	tqManagerLeft    = TimeQueryManager(gState.heap, 1);
 	tqManagerRight   = TimeQueryManager(gState.heap, 1);
 	mseResources = MSEComputeResources(format, gState.heap);
+	rmseResources = MSEComputeResources(format, gState.heap);
 	mseBuffer        = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
-	mseOverTimeBuffer = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 100000 * sizeof(float));
+	rmseBuffer        = createBuffer(gState.hostCachedHeap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, sizeof(float));
+	mseOverTimeBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 100000 * sizeof(float));
+	rmseOverTimeBuffer = createBuffer(gState.heap, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_GPU_ONLY, 100000 * sizeof(float));
 	isInitialized = true;
 }
 
@@ -47,8 +54,11 @@ void ImageEstimatorComparator::garbageCollect()
 	tqManagerLeft.garbageCollect();
 	tqManagerRight.garbageCollect();
 	mseResources.garbageCollect();
+	rmseResources.garbageCollect();
 	mseBuffer->garbageCollect();
+	rmseBuffer->garbageCollect();
 	mseOverTimeBuffer->garbageCollect();
+	rmseOverTimeBuffer->garbageCollect();
 }
 
 void ImageEstimatorComparator::cmdReset(CmdBuffer cmdBuf, IECTarget target)
@@ -108,6 +118,7 @@ void ImageEstimatorComparator::cmdShow(CmdBuffer cmdBuf, Image target, VkRect2D_
 	args.useTonemapping = toneMappingArgs.useTonemapping;
 	args.whitePoint     = toneMappingArgs.whitePoint;
 	args.exposure       = toneMappingArgs.exposure;
+	args.useGammaCorrection = toneMappingArgs.useGammaCorrection;
 	args.useScissors    = false;
 	args.dstLayout      = targetLayout;
 	target->setClearValue(ClearValue::black());
@@ -139,6 +150,7 @@ void ImageEstimatorComparator::showSplitView(CmdBuffer cmdBuf, Image target, flo
 	args.useTonemapping = toneMappingArgs.useTonemapping;
 	args.whitePoint = toneMappingArgs.whitePoint;
 	args.exposure = toneMappingArgs.exposure;
+	args.useGammaCorrection = toneMappingArgs.useGammaCorrection;
 	args.useScissors    = true;
 	args.dstLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
@@ -189,7 +201,10 @@ Buffer ImageEstimatorComparator::getMSEBuf()
 {
 	return mseOverTimeBuffer;
 }
-
+Buffer ImageEstimatorComparator::getRMSEBuf()
+{
+	return rmseOverTimeBuffer;
+}
 float ImageEstimatorComparator::getMSE()
 {
 	Buffer hostMseBuf;

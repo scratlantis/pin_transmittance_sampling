@@ -46,6 +46,8 @@ GVar gvar_sub_sample_mode{"Subsample mode", 1U, GVAR_UINT_RANGE, GUI_CAT_PATH_TR
 GVar gvar_tone_mapping_enable{"Tone mapping", true, GVAR_BOOL, GUI_CAT_TONE_MAPPING};
 GVar gvar_tone_mapping_whitepoint{"Tone mapping whitepoint", 4.f, GVAR_FLOAT_RANGE, GUI_CAT_TONE_MAPPING, {1.f, 10.f}};
 GVar gvar_tone_mapping_exposure{"Tone mapping exposure", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_TONE_MAPPING, {0.001f, 1.f}};
+//GVar gvar_tone_mapping_gamma{"Tone mapping gamma", 2.2f, GVAR_FLOAT_RANGE, GUI_CAT_TONE_MAPPING, {0.1f, 4.f}};
+GVar gvar_tone_mapping_gamma_correction{"Tone mapping gamma correction", false, GVAR_BOOL, GUI_CAT_TONE_MAPPING};
 
 // Pins
 GVar gvar_pin_pos_grid_size{"Pin Pos Grid Size", 10U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 64U}};
@@ -392,6 +394,7 @@ int main(int argc, char *argv[])
 		toneMappingArgs.useTonemapping = gvar_tone_mapping_enable.val.v_bool;
 		toneMappingArgs.whitePoint     = gvar_tone_mapping_whitepoint.val.v_float;
 		toneMappingArgs.exposure       = gvar_tone_mapping_exposure.val.v_float;
+		toneMappingArgs.useGammaCorrection = gvar_tone_mapping_gamma_correction.val.v_bool;
 
 		if (gvar_evaluate.val.v_bool)
 		{
@@ -412,7 +415,7 @@ int main(int argc, char *argv[])
 			task.invocationsCompare = gvar_eval_comp_target_invokations.val.v_uint;
 			task.mode              = static_cast<OfflineRenderMode>(gvar_eval_mode.val.v_uint);
 			task.skipLeft          = gvar_eval_skip_left.val.v_bool;
-			task.toneMappingArgs    = {};
+			task.toneMappingArgs    = toneMappingArgs;
 			offlineRenderer.addTask(task);
 		}
 		gvar_remaning_tasks.val.v_uint = offlineRenderer.getTaskQueueSize();

@@ -159,6 +159,10 @@ DrawCmd getCmdMapImg(Image src, Image dst, MapImgArgs args)
 	{
 		drawCmd.pipelineDef.shaderDefinitions.back().args.push_back({"TONEMAPPING", ""});
 	}
+	if (args.useGammaCorrection)
+	{
+		drawCmd.pipelineDef.shaderDefinitions.back().args.push_back({"GAMMA_CORRECTION", ""});
+	}
 	return drawCmd;
 }
 

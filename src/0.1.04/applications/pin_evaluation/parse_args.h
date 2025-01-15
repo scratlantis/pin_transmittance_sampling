@@ -7,6 +7,7 @@ struct AppArgs
 	std::string outputDir;               // -o
 	std::string outputName;              // -n
 	std::string baseSettingsPath;        // -b
+	std::string overridePath;            // -override
 };
 
 bool parse_args(int argc, char **argv, AppArgs &args);

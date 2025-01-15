@@ -160,14 +160,14 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 	{
 		iec.cmdRun<TraceArgs>(cmdBuf, cmdTrace, internalTask.args, target, &internalTask.avgSampleTime,
 		                      computeMSE ? IEC_FLAGS_NONE : IEC_RUN_NO_MSE);
-		if (computeMSE && (internalTask.execCnt >= 10)) //hacky fix
+		if (computeMSE)        // && (internalTask.execCnt >= 10)) //hacky fix
 		{
-			internalTask.mse.push_back(iec.getMSE()); // e-6
+			internalTask.mse.push_back(iec.getMSE());        // e-6
 		}
 		if (internalTask.avgSampleTime * internalTask.execCnt > 1000.0 && !internalTask.hasFastResult && state != OFFLINE_RENDER_STATE_REF)
 		{
 			internalTask.hasFastResult = true;
-			Image png = createImage(pPool, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
+			Image png                  = createImage(pPool, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
 			iec.cmdShow(cmdBuf, png, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target, task.toneMappingArgs);
 			std::string taskDir;
 			if (gvar_eval_use_custom_export_path.val.v_bool && std::filesystem::exists(gvar_eval_custom_export_path.val.v_char_array.data()))
@@ -185,13 +185,17 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 			exportTask.pResource    = png;
 			exportTask.targetFormat = EXPORT_FORMAT_PNG;
 			gState.exporter->cmdExport(cmdBuf, exportTask);
+
+			internalTask.execCnt = 0;
+			cmdFill(cmdBuf, iec.localAccumulationTargetRight, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, glm::vec4(0.0));
+			internalTask.mse.clear();
 		}
 	}
 	else
 	{
 		waitIdle();
 		printVka("Render %s complete", internalTaskName.c_str());
-		iec.cmdShow(cmdBuf, internalTask.result, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target, task.toneMappingArgs);
+		iec.cmdShow(cmdBuf, internalTask.result, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target, {});
 		Image png = createImage(pPool, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, task.resolution);
 		iec.cmdShow(cmdBuf, png, VkRect2D_OP(task.resolution), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, target, task.toneMappingArgs);
 
@@ -222,15 +226,25 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		if (state != OFFLINE_RENDER_STATE_REF)
 		{
 			// Store mse over time data as csv
-			//Buffer     mseBuffer = createBuffer(pPool, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-			//cmdWriteCopy(cmdBuf, mseBuffer, internalTask.mse.data(), internalTask.mse.size() * sizeof(float));
+			for (size_t i = 0; i < internalTask.mse.size();i++)
+			{
+				printVka("MSE[%d]: %f", i, internalTask.mse[i]);
+			}
+			Buffer     mseBuffer = createBuffer(pPool, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+			cmdWriteCopy(cmdBuf, mseBuffer, internalTask.mse.data(), internalTask.mse.size() * sizeof(float));
 			ExportTask exportTask{};
-			exportTask.path                 = internalTaskPath + ".csv";
-			exportTask.pResource            = iec.getMSEBuf()->getSubBuffer({0, sizeof(float) * internalTask.execCnt});
+			exportTask.path                 = internalTaskPath + "_mse.csv";
+			exportTask.pResource            = mseBuffer;        // iec.getMSEBuf()->getSubBuffer({0, sizeof(float) * internalTask.execCnt});
 			exportTask.targetFormat         = EXPORT_FORMAT_CSV;
 			exportTask.bufferInfo.format    = EXPORT_BUFFER_FORMAT_FLOAT;
 			exportTask.bufferInfo.rowLength = internalTask.execCnt;        // internalTask.mse.size();
 			gState.exporter->cmdExport(cmdBuf, exportTask);
+			//exportTask.path                 = internalTaskPath + "_rmse.csv";
+			//exportTask.pResource            = iec.getRMSEBuf()->getSubBuffer({0, sizeof(float) * internalTask.execCnt});
+			//exportTask.targetFormat         = EXPORT_FORMAT_CSV;
+			//exportTask.bufferInfo.format    = EXPORT_BUFFER_FORMAT_FLOAT;
+			//exportTask.bufferInfo.rowLength = internalTask.execCnt;        // internalTask.mse.size();
+			//gState.exporter->cmdExport(cmdBuf, exportTask);
 		}
 
 		state = static_cast<OfflineRenderState>(state + 1);
