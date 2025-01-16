@@ -162,6 +162,8 @@ void TraceResources::cmdLoadSceneData(CmdBuffer cmdBuf, IResourcePool *pPool)
 	resourcesTypes |= TraceResourcesType_Scene;
 }
 
+extern GVar gvar_show_tex_size;
+
 void TraceResources::cmdLoadMedium(CmdBuffer cmdBuf, IResourcePool *pPool)
 {
 	if (resourcesTypes & TraceResourcesType_Medium)
@@ -230,6 +232,7 @@ void TraceResources::cmdLoadMedium(CmdBuffer cmdBuf, IResourcePool *pPool)
 		if (gvar_medium_source.val.v_uint == MEDIUM_SOURCE_FILE_MINUS_NOISE) args.blendMode = 3;
 		getCmdPerlinNoise(mediumTexture, args).exec(cmdBuf);
 	}
+	gvar_show_tex_size.val.v_float = mediumTexture->getMemorySize() / (1024.0f * 1024.0f);
 
 	resourcesTypes |= TraceResourcesType_Medium;
 }

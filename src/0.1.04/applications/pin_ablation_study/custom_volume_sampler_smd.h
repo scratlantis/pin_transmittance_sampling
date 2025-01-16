@@ -62,4 +62,4 @@ struct CVSData
 
 struct TraceArgs;
 CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, const TraceArgs &args);
-void    bindCVSModule(ComputeCmd &cmd, const CVSData &data, const CVSArgs &args);
+void    bindCVSModule(ComputeCmd &cmd, CVSData data, TraceArgs args)

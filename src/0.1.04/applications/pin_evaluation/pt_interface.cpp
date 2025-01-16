@@ -39,7 +39,7 @@ void cmdTrace(CmdBuffer cmdBuf, Image target, TraceArgs args)
 		cmd.pushSubmodule(cVkaShaderLibPath + "pt_plot/generate_pt_state_histogram.glsl");
 	}
 	cmd.pushSIDebugHeader();
-	bindCVSModule(cmd, cvsData, args.cvsArgs); // Binds pins
+	bindCVSModule(cmd, cvsData, args); // Binds pins
 	cmd.pushLocal();
 	cmd.pushDescriptor(target, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 	cmd.pushDescriptor(args.resources.mediumInstanceBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);

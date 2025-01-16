@@ -52,6 +52,10 @@ GVar gvar_tone_mapping_gamma_correction{"Tone mapping gamma correction", false, 
 // Pins
 GVar gvar_pin_pos_grid_size{"Pin Pos Grid Size", 10U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 64U}};
 GVar gvar_pin_dir_grid_size{"Pin Dir Grid Size", 8U, GVAR_UINT_RANGE, GUI_CAT_PINS, {1U, 256U}};
+
+GVar gvar_pin_use_relative_size{"Use relative size", true, GVAR_BOOL, GUI_CAT_PINS};
+GVar gvar_pin_relative_size{"Pin relative size", 1.0f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.1f, 10.f}};
+
 GVar gvar_pin_ray_march_step_size_coefficient{"Pin RM step size", 0.01f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_write_pin_step_size{"Pin write step size", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_PINS, {0.01f, 1.f}};
 GVar gvar_pin_update_mode{"Pin update mode", 1U, GVAR_ENUM, GUI_CAT_PINS, std::vector<std::string>({"All", "Trace"})};
@@ -75,6 +79,10 @@ GVar gvar_mse{"Avg squared diff: %.8f", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS
 GVar gvar_timing_left{"Timing Left: %.4f", 1.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
 GVar gvar_timing_right{"Timing Right: %.4f", 1.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
 
+
+GVar gvar_show_tex_size{"Texture size: %.3f", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
+GVar gvar_show_pin_grid_size{"Pin grid size: %.3f", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
+GVar gvar_show_pin_grid_size_coef{"Pin grid size coef: %.3f", 0.f, GVAR_DISPLAY_FLOAT, GUI_CAT_METRICS};
 
 
 // Evaluation
