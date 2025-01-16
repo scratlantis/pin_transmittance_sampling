@@ -52,8 +52,8 @@ GVar gvar_medium_inst_update{"Update", false, GVAR_EVENT, GUI_CAT_SCENE_MEDIUM_I
 // Medium Instance Args
 GVar gvar_medium_inst_count{"Instance count", 50, GVAR_UINT_RANGE, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, {1, 1000}};
 GVar gvar_medium_inst_seed{"Instance seed", 42, GVAR_UINT_RANGE, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, {0, 1000}};
-GVar gvar_medium_inst_scale_min{"Instance scale min", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, {0.01f, 1.f}};
-GVar gvar_medium_inst_scale_max{"Instance scale max", 0.9f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, {0.01f, 1.f}};
+GVar gvar_medium_inst_scale_min{"Instance scale min", 0.1f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, {0.01f, 10.f}};
+GVar gvar_medium_inst_scale_max{"Instance scale max", 0.9f, GVAR_FLOAT_RANGE, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, {0.01f, 10.f}};
 GVar gvar_medium_inst_up{"Instance up", 0U, GVAR_ENUM, GUI_CAT_SCENE_MEDIUM_INSTANCE_ARGS, std::vector<std::string>({"A", "B", "C"})};
 
 // Scene transforms

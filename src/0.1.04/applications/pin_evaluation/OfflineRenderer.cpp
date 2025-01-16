@@ -8,6 +8,7 @@ using json = nlohmann::json;
 
 //const float referenceRMStepSize = 0.01;
 GVar        gvar_eval_ref_rm_step_size{"Ref Step Size", 0.01f, GVAR_FLOAT_RANGE, GUI_CAT_EVALUATION_PARAMS, {0.001f, 0.1f}};
+extern GVar gvar_show_pin_grid_size_coef;
 
 OfflineRenderer::OfflineRenderer()
 {
@@ -162,7 +163,14 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 		                      computeMSE ? IEC_FLAGS_NONE : IEC_RUN_NO_MSE);
 		if (computeMSE)        // && (internalTask.execCnt >= 10)) //hacky fix
 		{
-			internalTask.mse.push_back(iec.getMSE());        // e-6
+			if (gvar_sample_eval_target.val.v_uint != EVAL_TARGET_NO_REF)
+			{
+				internalTask.mse.push_back(iec.getMSE());        // e-6
+			}
+			else
+			{
+				internalTask.mse.push_back(1.0);
+			}
 		}
 		if (internalTask.avgSampleTime * internalTask.execCnt > 1000.0 && !internalTask.hasFastResult && state != OFFLINE_RENDER_STATE_REF)
 		{
@@ -269,6 +277,8 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 
 			j["right_avg_sample_time"] = rightTask.avgSampleTime;
 			j["right_sample_count"]    = rightTask.execCnt;
+
+			j["grid_size_coef"] = gvar_show_pin_grid_size_coef.val.v_float;
 
 			o << std::setw(4) << j << std::endl;
 			o.close();
