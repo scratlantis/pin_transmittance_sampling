@@ -20,7 +20,7 @@ layout(binding = PT_SCALAR_FIELD_BINDING_OFFSET + 1) uniform DENSITY_SCALE
 	float maxDensity;
 };
 
-#if 1
+#if 0
 float rayMarcheMedium(vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
 	float rng = unormNext(seed);
@@ -75,7 +75,7 @@ float rayMarcheMedium(vec3 origin, vec3 direction, float maxLength, inout uint s
 
 		// Sample density
 		float density = texture(volSmp, pos).r;
-		if(density >= minDensity)
+		if(density >= minDensity && density < maxDensity)
 		{
 			density*=densityScale;
 			transmittance *= exp(-density * RAY_MARCHE_STEP_SIZE);
@@ -91,7 +91,7 @@ float rayMarcheMedium(vec3 origin, vec3 direction, float maxLength, inout uint s
 #endif
 
 
-#if 1
+#if 0
 float rayMarcheMediumTransmittance(vec3 origin, vec3 direction, float maxLength, inout uint seed)
 {
 	const float max_steps = sqrt(3.0) * 2.0 / RAY_MARCHE_STEP_SIZE;

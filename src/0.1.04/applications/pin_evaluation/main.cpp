@@ -6,6 +6,11 @@
 #include "SinglePassOfflineRenderer.h"
 #include "misc.h"
 #include "parse_args.h"
+
+
+#include "shaders/pins/interface_structs.glsl"
+#include "custom_volume_sampler_smd.h"
+
 AdvancedState     gState;
 const std::string gShaderOutputDir = SHADER_OUTPUT_DIR;
 const std::string gAppShaderRoot   = std::string(APP_SRC_DIR) + "/shaders/";
@@ -349,6 +354,30 @@ int main(int argc, char *argv[])
 		cvsArgs.pinArgs.jitterPos                = gvar_jitter_pos.val.v_float;
 		cvsArgs.pinArgs.jitterDir                = gvar_jitter_dir.val.v_float;
 		cvsArgs.forceFullUpdate                  = guiCatChanged(GUI_CAT_SCENE_MEDIUM_DENSITY);
+
+		if (gvar_pin_use_relative_size.val.v_bool)
+		{
+			uint32_t pinStructSize = 0;
+			switch (gvar_pin_mode_right.val.v_uint)
+			{
+				case 1U:
+					pinStructSize = sizeof(GLSLPinCacheEntryV1);
+					break;
+				case 2U:
+					pinStructSize = sizeof(GLSLPinCacheEntryV2);
+					break;
+				case 3U:
+					pinStructSize = sizeof(GLSLPinCacheEntryV3);
+					break;
+			}
+			float    textureSize                   = static_cast<float>(traceResources.mediumTexture->getMemorySize());
+			float	 relativeSize                  = textureSize * gvar_pin_relative_size.val.v_float;
+			float    gridCellCount                 = relativeSize / float(pinStructSize);
+			float    angularGridSize               = squared(cvsArgs.pinGridExtent.directionGridSize) * 4.f;
+			float    positionGridSize              = gridCellCount / angularGridSize;
+			cvsArgs.pinGridExtent.positionGridSize = static_cast<uint32_t>(std::pow(positionGridSize, 1.f / 3.f));
+			//printVka("Relative size: %f, Grid cell count: %f, Angular grid size: %f, Position grid size: %f, Pos Grid dim: %d \n", relativeSize, gridCellCount, angularGridSize, positionGridSize, cvsArgs.pinGridExtent.positionGridSize);
+		}
 
 		TraceDebugArgs debugArgs{};
 		if (gvar_enable_debuging.val.v_bool)

@@ -13,7 +13,7 @@ extern GVar gvar_pin_relative_size;
 
 
 
-CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, TraceArgs args)
+CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, const TraceArgs &args)
 {
 	CVSArgs cvsArgs = args.cvsArgs;
 	std::hash<std::string> hasher;
@@ -37,17 +37,8 @@ CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, TraceArgs args)
 	}
 
 	//uint32_t pinGridCellCount = cubed(cvsArgs.pinGridExtent.positionGridSize) * squared(cvsArgs.pinGridExtent.directionGridSize);
-	uint32_t pinGridCellCount;
-	if (gvar_pin_use_relative_size.val.v_bool)
-	{
-		uint32_t textureSize = args.resources.mediumTexture->getMemorySize();
-		uint32_t relativeSize = (uint32_t) textureSize * gvar_pin_relative_size.val.v_float;
-		uint32_t gridCellCount = relativeSize / pinStructSize;
-		uint32_t angularGridSize = squared(cvsArgs.pinGridExtent.directionGridSize) * 4;
-		uint32_t positionGridSize = gridCellCount / angularGridSize;
-		cvsArgs.pinGridExtent.positionGridSize = (uint32_t) std::pow((float) positionGridSize, 1.f / 3.f);
-	}
-	pinGridCellCount = cubed(cvsArgs.pinGridExtent.positionGridSize) * squared(cvsArgs.pinGridExtent.directionGridSize) * 4;
+	
+	uint32_t pinGridCellCount = cubed(cvsArgs.pinGridExtent.positionGridSize) * squared(cvsArgs.pinGridExtent.directionGridSize) * 4;
 
 
 	uint32_t pinGridMemorySize = pinGridCellCount * pinStructSize;
@@ -101,43 +92,19 @@ CVSData cmdPrepareCVSData(CmdBuffer cmdBuf, TraceArgs args)
 	return data;
 }
 
-void bindCVSModule(ComputeCmd &cmd, const CVSData &data, TraceArgs args)
+void bindCVSModule(ComputeCmd &cmd, const CVSData &data, const CVSArgs &args)
 {
-	CVSArgs cvsArgs = args.cvsArgs;
 	cmd.pushSubmodule(shaderPath + "custom_volume_sampler.glsl");
-	if (cvsArgs.pinArgs.type != PinType::NONE)
+	if (args.pinArgs.type != PinType::NONE)
 	{
 		cmd.pushDescriptor(data.pinGridBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	}
-	uint32_t pinStructSize = 0;
-	switch (cvsArgs.pinArgs.type)
-	{
-		case PinType::V1:
-			pinStructSize = sizeof(GLSLPinCacheEntryV1);
-			break;
-		case PinType::V2:
-			pinStructSize = sizeof(GLSLPinCacheEntryV2);
-			break;
-		case PinType::V3:
-			pinStructSize = sizeof(GLSLPinCacheEntryV3);
-			break;
-	}
-	if (pinStructSize > 0 && gvar_pin_use_relative_size.val.v_bool)
-	{
-		uint32_t textureSize                   = args.resources.mediumTexture->getMemorySize();
-		uint32_t relativeSize                  = (uint32_t) textureSize * gvar_pin_relative_size.val.v_float;
-		uint32_t gridCellCount                 = relativeSize / pinStructSize;
-		uint32_t angularGridSize               = squared(cvsArgs.pinGridExtent.directionGridSize) * 4;
-		uint32_t positionGridSize              = gridCellCount / angularGridSize;
-		cvsArgs.pinGridExtent.positionGridSize = (uint32_t) std::pow((float) positionGridSize, 1.f / 3.f);
-	}
-
-	cmd.pipelineDef.shaderDef.args.push_back({"PIN_POS_GRID_SIZE", cvsArgs.pinGridExtent.positionGridSize});
-	cmd.pipelineDef.shaderDef.args.push_back({"PIN_DIR_GRID_SIZE", cvsArgs.pinGridExtent.directionGridSize});
-	cmd.pipelineDef.shaderDef.args.push_back({"PIN_TYPE", static_cast<uint32_t>(cvsArgs.pinArgs.type)});
-	cmd.pipelineDef.shaderDef.args.push_back({"SAMPLE_TYPE", static_cast<uint32_t>(cvsArgs.pinArgs.sampleMode)});
-	cmd.pipelineDef.shaderDef.args.push_back({"RNG_SAMPLE_MASK_ITERATIONS", cvsArgs.pinArgs.bitMaskIterations});
-	cmd.pipelineDef.shaderDef.args.push_back({"PIN_TYPE", static_cast<uint32_t>(cvsArgs.pinArgs.type)});
-	cmd.pushSpecializationConst(cvsArgs.pinArgs.jitterPos);
-	cmd.pushSpecializationConst(cvsArgs.pinArgs.jitterDir);
+	cmd.pipelineDef.shaderDef.args.push_back({"PIN_POS_GRID_SIZE", args.pinGridExtent.positionGridSize});
+	cmd.pipelineDef.shaderDef.args.push_back({"PIN_DIR_GRID_SIZE", args.pinGridExtent.directionGridSize});
+	cmd.pipelineDef.shaderDef.args.push_back({"PIN_TYPE", static_cast<uint32_t>(args.pinArgs.type)});
+	cmd.pipelineDef.shaderDef.args.push_back({"SAMPLE_TYPE", static_cast<uint32_t>(args.pinArgs.sampleMode)});
+	cmd.pipelineDef.shaderDef.args.push_back({"RNG_SAMPLE_MASK_ITERATIONS", args.pinArgs.bitMaskIterations});
+	cmd.pipelineDef.shaderDef.args.push_back({"PIN_TYPE", static_cast<uint32_t>(args.pinArgs.type)});
+	cmd.pushSpecializationConst(args.pinArgs.jitterPos);
+	cmd.pushSpecializationConst(args.pinArgs.jitterDir);
 }
