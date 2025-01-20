@@ -10,6 +10,10 @@ extern GVar gvar_menu;
 GVar gvar_model_path{"Select model", modelPath + "under_the_c/scene_1.obj", GVAR_FILE_INPUT, GUI_CAT_SCENE_GENERAL, std::vector<std::string>({".obj", modelPath})};
 GVar gvar_texture_path{"Select envmap", texturePath + "envmap/2k/cloudy_dusky_sky_dome_2k.hdr", GVAR_FILE_INPUT, GUI_CAT_SCENE_GENERAL, std::vector<std::string>({".hdr", texturePath})};
 
+VkExtent3D gMedTextureSize = VkExtent3D{0, 0, 0};
+VkDeviceSize gMedTextureMemSize = 0;
+
+
 // Medium
 enum MediumSource
 {
@@ -233,7 +237,8 @@ void TraceResources::cmdLoadMedium(CmdBuffer cmdBuf, IResourcePool *pPool)
 		getCmdPerlinNoise(mediumTexture, args).exec(cmdBuf);
 	}
 	gvar_show_tex_size.val.v_float = mediumTexture->getMemorySize() / (1024.0f * 1024.0f);
-
+	gMedTextureSize = mediumTexture->getExtent();
+	gMedTextureMemSize = mediumTexture->getMemorySize();
 	resourcesTypes |= TraceResourcesType_Medium;
 }
 

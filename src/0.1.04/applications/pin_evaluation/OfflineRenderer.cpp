@@ -5,6 +5,9 @@
 #include <parse_args.h>
 
 using json = nlohmann::json;
+extern VkExtent3D gMedTextureSize;
+extern VkDeviceAddress gMedTextureMemSize;
+
 
 //const float referenceRMStepSize = 0.01;
 GVar        gvar_eval_ref_rm_step_size{"Ref Step Size", 0.01f, GVAR_FLOAT_RANGE, GUI_CAT_EVALUATION_PARAMS, {0.001f, 0.1f}};
@@ -279,6 +282,13 @@ bool OfflineRenderer::cmdRunTick(CmdBuffer cmdBuf)
 			j["right_sample_count"]    = rightTask.execCnt;
 
 			j["grid_size_coef"] = gvar_show_pin_grid_size_coef.val.v_float;
+
+			j["dir_grid_size"] = task.cvsArgsLeft.pinGridExtent.directionGridSize;
+			j["pos_grid_size"] = task.cvsArgsLeft.pinGridExtent.positionGridSize;
+			j["texture_dim"]    = {gMedTextureSize.width, gMedTextureSize.height, gMedTextureSize.depth};
+			j["texture_size"]   = gMedTextureMemSize;
+			j["pin_grid_size"] = task.cvsArgsRight.pinGridBuffer->getSize();
+			j["total_mem_size"] = task.cvsArgsRight.pinGridBuffer->getSize() + gMedTextureMemSize;
 
 			o << std::setw(4) << j << std::endl;
 			o.close();
